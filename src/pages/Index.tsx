@@ -15,6 +15,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   const navigateByRole = useCallback(async (uid: string) => {
+    // Check admin role first
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+    if (isAdmin) { navigate("/admin"); return; }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, role")
