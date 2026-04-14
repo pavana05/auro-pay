@@ -14,31 +14,32 @@ const Index = () => {
   const [userPhone, setUserPhone] = useState("");
   const navigate = useNavigate();
 
+  const navigateByRole = useCallback(async (uid: string) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("id", uid)
+      .single();
+    if (profile) {
+      if (profile.role === "parent") navigate("/parent");
+      else navigate("/home");
+    } else {
+      setState("profile-setup");
+    }
+  }, [navigate]);
+
   const checkSession = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUserId(session.user.id);
       setUserPhone(session.user.phone || "");
-      // Check if profile exists
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", session.user.id)
-        .single();
-      if (profile) {
-        navigate("/home");
-      } else {
-        setState("profile-setup");
-      }
+      await navigateByRole(session.user.id);
     } else {
       setState("onboarding");
     }
-  }, [navigate]);
+  }, [navigateByRole]);
 
-  const handleSplashComplete = () => {
-    checkSession();
-  };
-
+  const handleSplashComplete = () => checkSession();
   const handleOnboardingComplete = () => setState("auth");
 
   const handleAuth = async () => {
@@ -46,20 +47,13 @@ const Index = () => {
     if (session?.user) {
       setUserId(session.user.id);
       setUserPhone(session.user.phone || "");
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", session.user.id)
-        .single();
-      if (profile) {
-        navigate("/home");
-      } else {
-        setState("profile-setup");
-      }
+      await navigateByRole(session.user.id);
     }
   };
 
-  const handleProfileComplete = () => navigate("/home");
+  const handleProfileComplete = async () => {
+    await navigateByRole(userId);
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

@@ -12,6 +12,9 @@ import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
 import AddMoney from "./pages/AddMoney.tsx";
+import ParentHome from "./pages/ParentHome.tsx";
+import ParentTeenDetail from "./pages/ParentTeenDetail.tsx";
+import ParentAddMoney from "./pages/ParentAddMoney.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
 import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
@@ -37,6 +40,9 @@ const App = () => (
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/scan" element={<ScanPay />} />
           <Route path="/add-money" element={<AddMoney />} />
+          <Route path="/parent" element={<ParentHome />} />
+          <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
+          <Route path="/parent/add-money" element={<ParentAddMoney />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/transactions" element={<AdminTransactions />} />
