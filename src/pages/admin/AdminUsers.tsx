@@ -39,8 +39,9 @@ const AdminUsers = () => {
     // Fetch wallets and tx counts
     const enriched = await Promise.all(
       profiles.map(async (p) => {
-        const { data: w } = await supabase.from("wallets").select("balance, is_frozen").eq("user_id", p.id).single();
-        const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", w?.id || "");
+      const { data: w } = await supabase.from("wallets").select("id, balance, is_frozen").eq("user_id", p.id).single();
+        const walletId = (w as any)?.id;
+        const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", walletId || "");
         return { ...p, wallet: w as UserWallet | undefined, txCount: txns?.length || 0 };
       })
     );
