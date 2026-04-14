@@ -30,7 +30,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
       const { error: profileError } = await supabase.from("profiles").insert({
         id: userId,
         full_name: fullName.trim(),
-        phone,
+        phone: phone?.trim() || null,
         role,
         kyc_status: "pending",
       });
