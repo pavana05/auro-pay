@@ -22,39 +22,46 @@ const ScanPay = () => {
   const [category, setCategory] = useState("other");
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [streamRef, setStreamRef] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
+    let cancelled = false;
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      setStreamRef(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      } catch {
+        toast.error("Camera access denied. Please allow camera permissions.");
       }
-      // Start scanning loop
-      scanLoop(stream);
-    } catch {
-      toast.error("Camera access denied. Please allow camera permissions.");
+    };
+
+    if (scanning) {
+      startCamera();
     }
-  };
 
-  const stopCamera = () => {
-    streamRef?.getTracks().forEach((t) => t.stop());
-  };
-
-  const scanLoop = (stream: MediaStream) => {
-    // Simple QR detection placeholder — in production use a library like jsQR
-    // For now, provide manual UPI ID entry as fallback
-  };
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [scanning]);
 
   const toggleTorch = async () => {
     if (!streamRef) return;
