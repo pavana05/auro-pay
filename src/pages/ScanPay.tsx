@@ -120,36 +120,18 @@ const ScanPay = () => {
 
     setProcessing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
-
-      const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
-      if (!wallet) throw new Error("Wallet not found");
-
-      const amountPaise = Math.round(parseFloat(amount) * 100);
-
-      if (wallet.is_frozen) throw new Error("Wallet is frozen. Contact parent.");
-      if ((wallet.balance || 0) < amountPaise) throw new Error("Insufficient balance");
-      if ((wallet.spent_today || 0) + amountPaise > (wallet.daily_limit || 50000)) throw new Error("Daily limit exceeded");
-
-      // Create transaction
-      const { error: txError } = await supabase.from("transactions").insert({
-        wallet_id: wallet.id,
-        type: "debit",
-        amount: amountPaise,
-        merchant_name: parsedUPI.pn || parsedUPI.pa,
-        merchant_upi_id: parsedUPI.pa,
-        category,
-        status: "success",
-        description: parsedUPI.tn || `Payment to ${parsedUPI.pn || parsedUPI.pa}`,
+      const { data, error } = await supabase.functions.invoke("process-scan-payment", {
+        body: {
+          upi_id: parsedUPI.pa,
+          payee_name: parsedUPI.pn,
+          amount: parseFloat(amount),
+          category,
+          note: parsedUPI.tn,
+        },
       });
-      if (txError) throw txError;
 
-      // Update wallet
-      await supabase.from("wallets").update({
-        balance: (wallet.balance || 0) - amountPaise,
-        spent_today: (wallet.spent_today || 0) + amountPaise,
-      }).eq("id", wallet.id);
+      if (error) throw new Error(error.message || "Payment failed");
+      if (data?.error) throw new Error(data.error);
 
       setSuccess(true);
       if (navigator.vibrate) navigator.vibrate(200);
