@@ -1,75 +1,44 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
-  const [phone, setPhone] = useState("");
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    if (resendTimer > 0) {
-      const t = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(t);
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast.error("Enter email and password");
+      return;
     }
-  }, [resendTimer]);
-
-  const sendOtp = async () => {
-    if (phone.length !== 10) {
-      toast.error("Enter a valid 10-digit phone number");
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+91${phone}`,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("OTP sent!");
-    setStep("otp");
-    setResendTimer(30);
-  };
-
-  const verifyOtp = async (otpStr: string) => {
-    setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: `+91${phone}`,
-      token: otpStr,
-      type: "sms",
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    onAuth();
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    const full = newOtp.join("");
-    if (full.length === 6) {
-      verifyOtp(full);
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Account created!");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Welcome back!");
+      }
+      onAuth();
+    } catch (err: any) {
+      toast.error(err.message || "Authentication failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,83 +49,53 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
       </h1>
       <p className="text-sm text-muted-foreground mb-12">Money freedom for teens</p>
 
-      {step === "phone" ? (
-        <div className="w-full max-w-sm animate-fade-in-up">
-          <h2 className="text-[22px] font-semibold mb-2">Welcome!</h2>
-          <p className="text-sm text-muted-foreground mb-8">Enter your phone number to get started</p>
-          
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-[52px] px-4 rounded-[14px] bg-input border border-border flex items-center text-sm text-muted-foreground shrink-0">
-              🇮🇳 +91
-            </div>
-            <input
-              type="tel"
-              maxLength={10}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              placeholder="Phone number"
-              className="input-auro flex-1 w-full"
-              autoFocus
-            />
-          </div>
+      <div className="w-full max-w-sm animate-fade-in-up">
+        <h2 className="text-[22px] font-semibold mb-2">
+          {isSignUp ? "Create Account" : "Welcome Back"}
+        </h2>
+        <p className="text-sm text-muted-foreground mb-8">
+          {isSignUp ? "Sign up to get started" : "Log in to your account"}
+        </p>
 
-          <button
-            onClick={sendOtp}
-            disabled={loading || phone.length !== 10}
-            className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Sending..." : "Send OTP"}
-          </button>
-        </div>
-      ) : (
-        <div className="w-full max-w-sm animate-fade-in-up">
-          <h2 className="text-[22px] font-semibold mb-2">Verify OTP</h2>
-          <p className="text-sm text-muted-foreground mb-8">
-            Enter the 6-digit code sent to +91 {phone}
-          </p>
+        <label className="text-xs font-medium tracking-wider text-muted-foreground mb-2 block">
+          EMAIL
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="input-auro w-full mb-4"
+          autoFocus
+        />
 
-          <div className="flex gap-3 justify-center mb-8">
-            {otp.map((digit, i) => (
-              <input
-                key={i}
-                ref={(el) => { inputRefs.current[i] = el; }}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(i, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                className="w-12 h-14 rounded-[14px] bg-input border border-border text-center text-lg font-semibold text-foreground transition-all duration-200 focus:border-primary focus:shadow-[0_0_0_3px_hsl(263_84%_58%/0.2)] outline-none"
-                autoFocus={i === 0}
-              />
-            ))}
-          </div>
+        <label className="text-xs font-medium tracking-wider text-muted-foreground mb-2 block">
+          PASSWORD
+        </label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Min 6 characters"
+          className="input-auro w-full mb-6"
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+        />
 
-          {loading && (
-            <p className="text-center text-sm text-muted-foreground mb-4">Verifying...</p>
-          )}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+        >
+          {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Log In"}
+        </button>
 
-          <div className="text-center">
-            {resendTimer > 0 ? (
-              <p className="text-sm text-muted-foreground">Resend in {resendTimer}s</p>
-            ) : (
-              <button
-                onClick={sendOtp}
-                className="text-sm text-primary hover:underline"
-              >
-                Resend OTP
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={() => { setStep("phone"); setOtp(["", "", "", "", "", ""]); }}
-            className="mt-6 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Change phone number
-          </button>
-        </div>
-      )}
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="mt-6 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isSignUp ? "Already have an account? Log in" : "Don't have an account? Sign up"}
+        </button>
+      </div>
     </div>
   );
 };

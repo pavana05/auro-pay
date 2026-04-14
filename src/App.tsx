@@ -10,6 +10,15 @@ import CardScreen from "./pages/CardScreen.tsx";
 import ProfileScreen from "./pages/ProfileScreen.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
+import ScanPay from "./pages/ScanPay.tsx";
+import AddMoney from "./pages/AddMoney.tsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
+import AdminKyc from "./pages/admin/AdminKyc.tsx";
+import AdminWallets from "./pages/admin/AdminWallets.tsx";
+import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
+import AdminSettings from "./pages/admin/AdminSettings.tsx";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +35,15 @@ const App = () => (
           <Route path="/profile" element={<ProfileScreen />} />
           <Route path="/savings" element={<SavingsGoals />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/scan" element={<ScanPay />} />
+          <Route path="/add-money" element={<AddMoney />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/transactions" element={<AdminTransactions />} />
+          <Route path="/admin/kyc" element={<AdminKyc />} />
+          <Route path="/admin/wallets" element={<AdminWallets />} />
+          <Route path="/admin/notifications" element={<AdminNotifications />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
