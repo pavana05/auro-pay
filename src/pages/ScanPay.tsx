@@ -64,8 +64,8 @@ const ScanPay = () => {
   }, [scanning]);
 
   const toggleTorch = async () => {
-    if (!streamRef) return;
-    const track = streamRef.getVideoTracks()[0];
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
     try {
       await (track as any).applyConstraints({ advanced: [{ torch: !torchOn }] });
       setTorchOn(!torchOn);
