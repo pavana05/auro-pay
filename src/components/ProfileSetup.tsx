@@ -74,7 +74,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background noise-overlay px-6 py-12">
-      <h1 className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">AuroPay</h1>
+      <h1 className="text-4xl font-bold gradient-text mb-2">AuroPay</h1>
 
       {/* Progress */}
       <div className="flex gap-2 my-6">

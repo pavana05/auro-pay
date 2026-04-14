@@ -24,7 +24,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
           <div className="w-32 h-32 rounded-full border border-primary/20 animate-pulse-ring [animation-delay:0.5s]" />
         </div>
         {/* Logo */}
-        <h1 className="relative text-4xl font-bold gradient-primary bg-clip-text text-transparent z-10">
+        <h1 className="relative text-4xl font-bold gradient-text z-10">
           AuroPay
         </h1>
       </div>
