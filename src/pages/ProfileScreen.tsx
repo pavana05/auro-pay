@@ -23,8 +23,8 @@ const ProfileScreen = () => {
       setProfile(p.data);
       setWallet(w.data);
       if (w.data) {
-        const { count } = await supabase.from("transactions").select("*", { count: "exact", head: true }).eq("wallet_id", w.data.id);
-        setTxCount(count || 0);
+        const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", w.data.id);
+        setTxCount(txns?.length || 0);
       }
       setLoading(false);
     };
