@@ -81,6 +81,13 @@
     background: linear-gradient(135deg, hsl(263 84% 58%), hsl(271 91% 65%));
   }
 
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(263 84% 58%), hsl(271 91% 65%), hsl(280 80% 72%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .gradient-card {
     background: linear-gradient(135deg, hsl(267 65% 11%), hsl(260 50% 25%));
   }

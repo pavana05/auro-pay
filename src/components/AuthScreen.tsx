@@ -44,7 +44,7 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background noise-overlay px-6">
-      <h1 className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+      <h1 className="text-4xl font-bold gradient-text mb-2">
         AuroPay
       </h1>
       <p className="text-sm text-muted-foreground mb-12">Money freedom for teens</p>
