@@ -108,6 +108,7 @@ const TransactionDetailPage = () => {
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportDescription, setReportDescription] = useState("");
 
   // Memoize random values so they don't regenerate on re-render
   const particles = useMemo(() => ({
@@ -629,6 +630,20 @@ const TransactionDetailPage = () => {
                   ))}
                 </div>
 
+                {/* Description field for "Other issue" */}
+                {reportReason === "other" && (
+                  <div className="mb-5" style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+                    <textarea
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      placeholder="Please describe your issue..."
+                      maxLength={500}
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:border-red-400/30 focus:ring-1 focus:ring-red-400/20 transition-all"
+                    />
+                    <p className="text-[10px] text-muted-foreground/40 mt-1.5 text-right">{reportDescription.length}/500</p>
+                  </div>
+                )}
                 <button
                   onClick={() => {
                     if (!reportReason) { toast.error("Please select a reason"); return; }
