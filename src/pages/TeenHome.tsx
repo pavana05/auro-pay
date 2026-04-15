@@ -337,7 +337,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Quick Actions — Premium Glassmorphism ─── */}
-        <SpringIn delay={0.1} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <div className="relative rounded-[24px] overflow-hidden border border-white/[0.04] p-4" style={{
             background: `
               radial-gradient(ellipse 50% 60% at 20% 10%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
@@ -371,7 +371,7 @@ const TeenHome = () => {
               ))}
             </div>
           </div>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Spending Insights (AI-powered) ─── */}
         <SpringIn delay={0.12} className="px-5 mb-6">
