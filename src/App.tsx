@@ -73,6 +73,7 @@ const App = () => (
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/rewards/:id" element={<RewardDetail />} />
+          <Route path="/transaction/:id" element={<TransactionDetailPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
