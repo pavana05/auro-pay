@@ -61,12 +61,15 @@ const AdminDashboard = () => {
     totalUsers: 0, totalTransactionsToday: 0, totalVolumeToday: 0,
     pendingKyc: 0, frozenWallets: 0, activeWallets: 0, totalBalance: 0,
     newUsersToday: 0, totalTransactionsAll: 0, successRate: 0, teens: 0, parents: 0,
+    verifiedKyc: 0, avgBalance: 0,
   });
   const [liveTxns, setLiveTxns] = useState<Transaction[]>([]);
   const [dailyVolume, setDailyVolume] = useState<any[]>([]);
   const [txTypeData, setTxTypeData] = useState<any[]>([]);
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [roleDistribution, setRoleDistribution] = useState<any[]>([]);
+  const [recentSignups, setRecentSignups] = useState<RecentSignup[]>([]);
+  const [topMerchants, setTopMerchants] = useState<TopMerchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
