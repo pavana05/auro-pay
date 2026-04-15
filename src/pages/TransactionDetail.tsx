@@ -566,7 +566,88 @@ const TransactionDetailPage = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowReport(false)}>
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-md" style={{ animation: "fade-in 0.2s ease-out" }} />
+          <div className="relative w-full max-w-lg rounded-t-3xl border-t border-white/[0.08] p-6"
+            style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="absolute top-0 left-0 right-0 h-[1px]"
+              style={{ background: "linear-gradient(90deg, transparent, hsl(0 72% 51% / 0.5), transparent)" }} />
+            <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mb-5" />
+
+            {reportSubmitted ? (
+              <div className="text-center py-6" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+                <div className="w-16 h-16 rounded-full bg-emerald-400/10 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                </div>
+                <h2 className="text-[16px] font-bold mb-1">Report Submitted</h2>
+                <p className="text-[12px] text-muted-foreground mb-5">We'll review your report and get back to you within 24-48 hours.</p>
+                <button onClick={() => setShowReport(false)}
+                  className="px-6 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm font-semibold active:scale-95 transition-all">
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-red-400/10 flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Report Transaction</h2>
+                    <p className="text-[11px] text-muted-foreground">Tell us what went wrong</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 mb-5">
+                  {[
+                    { key: "unauthorized", label: "Unauthorized transaction", icon: "🚫" },
+                    { key: "wrong_amount", label: "Wrong amount charged", icon: "💰" },
+                    { key: "not_received", label: "Payment not received", icon: "📭" },
+                    { key: "duplicate", label: "Duplicate transaction", icon: "📋" },
+                    { key: "fraud", label: "Suspected fraud", icon: "⚠️" },
+                    { key: "other", label: "Other issue", icon: "💬" },
+                  ].map((reason, i) => (
+                    <button key={reason.key} onClick={() => setReportReason(reason.key)}
+                      className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-200 active:scale-[0.98] ${
+                        reportReason === reason.key
+                          ? "bg-red-400/[0.08] border border-red-400/20"
+                          : "bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04]"
+                      }`}
+                      style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.05 + i * 0.04}s both` }}>
+                      <span className="text-[18px]">{reason.icon}</span>
+                      <span className={`text-[13px] font-medium ${reportReason === reason.key ? "text-red-400" : "text-foreground/70"}`}>{reason.label}</span>
+                      {reportReason === reason.key && (
+                        <div className="ml-auto w-5 h-5 rounded-full bg-red-400/20 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-red-400" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (!reportReason) { toast.error("Please select a reason"); return; }
+                    haptic.medium();
+                    setReportSubmitted(true);
+                  }}
+                  disabled={!reportReason}
+                  className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.97] ${
+                    reportReason
+                      ? "bg-red-400/15 border border-red-400/25 text-red-400 hover:bg-red-400/20"
+                      : "bg-white/[0.03] border border-white/[0.05] text-muted-foreground cursor-not-allowed"
+                  }`}>
+                  Submit Report
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
   );
 };
 
