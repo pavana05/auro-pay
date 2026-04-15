@@ -53,7 +53,15 @@ import Referrals from "./pages/Referrals.tsx";
 import FinancialEducation from "./pages/FinancialEducation.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min - pages won't refetch if data is fresh
+      gcTime: 30 * 60 * 1000, // 30 min cache
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const RealtimeWrapper = ({ children }: { children: React.ReactNode }) => {
   useRealtimeNotifications();
