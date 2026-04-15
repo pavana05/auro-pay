@@ -88,6 +88,10 @@ const QuickPay = () => {
   const [numpadPressed, setNumpadPressed] = useState<string | null>(null);
   const [amountPulse, setAmountPulse] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [successAmount, setSuccessAmount] = useState("");
+  const [successTimestamp, setSuccessTimestamp] = useState("");
+  const [successTxnId, setSuccessTxnId] = useState("");
 
   const navigate = useNavigate();
 
