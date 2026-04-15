@@ -4,12 +4,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Wallet, Bell, Settings, LogOut, Activity, Search,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Crown,
 } from "lucide-react";
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/admin/users", icon: Users, label: "Users" },
+  { path: "/admin/roles", icon: Crown, label: "Roles" },
   { path: "/admin/transactions", icon: ArrowLeftRight, label: "Transactions" },
   { path: "/admin/kyc", icon: ShieldCheck, label: "KYC Requests" },
   { path: "/admin/wallets", icon: Wallet, label: "Wallets" },

@@ -92,6 +92,96 @@
     background: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 12% 14%));
   }
 
+  /* Gold shimmer border animation */
+  .shimmer-border {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      transparent 20%,
+      hsl(42 78% 55% / 0.4) 40%,
+      hsl(36 80% 60% / 0.6) 50%,
+      hsl(42 78% 55% / 0.4) 60%,
+      transparent 80%
+    );
+    background-size: 300% 300%;
+    animation: shimmer-sweep 3s ease-in-out infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .shimmer-glow {
+    position: relative;
+  }
+
+  .shimmer-glow::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(42 78% 55% / 0.15) 45%,
+      hsl(42 78% 65% / 0.3) 50%,
+      hsl(42 78% 55% / 0.15) 55%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-glow-sweep 2.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Premium badge with shimmer */
+  .badge-premium {
+    background: linear-gradient(135deg, hsl(42 78% 55%), hsl(36 80% 42%));
+    color: hsl(220 20% 4%);
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .badge-premium::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(0 0% 100% / 0.25),
+      transparent
+    );
+    animation: badge-shine 2s ease-in-out infinite;
+  }
+
+  /* Card hover gold lift */
+  .card-premium {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid hsl(42 30% 30% / 0.18);
+  }
+
+  .card-premium:hover {
+    border-color: hsl(42 60% 50% / 0.35);
+    box-shadow:
+      inset 0 1px 0 hsl(40 20% 95% / 0.06),
+      0 8px 32px -8px hsl(42 78% 55% / 0.12),
+      0 0 0 1px hsl(42 60% 50% / 0.1);
+    transform: translateY(-1px);
+  }
+
   .input-auro {
     @apply bg-input border border-border rounded-[14px] h-[52px] text-foreground px-4 transition-all duration-200;
   }
@@ -101,4 +191,21 @@
     box-shadow: 0 0 0 3px hsl(42 78% 55% / 0.15);
     outline: none;
   }
+}
+
+@keyframes shimmer-sweep {
+  0% { background-position: 100% 100%; }
+  50% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+@keyframes shimmer-glow-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes badge-shine {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
 }
