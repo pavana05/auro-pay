@@ -22,6 +22,7 @@ import AdminKyc from "./pages/admin/AdminKyc.tsx";
 import AdminWallets from "./pages/admin/AdminWallets.tsx";
 import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
+import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
 
 const queryClient = new QueryClient();
 
