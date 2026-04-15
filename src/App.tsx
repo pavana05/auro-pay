@@ -33,6 +33,7 @@ import AdminRoles from "./pages/admin/AdminRoles.tsx";
 import AdminRewards from "./pages/admin/AdminRewards.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
+import TransactionDetailPage from "./pages/TransactionDetail.tsx";
 
 const queryClient = new QueryClient();
 
