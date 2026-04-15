@@ -198,6 +198,63 @@ export type Database = {
         }
         Relationships: []
       }
+      rewards: {
+        Row: {
+          category: string | null
+          coupon_code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          max_uses: number | null
+          min_order_value: number | null
+          title: string
+          updated_at: string
+          used_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          coupon_code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          title: string
+          updated_at?: string
+          used_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          coupon_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          title?: string
+          updated_at?: string
+          used_count?: number | null
+        }
+        Relationships: []
+      }
       savings_goals: {
         Row: {
           color: string | null
