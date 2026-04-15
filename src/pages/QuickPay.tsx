@@ -92,6 +92,8 @@ const QuickPay = () => {
   const [successAmount, setSuccessAmount] = useState("");
   const [successTimestamp, setSuccessTimestamp] = useState("");
   const [successTxnId, setSuccessTxnId] = useState("");
+  const [contactHistory, setContactHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const navigate = useNavigate();
 
