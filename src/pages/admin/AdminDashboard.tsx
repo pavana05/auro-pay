@@ -183,13 +183,39 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    const channel = supabase
+
+    // Realtime subscriptions for all admin-relevant tables
+    const txChannel = supabase
       .channel("admin-live-txns")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
-        setLiveTxns((prev) => [payload.new as Transaction, ...prev].slice(0, 50));
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          setLiveTxns((prev) => [payload.new as Transaction, ...prev].slice(0, 50));
+        }
+        fetchStats();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    const usersChannel = supabase
+      .channel("admin-users-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchStats())
+      .subscribe();
+
+    const walletsChannel = supabase
+      .channel("admin-wallets-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => fetchStats())
+      .subscribe();
+
+    const kycChannel = supabase
+      .channel("admin-kyc-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "kyc_requests" }, () => fetchStats())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(txChannel);
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(walletsChannel);
+      supabase.removeChannel(kycChannel);
+    };
   }, []);
 
   const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
