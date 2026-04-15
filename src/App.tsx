@@ -51,6 +51,8 @@ import SpinWheel from "./pages/SpinWheel.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import FinancialEducation from "./pages/FinancialEducation.tsx";
+import ChatList from "./pages/ChatList.tsx";
+import ChatRoom from "./pages/ChatRoom.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 
 const queryClient = new QueryClient({
@@ -123,6 +125,8 @@ const App = () => (
             <Route path="/admin/support" element={<AdminSupport />} />
             <Route path="/referrals" element={<Referrals />} />
             <Route path="/learn" element={<FinancialEducation />} />
+            <Route path="/chats" element={<ChatList />} />
+            <Route path="/chat/:conversationId" element={<ChatRoom />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
