@@ -105,6 +105,17 @@ const Activity = () => {
   const clearDateFilter = () => {
     setDateFrom(undefined);
     setDateTo(undefined);
+    setActiveQuickDate(null);
+  };
+
+  const applyQuickDate = (label: string) => {
+    const qf = quickDateFilters.find(q => q.label === label);
+    if (!qf) return;
+    haptic.selection();
+    const { from, to } = qf.getRange();
+    setDateFrom(from);
+    setDateTo(to);
+    setActiveQuickDate(label);
   };
 
   // Group by date
