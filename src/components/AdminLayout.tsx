@@ -5,7 +5,7 @@ import { haptic } from "@/lib/haptics";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Wallet, Bell, Settings, LogOut, Activity, Search,
-  ChevronLeft, ChevronRight, Crown,
+  ChevronLeft, ChevronRight, Crown, Gift,
 } from "lucide-react";
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { path: "/admin/wallets", icon: Wallet, label: "Wallets" },
   { path: "/admin/notifications", icon: Bell, label: "Notifications" },
   { path: "/admin/activity-log", icon: Activity, label: "Activity Log" },
+  { path: "/admin/rewards", icon: Gift, label: "Rewards" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 

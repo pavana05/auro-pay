@@ -30,6 +30,9 @@ import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
 import AdminRoles from "./pages/admin/AdminRoles.tsx";
+import AdminRewards from "./pages/admin/AdminRewards.tsx";
+import Rewards from "./pages/Rewards.tsx";
+import RewardDetail from "./pages/RewardDetail.tsx";
 
 const queryClient = new QueryClient();
 

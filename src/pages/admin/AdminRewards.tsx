@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Gift, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, Copy, Check, Tag, Clock, Users } from "lucide-react";
+import { Gift, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, Copy, Check, Tag, Clock, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
