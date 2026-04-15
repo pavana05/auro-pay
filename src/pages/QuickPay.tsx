@@ -283,32 +283,6 @@ const QuickPay = () => {
               </div>
             </div>
 
-            {/* Beneficiaries horizontal scroll */}
-            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s both" }}>
-              <p className="text-[10px] font-semibold text-white/25 mb-3 tracking-[0.2em] uppercase flex items-center gap-2">
-                <Heart className="w-3 h-3 text-primary/40" /> Sending To
-              </p>
-              <div className="flex gap-3 overflow-x-auto no-scrollbar">
-                {favorites.slice(0, 6).map((fav, i) => (
-                  <button key={fav.id} onClick={() => { haptic.light(); setPayTarget(fav); setPayAmount("0"); }}
-                    className={`flex flex-col items-center gap-1.5 shrink-0 transition-all duration-300 ${payTarget.id === fav.id ? "opacity-100 scale-100" : "opacity-30 scale-90 hover:opacity-50"}`}
-                    style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.12 + i * 0.04}s both` }}>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border-2 transition-all duration-500 ${
-                      payTarget.id === fav.id
-                        ? "border-primary bg-primary/10 shadow-[0_0_24px_hsl(42_78%_55%/0.3),inset_0_0_20px_hsl(42_78%_55%/0.05)]"
-                        : "border-white/[0.05] bg-white/[0.02]"
-                    }`}>{fav.avatar_emoji}</div>
-                    <p className={`text-[10px] font-medium w-14 truncate text-center transition-colors duration-300 ${payTarget.id === fav.id ? "text-primary" : "text-white/30"}`}>{fav.contact_name.split(" ")[0]}</p>
-                  </button>
-                ))}
-                <button onClick={() => { setPayTarget(null); setShowAdd(true); }} className="flex flex-col items-center gap-1.5 shrink-0 opacity-30 hover:opacity-50 transition-opacity">
-                  <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-white/[0.08] flex items-center justify-center bg-white/[0.01] hover:border-primary/20 transition-colors">
-                    <Plus className="w-5 h-5 text-white/20" />
-                  </div>
-                  <p className="text-[10px] font-medium text-white/20">Add</p>
-                </button>
-              </div>
-            </div>
 
             {/* Amount Display */}
             <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both" }}>
