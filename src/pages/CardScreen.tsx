@@ -207,8 +207,7 @@ const CardScreen = () => {
               <span className="text-[11px] font-bold tabular-nums">{formatAmount(wallet?.spent_today || 0)} <span className="text-white/20">/ {formatAmount(wallet?.daily_limit || 50000)}</span></span>
             </div>
             <div className="h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))", boxShadow: "0 0 12px hsl(42 78% 55% / 0.3)" }}
-                style={{ width: `${Math.min(((wallet?.spent_today || 0) / (wallet?.daily_limit || 50000)) * 100, 100)}%` }} />
+              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))", boxShadow: "0 0 12px hsl(42 78% 55% / 0.3)", width: `${Math.min(((wallet?.spent_today || 0) / (wallet?.daily_limit || 50000)) * 100, 100)}%` }} />
             </div>
           </div>
           <div>
@@ -217,8 +216,7 @@ const CardScreen = () => {
               <span className="text-[11px] font-bold tabular-nums">{formatAmount(wallet?.spent_this_month || 0)} <span className="text-white/20">/ {formatAmount(wallet?.monthly_limit || 500000)}</span></span>
             </div>
             <div className="h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55% / 0.7), hsl(36 80% 42% / 0.7))" }}
-                style={{ width: `${Math.min(((wallet?.spent_this_month || 0) / (wallet?.monthly_limit || 500000)) * 100, 100)}%` }} />
+              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55% / 0.7), hsl(36 80% 42% / 0.7))", width: `${Math.min(((wallet?.spent_this_month || 0) / (wallet?.monthly_limit || 500000)) * 100, 100)}%` }} />
             </div>
           </div>
         </div>
