@@ -138,10 +138,10 @@ const TeenHome = () => {
   }
 
   const quickActions = [
-    { icon: Plus, label: "Add Money", path: "/add-money", gradient: "from-[hsl(152_60%_45%)] to-[hsl(152_50%_35%)]", glow: "hsl(152 60% 45%)" },
-    { icon: Send, label: "Send", path: "/quick-pay", gradient: "from-primary to-accent", glow: "hsl(42 78% 55%)" },
-    { icon: TrendingUp, label: "Analytics", path: "/analytics", gradient: "from-[hsl(210_80%_55%)] to-[hsl(210_70%_40%)]", glow: "hsl(210 80% 55%)" },
-    { icon: Target, label: "Savings", path: "/savings", gradient: "from-[hsl(270_60%_55%)] to-[hsl(270_50%_40%)]", glow: "hsl(270 60% 55%)" },
+    { icon: Plus, label: "Add Money", path: "/add-money", glow: "hsl(152 60% 45%)", ring: "hsl(152 60% 45% / 0.25)", emoji: "💎" },
+    { icon: Send, label: "Send", path: "/quick-pay", glow: "hsl(42 78% 55%)", ring: "hsl(42 78% 55% / 0.25)", emoji: "⚡" },
+    { icon: BarChart3, label: "Analytics", path: "/analytics", glow: "hsl(210 80% 55%)", ring: "hsl(210 80% 55% / 0.25)", emoji: "📊" },
+    { icon: Target, label: "Savings", path: "/savings", glow: "hsl(270 60% 55%)", ring: "hsl(270 60% 55% / 0.25)", emoji: "🎯" },
   ];
 
   const billPayments = [
@@ -336,39 +336,69 @@ const TeenHome = () => {
           </div>
         </SpringIn>
 
-        {/* ─── Quick Actions — Premium Glassmorphism ─── */}
+        {/* ─── Quick Actions — Ultra Premium ─── */}
         <ScrollReveal className="px-5 mb-6">
-          <div className="relative rounded-[24px] overflow-hidden border border-white/[0.04] p-4" style={{
-            background: `
-              radial-gradient(ellipse 50% 60% at 20% 10%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
-              radial-gradient(ellipse 40% 50% at 80% 90%, hsl(200 70% 50% / 0.03) 0%, transparent 60%),
-              linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-            `,
-            boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.03)"
+          <div className="relative rounded-[28px] overflow-hidden p-[1px]" style={{
+            background: `linear-gradient(160deg, hsl(42 78% 55% / 0.15), transparent 40%, hsl(210 80% 55% / 0.08), transparent 80%, hsl(270 60% 55% / 0.1))`,
           }}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.12) 50%, transparent 90%)" }} />
-            <div className="absolute inset-0 noise-overlay pointer-events-none" />
-            <div className="relative z-10 grid grid-cols-4 gap-2.5">
-              {quickActions.map((a, i) => (
-                <button
-                  key={a.label}
-                  onClick={() => { haptic.light(); navigate(a.path); }}
-                  className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] backdrop-blur-sm active:scale-[0.88] transition-all duration-300 group border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.05]"
-                  style={{ animationDelay: `${i * 50}ms` }}
-                >
-                  <div
-                    className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-all duration-300 group-active:shadow-[0_0_24px_var(--glow)] group-hover:scale-110"
-                    style={{
-                      background: `${a.glow}10`,
-                      "--glow": `${a.glow}50`,
-                      boxShadow: `0 4px 12px ${a.glow}08`,
-                    } as React.CSSProperties}
-                  >
-                    <a.icon className="w-[20px] h-[20px]" style={{ color: a.glow }} strokeWidth={1.8} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-white/45 group-hover:text-white/60 transition-colors">{a.label}</span>
-                </button>
-              ))}
+            <div className="relative rounded-[27px] overflow-hidden" style={{
+              background: `
+                radial-gradient(ellipse 50% 60% at 15% 10%, hsl(42 78% 55% / 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 50% at 85% 85%, hsl(210 80% 55% / 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 30% 40% at 50% 50%, hsl(270 60% 55% / 0.03) 0%, transparent 50%),
+                linear-gradient(160deg, hsl(220 20% 8%), hsl(220 22% 5%))
+              `,
+              boxShadow: "0 20px 60px -15px hsl(220 20% 3% / 0.7), inset 0 1px 0 hsl(40 20% 95% / 0.04)"
+            }}>
+              {/* Shimmer line */}
+              <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.2) 30%, hsl(210 80% 55% / 0.15) 60%, hsl(270 60% 55% / 0.1) 80%, transparent 95%)" }} />
+              {/* Noise texture */}
+              <div className="absolute inset-0 noise-overlay pointer-events-none opacity-30" />
+              {/* Floating particles */}
+              <div className="absolute top-3 right-8 w-1 h-1 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: "0.5s" }} />
+              <div className="absolute bottom-4 left-12 w-0.5 h-0.5 rounded-full bg-[hsl(210_80%_55%)]/20 animate-pulse" style={{ animationDelay: "1.2s" }} />
+              <div className="absolute top-1/2 right-1/3 w-0.5 h-0.5 rounded-full bg-[hsl(270_60%_55%)]/15 animate-pulse" style={{ animationDelay: "2s" }} />
+              
+              <div className="relative z-10 p-5">
+                <div className="grid grid-cols-4 gap-3">
+                  {quickActions.map((a, i) => (
+                    <button
+                      key={a.label}
+                      onClick={() => { haptic.light(); navigate(a.path); }}
+                      className="flex flex-col items-center gap-3 py-4 rounded-[22px] bg-white/[0.015] active:scale-[0.85] transition-all duration-300 group relative overflow-hidden border border-white/[0.03] hover:border-white/[0.1]"
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      {/* Hover glow background */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[22px]"
+                        style={{ background: `radial-gradient(circle at 50% 30%, ${a.glow.replace(')', ' / 0.08)')}, transparent 70%)` }}
+                      />
+                      {/* Icon container with triple-ring effect */}
+                      <div className="relative">
+                        {/* Outer pulse ring */}
+                        <div className="absolute inset-[-8px] rounded-[18px] opacity-0 group-hover:opacity-100 transition-all duration-500 group-active:opacity-100"
+                          style={{ border: `1px solid ${a.ring}`, animation: "glow-pulse 3s ease-in-out infinite" }}
+                        />
+                        {/* Middle glow ring */}
+                        <div className="absolute inset-[-4px] rounded-[16px] opacity-0 group-hover:opacity-40 transition-all duration-500"
+                          style={{ background: `${a.glow.replace(')', ' / 0.08)')}` }}
+                        />
+                        {/* Main icon box */}
+                        <div
+                          className="w-[48px] h-[48px] rounded-[16px] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-active:shadow-[0_0_30px_var(--glow)] relative"
+                          style={{
+                            background: `linear-gradient(135deg, ${a.glow.replace(')', ' / 0.12)')}, ${a.glow.replace(')', ' / 0.04)')})`,
+                            "--glow": `${a.glow.replace(')', ' / 0.5)')}`,
+                            boxShadow: `0 4px 16px ${a.glow.replace(')', ' / 0.1)')}, inset 0 1px 0 ${a.glow.replace(')', ' / 0.1)')}`,
+                          } as React.CSSProperties}
+                        >
+                          <a.icon className="w-[22px] h-[22px] drop-shadow-sm" style={{ color: a.glow, filter: `drop-shadow(0 0 6px ${a.glow.replace(')', ' / 0.3)')})` }} strokeWidth={1.8} />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/70 transition-all duration-300 tracking-wide">{a.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </ScrollReveal>
