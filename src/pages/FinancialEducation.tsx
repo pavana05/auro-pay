@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight, Trophy, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
