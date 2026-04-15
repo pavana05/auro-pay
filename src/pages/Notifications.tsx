@@ -32,7 +32,10 @@ const Notifications = () => {
     fetch();
   }, []);
 
-  const togglePref = (key: keyof typeof prefs) => setPrefs(p => ({ ...p, [key]: !p[key] }));
+  const togglePref = (key: keyof typeof prefs) => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    setPrefs(p => ({ ...p, [key]: !p[key] }));
+  };
 
   const relativeTime = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
