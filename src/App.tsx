@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import PageTransition from "@/components/PageTransition";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import TeenHome from "./pages/TeenHome.tsx";
@@ -49,47 +50,49 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/home" element={<TeenHome />} />
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/card" element={<CardScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
-          <Route path="/personal-info" element={<PersonalInfo />} />
-          <Route path="/security" element={<SecurityPin />} />
-          <Route path="/spending-limits" element={<SpendingLimits />} />
-          <Route path="/linked-parents" element={<LinkedParents />} />
-          <Route path="/help" element={<HelpSupport />} />
-          <Route path="/about" element={<AboutApp />} />
-          <Route path="/savings" element={<SavingsGoals />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/scan" element={<ScanPay />} />
-          <Route path="/add-money" element={<AddMoney />} />
-          <Route path="/parent" element={<ParentHome />} />
-          <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
-          <Route path="/parent/add-money" element={<ParentAddMoney />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/roles" element={<AdminRoles />} />
-          <Route path="/admin/transactions" element={<AdminTransactions />} />
-          <Route path="/admin/kyc" element={<AdminKyc />} />
-          <Route path="/admin/wallets" element={<AdminWallets />} />
-          <Route path="/admin/notifications" element={<AdminNotifications />} />
-          <Route path="/admin/activity-log" element={<AdminActivityLog />} />
-          <Route path="/admin/audit-log" element={<AdminAuditLog />} />
-          <Route path="/admin/rewards" element={<AdminRewards />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/rewards" element={<Rewards />} />
-          <Route path="/rewards/:id" element={<RewardDetail />} />
-          <Route path="/transaction/:id" element={<TransactionDetailPage />} />
-          <Route path="/analytics" element={<ExpenseAnalytics />} />
-          <Route path="/bill-split" element={<BillSplitPage />} />
-          <Route path="/budget" element={<BudgetPlanner />} />
-          <Route path="/quick-pay" element={<QuickPay />} />
-          <Route path="/bill-payments" element={<BillPayments />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <PageTransition>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<TeenHome />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/card" element={<CardScreen />} />
+            <Route path="/profile" element={<ProfileScreen />} />
+            <Route path="/personal-info" element={<PersonalInfo />} />
+            <Route path="/security" element={<SecurityPin />} />
+            <Route path="/spending-limits" element={<SpendingLimits />} />
+            <Route path="/linked-parents" element={<LinkedParents />} />
+            <Route path="/help" element={<HelpSupport />} />
+            <Route path="/about" element={<AboutApp />} />
+            <Route path="/savings" element={<SavingsGoals />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/scan" element={<ScanPay />} />
+            <Route path="/add-money" element={<AddMoney />} />
+            <Route path="/parent" element={<ParentHome />} />
+            <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
+            <Route path="/parent/add-money" element={<ParentAddMoney />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/roles" element={<AdminRoles />} />
+            <Route path="/admin/transactions" element={<AdminTransactions />} />
+            <Route path="/admin/kyc" element={<AdminKyc />} />
+            <Route path="/admin/wallets" element={<AdminWallets />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/activity-log" element={<AdminActivityLog />} />
+            <Route path="/admin/audit-log" element={<AdminAuditLog />} />
+            <Route path="/admin/rewards" element={<AdminRewards />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/rewards/:id" element={<RewardDetail />} />
+            <Route path="/transaction/:id" element={<TransactionDetailPage />} />
+            <Route path="/analytics" element={<ExpenseAnalytics />} />
+            <Route path="/bill-split" element={<BillSplitPage />} />
+            <Route path="/budget" element={<BudgetPlanner />} />
+            <Route path="/quick-pay" element={<QuickPay />} />
+            <Route path="/bill-payments" element={<BillPayments />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </PageTransition>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
