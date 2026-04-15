@@ -330,7 +330,7 @@ const TransactionDetailPage = () => {
               style={{
                 width: `${c.w}px`, height: '1.5px',
                 left: `${c.left}%`, top: `-5%`,
-                background: `linear-gradient(90deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.6), hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.9))`,
+                background: `linear-gradient(270deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3), hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.6), hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.95))`,
                 borderRadius: '999px',
                 filter: `blur(0.5px) drop-shadow(0 0 6px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5))`,
                 animation: `comet-fall ${c.dur}s ease-in ${c.delay}s infinite`,
