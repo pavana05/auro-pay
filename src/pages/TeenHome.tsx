@@ -532,6 +532,58 @@ const TeenHome = () => {
         )}
       </div>
 
+      {/* ─── Refer & Earn ─── */}
+      <div className="px-5 mb-6 animate-slide-up-delay-4">
+        <button
+          onClick={() => {
+            haptic.medium();
+            const shareText = "Hey! Join AuroPay and we both get ₹100! Download now 🎁";
+            navigator.share?.({ text: shareText }).catch(() => {
+              navigator.clipboard.writeText(shareText);
+              toast?.("Referral link copied!");
+            });
+          }}
+          className="w-full relative overflow-hidden rounded-3xl border border-primary/20 p-5 text-left active:scale-[0.98] transition-transform"
+          style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}
+        >
+          {/* Ambient glow */}
+          <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full blur-3xl opacity-30" style={{ background: "hsl(42 78% 55%)" }} />
+          <div className="absolute -bottom-8 -left-4 w-24 h-24 rounded-full blur-2xl opacity-10" style={{ background: "hsl(42 78% 55%)" }} />
+
+          {/* Sparkle decorations */}
+          <div className="absolute top-4 right-16 w-1 h-1 rounded-full bg-primary/40 animate-pulse" />
+          <div className="absolute top-10 right-8 w-1.5 h-1.5 rounded-full bg-primary/30 animate-pulse" style={{ animationDelay: "0.5s" }} />
+          <div className="absolute bottom-6 right-12 w-1 h-1 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: "1s" }} />
+
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="flex-1">
+              <h3 className="text-base font-bold leading-snug mb-1">
+                Flat ₹100 for you,{"\n"}
+                <span className="text-primary">₹100 for your friend</span>
+              </h3>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                *Reward unlocks after first spend
+              </p>
+              <div className="inline-flex items-center gap-2 bg-foreground text-background px-4 py-2.5 rounded-full">
+                <Send className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold">Invite Friends</span>
+              </div>
+            </div>
+
+            {/* Gift icon illustration */}
+            <div className="relative w-20 h-20 shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <span className="text-4xl">🎁</span>
+              </div>
+              {/* Rupee symbol floating */}
+              <div className="absolute -top-2 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground shadow-lg animate-bounce" style={{ animationDuration: "2s" }}>
+                ₹
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+
       <BottomNav />
     </div>
   );
