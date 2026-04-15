@@ -216,7 +216,21 @@ const FinancialEducation = () => {
     setScore(0);
     setAnswered(null);
     setQuizDone(false);
+    setShowCelebration(false);
   };
+
+  // Confetti particles for celebration
+  const confettiParticles = useMemo(() =>
+    Array.from({ length: 50 }, (_, i) => ({
+      left: Math.random() * 100,
+      delay: Math.random() * 2,
+      dur: 2 + Math.random() * 3,
+      size: 4 + Math.random() * 8,
+      color: ['hsl(42 78% 55%)', 'hsl(152 60% 45%)', 'hsl(210 80% 55%)', 'hsl(330 70% 55%)', 'hsl(280 60% 55%)', 'hsl(42 90% 65%)'][i % 6],
+      rotation: Math.random() * 360,
+      type: i % 3, // 0=square, 1=circle, 2=strip
+    })),
+  []);
 
   // Quiz complete screen
   if (quizDone && activeLesson) {
