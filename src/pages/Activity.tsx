@@ -133,16 +133,22 @@ const Activity = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-28">
+    <div className="min-h-screen bg-background pb-28 relative">
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
+      </div>
+
+      <div className="relative z-10">
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 animate-slide-up">
+      <div className="px-5 pt-6 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
-            <ArrowLeft className="w-5 h-5" />
+          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+            <ArrowLeft className="w-[18px] h-[18px] text-muted-foreground/60" />
           </button>
           <div className="flex-1">
-            <h1 className="text-[18px] font-bold">Transaction History</h1>
-            <p className="text-[10px] text-muted-foreground">{filtered.length} transactions</p>
+            <h1 className="text-[18px] font-bold tracking-[-0.4px]">Transaction History</h1>
+            <p className="text-[10px] text-white/25">{filtered.length} transactions</p>
           </div>
         </div>
       </div>
@@ -150,24 +156,24 @@ const Activity = () => {
       {/* Summary Cards */}
       <div className="px-5 mb-5 animate-slide-up-delay-1">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl p-4 border border-border overflow-hidden relative" style={{ background: "linear-gradient(145deg, hsl(152 60% 45% / 0.06), hsl(220 15% 8%))" }}>
-            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(152 60% 45%), transparent)" }} />
+          <div className="rounded-[20px] p-4 border border-white/[0.03] overflow-hidden relative" style={{ background: "linear-gradient(160deg, hsl(152 60% 45% / 0.04), hsl(220 18% 7%))" }}>
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(152 60% 45%), transparent)" }} />
             <div className="relative z-10">
-              <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center mb-2">
-                <ArrowDownLeft className="w-4 h-4 text-success" />
+              <div className="w-8 h-8 rounded-[10px] bg-[hsl(152_60%_45%/0.08)] flex items-center justify-center mb-2">
+                <ArrowDownLeft className="w-4 h-4 text-[hsl(152_60%_45%)]" />
               </div>
-              <p className="text-[10px] text-muted-foreground font-medium">Total In</p>
-              <p className="text-lg font-bold text-success">{formatCompact(totalIn)}</p>
+              <p className="text-[10px] text-white/25 font-medium">Total In</p>
+              <p className="text-[17px] font-bold text-[hsl(152_60%_45%)]">{formatCompact(totalIn)}</p>
             </div>
           </div>
-          <div className="rounded-2xl p-4 border border-border overflow-hidden relative" style={{ background: "linear-gradient(145deg, hsl(0 72% 51% / 0.04), hsl(220 15% 8%))" }}>
-            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(0 72% 51%), transparent)" }} />
+          <div className="rounded-[20px] p-4 border border-white/[0.03] overflow-hidden relative" style={{ background: "linear-gradient(160deg, hsl(0 72% 51% / 0.03), hsl(220 18% 7%))" }}>
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(0 72% 51%), transparent)" }} />
             <div className="relative z-10">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center mb-2">
+              <div className="w-8 h-8 rounded-[10px] bg-destructive/[0.08] flex items-center justify-center mb-2">
                 <ArrowUpRight className="w-4 h-4 text-destructive" />
               </div>
-              <p className="text-[10px] text-muted-foreground font-medium">Total Out</p>
-              <p className="text-lg font-bold text-destructive">{formatCompact(totalOut)}</p>
+              <p className="text-[10px] text-white/25 font-medium">Total Out</p>
+              <p className="text-[17px] font-bold text-destructive">{formatCompact(totalOut)}</p>
             </div>
           </div>
         </div>
@@ -180,10 +186,10 @@ const Activity = () => {
             <button
               key={qf.label}
               onClick={() => activeQuickDate === qf.label ? clearDateFilter() : applyQuickDate(qf.label)}
-              className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all active:scale-95 ${
+              className={`px-3.5 py-2 rounded-[12px] text-[11px] font-semibold whitespace-nowrap transition-all active:scale-95 ${
                 activeQuickDate === qf.label
                   ? "gradient-primary text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.2)]"
-                  : "bg-card border border-border text-muted-foreground"
+                  : "bg-white/[0.03] border border-white/[0.04] text-white/30"
               }`}
             >
               {qf.label}
@@ -197,7 +203,7 @@ const Activity = () => {
         <div className="flex gap-2 items-center">
           <Popover open={showDatePicker === "from"} onOpenChange={(o) => setShowDatePicker(o ? "from" : null)}>
             <PopoverTrigger asChild>
-              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] font-medium border transition-all active:scale-95 ${dateFrom ? "border-primary/40 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-[11px] font-medium border transition-all active:scale-95 ${dateFrom ? "border-primary/30 bg-primary/[0.04] text-primary" : "border-white/[0.04] bg-white/[0.03] text-white/30"}`}>
                 <CalendarDays className="w-3.5 h-3.5" />
                 {dateFrom ? format(dateFrom, "dd MMM yyyy") : "From date"}
               </button>
@@ -207,11 +213,11 @@ const Activity = () => {
             </PopoverContent>
           </Popover>
 
-          <span className="text-[10px] text-muted-foreground">to</span>
+          <span className="text-[10px] text-white/15">to</span>
 
           <Popover open={showDatePicker === "to"} onOpenChange={(o) => setShowDatePicker(o ? "to" : null)}>
             <PopoverTrigger asChild>
-              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] font-medium border transition-all active:scale-95 ${dateTo ? "border-primary/40 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-[11px] font-medium border transition-all active:scale-95 ${dateTo ? "border-primary/30 bg-primary/[0.04] text-primary" : "border-white/[0.04] bg-white/[0.03] text-white/30"}`}>
                 <CalendarDays className="w-3.5 h-3.5" />
                 {dateTo ? format(dateTo, "dd MMM yyyy") : "To date"}
               </button>
@@ -222,8 +228,8 @@ const Activity = () => {
           </Popover>
 
           {hasDateFilter && (
-            <button onClick={clearDateFilter} className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center active:scale-90 transition-all">
-              <X className="w-3.5 h-3.5 text-destructive" />
+            <button onClick={clearDateFilter} className="w-8 h-8 rounded-[10px] bg-destructive/[0.06] flex items-center justify-center active:scale-90 transition-all">
+              <X className="w-3.5 h-3.5 text-destructive/60" />
             </button>
           )}
         </div>
@@ -232,12 +238,12 @@ const Activity = () => {
       {/* Search */}
       <div className="px-5 mb-4 animate-slide-up-delay-1">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search transactions..."
-            className="w-full h-12 rounded-2xl bg-card border border-border pl-11 pr-4 text-sm focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.1)] transition-all duration-200 outline-none"
+            className="w-full h-[48px] rounded-[16px] bg-white/[0.03] border border-white/[0.04] pl-11 pr-4 text-[13px] placeholder:text-white/15 focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all outline-none"
           />
         </div>
       </div>
@@ -252,7 +258,7 @@ const Activity = () => {
               className={`px-4 py-2 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
                 filter === f
                   ? "gradient-primary text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.2)]"
-                  : "bg-card border border-border text-muted-foreground"
+                  : "bg-white/[0.03] border border-white/[0.04] text-white/30"
               }`}
             >
               {f !== "All" && f !== "Sent" && f !== "Received" && categoryIcons[f.toLowerCase()]
@@ -266,52 +272,52 @@ const Activity = () => {
       {/* Transaction List */}
       <div className="px-5">
         {loading ? (
-          <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="w-full h-16 rounded-2xl bg-muted animate-pulse" />)}</div>
+          <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="w-full h-16 rounded-[16px] bg-white/[0.03] animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 animate-scale-in">
-            <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="w-7 h-7 text-muted-foreground" />
+          <div className="text-center py-16">
+            <div className="w-14 h-14 rounded-[18px] bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
+              <TrendingUp className="w-7 h-7 text-white/10" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">No transactions found</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Try a different filter or search term</p>
+            <p className="text-[13px] font-semibold text-white/25">No transactions found</p>
+            <p className="text-[11px] text-white/15 mt-1">Try a different filter or search term</p>
           </div>
         ) : (
           Object.entries(grouped).map(([date, txns], gi) => (
             <div key={date} className="mb-5" style={{ animationDelay: `${gi * 0.05}s` }}>
               <div className="flex items-center gap-2 mb-2.5">
-                <p className="text-[10px] font-bold text-muted-foreground tracking-[0.15em] uppercase">{date}</p>
-                <div className="flex-1 h-[1px] bg-border/50" />
-                <span className="text-[10px] text-muted-foreground">{txns.length} txns</span>
+                <p className="text-[10px] font-bold text-white/20 tracking-[0.15em] uppercase">{date}</p>
+                <div className="flex-1 h-[1px] bg-white/[0.03]" />
+                <span className="text-[10px] text-white/15">{txns.length} txns</span>
               </div>
-              <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+              <div className="rounded-[20px] border border-white/[0.03] overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
                 {txns.map((tx, idx) => (
                   <button
                     key={tx.id}
                     onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-muted/10 ${idx < txns.length - 1 ? "border-b border-border/30" : ""}`}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-white/[0.02] ${idx < txns.length - 1 ? "border-b border-white/[0.025]" : ""}`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
-                      tx.type === "credit" ? "bg-success/10" : "bg-muted/15"
+                    <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center text-lg shrink-0 ${
+                      tx.type === "credit" ? "bg-[hsl(152_60%_45%/0.08)]" : "bg-white/[0.03]"
                     }`}>
                       {categoryIcons[tx.category || "other"] || "💸"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold truncate text-left">{tx.merchant_name || tx.category || "Transaction"}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground capitalize">{tx.category || "other"}</span>
-                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className="text-[10px] text-white/20 capitalize">{tx.category || "other"}</span>
+                        <span className="text-[10px] text-white/10">·</span>
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                          tx.status === "success" ? "bg-success/10 text-success" :
-                          tx.status === "failed" ? "bg-destructive/10 text-destructive" :
-                          "bg-warning/10 text-warning"
+                          tx.status === "success" ? "bg-[hsl(152_60%_45%/0.08)] text-[hsl(152_60%_45%)]" :
+                          tx.status === "failed" ? "bg-destructive/[0.08] text-destructive" :
+                          "bg-[hsl(38_92%_50%/0.08)] text-[hsl(38_92%_50%)]"
                         }`}>{tx.status}</span>
-                        <span className="text-[10px] text-muted-foreground">·</span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] text-white/10">·</span>
+                        <span className="text-[10px] text-white/20">
                           {new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
                     </div>
-                    <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
+                    <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-[hsl(152_60%_45%)]" : "text-foreground"}`}>
                       {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
                     </p>
                   </button>
@@ -320,6 +326,7 @@ const Activity = () => {
             </div>
           ))
         )}
+      </div>
       </div>
 
       <BottomNav />

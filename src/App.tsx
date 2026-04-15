@@ -38,6 +38,7 @@ import ExpenseAnalytics from "./pages/ExpenseAnalytics.tsx";
 import BillSplitPage from "./pages/BillSplit.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import QuickPay from "./pages/QuickPay.tsx";
+import BillPayments from "./pages/BillPayments.tsx";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ const App = () => (
           <Route path="/bill-split" element={<BillSplitPage />} />
           <Route path="/budget" element={<BudgetPlanner />} />
           <Route path="/quick-pay" element={<QuickPay />} />
+          <Route path="/bill-payments" element={<BillPayments />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
