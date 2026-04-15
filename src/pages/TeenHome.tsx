@@ -470,18 +470,19 @@ const TeenHome = () => {
           </SpringIn>
         )}
 
-        {/* ─── Services ─── */}
+        {/* ─── Services — Premium Grid ─── */}
         <SpringIn delay={0.26} className="px-5 mb-6">
           <h3 className="text-[14px] font-bold tracking-[-0.3px] mb-3.5">Services</h3>
           <div className="grid grid-cols-3 gap-2.5">
-            {allFeatures.map((f) => (
+            {allFeatures.map((f, i) => (
               <button
                 key={f.label}
                 onClick={() => { haptic.light(); navigate(f.path); }}
-                className="flex flex-col items-center gap-1.5 py-4 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 border border-white/[0.03] hover:border-white/[0.06] group"
+                className="flex flex-col items-center gap-1.5 py-4 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.04] group"
+                style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + i * 0.04}s both` }}
               >
-                <span className="text-[26px] group-active:scale-110 transition-transform">{f.emoji}</span>
-                <span className="text-[11px] font-semibold text-white/50">{f.label}</span>
+                <span className="text-[26px] group-active:scale-125 group-hover:scale-110 transition-transform duration-300">{f.emoji}</span>
+                <span className="text-[11px] font-semibold text-white/50 group-hover:text-white/70 transition-colors">{f.label}</span>
                 <span className="text-[9px] text-white/20">{f.desc}</span>
               </button>
             ))}
