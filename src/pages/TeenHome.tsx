@@ -9,6 +9,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
+import { toast } from "sonner";
 
 interface Profile {
   full_name: string;
