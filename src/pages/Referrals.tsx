@@ -265,7 +265,6 @@ const Referrals = () => {
               key={ref.id}
               style={{ animation: `slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) ${0.55 + i * 0.05}s both` }}
               className="rounded-[16px] p-3.5 border border-white/[0.03]"
-              style2={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
