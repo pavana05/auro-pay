@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, ArrowDownLeft, ArrowUpRight, ChevronRight, TrendingUp, Filter } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { haptic } from "@/lib/haptics";
 
 interface Transaction {
   id: string;
@@ -18,7 +19,7 @@ const categoryIcons: Record<string, string> = {
   food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
 };
 
-const filters = ["All", "Sent", "Received", "Food", "Transport", "Shopping", "Education"];
+const filters = ["All", "Sent", "Received", "Food", "Transport", "Shopping", "Education", "Entertainment"];
 
 const Activity = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -49,11 +50,36 @@ const Activity = () => {
     fetchTransactions();
   }, [filter]);
 
+  // Realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel("activity-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
+        // Re-fetch on change
+        const refetch = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
+          if (!wallet) return;
+          const { data } = await supabase.from("transactions").select("*").eq("wallet_id", wallet.id).order("created_at", { ascending: false }).limit(50);
+          if (data) setTransactions(data as Transaction[]);
+        };
+        refetch();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const filtered = transactions.filter(
     (tx) => !search || tx.merchant_name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase())
   );
 
   const formatAmount = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+
+  // Stats
+  const totalIn = filtered.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
+  const totalOut = filtered.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
 
   // Group by date
   const grouped = filtered.reduce<Record<string, Transaction[]>>((acc, tx) => {
@@ -70,64 +96,137 @@ const Activity = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[22px] font-semibold">Transaction History</h1>
+    <div className="min-h-screen bg-background noise-overlay pb-28">
+      {/* Header */}
+      <div className="px-5 pt-6 pb-4 animate-slide-up">
+        <div className="flex items-center gap-3">
+          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-[18px] font-bold">Transaction History</h1>
+            <p className="text-[10px] text-muted-foreground">{filtered.length} transactions</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="px-5 mb-5 animate-slide-up-delay-1">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl p-4 border border-border overflow-hidden relative" style={{ background: "linear-gradient(145deg, hsl(152 60% 45% / 0.06), hsl(220 15% 8%))" }}>
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(152 60% 45%), transparent)" }} />
+            <div className="relative z-10">
+              <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center mb-2">
+                <ArrowDownLeft className="w-4 h-4 text-success" />
+              </div>
+              <p className="text-[10px] text-muted-foreground font-medium">Total In</p>
+              <p className="text-lg font-bold text-success">{formatCompact(totalIn)}</p>
+            </div>
+          </div>
+          <div className="rounded-2xl p-4 border border-border overflow-hidden relative" style={{ background: "linear-gradient(145deg, hsl(0 72% 51% / 0.04), hsl(220 15% 8%))" }}>
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(0 72% 51%), transparent)" }} />
+            <div className="relative z-10">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center mb-2">
+                <ArrowUpRight className="w-4 h-4 text-destructive" />
+              </div>
+              <p className="text-[10px] text-muted-foreground font-medium">Total Out</p>
+              <p className="text-lg font-bold text-destructive">{formatCompact(totalOut)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="input-auro w-full pl-11" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
-        {filters.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-pill text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-              filter === f ? "gradient-primary text-primary-foreground" : "border border-border text-muted-foreground hover:border-border-active"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="w-full h-16 rounded-lg bg-muted animate-pulse" />)}</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-sm text-muted-foreground">No transactions found</p>
+      <div className="px-5 mb-4 animate-slide-up-delay-1">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search transactions..."
+            className="w-full h-12 rounded-2xl bg-card border border-border pl-11 pr-4 text-sm focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.1)] transition-all duration-200 outline-none"
+          />
         </div>
-      ) : (
-        Object.entries(grouped).map(([date, txns]) => (
-          <div key={date} className="mb-6">
-            <p className="text-xs font-medium text-muted-foreground mb-3 tracking-wider">{date.toUpperCase()}</p>
-            <div className="space-y-2">
-              {txns.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border card-glow">
-                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                    {categoryIcons[tx.category || "other"]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{tx.merchant_name || "Transaction"}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{tx.category} · {tx.status}</p>
-                  </div>
-                  <p className={`text-sm font-semibold ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
-                    {tx.type === "credit" ? "+" : "-"}{formatAmount(tx.amount)}
-                  </p>
-                </div>
-              ))}
+      </div>
+
+      {/* Category Filters */}
+      <div className="px-5 mb-5 animate-slide-up-delay-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {filters.map((f) => (
+            <button
+              key={f}
+              onClick={() => { haptic.selection(); setFilter(f); }}
+              className={`px-4 py-2 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
+                filter === f
+                  ? "gradient-primary text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.2)]"
+                  : "bg-card border border-border text-muted-foreground"
+              }`}
+            >
+              {f !== "All" && f !== "Sent" && f !== "Received" && categoryIcons[f.toLowerCase()]
+                ? `${categoryIcons[f.toLowerCase()]} ${f}`
+                : f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transaction List */}
+      <div className="px-5">
+        {loading ? (
+          <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="w-full h-16 rounded-2xl bg-muted animate-pulse" />)}</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 animate-scale-in">
+            <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-3">
+              <TrendingUp className="w-7 h-7 text-muted-foreground" />
             </div>
+            <p className="text-sm font-medium text-muted-foreground">No transactions found</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Try a different filter or search term</p>
           </div>
-        ))
-      )}
+        ) : (
+          Object.entries(grouped).map(([date, txns], gi) => (
+            <div key={date} className="mb-5" style={{ animationDelay: `${gi * 0.05}s` }}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <p className="text-[10px] font-bold text-muted-foreground tracking-[0.15em] uppercase">{date}</p>
+                <div className="flex-1 h-[1px] bg-border/50" />
+                <span className="text-[10px] text-muted-foreground">{txns.length} txns</span>
+              </div>
+              <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+                {txns.map((tx, idx) => (
+                  <div
+                    key={tx.id}
+                    className={`flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-muted/10 ${idx < txns.length - 1 ? "border-b border-border/30" : ""}`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                      tx.type === "credit" ? "bg-success/10" : "bg-muted/15"
+                    }`}>
+                      {categoryIcons[tx.category || "other"] || "💸"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold truncate">{tx.merchant_name || tx.category || "Transaction"}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground capitalize">{tx.category || "other"}</span>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                          tx.status === "success" ? "bg-success/10 text-success" :
+                          tx.status === "failed" ? "bg-destructive/10 text-destructive" :
+                          "bg-warning/10 text-warning"
+                        }`}>{tx.status}</span>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
+                      {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       <BottomNav />
     </div>
