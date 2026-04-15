@@ -337,27 +337,38 @@ const TeenHome = () => {
 
         {/* ─── Quick Actions — Premium Glassmorphism ─── */}
         <SpringIn delay={0.1} className="px-5 mb-6">
-          <div className="grid grid-cols-4 gap-2.5">
-            {quickActions.map((a, i) => (
-              <button
-                key={a.label}
-                onClick={() => { haptic.light(); navigate(a.path); }}
-                className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 group border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.04]"
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                <div
-                  className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-all duration-300 group-active:shadow-[0_0_24px_var(--glow)] group-hover:scale-110"
-                  style={{
-                    background: `${a.glow}10`,
-                    "--glow": `${a.glow}50`,
-                    boxShadow: `0 4px 12px ${a.glow}08`,
-                  } as React.CSSProperties}
+          <div className="relative rounded-[24px] overflow-hidden border border-white/[0.04] p-4" style={{
+            background: `
+              radial-gradient(ellipse 50% 60% at 20% 10%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
+              radial-gradient(ellipse 40% 50% at 80% 90%, hsl(200 70% 50% / 0.03) 0%, transparent 60%),
+              linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
+            `,
+            boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.03)"
+          }}>
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.12) 50%, transparent 90%)" }} />
+            <div className="absolute inset-0 noise-overlay pointer-events-none" />
+            <div className="relative z-10 grid grid-cols-4 gap-2.5">
+              {quickActions.map((a, i) => (
+                <button
+                  key={a.label}
+                  onClick={() => { haptic.light(); navigate(a.path); }}
+                  className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] backdrop-blur-sm active:scale-[0.88] transition-all duration-300 group border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.05]"
+                  style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  <a.icon className="w-[20px] h-[20px]" style={{ color: a.glow }} strokeWidth={1.8} />
-                </div>
-                <span className="text-[10px] font-semibold text-white/45 group-hover:text-white/60 transition-colors">{a.label}</span>
-              </button>
-            ))}
+                  <div
+                    className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-all duration-300 group-active:shadow-[0_0_24px_var(--glow)] group-hover:scale-110"
+                    style={{
+                      background: `${a.glow}10`,
+                      "--glow": `${a.glow}50`,
+                      boxShadow: `0 4px 12px ${a.glow}08`,
+                    } as React.CSSProperties}
+                  >
+                    <a.icon className="w-[20px] h-[20px]" style={{ color: a.glow }} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-white/45 group-hover:text-white/60 transition-colors">{a.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </SpringIn>
 
@@ -692,11 +703,15 @@ const TeenHome = () => {
               <p className="text-[11px] text-white/15">Your activity will appear here</p>
             </div>
           ) : (
-             <div className="rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
-              background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
-              boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5)"
+             <div className="relative rounded-[24px] overflow-hidden border border-white/[0.04]" style={{
+              background: `
+                radial-gradient(ellipse 50% 50% at 90% 10%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
+                linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
+              `,
+              boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.03)"
             }}>
-              <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.08), transparent)" }} />
+              <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.12) 50%, transparent 90%)" }} />
+              <div className="absolute inset-0 noise-overlay pointer-events-none" />
               {transactions.map((tx, idx) => (
                 <button
                   key={tx.id}
@@ -732,8 +747,10 @@ const TeenHome = () => {
           <button
             onClick={() => {
               haptic.medium();
-              const txt = "Hey! Join AuroPay and we both get ₹100! Download now 🎁";
-              navigator.share?.({ text: txt }).catch(() => { navigator.clipboard.writeText(txt); toast.success("Referral link copied!"); });
+              const code = profile ? `AURO${profile.full_name?.replace(/\s/g, "").substring(0, 4).toUpperCase() || "USER"}${Math.random().toString(36).substring(2, 5).toUpperCase()}` : "AUROPAY";
+              const deepLink = `https://auro-pay.lovable.app?ref=${code}`;
+              const txt = `Hey! Join AuroPay and we both get ₹20! Use my link: ${deepLink} 🎁`;
+              navigator.share?.({ title: "Join AuroPay", text: txt, url: deepLink }).catch(() => { navigator.clipboard.writeText(deepLink); toast.success("Referral link copied!"); });
             }}
             className="w-full relative overflow-hidden rounded-[24px] p-5 text-left active:scale-[0.98] transition-transform border border-white/[0.03]"
             style={{
