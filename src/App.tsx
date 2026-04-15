@@ -78,6 +78,10 @@ const App = () => (
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/rewards/:id" element={<RewardDetail />} />
           <Route path="/transaction/:id" element={<TransactionDetailPage />} />
+          <Route path="/analytics" element={<ExpenseAnalytics />} />
+          <Route path="/bill-split" element={<BillSplitPage />} />
+          <Route path="/budget" element={<BudgetPlanner />} />
+          <Route path="/quick-pay" element={<QuickPay />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
