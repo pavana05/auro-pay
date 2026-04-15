@@ -304,6 +304,11 @@
   100% { opacity: 1; }
 }
 
+@keyframes ref-shimmer-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @keyframes star-fall {
   0% { transform: translateY(0) translateX(0); opacity: 0; }
   10% { opacity: 1; }
