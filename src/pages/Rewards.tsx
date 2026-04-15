@@ -64,8 +64,12 @@ const Rewards = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const filters = ["all", ...new Set(rewards.map(r => r.category || "general"))];
-  const filtered = activeFilter === "all" ? rewards : rewards.filter(r => (r.category || "general") === activeFilter);
+  const filtered = rewards
+    .filter(r => activeFilter === "all" || (r.category || "general") === activeFilter)
+    .filter(r => !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.description?.toLowerCase().includes(searchQuery.toLowerCase()) || (r.category || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-background pb-24">
