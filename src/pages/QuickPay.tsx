@@ -256,12 +256,28 @@ const QuickPay = () => {
           </div>
         ) : (
           <>
+            {/* Paying To */}
+            <div className="px-5 mb-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.04s both" }}>
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-2xl shadow-[0_2px_12px_hsl(42_78%_55%/0.1)]">
+                  {payTarget.avatar_emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold truncate">{payTarget.contact_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{payTarget.contact_upi_id || payTarget.contact_phone || "No UPI ID"}</p>
+                </div>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-success/8 border border-success/10">
+                  <Shield className="w-2.5 h-2.5 text-success/70" />
+                  <span className="text-[9px] font-medium text-success/70">Verified</span>
+                </div>
+              </div>
+            </div>
+
             {/* Balance Card */}
-            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
+            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.07s both" }}>
               <div className="relative rounded-[22px] p-4 overflow-hidden border border-white/[0.06]" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
                 <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.25), transparent)" }} />
                 <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
-                {/* Shimmer effect */}
                 <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55% / 0.03) 45%, hsl(42 78% 55% / 0.06) 50%, hsl(42 78% 55% / 0.03) 55%, transparent 70%)", backgroundSize: "300% 100%", animation: "ref-shimmer-sweep 4s ease-in-out infinite" }} />
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
@@ -269,9 +285,6 @@ const QuickPay = () => {
                     <p className="text-[22px] font-bold tabular-nums" style={{ textShadow: "0 0 30px hsl(42 78% 55% / 0.08)" }}>{formatBal(balance)}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
-                    <div className="flex items-center gap-1 text-[9px] font-medium text-success/70">
-                      <Shield className="w-2.5 h-2.5" /> Protected
-                    </div>
                     <div className="w-20 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
                       <div className={`h-full rounded-full transition-all duration-700 ease-out ${isOverBalance ? "bg-destructive" : "bg-primary"}`} style={{ width: `${balPercent}%` }} />
                     </div>
