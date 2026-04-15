@@ -105,6 +105,9 @@ const TransactionDetailPage = () => {
   const [showDownload, setShowDownload] = useState(false);
   const [amountTapped, setAmountTapped] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSubmitted, setReportSubmitted] = useState(false);
 
   // Memoize random values so they don't regenerate on re-render
   const particles = useMemo(() => ({
@@ -173,7 +176,7 @@ const TransactionDetailPage = () => {
     const sts = tx.status || "pending";
     ctx.fillStyle = isCredit ? "#4ade80" : "#f0f0f0";
     ctx.font = "bold 52px system-ui, sans-serif";
-    ctx.fillText(`${isCredit ? "+" : "-"}${formatAmount(tx.amount)}`, w / 2, 200);
+    ctx.fillText(`${isCredit ? "+" : ""}${formatAmount(tx.amount)}`, w / 2, 200);
     ctx.fillStyle = sts === "success" ? "#065f46" : sts === "failed" ? "#7f1d1d" : "#78350f";
     const badgeW = 140, badgeH = 32, badgeX = (w - badgeW) / 2, badgeY = 225;
     ctx.beginPath(); ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16); ctx.fill();
@@ -511,7 +514,7 @@ const TransactionDetailPage = () => {
         <div className={`grid grid-cols-3 gap-3 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
           style={{ transitionDelay: "0.6s" }}>
           {[
-            { icon: AlertCircle, label: "Report", onClick: () => { haptic.light(); toast.info("Report submitted"); }, accent: false },
+            { icon: AlertCircle, label: "Report", onClick: () => { haptic.light(); setShowReport(true); setReportSubmitted(false); setReportReason(""); }, accent: false },
             { icon: Download, label: "Receipt", onClick: () => { haptic.light(); setShowDownload(true); }, accent: false },
             { icon: Share2, label: "Share", onClick: () => { haptic.light(); navigator.share?.({ text: `₹${(tx.amount/100).toFixed(2)} ${isCredit ? "received from" : "paid to"} ${tx.merchant_name || "someone"} via AuroPay` }).catch(() => {}); }, accent: true },
           ].map((action, i) => (
