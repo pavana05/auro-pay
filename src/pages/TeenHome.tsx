@@ -374,7 +374,7 @@ const TeenHome = () => {
         </ScrollReveal>
 
         {/* ─── Spending Insights (AI-powered) ─── */}
-        <SpringIn delay={0.12} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <div className="relative rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
             background: `
               radial-gradient(ellipse 60% 50% at 85% 15%, hsl(270 60% 55% / 0.05) 0%, transparent 60%),
@@ -434,7 +434,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Financial Health Score ─── */}
-        <SpringIn delay={0.18} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <button
             onClick={() => { haptic.light(); navigate("/analytics"); }}
             className="w-full relative overflow-hidden rounded-[24px] p-5 text-left active:scale-[0.98] transition-all border border-white/[0.03]"
@@ -479,7 +479,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Bill Payments ─── */}
-        <SpringIn delay={0.18} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <div className="flex items-center justify-between mb-3.5">
             <h3 className="text-[14px] font-bold tracking-[-0.3px]">Bill Payments</h3>
             <button className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
@@ -504,7 +504,7 @@ const TeenHome = () => {
 
         {/* ─── Quick Pay Contacts ─── */}
         {favorites.length > 0 && (
-          <SpringIn delay={0.22} className="mb-6">
+          <ScrollReveal className="mb-6">
             <div className="flex items-center justify-between mb-3.5 px-5">
               <h3 className="text-[14px] font-bold tracking-[-0.3px]">People</h3>
               <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
@@ -533,7 +533,7 @@ const TeenHome = () => {
         )}
 
         {/* ─── Services — Premium Grid ─── */}
-        <SpringIn delay={0.26} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <h3 className="text-[14px] font-bold tracking-[-0.3px] mb-3.5">Services</h3>
           <div className="grid grid-cols-3 gap-2.5">
             {allFeatures.map((f, i) => (
@@ -552,7 +552,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Monthly Spending Dashboard ─── */}
-        <SpringIn delay={0.3} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <div className="relative rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
             background: `
               radial-gradient(ellipse 60% 50% at 80% 20%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
@@ -618,7 +618,7 @@ const TeenHome = () => {
 
         {/* ─── Savings Goals ─── */}
         {goals.length > 0 && (
-          <SpringIn delay={0.34} className="mb-6">
+          <ScrollReveal className="mb-6">
             <div className="flex items-center justify-between mb-3.5 px-5">
               <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
                 <Target className="w-4 h-4 text-primary" /> Savings Goals
@@ -651,7 +651,7 @@ const TeenHome = () => {
 
         {/* ─── Rewards ─── */}
         {rewards.length > 0 && (
-          <SpringIn delay={0.38} className="mb-6">
+          <ScrollReveal className="mb-6">
             <div className="flex items-center justify-between mb-3.5 px-5">
               <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
                 <Gift className="w-4 h-4 text-primary" /> Rewards
@@ -685,7 +685,7 @@ const TeenHome = () => {
         )}
 
         {/* ─── Recent Activity ─── */}
-        <SpringIn delay={0.42} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <div className="flex items-center justify-between mb-3.5">
             <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Recent Activity
@@ -744,7 +744,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Refer & Earn ─── */}
-        <SpringIn delay={0.46} className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-6">
           <button
             onClick={() => {
               haptic.medium();
@@ -786,7 +786,7 @@ const TeenHome = () => {
         </SpringIn>
 
         {/* ─── Explore ─── */}
-        <SpringIn delay={0.5} className="px-5 mb-8">
+        <ScrollReveal className="px-5 mb-8">
           <h3 className="text-[14px] font-bold tracking-[-0.3px] mb-3.5">Explore</h3>
           <div className="grid grid-cols-2 gap-3">
             <button onClick={() => { haptic.light(); navigate("/savings"); }}
