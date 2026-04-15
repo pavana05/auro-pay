@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Bell, QrCode, Plus, Clock, Eye, EyeOff,
@@ -67,6 +67,33 @@ const categoryIcons: Record<string, string> = {
   food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
 };
 
+// CountUp hook
+const useCountUp = (target: number, duration = 800, enabled = true) => {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number>();
+  const startRef = useRef<number>();
+  const prevTarget = useRef(0);
+
+  useEffect(() => {
+    if (!enabled) { setValue(0); return; }
+    const from = prevTarget.current;
+    prevTarget.current = target;
+    startRef.current = undefined;
+
+    const animate = (timestamp: number) => {
+      if (!startRef.current) startRef.current = timestamp;
+      const progress = Math.min((timestamp - startRef.current) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      setValue(Math.round(from + (target - from) * eased));
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration, enabled]);
+
+  return value;
+};
+
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -74,7 +101,7 @@ const TeenHome = () => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [favorites, setFavorites] = useState<QuickPayFav[]>([]);
-  const [showBalance, setShowBalance] = useState(true);
+  const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
@@ -124,6 +151,7 @@ const TeenHome = () => {
   const initials = profile?.full_name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const firstName = profile?.full_name?.split(" ")[0] || "";
   const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+  const animatedBalance = useCountUp(wallet?.balance || 0, 800, showBalance);
 
   if (loading) {
     return (
@@ -142,7 +170,7 @@ const TeenHome = () => {
   }
 
   const quickActions = [
-    { icon: Eye, label: "Check Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
+    { icon: showBalance ? EyeOff : Eye, label: showBalance ? "Hide Balance" : "Show Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
     { icon: QrCode, label: "Scan & Pay", path: "/scan" },
     { icon: Plus, label: "Add Money", path: "/add-money" },
   ];
@@ -233,11 +261,25 @@ const TeenHome = () => {
             <h2 className="text-xl font-bold tracking-[-0.5px] text-primary">& PAY</h2>
 
             {/* Balance peek */}
-            {showBalance && wallet && (
-              <div className="mt-3 px-4 py-1.5 rounded-full bg-muted/20 backdrop-blur-sm border border-border/30">
+            {wallet && (
+              <button
+                onClick={() => { haptic.selection(); setShowBalance(!showBalance); }}
+                className="mt-3 px-4 py-1.5 rounded-full bg-muted/20 backdrop-blur-sm border border-border/30 flex items-center gap-2 active:scale-95 transition-all"
+              >
                 <span className="text-[11px] text-muted-foreground">Balance: </span>
-                <span className="text-[11px] font-bold">{formatCompact(wallet.balance)}</span>
-              </div>
+                {showBalance ? (
+                  <span className="text-[11px] font-bold tabular-nums transition-all" key="amount">
+                    {formatCompact(animatedBalance)}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold tracking-wider text-muted-foreground">•••••</span>
+                )}
+                {showBalance ? (
+                  <EyeOff className="w-3 h-3 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
             )}
 
             {/* Frozen badge */}
