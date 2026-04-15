@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Bell, Settings, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +32,10 @@ const Notifications = () => {
     fetch();
   }, []);
 
-  const togglePref = (key: keyof typeof prefs) => setPrefs(p => ({ ...p, [key]: !p[key] }));
+  const togglePref = (key: keyof typeof prefs) => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    setPrefs(p => ({ ...p, [key]: !p[key] }));
+  };
 
   const relativeTime = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
