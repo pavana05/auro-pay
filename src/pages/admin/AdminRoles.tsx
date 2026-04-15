@@ -144,27 +144,29 @@ const AdminRoles = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-6 space-y-6 relative">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h1 className="text-[22px] font-semibold">Role Management</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Role Management</h1>
             <p className="text-xs text-muted-foreground mt-1">Manage system roles — only users with assigned roles appear here</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-pill gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-[0_0_30px_hsl(42_78%_55%/0.2)] transition-all duration-300 active:scale-95"
           >
             <UserPlus className="w-4 h-4" /> Add User
           </button>
         </div>
 
         {/* Role Legend */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3">
           {ROLES.map((r) => (
-            <div key={r.value} className="p-3 rounded-lg bg-card border border-border card-premium">
-              <div className="flex items-center gap-2 mb-1">
+            <div key={r.value} className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+              <div className="flex items-center gap-2 mb-1.5">
                 <r.icon className={`w-4 h-4 ${r.color}`} />
-                <span className="text-sm font-medium">{r.label}</span>
+                <span className="text-sm font-semibold">{r.label}</span>
               </div>
               <p className="text-[10px] text-muted-foreground">{r.desc}</p>
             </div>
@@ -173,19 +175,20 @@ const AdminRoles = () => {
 
         {/* Search */}
         {usersWithRoles.length > 0 && (
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assigned users..." className="input-auro w-full pl-10" />
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assigned users..."
+              className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-200" />
           </div>
         )}
 
         {/* Users Table */}
-        <div className="rounded-lg bg-card border border-border card-glow overflow-x-auto">
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-white/[0.04]">
                 {["User", "Phone", "Profile Role", "System Roles", "Actions"].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">{h}</th>
+                  <th key={h} className="text-left py-3.5 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
