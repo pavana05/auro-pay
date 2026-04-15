@@ -173,7 +173,26 @@ const Activity = () => {
         </div>
       </div>
 
-      {/* Date Filter */}
+      {/* Quick Date Filters */}
+      <div className="px-5 mb-3 animate-slide-up-delay-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {quickDateFilters.map(qf => (
+            <button
+              key={qf.label}
+              onClick={() => activeQuickDate === qf.label ? clearDateFilter() : applyQuickDate(qf.label)}
+              className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all active:scale-95 ${
+                activeQuickDate === qf.label
+                  ? "gradient-primary text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.2)]"
+                  : "bg-card border border-border text-muted-foreground"
+              }`}
+            >
+              {qf.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Date Filter */}
       <div className="px-5 mb-4 animate-slide-up-delay-1">
         <div className="flex gap-2 items-center">
           <Popover open={showDatePicker === "from"} onOpenChange={(o) => setShowDatePicker(o ? "from" : null)}>
@@ -184,7 +203,7 @@ const Activity = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 
@@ -198,7 +217,7 @@ const Activity = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 
