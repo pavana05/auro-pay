@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Search, Eye, Snowflake, ArrowLeft, Calendar, Phone, Shield, Wallet, ArrowLeftRight, Clock, User, X, Mail, Award, Link2 } from "lucide-react";
+import { Search, Eye, Snowflake, ArrowLeft, Calendar, Phone, Shield, Wallet, ArrowLeftRight, Clock, User, X, Mail, Award, Link2, Trash2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserProfile {
   id: string;
@@ -67,6 +68,12 @@ const AdminUsers = () => {
   const [detailTab, setDetailTab] = useState<"info" | "kyc" | "wallet" | "transactions">("info");
   const [page, setPage] = useState(0);
   const pageSize = 25;
+  
+  // Delete user state - 2-step verification
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -96,12 +103,68 @@ const AdminUsers = () => {
     (u) => !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.phone?.includes(search)
   );
 
+  const logAuditAction = async (action: string, targetType: string, targetId: string, details: Record<string, any> = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("audit_logs").insert({
+      admin_user_id: user.id,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details,
+    });
+  };
+
   const toggleFreeze = async (userId: string, currentFrozen: boolean) => {
     const { data: w } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
     if (w) {
       await supabase.from("wallets").update({ is_frozen: !currentFrozen }).eq("id", w.id);
+      await logAuditAction(currentFrozen ? "wallet_unfreeze" : "wallet_freeze", "wallet", w.id, { user_id: userId });
+      toast.success(currentFrozen ? "Wallet unfrozen" : "Wallet frozen");
       fetchUsers();
     }
+  };
+
+  const startDelete = (userId: string, userName: string) => {
+    setDeleteTarget({ id: userId, name: userName });
+    setDeleteStep(1);
+    setDeleteConfirmText("");
+  };
+
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+    setDeleteStep(1);
+    setDeleteConfirmText("");
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      // Delete related data in order
+      const { data: w } = await supabase.from("wallets").select("id").eq("user_id", deleteTarget.id).single();
+      if (w) {
+        await supabase.from("transactions").delete().eq("wallet_id", w.id);
+        await supabase.from("spending_limits").delete().eq("teen_wallet_id", w.id);
+        await supabase.from("wallets").delete().eq("id", w.id);
+      }
+      await supabase.from("kyc_requests").delete().eq("user_id", deleteTarget.id);
+      await supabase.from("notifications").delete().eq("user_id", deleteTarget.id);
+      await supabase.from("savings_goals").delete().eq("teen_id", deleteTarget.id);
+      await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
+      await supabase.from("quick_pay_favorites").delete().eq("user_id", deleteTarget.id);
+      await supabase.from("parent_teen_links").delete().or(`parent_id.eq.${deleteTarget.id},teen_id.eq.${deleteTarget.id}`);
+      await supabase.from("budgets").delete().eq("user_id", deleteTarget.id);
+      await supabase.from("profiles").delete().eq("id", deleteTarget.id);
+
+      await logAuditAction("user_delete", "user", deleteTarget.id, { name: deleteTarget.name });
+      toast.success(`User "${deleteTarget.name}" deleted successfully`);
+      cancelDelete();
+      fetchUsers();
+    } catch (err) {
+      toast.error("Failed to delete user");
+    }
+    setDeleteLoading(false);
   };
 
   const openUserDetail = async (user: UserProfile & { wallet?: { balance: number | null; is_frozen: boolean | null }; txCount: number }) => {
@@ -158,6 +221,12 @@ const AdminUsers = () => {
                     <ArrowLeft className="w-4 h-4" /> Back to Users
                   </button>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => startDelete(selectedUser.id, selectedUser.full_name || "Unknown")}
+                      className="text-xs px-3 py-1.5 rounded-pill font-medium border border-destructive text-destructive hover:bg-destructive/5 transition-colors mr-2"
+                    >
+                      <Trash2 className="w-3 h-3 inline mr-1" /> Delete User
+                    </button>
                     <button
                       onClick={() => { toggleFreeze(selectedUser.id, selectedUser.wallet?.is_frozen || false); setSelectedUser(null); }}
                       className={`text-xs px-3 py-1.5 rounded-pill font-medium transition-colors ${
@@ -491,6 +560,80 @@ const AdminUsers = () => {
           <span className="text-xs text-muted-foreground">Page {page + 1}</span>
           <button onClick={() => setPage(page + 1)} disabled={filtered.length < pageSize} className="text-sm text-primary disabled:text-muted-foreground">Next</button>
         </div>
+
+        {/* 2-Step Delete Confirmation Modal */}
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md mx-4 bg-card rounded-2xl border border-border p-6 animate-scale-in shadow-2xl">
+              {deleteStep === 1 ? (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-destructive" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Delete User</h3>
+                      <p className="text-xs text-muted-foreground">Step 1 of 2 — Confirm intent</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You are about to permanently delete <span className="font-semibold text-foreground">{deleteTarget.name}</span>. 
+                    This will remove all their data including wallet, transactions, KYC, and settings.
+                  </p>
+                  <p className="text-xs text-destructive font-medium mb-6">⚠️ This action cannot be undone.</p>
+                  <div className="flex gap-3">
+                    <button onClick={cancelDelete} className="flex-1 h-11 rounded-xl border border-border text-sm font-medium hover:bg-muted/10 transition-colors">
+                      Cancel
+                    </button>
+                    <button onClick={() => setDeleteStep(2)} className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+                      Continue to Step 2
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-destructive" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Final Verification</h3>
+                      <p className="text-xs text-muted-foreground">Step 2 of 2 — Type to confirm</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Type <span className="font-mono font-bold text-destructive">DELETE</span> to confirm permanent deletion of <span className="font-semibold text-foreground">{deleteTarget.name}</span>.
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="Type DELETE"
+                    className="w-full h-11 rounded-xl bg-background border border-border px-4 text-sm font-mono focus:outline-none focus:border-destructive/50 mb-4"
+                    autoFocus
+                  />
+                  <div className="flex gap-3">
+                    <button onClick={() => setDeleteStep(1)} className="flex-1 h-11 rounded-xl border border-border text-sm font-medium hover:bg-muted/10 transition-colors">
+                      Back
+                    </button>
+                    <button
+                      onClick={executeDelete}
+                      disabled={deleteConfirmText !== "DELETE" || deleteLoading}
+                      className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                    >
+                      {deleteLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
+                          Deleting...
+                        </span>
+                      ) : "Permanently Delete"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

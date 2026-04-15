@@ -29,6 +29,7 @@ import AdminWallets from "./pages/admin/AdminWallets.tsx";
 import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
+import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
 import AdminRoles from "./pages/admin/AdminRoles.tsx";
 import AdminRewards from "./pages/admin/AdminRewards.tsx";
 import Rewards from "./pages/Rewards.tsx";
@@ -74,6 +75,7 @@ const App = () => (
           <Route path="/admin/wallets" element={<AdminWallets />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           <Route path="/admin/activity-log" element={<AdminActivityLog />} />
+          <Route path="/admin/audit-log" element={<AdminAuditLog />} />
           <Route path="/admin/rewards" element={<AdminRewards />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/rewards" element={<Rewards />} />
