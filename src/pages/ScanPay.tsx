@@ -243,6 +243,13 @@ const ScanPay = () => {
             <div className="absolute inset-[-20px] rounded-3xl border border-primary/[0.08]" style={{ animation: "scanner-ring 3s ease-in-out infinite" }} />
             <div className="absolute inset-[-10px] rounded-2xl border border-primary/[0.04]" style={{ animation: "scanner-ring 3s ease-in-out 1s infinite" }} />
 
+            {/* Grid overlay for depth */}
+            <div className="absolute inset-3 rounded-xl pointer-events-none" style={{
+              backgroundImage: `linear-gradient(hsl(42 78% 55% / 0.03) 1px, transparent 1px), linear-gradient(90deg, hsl(42 78% 55% / 0.03) 1px, transparent 1px)`,
+              backgroundSize: "24px 24px",
+              animation: "scanner-grid-pulse 4s ease-in-out infinite",
+            }} />
+
             {/* Animated corner brackets with glow */}
             {[
               "top-0 left-0 border-t-[2.5px] border-l-[2.5px] rounded-tl-2xl",
@@ -254,13 +261,19 @@ const ScanPay = () => {
                 style={{ animation: `scanner-corner-pulse 2.5s ease-in-out infinite ${i * 0.4}s`, borderColor: "hsl(42 78% 55% / 0.6)" }} />
             ))}
 
-            {/* Scanning beam with gradient trail */}
+            {/* Primary scanning beam with gradient trail */}
             <div className="absolute left-4 right-4 h-[2px] rounded-full" style={{ animation: "scanner-sweep 2.8s ease-in-out infinite" }}>
               <div className="w-full h-full rounded-full" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), hsl(42 78% 65%), hsl(42 78% 55% / 0.6), transparent)" }} />
-              {/* Upper glow trail */}
               <div className="absolute inset-x-0 top-0 h-16 -translate-y-full" style={{ background: "linear-gradient(to top, hsl(42 78% 55% / 0.08), transparent)" }} />
-              {/* Lower glow trail */}
               <div className="absolute inset-x-0 bottom-0 h-6 translate-y-full" style={{ background: "linear-gradient(to bottom, hsl(42 78% 55% / 0.04), transparent)" }} />
+              {/* Sparkles at beam endpoints */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary/60" style={{ animation: "sparkle-twinkle 1.5s ease-in-out infinite", boxShadow: "0 0 6px hsl(42 78% 55% / 0.5)" }} />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary/60" style={{ animation: "sparkle-twinkle 1.5s ease-in-out 0.5s infinite", boxShadow: "0 0 6px hsl(42 78% 55% / 0.5)" }} />
+            </div>
+
+            {/* Secondary thinner beam */}
+            <div className="absolute left-6 right-6 h-[1px] rounded-full" style={{ animation: "scanner-sweep 2.8s ease-in-out 0.4s infinite", opacity: 0.4 }}>
+              <div className="w-full h-full rounded-full" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
             </div>
 
             {/* Center crosshair */}
@@ -271,9 +284,14 @@ const ScanPay = () => {
               </div>
             </div>
 
-            {/* Orbiting dot */}
+            {/* Primary orbiting dot */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary/50" style={{ animation: "scanner-dot-orbit 8s linear infinite" }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary/50" style={{ animation: "scanner-dot-orbit 8s linear infinite", boxShadow: "0 0 8px hsl(42 78% 55% / 0.4)" }} />
+            </div>
+
+            {/* Secondary orbiting dot (opposite direction) */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-1 h-1 rounded-full bg-primary/30" style={{ animation: "scanner-dot-orbit-reverse 12s linear infinite", boxShadow: "0 0 6px hsl(42 78% 55% / 0.3)" }} />
             </div>
           </div>
         </div>
