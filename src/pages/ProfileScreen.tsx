@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Shield, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut, ChevronRight } from "lucide-react";
+import { User, Shield, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut, ChevronRight, Trophy, Star, Flame, Zap } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ const ProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [txCount, setTxCount] = useState(0);
+  const [goalCount, setGoalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -16,12 +17,14 @@ const ProfileScreen = () => {
     const fetch = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const [p, w] = await Promise.all([
+      const [p, w, g] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("wallets").select("*").eq("user_id", user.id).single(),
+        supabase.from("savings_goals").select("id").eq("teen_id", user.id),
       ]);
       setProfile(p.data);
       setWallet(w.data);
+      setGoalCount(g.data?.length || 0);
       if (w.data) {
         const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", w.data.id);
         setTxCount(txns?.length || 0);
@@ -40,15 +43,24 @@ const ProfileScreen = () => {
   const initials = profile?.full_name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
+  // Rewards calculation based on activity
+  const rewards = [
+    { icon: Flame, label: "First Transaction", earned: txCount > 0, points: 50 },
+    { icon: Target, label: "Goal Setter", earned: goalCount > 0, points: 100 },
+    { icon: Star, label: "KYC Verified", earned: profile?.kyc_status === "verified", points: 200 },
+    { icon: Zap, label: "Power User", earned: txCount >= 10, points: 500 },
+  ];
+  const totalPoints = rewards.filter(r => r.earned).reduce((s, r) => s + r.points, 0);
+
   const menuItems = [
-    { icon: User, label: "Personal Info" },
-    { icon: Shield, label: "Security & PIN" },
-    { icon: Wallet, label: "Spending Limits" },
-    { icon: Users, label: "Linked Parents" },
+    { icon: User, label: "Personal Info", path: "/personal-info" },
+    { icon: Shield, label: "Security & PIN", path: "/security" },
+    { icon: Wallet, label: "Spending Limits", path: "/spending-limits" },
+    { icon: Users, label: "Linked Parents", path: "/linked-parents" },
     { icon: Target, label: "Savings Goals", path: "/savings" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
-    { icon: HelpCircle, label: "Help & Support" },
-    { icon: Info, label: "About AuroPay" },
+    { icon: HelpCircle, label: "Help & Support", path: "/help" },
+    { icon: Info, label: "About AuroPay", path: "/about" },
   ];
 
   if (loading) {
@@ -68,13 +80,17 @@ const ProfileScreen = () => {
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
       {/* Avatar & Info */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center text-2xl font-bold text-primary-foreground mb-3">
-          {initials}
-        </div>
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full object-cover border-2 border-primary/30 mb-3" />
+        ) : (
+          <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center text-2xl font-bold text-primary-foreground mb-3">
+            {initials}
+          </div>
+        )}
         <h2 className="text-lg font-semibold">{profile?.full_name}</h2>
         <p className="text-sm text-muted-foreground">{profile?.phone}</p>
         <p className="text-xs text-muted-foreground mt-1">{profile?.phone?.replace("+91", "")}@auropay</p>
-        <div className={`mt-2 px-3 py-1 rounded-pill text-xs font-medium ${
+        <div className={`mt-2 px-3 py-1 rounded-full text-xs font-medium ${
           profile?.kyc_status === "verified" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"
         }`}>
           {profile?.kyc_status === "verified" ? "✓ KYC Verified" : "⏳ KYC Pending"}
@@ -92,8 +108,30 @@ const ProfileScreen = () => {
           <p className="text-[10px] text-muted-foreground">Transactions</p>
         </div>
         <div className="p-4 rounded-lg bg-card border border-border card-glow text-center">
-          <p className="text-lg font-bold">0</p>
+          <p className="text-lg font-bold">{goalCount}</p>
           <p className="text-[10px] text-muted-foreground">Goals</p>
+        </div>
+      </div>
+
+      {/* Rewards */}
+      <div className="rounded-xl bg-card border border-border card-glow p-4 mb-6 shimmer-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-primary" />
+            <h3 className="text-sm font-semibold">Rewards Earned</h3>
+          </div>
+          <span className="badge-premium px-2.5 py-1 rounded-full text-xs">{totalPoints} pts</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {rewards.map(r => (
+            <div key={r.label} className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${r.earned ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30 opacity-50"}`}>
+              <r.icon className={`w-4 h-4 ${r.earned ? "text-primary" : "text-muted-foreground"}`} />
+              <div>
+                <p className="text-xs font-medium">{r.label}</p>
+                <p className="text-[10px] text-muted-foreground">{r.points} pts</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -102,7 +140,7 @@ const ProfileScreen = () => {
         {menuItems.map((item) => (
           <button
             key={item.label}
-            onClick={() => item.path && navigate(item.path)}
+            onClick={() => navigate(item.path)}
             className="w-full flex items-center gap-3 p-4 rounded-lg hover:bg-card transition-colors"
           >
             <item.icon className="w-5 h-5 text-muted-foreground" />
