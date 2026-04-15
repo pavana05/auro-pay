@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, ChevronLeft, Tag, Sparkles, Clock } from "lucide-react";
+import { Gift, ChevronLeft, Tag, Sparkles, Clock, Search } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
