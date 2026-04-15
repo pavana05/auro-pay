@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2, Delete, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2, Delete, ChevronLeft, RefreshCw, Clock, CalendarDays } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -16,6 +16,16 @@ interface Favorite {
 }
 
 const emojiOptions = ["👤", "🧑", "👩", "👨", "🦸", "🧑‍💻", "👸", "🤴", "🧑‍🎓", "🦊", "🐱", "🐶"];
+
+interface RecurringPayment {
+  id: string;
+  favorite_id: string;
+  amount: number;
+  frequency: string;
+  next_run_at: string;
+  is_active: boolean;
+  note: string | null;
+}
 
 const QuickPay = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -36,6 +46,15 @@ const QuickPay = () => {
   const [sending, setSending] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
 
+  // Recurring payments
+  const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [recurringFav, setRecurringFav] = useState<Favorite | null>(null);
+  const [recurringAmount, setRecurringAmount] = useState("");
+  const [recurringFreq, setRecurringFreq] = useState<"weekly" | "monthly">("monthly");
+  const [recurringNote, setRecurringNote] = useState("");
+  const [savingRecurring, setSavingRecurring] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchFavs = async () => {
@@ -48,6 +67,15 @@ const QuickPay = () => {
     ]);
     setFavorites((favsRes.data || []) as Favorite[]);
     setBalance(walletRes.data?.balance || 0);
+
+    // Fetch recurring payments
+    const { data: recData } = await supabase
+      .from("recurring_payments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (recData) setRecurringPayments(recData as RecurringPayment[]);
+
     setLoading(false);
   };
 
@@ -161,6 +189,61 @@ const QuickPay = () => {
       toast.error(err?.message || "Transfer failed");
     }
     setSending(false);
+  };
+
+  const createRecurring = async () => {
+    if (!recurringFav || !recurringAmount) return;
+    setSavingRecurring(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSavingRecurring(false); return; }
+
+    const amountPaise = parseInt(recurringAmount) * 100;
+    const nextRun = new Date();
+    if (recurringFreq === "weekly") {
+      nextRun.setDate(nextRun.getDate() + 7);
+    } else {
+      nextRun.setMonth(nextRun.getMonth() + 1);
+    }
+
+    const { error } = await supabase.from("recurring_payments").insert({
+      user_id: user.id,
+      favorite_id: recurringFav.id,
+      amount: amountPaise,
+      frequency: recurringFreq,
+      next_run_at: nextRun.toISOString(),
+      note: recurringNote || null,
+    });
+
+    if (error) {
+      toast.error("Failed to set up recurring payment");
+    } else {
+      toast.success("Recurring payment scheduled!");
+      haptic.success();
+      setShowRecurring(false);
+      setRecurringFav(null);
+      setRecurringAmount("");
+      setRecurringNote("");
+      fetchFavs();
+    }
+    setSavingRecurring(false);
+  };
+
+  const toggleRecurring = async (id: string, isActive: boolean) => {
+    haptic.medium();
+    const { error } = await supabase.from("recurring_payments").update({ is_active: !isActive }).eq("id", id);
+    if (!error) {
+      setRecurringPayments(prev => prev.map(r => r.id === id ? { ...r, is_active: !isActive } : r));
+      toast.success(!isActive ? "Activated" : "Paused");
+    }
+  };
+
+  const deleteRecurring = async (id: string) => {
+    haptic.medium();
+    const { error } = await supabase.from("recurring_payments").delete().eq("id", id);
+    if (!error) {
+      setRecurringPayments(prev => prev.filter(r => r.id !== id));
+      toast.success("Recurring payment removed");
+    }
   };
 
   const filtered = favorites.filter(f =>
@@ -384,14 +467,141 @@ const QuickPay = () => {
                     Last: {new Date(fav.last_paid_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </p>
                 )}
-                <button onClick={() => openPay(fav)} className="mt-2 w-full py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all">
-                  <Send className="w-3 h-3" /> Pay
-                </button>
+                <div className="mt-2 flex gap-1.5 w-full">
+                  <button onClick={() => openPay(fav)} className="flex-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all">
+                    <Send className="w-3 h-3" /> Pay
+                  </button>
+                  <button onClick={() => { haptic.light(); setRecurringFav(fav); setShowRecurring(true); }} className="py-1.5 px-2 rounded-lg bg-muted/15 text-muted-foreground text-[10px] flex items-center justify-center active:scale-95 transition-all border border-border/30">
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ─── Recurring Payments Section ─── */}
+      {recurringPayments.length > 0 && (
+        <div className="px-5 mt-6 mb-5">
+          <h3 className="text-[13px] font-bold mb-3 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-primary" /> Recurring Payments
+          </h3>
+          <div className="space-y-2.5">
+            {recurringPayments.map(rp => {
+              const fav = favorites.find(f => f.id === rp.favorite_id);
+              return (
+                <div key={rp.id} className="rounded-2xl p-4 border border-border/40 bg-card/40 backdrop-blur-sm flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center text-lg shrink-0">
+                    {fav?.avatar_emoji || "👤"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold truncate">{fav?.contact_name || "Contact"}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground capitalize flex items-center gap-1">
+                        <CalendarDays className="w-3 h-3" /> {rp.frequency}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Next: {new Date(rp.next_run_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right flex items-center gap-2">
+                    <p className="text-[12px] font-bold tabular-nums">₹{(rp.amount / 100).toLocaleString("en-IN")}</p>
+                    <button
+                      onClick={() => toggleRecurring(rp.id, rp.is_active)}
+                      className={`w-8 h-5 rounded-full flex items-center transition-all ${rp.is_active ? "bg-success justify-end" : "bg-muted/30 justify-start"}`}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-foreground mx-0.5 transition-all" />
+                    </button>
+                    <button onClick={() => deleteRecurring(rp.id)} className="w-6 h-6 rounded-lg bg-destructive/10 flex items-center justify-center active:scale-90 transition-all">
+                      <X className="w-3 h-3 text-destructive" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Recurring Payment Modal ─── */}
+      {showRecurring && recurringFav && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowRecurring(false)}>
+          <div className="w-full max-w-lg rounded-t-3xl border-t border-border p-6 animate-slide-up" style={{ background: "linear-gradient(180deg, hsl(220 15% 12%), hsl(220 18% 7%))" }} onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-muted/30 rounded-full mx-auto mb-5" />
+            <h2 className="text-[16px] font-bold mb-1 flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-primary" /> Set Up Recurring Payment
+            </h2>
+            <p className="text-[11px] text-muted-foreground mb-5">Auto-pay to {recurringFav.contact_name}</p>
+
+            <div className="space-y-4">
+              {/* Recipient */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-card/40 border border-border/30">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
+                  {recurringFav.avatar_emoji}
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold">{recurringFav.contact_name}</p>
+                  <p className="text-[10px] text-muted-foreground">{recurringFav.contact_upi_id || recurringFav.contact_phone || "—"}</p>
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Amount (₹) *</label>
+                <input
+                  value={recurringAmount}
+                  onChange={e => setRecurringAmount(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="Enter amount"
+                  className="w-full h-12 rounded-xl bg-card border border-border px-4 text-sm focus:border-primary/40 outline-none transition-all tabular-nums"
+                  inputMode="numeric"
+                />
+              </div>
+
+              {/* Frequency */}
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Frequency</label>
+                <div className="flex gap-2">
+                  {(["weekly", "monthly"] as const).map(freq => (
+                    <button
+                      key={freq}
+                      onClick={() => setRecurringFreq(freq)}
+                      className={`flex-1 py-3 rounded-xl text-[12px] font-semibold capitalize flex items-center justify-center gap-2 border transition-all active:scale-95 ${
+                        recurringFreq === freq
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground"
+                      }`}
+                    >
+                      {freq === "weekly" ? <Clock className="w-3.5 h-3.5" /> : <CalendarDays className="w-3.5 h-3.5" />}
+                      {freq}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Note (optional)</label>
+                <input
+                  value={recurringNote}
+                  onChange={e => setRecurringNote(e.target.value)}
+                  placeholder="e.g. Pocket money, Rent"
+                  className="w-full h-12 rounded-xl bg-card border border-border px-4 text-sm focus:border-primary/40 outline-none transition-all"
+                />
+              </div>
+
+              <button
+                onClick={createRecurring}
+                disabled={savingRecurring || !recurringAmount}
+                className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_4px_16px_hsl(42_78%_55%/0.3)] flex items-center justify-center gap-2"
+              >
+                {savingRecurring ? <><Loader2 className="w-4 h-4 animate-spin" /> Setting up...</> : <><RefreshCw className="w-4 h-4" /> Schedule Payment</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

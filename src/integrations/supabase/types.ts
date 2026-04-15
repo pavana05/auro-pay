@@ -329,6 +329,53 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          favorite_id: string
+          frequency: string
+          id: string
+          is_active: boolean | null
+          next_run_at: string
+          note: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          favorite_id: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          next_run_at: string
+          note?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          favorite_id?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          next_run_at?: string
+          note?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_payments_favorite_id_fkey"
+            columns: ["favorite_id"]
+            isOneToOne: false
+            referencedRelation: "quick_pay_favorites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reward_redemptions: {
         Row: {
           id: string
