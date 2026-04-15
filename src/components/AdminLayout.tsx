@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Wallet, Bell, Settings, LogOut, Activity, Search,
   ChevronLeft, ChevronRight, Crown, Gift, Lock, Eye, EyeOff,
-  KeyRound,
+  KeyRound, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,13 +17,20 @@ const navItems = [
   { path: "/admin/users", icon: Users, label: "Users" },
   { path: "/admin/roles", icon: Crown, label: "Roles" },
   { path: "/admin/transactions", icon: ArrowLeftRight, label: "Transactions" },
-  { path: "/admin/kyc", icon: ShieldCheck, label: "KYC Requests" },
-  { path: "/admin/wallets", icon: Wallet, label: "Wallets" },
-  { path: "/admin/notifications", icon: Bell, label: "Notifications" },
+  { path: "/admin/kyc", icon: ShieldCheck, label: "KYC Requests", badgeKey: "kyc" as const },
+  { path: "/admin/wallets", icon: Wallet, label: "Wallets", badgeKey: "frozen" as const },
+  { path: "/admin/notifications", icon: Bell, label: "Notifications", badgeKey: "notif" as const },
   { path: "/admin/activity-log", icon: Activity, label: "Activity Log" },
+  { path: "/admin/audit-log", icon: FileText, label: "Audit Log" },
   { path: "/admin/rewards", icon: Gift, label: "Rewards" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
+
+interface BadgeCounts {
+  kyc: number;
+  frozen: number;
+  notif: number;
+}
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -35,6 +42,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const [badges, setBadges] = useState<BadgeCounts>({ kyc: 0, frozen: 0, notif: 0 });
 
   useEffect(() => {
     const saved = sessionStorage.getItem("admin_auth");
@@ -54,6 +62,26 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     };
     fetchProfile();
   }, [navigate]);
+
+  // Fetch badge counts
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchBadges = async () => {
+      const [kycRes, walletRes, notifRes] = await Promise.all([
+        supabase.from("kyc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("wallets").select("id", { count: "exact", head: true }).eq("is_frozen", true),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false),
+      ]);
+      setBadges({
+        kyc: kycRes.count || 0,
+        frozen: walletRes.count || 0,
+        notif: notifRes.count || 0,
+      });
+    };
+    fetchBadges();
+    const interval = setInterval(fetchBadges, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,14 +113,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-        {/* Ambient background */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] rounded-full bg-primary/[0.04] blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[100px]" />
         </div>
 
         <div className="w-full max-w-md mx-4 relative z-10">
-          {/* Lock icon */}
           <div className="flex flex-col items-center mb-8">
             <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 shadow-[0_0_40px_hsl(42_78%_55%/0.15)]">
               <KeyRound className="w-9 h-9 text-primary" />
@@ -159,7 +185,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className={`${collapsed ? "w-[68px]" : "w-60"} shrink-0 bg-card/50 backdrop-blur-xl border-r border-white/[0.04] flex flex-col transition-all duration-300 relative`}>
-        {/* Gold accent line */}
         <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), transparent)" }} />
 
         <div className="p-4 border-b border-white/[0.04] flex items-center justify-between">
@@ -180,11 +205,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <nav className="flex-1 p-2 space-y-0.5 mt-1">
           {navItems.map((item) => {
             const active = location.pathname === item.path;
+            const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey as keyof BadgeCounts] : 0;
             return (
               <button
                 key={item.path}
                 onClick={() => { haptic.light(); navigate(item.path); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative ${
                   active
                     ? "bg-primary/10 text-primary font-medium shadow-[inset_0_0_20px_hsl(42_78%_55%/0.05)]"
                     : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
@@ -196,8 +222,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   {active && (
                     <div className="absolute -left-[11px] top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary shadow-[0_0_8px_hsl(42_78%_55%/0.5)]" />
                   )}
+                  {badgeCount > 0 && collapsed && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center animate-pulse">
+                      {badgeCount > 9 ? "9+" : badgeCount}
+                    </span>
+                  )}
                 </div>
                 {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && badgeCount > 0 && (
+                  <span className="ml-auto shrink-0 min-w-[20px] h-5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1.5 animate-pulse">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -225,7 +261,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
         <header className="h-14 border-b border-white/[0.04] bg-card/30 backdrop-blur-xl flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold">{currentPage}</h2>
