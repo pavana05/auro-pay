@@ -4,7 +4,7 @@ import {
   Bell, QrCode, Plus, Clock, Eye, EyeOff,
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Sparkles, Shield, CreditCard, Send, ChevronRight,
-  Wallet, Zap, BarChart3,
+  Wallet, Zap, BarChart3, Gift,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
