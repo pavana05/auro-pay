@@ -47,6 +47,7 @@ const App = () => (
           <Route path="/parent/add-money" element={<ParentAddMoney />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/roles" element={<AdminRoles />} />
           <Route path="/admin/transactions" element={<AdminTransactions />} />
           <Route path="/admin/kyc" element={<AdminKyc />} />
           <Route path="/admin/wallets" element={<AdminWallets />} />
