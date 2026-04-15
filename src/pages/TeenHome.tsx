@@ -223,36 +223,44 @@ const TeenHome = () => {
 
         {/* ─── Balance Card — Ultra Premium ─── */}
         <SpringIn delay={0.05} className="px-5 mb-5">
-          <div className="relative rounded-[28px] overflow-hidden" style={{ boxShadow: "0 20px 60px -15px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.08)" }}>
-            {/* Card background with mesh gradient */}
+          <div className="relative rounded-[28px] overflow-hidden" style={{ boxShadow: "0 25px 80px -15px hsl(42 78% 55% / 0.1), 0 0 0 1px hsl(42 30% 30% / 0.1), 0 4px 20px -5px rgba(0,0,0,0.4)" }}>
+            {/* Card background with ultra-premium mesh gradient */}
             <div className="absolute inset-0" style={{
               background: `
-                radial-gradient(ellipse 80% 60% at 80% 10%, hsl(42 78% 55% / 0.1) 0%, transparent 60%),
-                radial-gradient(ellipse 50% 40% at 15% 85%, hsl(210 80% 55% / 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse 40% 30% at 50% 50%, hsl(42 78% 55% / 0.02) 0%, transparent 50%),
-                linear-gradient(165deg, hsl(220 22% 11%), hsl(220 24% 5%))
+                radial-gradient(ellipse 90% 70% at 85% 5%, hsl(42 78% 55% / 0.12) 0%, transparent 55%),
+                radial-gradient(ellipse 60% 50% at 10% 90%, hsl(210 80% 55% / 0.06) 0%, transparent 45%),
+                radial-gradient(ellipse 50% 40% at 50% 40%, hsl(42 78% 55% / 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse 30% 25% at 90% 80%, hsl(280 60% 50% / 0.03) 0%, transparent 40%),
+                linear-gradient(165deg, hsl(220 22% 12%), hsl(225 28% 4%))
               `
             }} />
             {/* Noise texture */}
-            <div className="absolute inset-0 opacity-[0.015] noise-overlay" />
-            {/* Shimmer line top */}
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.2) 50%, transparent 90%)" }} />
+            <div className="absolute inset-0 opacity-[0.012] noise-overlay" />
+            {/* Top edge highlight */}
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.3) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.3) 70%, transparent 95%)" }} />
+            {/* Left edge subtle glow */}
+            <div className="absolute top-0 left-0 bottom-0 w-[1px]" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.15) 20%, transparent 80%)" }} />
             {/* Bottom subtle border */}
-            <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 20%, hsl(42 78% 55% / 0.06) 50%, transparent 80%)" }} />
+            <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 15%, hsl(42 78% 55% / 0.08) 50%, transparent 85%)" }} />
+            {/* Inner glow orb */}
+            <div className="absolute top-6 right-6 w-32 h-32 rounded-full blur-3xl opacity-[0.04]" style={{ background: "hsl(42 78% 55%)" }} />
 
             <div className="relative z-10 p-6 pb-5">
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-7">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-[6px] h-[6px] rounded-full bg-primary" style={{ boxShadow: "0 0 10px hsl(42 78% 55% / 0.7), 0 0 20px hsl(42 78% 55% / 0.3)", animation: "glow-pulse 2.5s ease-in-out infinite" }} />
-                    <p className="text-[10px] text-white/25 font-semibold tracking-[0.2em] uppercase">Available Balance</p>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="relative">
+                      <div className="w-[7px] h-[7px] rounded-full bg-primary" style={{ boxShadow: "0 0 12px hsl(42 78% 55% / 0.8), 0 0 24px hsl(42 78% 55% / 0.4)", animation: "glow-pulse 2.5s ease-in-out infinite" }} />
+                      <div className="absolute inset-0 w-[7px] h-[7px] rounded-full bg-primary/50 animate-ping" />
+                    </div>
+                    <p className="text-[10px] text-white/30 font-semibold tracking-[0.25em] uppercase">Available Balance</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); haptic.selection(); setShowBalance(!showBalance); }}
                     className="flex items-center gap-3 active:opacity-60 transition-opacity"
                   >
                     {showBalance ? (
-                      <h2 className="text-[40px] font-bold tracking-[-2px] tabular-nums leading-none" style={{ textShadow: "0 0 40px hsl(42 78% 55% / 0.08)" }}>{fmt(animBal)}</h2>
+                      <h2 className="text-[42px] font-bold tracking-[-2.5px] tabular-nums leading-none" style={{ textShadow: "0 0 60px hsl(42 78% 55% / 0.1), 0 2px 4px rgba(0,0,0,0.3)" }}>{fmt(animBal)}</h2>
                     ) : (
                       <div className="flex items-center gap-2">
                         <span
@@ -272,7 +280,7 @@ const TeenHome = () => {
                         }}>•••••</h2>
                       </div>
                     )}
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.04] hover:bg-white/[0.08] transition-colors hover:border-primary/20">
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.06] hover:bg-white/[0.08] transition-all duration-300 hover:border-primary/20 hover:shadow-[0_0_12px_hsl(42_78%_55%/0.1)]">
                       {showBalance ? <EyeOff className="w-[15px] h-[15px] text-white/30" /> : <Eye className="w-[15px] h-[15px] text-white/30" />}
                     </div>
                   </button>
@@ -293,25 +301,33 @@ const TeenHome = () => {
                 </div>
               )}
 
-              {/* Income / Expense Pills */}
+              {/* Income / Expense Pills — Glassmorphism */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[16px] px-4 py-3 bg-[hsl(152_60%_45%/0.04)] border border-[hsl(152_60%_45%/0.06)] backdrop-blur-sm hover:bg-[hsl(152_60%_45%/0.06)] transition-colors">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-[22px] h-[22px] rounded-[7px] bg-[hsl(152_60%_45%/0.12)] flex items-center justify-center">
-                      <ArrowDownLeft className="w-3 h-3 text-[hsl(152_60%_45%)]" />
+                <div className="relative rounded-[18px] px-4 py-3.5 overflow-hidden border border-[hsl(152_60%_45%/0.08)] hover:border-[hsl(152_60%_45%/0.15)] transition-all duration-300 group/pill">
+                  <div className="absolute inset-0 bg-[hsl(152_60%_45%/0.03)] backdrop-blur-sm" />
+                  <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-[hsl(152_60%_45%/0.06)] blur-2xl opacity-0 group-hover/pill:opacity-100 transition-opacity duration-500" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-[24px] h-[24px] rounded-[8px] bg-[hsl(152_60%_45%/0.12)] flex items-center justify-center shadow-[0_0_12px_hsl(152_60%_45%/0.1)]">
+                        <ArrowDownLeft className="w-3 h-3 text-[hsl(152_60%_45%)]" />
+                      </div>
+                      <span className="text-[10px] text-white/30 font-semibold tracking-wider uppercase">Income</span>
                     </div>
-                    <span className="text-[10px] text-white/25 font-medium tracking-wide">Income</span>
+                    <p className="text-[16px] font-bold text-[hsl(152_60%_45%)] tabular-nums" style={{ textShadow: "0 0 20px hsl(152 60% 45% / 0.15)" }}>{fmt(moneyIn)}</p>
                   </div>
-                  <p className="text-[15px] font-bold text-[hsl(152_60%_45%)] tabular-nums">{fmt(moneyIn)}</p>
                 </div>
-                <div className="rounded-[16px] px-4 py-3 bg-destructive/[0.04] border border-destructive/[0.06] backdrop-blur-sm hover:bg-destructive/[0.06] transition-colors">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-[22px] h-[22px] rounded-[7px] bg-destructive/[0.12] flex items-center justify-center">
-                      <ArrowUpRight className="w-3 h-3 text-destructive" />
+                <div className="relative rounded-[18px] px-4 py-3.5 overflow-hidden border border-destructive/[0.08] hover:border-destructive/[0.15] transition-all duration-300 group/pill">
+                  <div className="absolute inset-0 bg-destructive/[0.03] backdrop-blur-sm" />
+                  <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-destructive/[0.06] blur-2xl opacity-0 group-hover/pill:opacity-100 transition-opacity duration-500" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-[24px] h-[24px] rounded-[8px] bg-destructive/[0.12] flex items-center justify-center shadow-[0_0_12px_hsl(0_84%_60%/0.1)]">
+                        <ArrowUpRight className="w-3 h-3 text-destructive" />
+                      </div>
+                      <span className="text-[10px] text-white/30 font-semibold tracking-wider uppercase">Expense</span>
                     </div>
-                    <span className="text-[10px] text-white/25 font-medium tracking-wide">Expense</span>
+                    <p className="text-[16px] font-bold text-destructive tabular-nums" style={{ textShadow: "0 0 20px hsl(0 84% 60% / 0.15)" }}>{fmt(moneyOut)}</p>
                   </div>
-                  <p className="text-[15px] font-bold text-destructive tabular-nums">{fmt(moneyOut)}</p>
                 </div>
               </div>
             </div>
