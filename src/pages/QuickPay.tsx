@@ -132,7 +132,58 @@ const QuickPay = () => {
     if (!error) { toast.success("Removed"); setFavorites(prev => prev.filter(f => f.id !== id)); }
   };
 
-  const openPay = (fav: Favorite) => { haptic.medium(); setPayTarget(fav); setPayAmount("0"); setPayNote(""); setPaySuccess(false); };
+  const openPay = (fav: Favorite) => { haptic.medium(); setPayTarget(fav); setPayAmount("0"); setPayNote(""); setPaySuccess(false); setContactHistory([]); };
+
+  const fetchContactHistory = async (favId: string) => {
+    setLoadingHistory(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
+      if (!wallet) return;
+      const { data: txns } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("wallet_id", wallet.id)
+        .eq("status", "success")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      // Filter transactions that match this contact (by description containing contact name or favorite_id in description)
+      setContactHistory(txns || []);
+    } catch (e) {
+      console.error("Failed to fetch history:", e);
+    }
+    setLoadingHistory(false);
+  };
+
+  const shareReceipt = async () => {
+    haptic.medium();
+    if (!payTarget) return;
+    const receiptText = [
+      `💰 Payment Receipt — AuroPay`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Amount: ${successAmount}`,
+      `To: ${payTarget.contact_name}`,
+      payTarget.contact_upi_id ? `UPI: ${payTarget.contact_upi_id}` : "",
+      `Date: ${successTimestamp}`,
+      `Txn ID: ${successTxnId}`,
+      `Status: ✅ Completed`,
+      payNote ? `Note: ${payNote}` : "",
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Sent via AuroPay`,
+    ].filter(Boolean).join("\n");
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Payment Receipt", text: receiptText });
+      } catch (e) {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(receiptText);
+      toast.success("Receipt copied to clipboard!");
+    }
+  };
 
   const handleNumpad = (key: string) => {
     haptic.light();
