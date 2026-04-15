@@ -300,7 +300,7 @@ const TeenHome = () => {
           {quickActions.map((a) => (
             <button
               key={a.label}
-              onClick={() => { haptic.light(); a.action ? a.action() : a.path && navigate(a.path); }}
+              onClick={() => { haptic.light(); a.path && navigate(a.path); }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-card border border-border active:scale-95 transition-all"
             >
               <a.icon className="w-4 h-4 text-muted-foreground" />
