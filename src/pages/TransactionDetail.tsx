@@ -471,7 +471,7 @@ const TransactionDetailPage = () => {
           ))}
         </div>
 
-        {/* Transaction Reference — themed card */}
+        {/* Transaction Reference — themed card with shimmer sweep */}
         <div className={`relative overflow-hidden backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
           style={{
             transitionDelay: "0.5s",
@@ -479,6 +479,15 @@ const TransactionDetailPage = () => {
           }}>
           <div className="absolute top-0 left-0 right-0 h-[1px]"
             style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.3 }} />
+          {/* Shimmer sweep overlay */}
+          {mounted && (
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `linear-gradient(105deg, transparent 40%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.06) 45%, hsl(${theme.hue} ${theme.sat}% ${theme.light + 15}% / 0.1) 50%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.06) 55%, transparent 60%)`,
+                backgroundSize: '250% 100%',
+                animation: 'ref-shimmer-sweep 1.5s ease-in-out 0.8s both',
+              }} />
+          )}
 
           <div className="flex items-center gap-2 mb-3">
             <Shield className={`w-3.5 h-3.5 ${theme.color} opacity-60`} />
