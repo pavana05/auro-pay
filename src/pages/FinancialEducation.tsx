@@ -113,6 +113,7 @@ const FinancialEducation = () => {
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState<number | null>(null);
   const [quizDone, setQuizDone] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [dbLessons, setDbLessons] = useState<Lesson[]>([]);
 
