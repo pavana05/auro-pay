@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Bell, Settings, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
