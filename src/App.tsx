@@ -32,6 +32,7 @@ import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
 import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
 import AdminRoles from "./pages/admin/AdminRoles.tsx";
 import AdminRewards from "./pages/admin/AdminRewards.tsx";
+import AdminAnalytics from "./pages/admin/AdminAnalytics.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
@@ -77,6 +78,7 @@ const App = () => (
           <Route path="/admin/activity-log" element={<AdminActivityLog />} />
           <Route path="/admin/audit-log" element={<AdminAuditLog />} />
           <Route path="/admin/rewards" element={<AdminRewards />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/rewards/:id" element={<RewardDetail />} />
