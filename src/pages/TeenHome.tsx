@@ -170,9 +170,10 @@ const TeenHome = () => {
   }
 
   const quickActions = [
-    { icon: showBalance ? EyeOff : Eye, label: showBalance ? "Hide Balance" : "Show Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
-    { icon: QrCode, label: "Scan & Pay", path: "/scan" },
     { icon: Plus, label: "Add Money", path: "/add-money" },
+    { icon: Send, label: "Send Money", path: "/quick-pay" },
+    { icon: TrendingUp, label: "Analytics", path: "/analytics" },
+    { icon: Target, label: "Savings", path: "/savings" },
   ];
 
   const serviceActions = [
@@ -299,7 +300,7 @@ const TeenHome = () => {
           {quickActions.map((a) => (
             <button
               key={a.label}
-              onClick={() => { haptic.light(); a.action ? a.action() : a.path && navigate(a.path); }}
+              onClick={() => { haptic.light(); a.path && navigate(a.path); }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-card border border-border active:scale-95 transition-all"
             >
               <a.icon className="w-4 h-4 text-muted-foreground" />
