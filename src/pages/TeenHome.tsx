@@ -50,6 +50,8 @@ const SpringIn = ({ children, delay = 0, className = "" }: { children: React.Rea
   </div>
 );
 
+const BALANCE_EMOJIS = ["💰", "💎", "✨", "🪙", "💳", "🏆", "⚡", "🔥"];
+
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -60,7 +62,16 @@ const TeenHome = () => {
   const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [balanceEmoji, setBalanceEmoji] = useState(0);
   const navigate = useNavigate();
+
+  // Rotate emoji every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBalanceEmoji(prev => (prev + 1) % BALANCE_EMOJIS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
