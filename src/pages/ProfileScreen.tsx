@@ -258,15 +258,18 @@ const ProfileScreen = () => {
       </div>
 
       {/* Stats Row */}
-      <div className="px-5 mb-5 animate-slide-up-delay-1">
+      <div className="px-5 mb-5">
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: "Balance", value: formatAmount(wallet?.balance || 0) },
             { label: "Txns", value: txCount.toString() },
             { label: "Goals", value: goalCount.toString() },
             { label: "Points", value: totalPoints.toString() },
-          ].map(s => (
-            <div key={s.label} className="rounded-[16px] p-3 border border-white/[0.03] text-center" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+          ].map((s, i) => (
+            <div key={s.label} className="rounded-[16px] p-3 border border-white/[0.03] text-center" style={{
+              background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+              animation: `slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.15 + i * 0.08}s both`,
+            }}>
               <p className="text-sm font-bold">{s.value}</p>
               <p className="text-[9px] text-white/20 font-medium">{s.label}</p>
             </div>
