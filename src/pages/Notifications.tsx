@@ -82,8 +82,8 @@ const Notifications = () => {
                 <span>{item.icon}</span>
                 <span className="text-sm">{item.label}</span>
               </div>
-              <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${prefs[item.key] ? "bg-primary justify-end" : "bg-muted justify-start"}`}>
-                <div className="w-5 h-5 rounded-full bg-background shadow-sm transition-transform" />
+              <div className={`w-10 h-6 rounded-full transition-colors duration-300 flex items-center px-0.5 ${prefs[item.key] ? "bg-primary" : "bg-muted"}`}>
+                <div className={`w-5 h-5 rounded-full bg-background shadow-sm transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${prefs[item.key] ? "translate-x-4 scale-110" : "translate-x-0 scale-100"}`} />
               </div>
             </button>
           ))}
