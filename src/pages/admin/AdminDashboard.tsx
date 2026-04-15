@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, TrendingUp,
-  Clock, AlertTriangle, RefreshCw, Zap,
+  Clock, AlertTriangle, RefreshCw, Zap, Download,
   ArrowUpRight, ArrowDownRight, Crown,
   DollarSign, UserPlus, BarChart3, Server,
   Activity, Globe, Shield, Database, Cpu,
@@ -311,6 +311,12 @@ const AdminDashboard = () => {
               className={`p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all duration-200 active:scale-90 ${refreshing ? "animate-spin" : ""}`}
             >
               <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate("/admin/users")}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] transition-all duration-200 active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" /> Export
             </button>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 border border-success/10">
               <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />

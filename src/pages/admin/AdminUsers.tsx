@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Search, Eye, Snowflake, ArrowLeft, Calendar, Phone, Shield, Wallet, ArrowLeftRight, Clock, User, X, Mail, Award, Link2, Trash2, AlertTriangle } from "lucide-react";
+import { Search, Eye, Snowflake, ArrowLeft, Calendar, Phone, Shield, Wallet, ArrowLeftRight, Clock, User, X, Mail, Award, Link2, Trash2, AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface UserProfile {
