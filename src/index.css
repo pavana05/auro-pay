@@ -199,6 +199,14 @@
     box-shadow: 0 0 0 3px hsl(42 78% 55% / 0.15);
     outline: none;
   }
+
+  .btn-glow-feedback {
+    position: relative;
+  }
+
+  .btn-glow-feedback:active {
+    box-shadow: 0 0 16px hsl(42 78% 55% / 0.25), inset 0 0 8px hsl(42 78% 55% / 0.08);
+  }
 }
 
 @keyframes shimmer-sweep {
@@ -279,6 +287,16 @@
 @keyframes scanner-dot-orbit {
   0% { transform: rotate(0deg) translateX(130px) rotate(0deg); }
   100% { transform: rotate(360deg) translateX(130px) rotate(-360deg); }
+}
+
+@keyframes scanner-dot-orbit-reverse {
+  0% { transform: rotate(180deg) translateX(120px) rotate(-180deg); }
+  100% { transform: rotate(540deg) translateX(120px) rotate(-540deg); }
+}
+
+@keyframes scanner-grid-pulse {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.05; }
 }
 
 @keyframes fade-in {
