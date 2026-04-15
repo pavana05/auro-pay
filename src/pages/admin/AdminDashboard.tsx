@@ -76,12 +76,13 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     const today = new Date().toISOString().split("T")[0];
 
-    const [usersRes, txnsRes, kycRes, walletsRes, allTxnsRes] = await Promise.all([
-      supabase.from("profiles").select("id, created_at, role"),
+    const [usersRes, txnsRes, kycRes, walletsRes, allTxnsRes, verifiedKycRes] = await Promise.all([
+      supabase.from("profiles").select("id, created_at, role, full_name"),
       supabase.from("transactions").select("*").gte("created_at", today),
       supabase.from("kyc_requests").select("id").eq("status", "pending"),
       supabase.from("wallets").select("id, balance, is_frozen"),
-      supabase.from("transactions").select("id, status").limit(1000),
+      supabase.from("transactions").select("id, status, merchant_name, amount").limit(1000),
+      supabase.from("kyc_requests").select("id").eq("status", "verified"),
     ]);
 
     const allUsers = usersRes.data || [];
@@ -95,6 +96,7 @@ const AdminDashboard = () => {
     const successCount = allTxns.filter((t: any) => t.status === "success").length;
     const teens = allUsers.filter((u: any) => u.role === "teen").length;
     const parents = allUsers.filter((u: any) => u.role === "parent").length;
+    const avgBalance = wallets.length > 0 ? Math.round(totalBalance / wallets.length) : 0;
 
     setStats({
       totalUsers: allUsers.length,
@@ -109,6 +111,8 @@ const AdminDashboard = () => {
       successRate: allTxns.length > 0 ? Math.round((successCount / allTxns.length) * 100) : 0,
       teens,
       parents,
+      verifiedKyc: verifiedKycRes.data?.length || 0,
+      avgBalance,
     });
 
     setRoleDistribution([
@@ -116,6 +120,24 @@ const AdminDashboard = () => {
       { name: "Parents", value: parents || 1 },
       { name: "Others", value: Math.max(1, allUsers.length - teens - parents) },
     ]);
+
+    // Recent signups (last 5)
+    const sortedUsers = [...allUsers].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setRecentSignups(sortedUsers.slice(0, 5) as RecentSignup[]);
+
+    // Top merchants
+    const merchantMap = new Map<string, { count: number; volume: number }>();
+    allTxns.forEach((t: any) => {
+      if (t.merchant_name) {
+        const existing = merchantMap.get(t.merchant_name) || { count: 0, volume: 0 };
+        merchantMap.set(t.merchant_name, { count: existing.count + 1, volume: existing.volume + (t.amount || 0) });
+      }
+    });
+    const topMerch = Array.from(merchantMap.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    setTopMerchants(topMerch);
 
     const { data: latest } = await supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(50);
     setLiveTxns((latest || []) as Transaction[]);
