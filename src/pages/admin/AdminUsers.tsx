@@ -255,6 +255,14 @@ const AdminUsers = () => {
                     >
                       <Trash2 className="w-3 h-3 inline mr-1" /> Delete User
                     </button>
+                    {selectedUser.recentTxns.length > 0 && (
+                      <button
+                        onClick={() => exportUserTransactionsCSV(selectedUser)}
+                        className="text-xs px-3 py-1.5 rounded-pill font-medium border border-primary/30 text-primary hover:bg-primary/5 transition-colors mr-2"
+                      >
+                        <Download className="w-3 h-3 inline mr-1" /> Export Txns
+                      </button>
+                    )}
                     <button
                       onClick={() => { toggleFreeze(selectedUser.id, selectedUser.wallet?.is_frozen || false); setSelectedUser(null); }}
                       className={`text-xs px-3 py-1.5 rounded-pill font-medium transition-colors ${
@@ -503,7 +511,12 @@ const AdminUsers = () => {
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-[22px] font-semibold mb-6">Users</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-[22px] font-semibold">Users</h1>
+          <button onClick={exportUsersCSV} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] transition-all duration-200 active:scale-95">
+            <Download className="w-4 h-4" /> Export Users CSV
+          </button>
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
