@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Bell, QrCode, Plus, Clock, Eye, EyeOff,
@@ -67,6 +67,33 @@ const categoryIcons: Record<string, string> = {
   food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
 };
 
+// CountUp hook
+const useCountUp = (target: number, duration = 800, enabled = true) => {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number>();
+  const startRef = useRef<number>();
+  const prevTarget = useRef(0);
+
+  useEffect(() => {
+    if (!enabled) { setValue(0); return; }
+    const from = prevTarget.current;
+    prevTarget.current = target;
+    startRef.current = undefined;
+
+    const animate = (timestamp: number) => {
+      if (!startRef.current) startRef.current = timestamp;
+      const progress = Math.min((timestamp - startRef.current) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      setValue(Math.round(from + (target - from) * eased));
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration, enabled]);
+
+  return value;
+};
+
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -74,7 +101,7 @@ const TeenHome = () => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [favorites, setFavorites] = useState<QuickPayFav[]>([]);
-  const [showBalance, setShowBalance] = useState(true);
+  const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
