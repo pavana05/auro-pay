@@ -92,6 +92,8 @@ const QuickPay = () => {
   const [successAmount, setSuccessAmount] = useState("");
   const [successTimestamp, setSuccessTimestamp] = useState("");
   const [successTxnId, setSuccessTxnId] = useState("");
+  const [contactHistory, setContactHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const navigate = useNavigate();
 
@@ -130,7 +132,58 @@ const QuickPay = () => {
     if (!error) { toast.success("Removed"); setFavorites(prev => prev.filter(f => f.id !== id)); }
   };
 
-  const openPay = (fav: Favorite) => { haptic.medium(); setPayTarget(fav); setPayAmount("0"); setPayNote(""); setPaySuccess(false); };
+  const openPay = (fav: Favorite) => { haptic.medium(); setPayTarget(fav); setPayAmount("0"); setPayNote(""); setPaySuccess(false); setContactHistory([]); };
+
+  const fetchContactHistory = async (favId: string) => {
+    setLoadingHistory(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
+      if (!wallet) return;
+      const { data: txns } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("wallet_id", wallet.id)
+        .eq("status", "success")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      // Filter transactions that match this contact (by description containing contact name or favorite_id in description)
+      setContactHistory(txns || []);
+    } catch (e) {
+      console.error("Failed to fetch history:", e);
+    }
+    setLoadingHistory(false);
+  };
+
+  const shareReceipt = async () => {
+    haptic.medium();
+    if (!payTarget) return;
+    const receiptText = [
+      `💰 Payment Receipt — AuroPay`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Amount: ${successAmount}`,
+      `To: ${payTarget.contact_name}`,
+      payTarget.contact_upi_id ? `UPI: ${payTarget.contact_upi_id}` : "",
+      `Date: ${successTimestamp}`,
+      `Txn ID: ${successTxnId}`,
+      `Status: ✅ Completed`,
+      payNote ? `Note: ${payNote}` : "",
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Sent via AuroPay`,
+    ].filter(Boolean).join("\n");
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Payment Receipt", text: receiptText });
+      } catch (e) {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(receiptText);
+      toast.success("Receipt copied to clipboard!");
+    }
+  };
 
   const handleNumpad = (key: string) => {
     haptic.light();
@@ -292,14 +345,18 @@ const QuickPay = () => {
               <p className="text-[12px] text-muted-foreground mt-1" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" }}>sent to {payTarget.contact_name}</p>
 
               {/* Action buttons */}
-              <div className="flex gap-3 mt-6 w-full px-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
-                <button onClick={() => { haptic.medium(); setShowPaymentDetails(prev => !prev); }}
+              <div className="flex gap-2 mt-6 w-full px-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
+                <button onClick={() => { haptic.medium(); setShowPaymentDetails(prev => { if (!prev) fetchContactHistory(payTarget.id); return !prev; }); }}
                   className="flex-1 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all text-primary hover:bg-primary/15">
-                  <Receipt className="w-4 h-4" /> {showPaymentDetails ? "Hide Details" : "Payment Details"}
+                  <Receipt className="w-4 h-4" /> {showPaymentDetails ? "Hide" : "Details"}
+                </button>
+                <button onClick={shareReceipt}
+                  className="h-12 px-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all text-foreground hover:bg-white/[0.08]">
+                  <Share2 className="w-4 h-4" /> Share
                 </button>
                 <button onClick={() => { haptic.light(); setPaySuccess(false); setPayAmount("0"); setPayNote(""); }}
                   className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.25)]">
-                  <Send className="w-4 h-4" /> Send Again
+                  <Send className="w-4 h-4" /> Again
                 </button>
               </div>
 
@@ -357,6 +414,41 @@ const QuickPay = () => {
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.15), transparent)" }} />
+
+                  {/* Transaction History with this contact */}
+                  <div className="p-5">
+                    <p className="text-[11px] text-white/30 uppercase tracking-[0.15em] font-semibold mb-3 flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Recent Transactions
+                    </p>
+                    {loadingHistory ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary/40" />
+                      </div>
+                    ) : contactHistory.length === 0 ? (
+                      <p className="text-[10px] text-white/15 text-center py-3">No previous transactions found</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {contactHistory.slice(0, 5).map((tx, i) => (
+                          <div key={tx.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]"
+                            style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.05 + i * 0.06}s both` }}>
+                            <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center text-sm">
+                              {tx.type === "credit" ? "💰" : "💸"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium truncate">{tx.merchant_name || tx.description || "Transfer"}</p>
+                              <p className="text-[9px] text-white/20">{new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                            </div>
+                            <p className={`text-[11px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
+                              {tx.type === "credit" ? "+" : "-"}₹{(tx.amount / 100).toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Bottom shimmer */}
