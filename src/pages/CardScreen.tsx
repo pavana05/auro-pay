@@ -71,7 +71,7 @@ const CardScreen = () => {
 
               {/* Message */}
               <p className="text-[13px] text-white/35 leading-[1.7] max-w-[280px] mb-2">
-                This page is currently under maintenance. I will be available soon.
+                This card feature is currently under maintenance. this will be available soon.
               </p>
               <p className="text-[12px] text-white/25 leading-[1.6] max-w-[260px] mb-8">
                 Until then, please use the <span className="text-primary/70 font-semibold">UPI Scan & Pay</span> option to make payments.
