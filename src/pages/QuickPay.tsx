@@ -46,6 +46,15 @@ const QuickPay = () => {
   const [sending, setSending] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
 
+  // Recurring payments
+  const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [recurringFav, setRecurringFav] = useState<Favorite | null>(null);
+  const [recurringAmount, setRecurringAmount] = useState("");
+  const [recurringFreq, setRecurringFreq] = useState<"weekly" | "monthly">("monthly");
+  const [recurringNote, setRecurringNote] = useState("");
+  const [savingRecurring, setSavingRecurring] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchFavs = async () => {
