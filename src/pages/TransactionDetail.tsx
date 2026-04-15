@@ -324,19 +324,29 @@ const TransactionDetailPage = () => {
             />
           ))}
 
-          {/* Comets — themed */}
+          {/* Comets — ultra-realistic streaks left-to-right */}
           {particles.comets.map((c, i) => (
             <div key={`comet-${i}`} className="absolute"
               style={{
-                width: `${c.w}px`, height: '1.5px',
-                left: `${c.left}%`, top: `-5%`,
-                background: `linear-gradient(270deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3), hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.6), hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.95))`,
-                borderRadius: '999px',
-                filter: `blur(0.5px) drop-shadow(0 0 6px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5))`,
-                animation: `comet-fall ${c.dur}s ease-in ${c.delay}s infinite`,
-                transformOrigin: 'right center',
-              }}
-            />
+                top: `${12 + i * 25}%`,
+                left: 0,
+                height: '2px',
+                animation: `comet-streak ${2.5 + i * 1.2}s linear ${c.delay}s infinite`,
+              }}>
+              {/* Comet head — bright glowing dot */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full"
+                style={{
+                  background: `hsl(${theme.hue} ${theme.sat}% ${theme.light + 25}%)`,
+                  color: `hsl(${theme.hue} ${theme.sat}% ${theme.light + 15}%)`,
+                  animation: `comet-head-glow 0.8s ease-in-out infinite`,
+                }} />
+              {/* Comet tail — gradient trail */}
+              <div className="absolute inset-0 rounded-full"
+                style={{
+                  background: `linear-gradient(90deg, transparent 0%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.15) 30%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5) 70%, hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.9) 100%)`,
+                  filter: `blur(0.5px) drop-shadow(0 0 4px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4))`,
+                }} />
+            </div>
           ))}
 
           {/* Floating Light Particles — themed */}
@@ -411,10 +421,10 @@ const TransactionDetailPage = () => {
               {tx.merchant_name || tx.description || "Transaction"}
             </p>
 
-            {/* Status badge — larger, more prominent */}
+            {/* Status badge — haptic pulse entrance */}
             <div className={`inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-full ${theme.bg} backdrop-blur-sm border ${theme.badgeBorder}`}
               style={{
-                animation: mounted ? "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both" : "none",
+                animation: mounted ? "badge-haptic 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both" : "none",
                 boxShadow: `0 0 20px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.1)`,
               }}>
               <StatusIcon className={`w-4 h-4 ${theme.color}`} />
