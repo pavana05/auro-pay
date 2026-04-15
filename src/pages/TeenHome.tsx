@@ -261,11 +261,25 @@ const TeenHome = () => {
             <h2 className="text-xl font-bold tracking-[-0.5px] text-primary">& PAY</h2>
 
             {/* Balance peek */}
-            {showBalance && wallet && (
-              <div className="mt-3 px-4 py-1.5 rounded-full bg-muted/20 backdrop-blur-sm border border-border/30">
+            {wallet && (
+              <button
+                onClick={() => { haptic.selection(); setShowBalance(!showBalance); }}
+                className="mt-3 px-4 py-1.5 rounded-full bg-muted/20 backdrop-blur-sm border border-border/30 flex items-center gap-2 active:scale-95 transition-all"
+              >
                 <span className="text-[11px] text-muted-foreground">Balance: </span>
-                <span className="text-[11px] font-bold">{formatCompact(wallet.balance)}</span>
-              </div>
+                {showBalance ? (
+                  <span className="text-[11px] font-bold tabular-nums transition-all" key="amount">
+                    {formatCompact(animatedBalance)}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold tracking-wider text-muted-foreground">•••••</span>
+                )}
+                {showBalance ? (
+                  <EyeOff className="w-3 h-3 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
             )}
 
             {/* Frozen badge */}
