@@ -56,19 +56,25 @@ const CardScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-24">
+    <div className="min-h-screen bg-background pb-24 relative">
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
+      </div>
+
+      <div className="relative z-10">
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => { haptic.light(); navigate("/home"); }}
-          className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
-          <ChevronLeft className="w-5 h-5" />
+          className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+          <ChevronLeft className="w-[18px] h-[18px] text-muted-foreground/60" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">My Card</h1>
-          <p className="text-[10px] text-muted-foreground">Virtual Prepaid Card</p>
+          <h1 className="text-[18px] font-bold tracking-[-0.4px]">My Card</h1>
+          <p className="text-[10px] text-white/25">Virtual Prepaid Card</p>
         </div>
-        <button onClick={() => { haptic.light(); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center">
-          <Settings className="w-4.5 h-4.5 text-muted-foreground" />
+        <button onClick={() => { haptic.light(); }} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center">
+          <Settings className="w-[18px] h-[18px] text-muted-foreground/60" />
         </button>
       </div>
 
@@ -134,20 +140,20 @@ const CardScreen = () => {
 
       {/* Quick Actions */}
       <div className="px-5 mb-6">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <button onClick={toggleFreeze}
-            className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-card border border-border active:scale-95 transition-all">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${wallet?.is_frozen ? "bg-blue-500/10" : "bg-muted/30"}`}>
-              <Snowflake className={`w-5 h-5 ${wallet?.is_frozen ? "text-blue-400" : "text-muted-foreground"}`} />
+            className="flex flex-col items-center gap-2.5 py-4 rounded-[20px] bg-white/[0.02] border border-white/[0.03] active:scale-[0.88] transition-all">
+            <div className={`w-[44px] h-[44px] rounded-[14px] flex items-center justify-center ${wallet?.is_frozen ? "bg-[hsl(210_80%_55%/0.1)]" : "bg-white/[0.03]"}`}>
+              <Snowflake className={`w-5 h-5 ${wallet?.is_frozen ? "text-[hsl(210_80%_55%)]" : "text-white/30"}`} />
             </div>
-            <span className="text-[10px] font-medium">{wallet?.is_frozen ? "Unfreeze" : "Freeze"}</span>
+            <span className="text-[10px] font-semibold text-white/45">{wallet?.is_frozen ? "Unfreeze" : "Freeze"}</span>
           </button>
           <button onClick={() => { haptic.light(); navigate("/scan"); }}
-            className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-card border border-border active:scale-95 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            className="flex flex-col items-center gap-2.5 py-4 rounded-[20px] bg-white/[0.02] border border-white/[0.03] active:scale-[0.88] transition-all">
+            <div className="w-[44px] h-[44px] rounded-[14px] bg-primary/[0.08] flex items-center justify-center">
               <QrCode className="w-5 h-5 text-primary" />
             </div>
-            <span className="text-[10px] font-medium">Scan Pay</span>
+            <span className="text-[10px] font-semibold text-white/45">Scan Pay</span>
           </button>
           <button onClick={() => {
             haptic.light();
@@ -156,27 +162,27 @@ const CardScreen = () => {
             toast.success("Card number copied");
             setTimeout(() => setCopied(false), 2000);
           }}
-            className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-card border border-border active:scale-95 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center">
-              {copied ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5 text-muted-foreground" />}
+            className="flex flex-col items-center gap-2.5 py-4 rounded-[20px] bg-white/[0.02] border border-white/[0.03] active:scale-[0.88] transition-all">
+            <div className="w-[44px] h-[44px] rounded-[14px] bg-white/[0.03] flex items-center justify-center">
+              {copied ? <Check className="w-5 h-5 text-[hsl(152_60%_45%)]" /> : <Copy className="w-5 h-5 text-white/30" />}
             </div>
-            <span className="text-[10px] font-medium">Copy No.</span>
+            <span className="text-[10px] font-semibold text-white/45">Copy No.</span>
           </button>
         </div>
       </div>
 
       {/* Card Controls */}
       <div className="px-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3">Card Controls</h3>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border/50">
+        <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3">Card Controls</h3>
+        <div className="rounded-[20px] overflow-hidden border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           {[
             { icon: Globe, label: "Online Transactions", desc: "Allow payments on websites & apps", enabled: onlineTxn, toggle: () => { haptic.light(); setOnlineTxn(!onlineTxn); } },
             { icon: CreditCard, label: "International", desc: "Allow international payments", enabled: intlTxn, toggle: () => { haptic.light(); setIntlTxn(!intlTxn); } },
             { icon: Wifi, label: "Contactless", desc: "Tap to pay at stores", enabled: contactless, toggle: () => { haptic.light(); setContactless(!contactless); } },
-          ].map((control) => (
-            <div key={control.label} className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-9 h-9 rounded-xl bg-muted/20 flex items-center justify-center shrink-0">
-                <control.icon className="w-4.5 h-4.5 text-muted-foreground" />
+          ].map((control, idx) => (
+            <div key={control.label} className={`flex items-center gap-3 px-4 py-3.5 ${idx < 2 ? "border-b border-white/[0.025]" : ""}`}>
+              <div className="w-9 h-9 rounded-[12px] bg-white/[0.03] flex items-center justify-center shrink-0">
+                <control.icon className="w-[18px] h-[18px] text-white/30" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{control.label}</p>
@@ -193,25 +199,25 @@ const CardScreen = () => {
 
       {/* Spending Limits */}
       <div className="px-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3">Spending Limits</h3>
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3">Spending Limits</h3>
+        <div className="rounded-[20px] p-4 space-y-4 border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-muted-foreground">Daily Limit</span>
-              <span className="text-xs font-semibold">{formatAmount(wallet?.spent_today || 0)} / {formatAmount(wallet?.daily_limit || 50000)}</span>
+              <span className="text-[11px] text-white/25">Daily Limit</span>
+              <span className="text-[11px] font-bold tabular-nums">{formatAmount(wallet?.spent_today || 0)} <span className="text-white/20">/ {formatAmount(wallet?.daily_limit || 50000)}</span></span>
             </div>
-            <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
-              <div className="h-full rounded-full bg-primary transition-all duration-700"
+            <div className="h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))", boxShadow: "0 0 12px hsl(42 78% 55% / 0.3)" }}
                 style={{ width: `${Math.min(((wallet?.spent_today || 0) / (wallet?.daily_limit || 50000)) * 100, 100)}%` }} />
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-muted-foreground">Monthly Limit</span>
-              <span className="text-xs font-semibold">{formatAmount(wallet?.spent_this_month || 0)} / {formatAmount(wallet?.monthly_limit || 500000)}</span>
+              <span className="text-[11px] text-white/25">Monthly Limit</span>
+              <span className="text-[11px] font-bold tabular-nums">{formatAmount(wallet?.spent_this_month || 0)} <span className="text-white/20">/ {formatAmount(wallet?.monthly_limit || 500000)}</span></span>
             </div>
-            <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
-              <div className="h-full rounded-full bg-primary/70 transition-all duration-700"
+            <div className="h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700" style={{ background: "linear-gradient(90deg, hsl(42 78% 55% / 0.7), hsl(36 80% 42% / 0.7))" }}
                 style={{ width: `${Math.min(((wallet?.spent_this_month || 0) / (wallet?.monthly_limit || 500000)) * 100, 100)}%` }} />
             </div>
           </div>
@@ -220,15 +226,16 @@ const CardScreen = () => {
 
       {/* Security Notice */}
       <div className="px-5 mb-6">
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
-          <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 rounded-[20px] bg-primary/[0.03] border border-primary/[0.06]">
+          <Shield className="w-5 h-5 text-primary/60 shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold mb-0.5">Your card is secure</p>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-[12px] font-semibold mb-0.5">Your card is secure</p>
+            <p className="text-[10px] text-white/25 leading-relaxed">
               Protected with real-time fraud detection. All transactions are encrypted end-to-end.
             </p>
           </div>
         </div>
+      </div>
       </div>
 
       <BottomNav />

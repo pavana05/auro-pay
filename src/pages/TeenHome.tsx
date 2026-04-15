@@ -300,8 +300,68 @@ const TeenHome = () => {
           </div>
         </SpringIn>
 
+        {/* ─── Spending Insights (AI-powered) ─── */}
+        <SpringIn delay={0.12} className="px-5 mb-6">
+          <div className="relative rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
+            background: `
+              radial-gradient(ellipse 60% 50% at 85% 15%, hsl(270 60% 55% / 0.05) 0%, transparent 60%),
+              linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
+            `
+          }}>
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(270 60% 55% / 0.2), transparent)" }} />
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: "hsl(270 60% 55% / 0.1)" }}>
+                  <Sparkles className="w-4 h-4" style={{ color: "hsl(270 60% 55%)" }} />
+                </div>
+                <div>
+                  <span className="text-[12px] font-bold block">Spending Insights</span>
+                  <span className="text-[9px] text-white/20">AI-powered analysis</span>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                {(() => {
+                  const insights: { text: string; emoji: string; type: "up" | "down" | "info" }[] = [];
+                  const foodTxns = transactions.filter(t => t.category === "food" && t.type === "debit");
+                  const totalSpent = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
+                  if (foodTxns.length > 0) {
+                    const foodTotal = foodTxns.reduce((s, t) => s + t.amount, 0);
+                    const foodPct = totalSpent > 0 ? Math.round((foodTotal / totalSpent) * 100) : 0;
+                    insights.push({ text: `Food takes ${foodPct}% of your spending`, emoji: "🍔", type: foodPct > 40 ? "up" : "info" });
+                  }
+                  if (moneyOut > moneyIn) {
+                    insights.push({ text: `You spent ${fmt(moneyOut - moneyIn)} more than you earned`, emoji: "📉", type: "up" });
+                  } else if (moneyIn > 0) {
+                    insights.push({ text: `Great! You saved ${fmt(moneyIn - moneyOut)} this period`, emoji: "🎉", type: "down" });
+                  }
+                  if (spendPct > 70) {
+                    insights.push({ text: `${Math.round(spendPct)}% of monthly budget used — slow down!`, emoji: "⚠️", type: "up" });
+                  } else if (spendPct < 30) {
+                    insights.push({ text: `Only ${Math.round(spendPct)}% budget used — you're on track!`, emoji: "✅", type: "down" });
+                  }
+                  if (goals.length > 0) {
+                    const avgProgress = goals.reduce((s, g) => s + (g.target_amount > 0 ? (g.current_amount / g.target_amount) * 100 : 0), 0) / goals.length;
+                    insights.push({ text: `Savings goals are ${Math.round(avgProgress)}% complete on average`, emoji: "🎯", type: avgProgress > 50 ? "down" : "info" });
+                  }
+                  if (insights.length === 0) {
+                    insights.push({ text: "Start spending to get personalized insights", emoji: "💡", type: "info" });
+                  }
+                  return insights.slice(0, 3).map((insight, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-[14px] bg-white/[0.02] border border-white/[0.03]"
+                      style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.08}s both` }}>
+                      <span className="text-[18px]">{insight.emoji}</span>
+                      <p className="text-[11px] text-white/45 font-medium flex-1">{insight.text}</p>
+                      <div className={`w-2 h-2 rounded-full ${insight.type === "up" ? "bg-destructive" : insight.type === "down" ? "bg-[hsl(152_60%_45%)]" : "bg-primary/50"}`} />
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        </SpringIn>
+
         {/* ─── Financial Health Score ─── */}
-        <SpringIn delay={0.14} className="px-5 mb-6">
+        <SpringIn delay={0.18} className="px-5 mb-6">
           <button
             onClick={() => { haptic.light(); navigate("/analytics"); }}
             className="w-full relative overflow-hidden rounded-[24px] p-5 text-left active:scale-[0.98] transition-all border border-white/[0.03]"
@@ -357,7 +417,7 @@ const TeenHome = () => {
             {billPayments.map((bp) => (
               <button
                 key={bp.label}
-                onClick={() => { haptic.light(); toast.info(`${bp.label} bill payment coming soon!`); }}
+                onClick={() => { haptic.light(); navigate("/bill-payments"); }}
                 className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 border border-white/[0.03]"
               >
                 <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center" style={{ background: `${bp.color}10` }}>
