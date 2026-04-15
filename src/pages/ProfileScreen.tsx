@@ -356,8 +356,8 @@ const ProfileScreen = () => {
       )}
 
       {/* Achievement Badges */}
-      <div className="px-5 mb-5 animate-slide-up-delay-2">
-        <div className="flex items-center justify-between mb-3">
+      <div className="px-5 mb-5">
+        <div className="flex items-center justify-between mb-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.35s both" }}>
           <div className="flex items-center gap-2">
             <Award className="w-4 h-4 text-primary" />
             <p className="text-[13px] font-semibold">Achievements</p>
@@ -365,14 +365,15 @@ const ProfileScreen = () => {
           <span className="text-[10px] text-white/20">{earnedCount}/{badges.length} unlocked</span>
         </div>
         <div className="grid grid-cols-3 gap-2.5">
-          {badges.map(b => (
+          {badges.map((b, i) => (
             <div key={b.label}
+              style={{ animation: `slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) ${0.4 + i * 0.06}s both` }}
               className={`relative rounded-[16px] p-3 border flex flex-col items-center text-center transition-all ${
                 b.earned
                   ? "border-primary/[0.15] bg-primary/[0.02]"
                   : "border-white/[0.03] opacity-40"
               }`}
-              style={{ background: b.earned ? undefined : "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+              >
               {b.earned && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[hsl(152_60%_45%)] flex items-center justify-center">
                   <Check className="w-2.5 h-2.5 text-white" />
@@ -389,12 +390,13 @@ const ProfileScreen = () => {
       </div>
 
       {/* Menu Items */}
-      <div className="px-5 mb-5 animate-slide-up-delay-2">
+      <div className="px-5 mb-5">
         <div className="rounded-[20px] border border-white/[0.03] overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           {menuItems.map((item, i) => (
             <button
               key={item.label}
               onClick={() => { haptic.light(); navigate(item.path); }}
+              style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.55 + i * 0.05}s both` }}
               className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-white/[0.02] transition-all ${
                 i < menuItems.length - 1 ? "border-b border-white/[0.025]" : ""
               }`}
