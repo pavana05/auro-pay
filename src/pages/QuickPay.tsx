@@ -272,28 +272,6 @@ const QuickPay = () => {
               </div>
             </div>
 
-            {/* Balance Card */}
-            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.07s both" }}>
-              <div className="relative rounded-[22px] p-4 overflow-hidden border border-white/[0.06]" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
-                <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.25), transparent)" }} />
-                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
-                <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55% / 0.03) 45%, hsl(42 78% 55% / 0.06) 50%, hsl(42 78% 55% / 0.03) 55%, transparent 70%)", backgroundSize: "300% 100%", animation: "ref-shimmer-sweep 4s ease-in-out infinite" }} />
-                <div className="relative z-10 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-white/25 font-semibold tracking-[0.2em] uppercase mb-1">Available Balance</p>
-                    <p className="text-[22px] font-bold tabular-nums" style={{ textShadow: "0 0 30px hsl(42 78% 55% / 0.08)" }}>{formatBal(balance)}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5">
-                    <div className="w-20 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-700 ease-out ${isOverBalance ? "bg-destructive" : "bg-primary"}`} style={{ width: `${balPercent}%` }} />
-                    </div>
-                    <p className={`text-[9px] font-medium ${isOverBalance ? "text-destructive" : "text-white/20"}`}>
-                      {isOverBalance ? "Exceeds balance" : `${Math.round(balPercent)}% usage`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
 
             {/* Amount Display */}
