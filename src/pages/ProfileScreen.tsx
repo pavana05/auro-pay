@@ -10,6 +10,62 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 
+const SlotMachineText = ({ text }: { text: string }) => {
+  const [revealed, setRevealed] = useState(false);
+  const [slots, setSlots] = useState<string[]>(text.split("").map(() => " "));
+
+  useEffect(() => {
+    const chars = text.split("");
+    const timers: NodeJS.Timeout[] = [];
+    
+    // Scramble phase — each character cycles through random chars
+    chars.forEach((_, i) => {
+      const scrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let count = 0;
+      const maxCycles = 6 + i * 3; // Later chars spin longer
+      const interval = setInterval(() => {
+        setSlots(prev => {
+          const next = [...prev];
+          next[i] = scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
+          return next;
+        });
+        count++;
+        if (count >= maxCycles) {
+          clearInterval(interval);
+          // Land on final character
+          setSlots(prev => {
+            const next = [...prev];
+            next[i] = chars[i];
+            return next;
+          });
+          if (i === chars.length - 1) setRevealed(true);
+        }
+      }, 60);
+      timers.push(interval as unknown as NodeJS.Timeout);
+    });
+
+    return () => timers.forEach(t => clearInterval(t));
+  }, [text]);
+
+  return (
+    <p className="text-lg font-bold tracking-[0.15em] text-primary flex">
+      {slots.map((char, i) => (
+        <span
+          key={i}
+          className="inline-block transition-all duration-200"
+          style={{
+            animation: revealed && slots[i] === text[i] ? `slide-up-spring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.04}s both` : undefined,
+            minWidth: "0.7em",
+            textAlign: "center",
+          }}
+        >
+          {char}
+        </span>
+      ))}
+    </p>
+  );
+};
+
 interface RedeemedReward {
   id: string;
   redeemed_at: string;
