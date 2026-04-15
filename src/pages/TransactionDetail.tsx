@@ -388,7 +388,7 @@ const TransactionDetailPage = () => {
               {/* Outer pulsing ring */}
               <div className={`absolute -inset-2 rounded-2xl ${theme.iconBg}`}
                 style={{ animation: "glow-pulse 3s ease-in-out infinite", boxShadow: `0 0 30px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.15)` }} />
-              {/* Inner rotating border */}
+              {/* Static gradient border */}
                <div className="absolute -inset-[1px] rounded-2xl"
                 style={{
                   background: `conic-gradient(from 135deg, transparent 20%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.25) 40%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.35) 50%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.25) 60%, transparent 80%)`,
