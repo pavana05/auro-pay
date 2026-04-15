@@ -34,6 +34,10 @@ import AdminRewards from "./pages/admin/AdminRewards.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
+import ExpenseAnalytics from "./pages/ExpenseAnalytics.tsx";
+import BillSplitPage from "./pages/BillSplit.tsx";
+import BudgetPlanner from "./pages/BudgetPlanner.tsx";
+import QuickPay from "./pages/QuickPay.tsx";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +78,10 @@ const App = () => (
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/rewards/:id" element={<RewardDetail />} />
           <Route path="/transaction/:id" element={<TransactionDetailPage />} />
+          <Route path="/analytics" element={<ExpenseAnalytics />} />
+          <Route path="/bill-split" element={<BillSplitPage />} />
+          <Route path="/budget" element={<BudgetPlanner />} />
+          <Route path="/quick-pay" element={<QuickPay />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

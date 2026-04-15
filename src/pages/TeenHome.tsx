@@ -4,7 +4,7 @@ import {
   Bell, QrCode, Plus, Clock, Eye, EyeOff,
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Sparkles, Shield, CreditCard, Send, ChevronRight,
-  Wallet, Zap, BarChart3, Gift,
+  Wallet, Zap, BarChart3, Gift, Users, PieChart, Star,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -318,6 +318,10 @@ const TeenHome = () => {
             { icon: CreditCard, label: "My Card", path: "/card" },
             { icon: Target, label: "Goals", path: "/savings" },
             { icon: Gift, label: "Rewards", path: "/rewards" },
+            { icon: PieChart, label: "Analytics", path: "/analytics" },
+            { icon: Users, label: "Split Bill", path: "/bill-split" },
+            { icon: BarChart3, label: "Budget", path: "/budget" },
+            { icon: Star, label: "Quick Pay", path: "/quick-pay" },
           ].map((action) => (
             <button
               key={action.label}

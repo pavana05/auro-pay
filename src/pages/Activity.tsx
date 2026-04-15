@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, ArrowLeft, ArrowDownLeft, ArrowUpRight, ChevronRight, TrendingUp, Filter } from "lucide-react";
+import { Search, ArrowLeft, ArrowDownLeft, ArrowUpRight, TrendingUp, CalendarDays, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Transaction {
   id: string;
@@ -26,6 +29,9 @@ const Activity = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [showDatePicker, setShowDatePicker] = useState<"from" | "to" | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,19 +49,25 @@ const Activity = () => {
       else if (filter === "Received") query = query.eq("type", "credit");
       else if (filter !== "All") query = query.eq("category", filter.toLowerCase());
 
+      if (dateFrom) query = query.gte("created_at", dateFrom.toISOString());
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        query = query.lte("created_at", end.toISOString());
+      }
+
       const { data } = await query;
       setTransactions((data || []) as Transaction[]);
       setLoading(false);
     };
     fetchTransactions();
-  }, [filter]);
+  }, [filter, dateFrom, dateTo]);
 
   // Realtime
   useEffect(() => {
     const channel = supabase
       .channel("activity-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
-        // Re-fetch on change
         const refetch = async () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
@@ -74,12 +86,17 @@ const Activity = () => {
     (tx) => !search || tx.merchant_name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const formatAmount = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
 
-  // Stats
   const totalIn = filtered.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
   const totalOut = filtered.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
+
+  const hasDateFilter = dateFrom || dateTo;
+
+  const clearDateFilter = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   // Group by date
   const grouped = filtered.reduce<Record<string, Transaction[]>>((acc, tx) => {
@@ -133,6 +150,43 @@ const Activity = () => {
               <p className="text-lg font-bold text-destructive">{formatCompact(totalOut)}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Date Filter */}
+      <div className="px-5 mb-4 animate-slide-up-delay-1">
+        <div className="flex gap-2 items-center">
+          <Popover open={showDatePicker === "from"} onOpenChange={(o) => setShowDatePicker(o ? "from" : null)}>
+            <PopoverTrigger asChild>
+              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] font-medium border transition-all active:scale-95 ${dateFrom ? "border-primary/40 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+                <CalendarDays className="w-3.5 h-3.5" />
+                {dateFrom ? format(dateFrom, "dd MMM yyyy") : "From date"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-[10px] text-muted-foreground">to</span>
+
+          <Popover open={showDatePicker === "to"} onOpenChange={(o) => setShowDatePicker(o ? "to" : null)}>
+            <PopoverTrigger asChild>
+              <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] font-medium border transition-all active:scale-95 ${dateTo ? "border-primary/40 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+                <CalendarDays className="w-3.5 h-3.5" />
+                {dateTo ? format(dateTo, "dd MMM yyyy") : "To date"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+
+          {hasDateFilter && (
+            <button onClick={clearDateFilter} className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center active:scale-90 transition-all">
+              <X className="w-3.5 h-3.5 text-destructive" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -203,7 +257,7 @@ const Activity = () => {
                       {categoryIcons[tx.category || "other"] || "💸"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold truncate">{tx.merchant_name || tx.category || "Transaction"}</p>
+                      <p className="text-[13px] font-semibold truncate text-left">{tx.merchant_name || tx.category || "Transaction"}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] text-muted-foreground capitalize">{tx.category || "other"}</span>
                         <span className="text-[10px] text-muted-foreground">·</span>

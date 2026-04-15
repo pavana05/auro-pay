@@ -35,6 +35,104 @@ export type Database = {
         }
         Relationships: []
       }
+      bill_split_members: {
+        Row: {
+          id: string
+          is_paid: boolean | null
+          paid_at: string | null
+          share_amount: number
+          split_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_paid?: boolean | null
+          paid_at?: string | null
+          share_amount?: number
+          split_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_paid?: boolean | null
+          paid_at?: string | null
+          share_amount?: number
+          split_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_split_members_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "bill_splits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_splits: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          status: string | null
+          title: string
+          total_amount: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          status?: string | null
+          title: string
+          total_amount: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          status?: string | null
+          title?: string
+          total_amount?: number
+        }
+        Relationships: []
+      }
+      budgets: {
+        Row: {
+          alert_threshold: number | null
+          category: string
+          created_at: string | null
+          id: string
+          month: string
+          monthly_limit: number
+          spent: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_threshold?: number | null
+          category: string
+          created_at?: string | null
+          id?: string
+          month: string
+          monthly_limit: number
+          spent?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_threshold?: number | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          month?: string
+          monthly_limit?: number
+          spent?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       kyc_requests: {
         Row: {
           aadhaar_name: string | null
@@ -195,6 +293,39 @@ export type Database = {
           kyc_status?: string | null
           phone?: string | null
           role?: string | null
+        }
+        Relationships: []
+      }
+      quick_pay_favorites: {
+        Row: {
+          avatar_emoji: string | null
+          contact_name: string
+          contact_phone: string | null
+          contact_upi_id: string | null
+          created_at: string | null
+          id: string
+          last_paid_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_emoji?: string | null
+          contact_name: string
+          contact_phone?: string | null
+          contact_upi_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_paid_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_emoji?: string | null
+          contact_name?: string
+          contact_phone?: string | null
+          contact_upi_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_paid_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
