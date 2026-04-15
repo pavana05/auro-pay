@@ -1,63 +1,59 @@
 
 
-# Enhancement Plan: Premium UI, Referral Deep Links, Spin Wheel Credits
+# Fix: Admin Delete User Not Working
 
-## 1. Quick Actions Grid — Ultra-Premium Glassmorphism
-**File**: `src/pages/TeenHome.tsx` (lines ~338-362)
+## Root Cause
 
-Wrap the quick actions grid in a glassmorphism container matching the balance card style:
-- Add a rounded-[24px] wrapper with mesh gradient background, top-edge shimmer highlight, noise overlay
-- Each action button gets subtle backdrop-blur and hover glow orb reveals
-- Add inner border glow on the container
+The `executeDelete` function in `AdminUsers.tsx` tries to delete rows from multiple tables (`transactions`, `wallets`, `notifications`, `profiles`, `kyc_requests`, `savings_goals`, `parent_teen_links`) using the client-side Supabase SDK. However, most of these tables lack DELETE RLS policies for admins:
 
-## 2. Recent Activity Section — Ultra-Premium Glassmorphism  
-**File**: `src/pages/TeenHome.tsx` (lines ~675-728)
+- `transactions` — no DELETE policy at all
+- `wallets` — no DELETE policy
+- `notifications` — no DELETE policy  
+- `profiles` — no DELETE policy
+- `kyc_requests` — no DELETE policy for admins
+- `savings_goals` — has ALL but only for `teen_id = auth.uid()`, not admin
+- `parent_teen_links` — no DELETE policy
 
-The transactions list already has a gradient card wrapper (line 695). Enhance it:
-- Add mesh gradient with gold radial glow accent
-- Add top-edge shimmer line (already partially there at line 699 but uses `absolute` without `relative` parent — fix this)
-- Add a subtle noise overlay layer inside the card
-- Each transaction row gets hover glow feedback
+Every `.delete()` call silently fails due to RLS.
 
-## 3. Referral Deep Link — Real Share with Auto-Apply
-**File**: `src/pages/Referrals.tsx` — already has working share logic with `navigator.share` and deep link generation (line 79). The `AuthScreen.tsx` already captures `?ref=` param and creates referral records.
+## Solution: Edge Function with Service Role
 
-**Fix needed on TeenHome.tsx** (line 730-758): The "Refer & Earn" card uses a generic share text without the actual referral code/deep link. Update it to:
-- Fetch the user's referral code (`AURO${userId.substring(0,6).toUpperCase()}`)
-- Share the proper deep link URL `https://auro-pay.lovable.app?ref=CODE`
+Create an edge function `delete-user` that uses the service role key to bypass RLS and cascade-delete all user data server-side. This is safer and more reliable than adding DELETE policies to every table.
 
-## 4. Spin Wheel — Credit Coins to Wallet + Premium UI
-**File**: `src/pages/SpinWheel.tsx`
+### Changes
 
-Current issues:
-- Coins are never actually credited to the database — just a toast message
-- UI is basic compared to the premium aesthetic
+**1. New edge function**: `supabase/functions/delete-user/index.ts`
+- Accepts `{ user_id: string }` in POST body
+- Verifies the caller is an admin via `has_role()` check
+- Uses service role client to delete from all related tables in order:
+  1. `transactions` (via wallet_id lookup)
+  2. `spending_limits` (via wallet_id)
+  3. `wallets`
+  4. `scratch_cards`, `user_achievements`, `lesson_completions`
+  5. `friendships` (both user_id and friend_id)
+  6. `referrals` (both referrer_id and referred_id)
+  7. `bill_split_members`, `bill_splits`
+  8. `chores` (both parent_id and teen_id)
+  9. `support_tickets` + `ticket_messages`
+  10. `kyc_requests`, `notifications`, `savings_goals`, `user_roles`, `quick_pay_favorites`, `recurring_payments`, `budgets`, `user_streaks`, `parent_teen_links`
+  11. `profiles`
+  12. Finally, delete the auth user via `supabase.auth.admin.deleteUser()`
+- Returns success/error JSON
 
-Changes:
-- **Credit coins**: After spin result, update `user_streaks.streak_coins` via Supabase (upsert)
-- **Premium UI overhaul**:
-  - Add ambient background glow orbs (gold + blue radials)
-  - Add falling sparkle particles behind the wheel
-  - Outer wheel ring: add a pulsating gold glow border with shimmer animation
-  - Center "GO" button: add gradient-primary with glow shadow
-  - Wheel segments: add subtle inner shadow and gradient fills instead of flat colors
-  - Result display: add confetti-style animation with a premium card container
-  - Spin button: add shimmer-border effect and deeper shadow stack
-  - Smoother spin: change easing to `cubic-bezier(0.15, 0.85, 0.15, 1)` for a more natural deceleration
-  - Add a progress indicator showing total coins earned in current session
+**2. Update `src/pages/admin/AdminUsers.tsx`**
+- Replace the `executeDelete` function to call the edge function instead of direct table deletes:
+  ```ts
+  const { data } = await supabase.functions.invoke("delete-user", {
+    body: { user_id: deleteTarget.id }
+  });
+  ```
 
-## 5. Visual QA — Balance Card on Mobile
-The balance card (lines 225-336) already has premium glassmorphism. The fix needed:
-- Ensure `position: relative` is on the transactions wrapper (line 695) so the absolute shimmer line renders correctly
+### Files
 
----
+| File | Action |
+|------|--------|
+| `supabase/functions/delete-user/index.ts` | Create |
+| `src/pages/admin/AdminUsers.tsx` | Update `executeDelete` |
 
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/pages/TeenHome.tsx` | Glassmorphism wrapper on quick actions grid, fix transactions card position:relative, add referral code to share CTA |
-| `src/pages/SpinWheel.tsx` | Full premium redesign + Supabase coin crediting |
-
-No database changes needed — `user_streaks.streak_coins` already exists.
+No database migration needed.
 
