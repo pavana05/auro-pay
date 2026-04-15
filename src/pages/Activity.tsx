@@ -24,6 +24,14 @@ const categoryIcons: Record<string, string> = {
 
 const filters = ["All", "Sent", "Received", "Food", "Transport", "Shopping", "Education", "Entertainment"];
 
+const quickDateFilters = [
+  { label: "Today", getRange: () => { const d = new Date(); d.setHours(0,0,0,0); return { from: d, to: new Date() }; } },
+  { label: "Yesterday", getRange: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); const e = new Date(d); e.setHours(23,59,59,999); return { from: d, to: e }; } },
+  { label: "This Week", getRange: () => { const d = new Date(); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); const start = new Date(d); start.setDate(diff); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
+  { label: "This Month", getRange: () => { const d = new Date(); const start = new Date(d.getFullYear(), d.getMonth(), 1); return { from: start, to: new Date() }; } },
+  { label: "Last 30 Days", getRange: () => { const d = new Date(); const start = new Date(d); start.setDate(d.getDate()-30); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
+];
+
 const Activity = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [search, setSearch] = useState("");
@@ -32,6 +40,7 @@ const Activity = () => {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showDatePicker, setShowDatePicker] = useState<"from" | "to" | null>(null);
+  const [activeQuickDate, setActiveQuickDate] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,6 +105,17 @@ const Activity = () => {
   const clearDateFilter = () => {
     setDateFrom(undefined);
     setDateTo(undefined);
+    setActiveQuickDate(null);
+  };
+
+  const applyQuickDate = (label: string) => {
+    const qf = quickDateFilters.find(q => q.label === label);
+    if (!qf) return;
+    haptic.selection();
+    const { from, to } = qf.getRange();
+    setDateFrom(from);
+    setDateTo(to);
+    setActiveQuickDate(label);
   };
 
   // Group by date
@@ -153,7 +173,26 @@ const Activity = () => {
         </div>
       </div>
 
-      {/* Date Filter */}
+      {/* Quick Date Filters */}
+      <div className="px-5 mb-3 animate-slide-up-delay-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {quickDateFilters.map(qf => (
+            <button
+              key={qf.label}
+              onClick={() => activeQuickDate === qf.label ? clearDateFilter() : applyQuickDate(qf.label)}
+              className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all active:scale-95 ${
+                activeQuickDate === qf.label
+                  ? "gradient-primary text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.2)]"
+                  : "bg-card border border-border text-muted-foreground"
+              }`}
+            >
+              {qf.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Date Filter */}
       <div className="px-5 mb-4 animate-slide-up-delay-1">
         <div className="flex gap-2 items-center">
           <Popover open={showDatePicker === "from"} onOpenChange={(o) => setShowDatePicker(o ? "from" : null)}>
@@ -164,7 +203,7 @@ const Activity = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 
@@ -178,7 +217,7 @@ const Activity = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 

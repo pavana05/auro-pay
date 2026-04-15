@@ -3,12 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   User, Shield, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
   ChevronRight, Trophy, Star, Flame, Zap, Crown, Copy, Check, Gem,
-  Award, TrendingUp, Gift,
+  Award, TrendingUp, Gift, Tag, Clock,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
+
+interface RedeemedReward {
+  id: string;
+  redeemed_at: string;
+  reward: {
+    title: string;
+    coupon_code: string;
+    discount_type: string;
+    discount_value: number;
+    category: string | null;
+    image_url: string | null;
+  } | null;
+}
 
 const ProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -16,8 +29,10 @@ const ProfileScreen = () => {
   const [txCount, setTxCount] = useState(0);
   const [goalCount, setGoalCount] = useState(0);
   const [rewardCount, setRewardCount] = useState(0);
+  const [redeemedRewards, setRedeemedRewards] = useState<RedeemedReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,12 +43,14 @@ const ProfileScreen = () => {
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("wallets").select("*").eq("user_id", user.id).single(),
         supabase.from("savings_goals").select("id").eq("teen_id", user.id),
-        supabase.from("reward_redemptions").select("id").eq("user_id", user.id),
+        supabase.from("reward_redemptions").select("id, redeemed_at, reward:rewards(title, coupon_code, discount_type, discount_value, category, image_url)").eq("user_id", user.id).order("redeemed_at", { ascending: false }),
       ]);
       setProfile(p.data);
       setWallet(w.data);
       setGoalCount(g.data?.length || 0);
-      setRewardCount(rr.data?.length || 0);
+      const rrData = (rr.data || []) as unknown as RedeemedReward[];
+      setRedeemedRewards(rrData);
+      setRewardCount(rrData.length);
       if (w.data) {
         const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", w.data.id);
         setTxCount(txns?.length || 0);
@@ -54,7 +71,6 @@ const ProfileScreen = () => {
   const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
   const referralCode = profile?.phone ? `AURO${profile.phone.slice(-4)}` : "AURO0000";
 
-  // Account level system
   const xp = (txCount * 10) + (goalCount * 25) + (rewardCount * 15) + (profile?.kyc_status === "verified" ? 100 : 0);
   const levels = [
     { name: "Starter", minXP: 0, icon: Star, color: "hsl(220 15% 50%)" },
@@ -68,7 +84,6 @@ const ProfileScreen = () => {
   const levelProgress = nextLevel ? ((xp - currentLevel.minXP) / (nextLevel.minXP - currentLevel.minXP)) * 100 : 100;
   const LevelIcon = currentLevel.icon;
 
-  // Achievement badges
   const badges = [
     { icon: Flame, label: "First Transaction", desc: "Complete your first transaction", earned: txCount > 0, points: 50 },
     { icon: Target, label: "Goal Setter", desc: "Create a savings goal", earned: goalCount > 0, points: 100 },
@@ -86,6 +101,18 @@ const ProfileScreen = () => {
     haptic.light();
     toast.success("Referral code copied!");
     setTimeout(() => setCopiedReferral(false), 2000);
+  };
+
+  const copyCoupon = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCoupon(code);
+    haptic.light();
+    toast.success("Coupon code copied!");
+    setTimeout(() => setCopiedCoupon(null), 2000);
+  };
+
+  const categoryEmojis: Record<string, string> = {
+    general: "🎁", food: "🍔", shopping: "🛍️", entertainment: "🎬", travel: "✈️", education: "📚",
   };
 
   const menuItems = [
@@ -116,12 +143,10 @@ const ProfileScreen = () => {
     <div className="min-h-screen bg-background noise-overlay pb-28">
       {/* Profile Hero */}
       <div className="relative overflow-hidden">
-        {/* Background gradient */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.06) 0%, transparent 60%)" }} />
         <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-[0.06]" style={{ background: "hsl(42 78% 55%)" }} />
 
         <div className="relative z-10 flex flex-col items-center pt-8 pb-6 px-5">
-          {/* Avatar with level ring */}
           <div className="relative mb-4">
             <div className="absolute -inset-1.5 rounded-full" style={{ background: `conic-gradient(${currentLevel.color} ${levelProgress}%, transparent ${levelProgress}%)`, opacity: 0.6 }} />
             {profile?.avatar_url ? (
@@ -131,7 +156,6 @@ const ProfileScreen = () => {
                 {initials}
               </div>
             )}
-            {/* Level badge */}
             <div className="absolute -bottom-1 -right-1 z-20 w-8 h-8 rounded-full flex items-center justify-center shadow-lg" style={{ background: currentLevel.color }}>
               <LevelIcon className="w-4 h-4 text-white" />
             </div>
@@ -140,7 +164,6 @@ const ProfileScreen = () => {
           <h2 className="text-xl font-bold tracking-[-0.5px]">{profile?.full_name}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">{profile?.phone}</p>
 
-          {/* KYC + Level badges */}
           <div className="flex items-center gap-2 mt-3">
             <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${
               profile?.kyc_status === "verified" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
@@ -210,6 +233,62 @@ const ProfileScreen = () => {
           </div>
         </div>
       </div>
+
+      {/* My Rewards Section */}
+      {redeemedRewards.length > 0 && (
+        <div className="px-5 mb-5 animate-slide-up-delay-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" />
+              <p className="text-[13px] font-semibold">My Rewards</p>
+            </div>
+            <span className="text-[10px] text-muted-foreground">{redeemedRewards.length} redeemed</span>
+          </div>
+          <div className="space-y-2.5">
+            {redeemedRewards.slice(0, 5).map(rr => {
+              const reward = rr.reward;
+              if (!reward) return null;
+              return (
+                <div key={rr.id} className="rounded-2xl p-3.5 border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg shrink-0">
+                      {categoryEmojis[reward.category || "general"]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold truncate">{reward.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] font-bold text-primary">
+                          {reward.discount_type === "percentage" ? `${reward.discount_value}% OFF` : `₹${reward.discount_value} OFF`}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          {new Date(rr.redeemed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+                    </div>
+                    <button onClick={() => copyCoupon(reward.coupon_code)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 active:scale-90 transition-all">
+                      {copiedCoupon === reward.coupon_code ? (
+                        <Check className="w-3.5 h-3.5 text-success" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-primary" />
+                      )}
+                      <span className="text-[10px] font-bold text-primary tracking-wider">
+                        {copiedCoupon === reward.coupon_code ? "Copied!" : reward.coupon_code}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {redeemedRewards.length > 5 && (
+              <button onClick={() => navigate("/rewards")} className="w-full py-2.5 text-center text-[11px] font-semibold text-primary active:scale-95 transition-all">
+                View all {redeemedRewards.length} rewards →
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Achievement Badges */}
       <div className="px-5 mb-5 animate-slide-up-delay-2">
