@@ -33,7 +33,7 @@ interface Transaction {
   wallet_id: string;
 }
 
-const CHART_COLORS = ["#7c3aed", "#a855f7", "#c084fc", "#e9d5ff"];
+const CHART_COLORS = ["#c8952e", "#d4a843", "#a67a1e", "#e8c56d"];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -230,8 +230,8 @@ const AdminDashboard = () => {
               <BarChart data={dailyVolume}>
                 <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "#1a0a2e", border: "1px solid rgba(168,85,247,0.15)", borderRadius: 12, color: "#fff", fontSize: 12 }} />
-                <Bar dataKey="volume" fill="#7c3aed" radius={[6, 6, 0, 0]} />
+                <Tooltip contentStyle={{ background: "#121518", border: "1px solid rgba(200,149,46,0.2)", borderRadius: 12, color: "#f5edd6", fontSize: 12 }} />
+                <Bar dataKey="volume" fill="#c8952e" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -243,14 +243,14 @@ const AdminDashboard = () => {
               <AreaChart data={userGrowth}>
                 <defs>
                   <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#a855f7" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#d4a843" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#d4a843" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "#1a0a2e", border: "1px solid rgba(168,85,247,0.15)", borderRadius: 12, color: "#fff", fontSize: 12 }} />
-                <Area type="monotone" dataKey="users" stroke="#a855f7" fill="url(#userGrad)" strokeWidth={2} />
+                <Tooltip contentStyle={{ background: "#121518", border: "1px solid rgba(200,149,46,0.2)", borderRadius: 12, color: "#f5edd6", fontSize: 12 }} />
+                <Area type="monotone" dataKey="users" stroke="#d4a843" fill="url(#userGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -263,7 +263,7 @@ const AdminDashboard = () => {
                 <Pie data={txTypeData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
                   {txTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: "#1a0a2e", border: "1px solid rgba(168,85,247,0.15)", borderRadius: 12, color: "#fff", fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: "#121518", border: "1px solid rgba(200,149,46,0.2)", borderRadius: 12, color: "#f5edd6", fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap justify-center gap-3 mt-2">
