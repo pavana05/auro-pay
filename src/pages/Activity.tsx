@@ -192,9 +192,10 @@ const Activity = () => {
               </div>
               <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
                 {txns.map((tx, idx) => (
-                  <div
+                  <button
                     key={tx.id}
-                    className={`flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-muted/10 ${idx < txns.length - 1 ? "border-b border-border/30" : ""}`}
+                    onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-muted/10 ${idx < txns.length - 1 ? "border-b border-border/30" : ""}`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
                       tx.type === "credit" ? "bg-success/10" : "bg-muted/15"
@@ -220,7 +221,7 @@ const Activity = () => {
                     <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
                       {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
