@@ -186,78 +186,10 @@ const TransactionDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* ===== Premium Animated Background ===== */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Ambient radial glow */}
+      {/* Ambient page glow only */}
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full"
           style={{ background: isCredit ? "radial-gradient(circle, hsl(152 60% 45% / 0.06), transparent 70%)" : "radial-gradient(circle, hsl(42 78% 55% / 0.06), transparent 70%)" }} />
-
-        {/* Falling Stars */}
-        {Array.from({ length: 18 }).map((_, i) => (
-          <div key={`star-${i}`} className="absolute rounded-full"
-            style={{
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
-              left: `${Math.random() * 100}%`,
-              top: `-${Math.random() * 20}%`,
-              background: `hsl(42 78% ${55 + Math.random() * 20}%)`,
-              boxShadow: `0 0 ${3 + Math.random() * 4}px hsl(42 78% 55% / ${0.3 + Math.random() * 0.4})`,
-              animation: `star-fall ${4 + Math.random() * 6}s linear ${Math.random() * 5}s infinite`,
-              opacity: 0.3 + Math.random() * 0.5,
-            }}
-          />
-        ))}
-
-        {/* Comets */}
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={`comet-${i}`} className="absolute"
-            style={{
-              width: `${60 + Math.random() * 80}px`,
-              height: '1.5px',
-              left: `${10 + Math.random() * 60}%`,
-              top: `-5%`,
-              background: `linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), hsl(42 78% 75% / 0.9))`,
-              borderRadius: '999px',
-              filter: `blur(0.5px) drop-shadow(0 0 6px hsl(42 78% 55% / 0.5))`,
-              animation: `comet-fall ${5 + i * 2.5}s ease-in ${i * 3}s infinite`,
-              transformOrigin: 'right center',
-            }}
-          />
-        ))}
-
-        {/* Floating Light Particles */}
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={`particle-${i}`} className="absolute rounded-full"
-            style={{
-              width: `${2 + Math.random() * 3}px`,
-              height: `${2 + Math.random() * 3}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              background: i % 3 === 0
-                ? `hsl(42 78% 65%)`
-                : i % 3 === 1
-                ? `hsl(36 60% 55%)`
-                : `hsl(200 60% 65%)`,
-              boxShadow: `0 0 ${6 + Math.random() * 8}px ${i % 3 === 2 ? 'hsl(200 60% 65% / 0.4)' : 'hsl(42 78% 55% / 0.4)'}`,
-              animation: `particle-float ${6 + Math.random() * 8}s ease-in-out ${Math.random() * 4}s infinite, glow-pulse ${3 + Math.random() * 3}s ease-in-out ${Math.random() * 2}s infinite`,
-            }}
-          />
-        ))}
-
-        {/* Subtle Sparkle Dots */}
-        {Array.from({ length: 25 }).map((_, i) => (
-          <div key={`sparkle-${i}`} className="absolute rounded-full"
-            style={{
-              width: '1px',
-              height: '1px',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              background: 'hsl(42 78% 70%)',
-              boxShadow: '0 0 3px hsl(42 78% 65% / 0.5)',
-              animation: `sparkle-twinkle ${2 + Math.random() * 3}s ease-in-out ${Math.random() * 3}s infinite`,
-            }}
-          />
-        ))}
       </div>
 
       {/* Header */}
@@ -284,6 +216,73 @@ const TransactionDetailPage = () => {
               : "linear-gradient(160deg, hsl(42 60% 25% / 0.15) 0%, hsl(220 15% 6%) 40%, hsl(220 15% 8%) 100%)",
             transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}>
+          {/* Falling Stars */}
+          {Array.from({ length: 18 }).map((_, i) => (
+            <div key={`star-${i}`} className="absolute rounded-full"
+              style={{
+                width: `${1 + Math.random() * 2}px`,
+                height: `${1 + Math.random() * 2}px`,
+                left: `${Math.random() * 100}%`,
+                top: `-${Math.random() * 20}%`,
+                background: `hsl(42 78% ${55 + Math.random() * 20}%)`,
+                boxShadow: `0 0 ${3 + Math.random() * 4}px hsl(42 78% 55% / ${0.3 + Math.random() * 0.4})`,
+                animation: `star-fall ${4 + Math.random() * 6}s linear ${Math.random() * 5}s infinite`,
+                opacity: 0.3 + Math.random() * 0.5,
+              }}
+            />
+          ))}
+
+          {/* Comets */}
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={`comet-${i}`} className="absolute"
+              style={{
+                width: `${60 + Math.random() * 80}px`,
+                height: '1.5px',
+                left: `${10 + Math.random() * 60}%`,
+                top: `-5%`,
+                background: `linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), hsl(42 78% 75% / 0.9))`,
+                borderRadius: '999px',
+                filter: `blur(0.5px) drop-shadow(0 0 6px hsl(42 78% 55% / 0.5))`,
+                animation: `comet-fall ${5 + i * 2.5}s ease-in ${i * 3}s infinite`,
+                transformOrigin: 'right center',
+              }}
+            />
+          ))}
+
+          {/* Floating Light Particles */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={`particle-${i}`} className="absolute rounded-full"
+              style={{
+                width: `${2 + Math.random() * 3}px`,
+                height: `${2 + Math.random() * 3}px`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: i % 3 === 0
+                  ? `hsl(42 78% 65%)`
+                  : i % 3 === 1
+                  ? `hsl(36 60% 55%)`
+                  : `hsl(200 60% 65%)`,
+                boxShadow: `0 0 ${6 + Math.random() * 8}px ${i % 3 === 2 ? 'hsl(200 60% 65% / 0.4)' : 'hsl(42 78% 55% / 0.4)'}`,
+                animation: `particle-float ${6 + Math.random() * 8}s ease-in-out ${Math.random() * 4}s infinite, glow-pulse ${3 + Math.random() * 3}s ease-in-out ${Math.random() * 2}s infinite`,
+              }}
+            />
+          ))}
+
+          {/* Subtle Sparkle Dots */}
+          {Array.from({ length: 25 }).map((_, i) => (
+            <div key={`sparkle-${i}`} className="absolute rounded-full"
+              style={{
+                width: '1px',
+                height: '1px',
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: 'hsl(42 78% 70%)',
+                boxShadow: '0 0 3px hsl(42 78% 65% / 0.5)',
+                animation: `sparkle-twinkle ${2 + Math.random() * 3}s ease-in-out ${Math.random() * 3}s infinite`,
+              }}
+            />
+          ))}
+
           {/* Sparkle particles */}
           <div className="absolute top-6 right-8 w-1.5 h-1.5 rounded-full bg-primary/40" style={{ animation: "glow-pulse 2s ease-in-out infinite" }} />
           <div className="absolute bottom-10 left-10 w-1 h-1 rounded-full bg-primary/30" style={{ animation: "glow-pulse 2.5s ease-in-out 0.5s infinite" }} />
