@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Bell, QrCode, Plus, Clock, Eye, EyeOff,
@@ -6,6 +6,7 @@ import {
   Sparkles, Shield, CreditCard, Send, ChevronRight,
   Wallet, Zap, BarChart3, Gift, Users, PieChart, Star,
   Search, Smartphone, Globe, Award, Coins, Receipt,
+  RefreshCw, ArrowRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -68,7 +69,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 // CountUp hook
-const useCountUp = (target: number, duration = 800, enabled = true) => {
+const useCountUp = (target: number, duration = 1200, enabled = true) => {
   const [value, setValue] = useState(0);
   const rafRef = useRef<number>();
   const startRef = useRef<number>();
@@ -83,7 +84,7 @@ const useCountUp = (target: number, duration = 800, enabled = true) => {
     const animate = (timestamp: number) => {
       if (!startRef.current) startRef.current = timestamp;
       const progress = Math.min((timestamp - startRef.current) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(from + (target - from) * eased));
       if (progress < 1) rafRef.current = requestAnimationFrame(animate);
     };
@@ -151,297 +152,339 @@ const TeenHome = () => {
   const initials = profile?.full_name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const firstName = profile?.full_name?.split(" ")[0] || "";
   const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
-  const animatedBalance = useCountUp(wallet?.balance || 0, 800, showBalance);
+  const animatedBalance = useCountUp(wallet?.balance || 0, 1200, showBalance);
+
+  const greetingTime = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good Morning";
+    if (h < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-        <div className="flex items-center justify-between mb-4">
+      <div className="min-h-screen bg-background px-4 pt-6 pb-24">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
-            <div className="w-40 h-10 rounded-full bg-muted animate-pulse" />
+            <div className="w-12 h-12 rounded-2xl bg-muted animate-pulse" />
+            <div className="space-y-2">
+              <div className="w-24 h-3 rounded-full bg-muted animate-pulse" />
+              <div className="w-36 h-4 rounded-full bg-muted animate-pulse" />
+            </div>
           </div>
         </div>
-        <div className="w-full h-56 rounded-3xl bg-muted animate-pulse mb-4" />
-        <div className="flex gap-3 mb-4">{[1,2,3].map(i => <div key={i} className="flex-1 h-16 rounded-2xl bg-muted animate-pulse" />)}</div>
-        {[1,2,3].map(i => <div key={i} className="w-full h-16 rounded-xl bg-muted animate-pulse mb-3" />)}
+        <div className="w-full h-44 rounded-3xl bg-muted animate-pulse mb-4" />
+        <div className="grid grid-cols-4 gap-3 mb-4">{[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-muted animate-pulse" />)}</div>
+        {[1,2,3].map(i => <div key={i} className="w-full h-16 rounded-2xl bg-muted animate-pulse mb-3" />)}
       </div>
     );
   }
 
   const quickActions = [
-    { icon: Plus, label: "Add Money", path: "/add-money" },
-    { icon: Send, label: "Send Money", path: "/quick-pay" },
-    { icon: TrendingUp, label: "Analytics", path: "/analytics" },
-    { icon: Target, label: "Savings", path: "/savings" },
-  ];
-
-  const serviceActions = [
-    { icon: Smartphone, label: "Recharge", emoji: "📱", path: "/scan" },
-    { icon: Globe, label: "DigiGold", emoji: "🏆", path: "/savings" },
-    { icon: Gift, label: "Refer & Earn", emoji: "🎁", path: null, action: () => {
-      haptic.medium();
-      const shareText = "Hey! Join AuroPay and we both get ₹100! Download now 🎁";
-      navigator.share?.({ text: shareText }).catch(() => {
-        navigator.clipboard.writeText(shareText);
-        toast.success("Referral link copied!");
-      });
-    }},
+    { icon: Plus, label: "Add Money", path: "/add-money", gradient: "from-emerald-500/20 to-emerald-600/5" },
+    { icon: Send, label: "Send", path: "/quick-pay", gradient: "from-primary/20 to-primary/5" },
+    { icon: TrendingUp, label: "Analytics", path: "/analytics", gradient: "from-blue-500/20 to-blue-600/5" },
+    { icon: Target, label: "Savings", path: "/savings", gradient: "from-violet-500/20 to-violet-600/5" },
   ];
 
   const allFeatures = [
-    { icon: CreditCard, label: "My Card", path: "/card" },
-    { icon: Target, label: "Goals", path: "/savings" },
-    { icon: PieChart, label: "Analytics", path: "/analytics" },
-    { icon: Users, label: "Split Bill", path: "/bill-split" },
-    { icon: BarChart3, label: "Budget", path: "/budget" },
-    { icon: Star, label: "Quick Pay", path: "/quick-pay" },
+    { icon: CreditCard, label: "My Card", path: "/card", emoji: "💳" },
+    { icon: PieChart, label: "Analytics", path: "/analytics", emoji: "📊" },
+    { icon: Users, label: "Split Bill", path: "/bill-split", emoji: "👥" },
+    { icon: BarChart3, label: "Budget", path: "/budget", emoji: "📈" },
+    { icon: Star, label: "Quick Pay", path: "/quick-pay", emoji: "⚡" },
+    { icon: RefreshCw, label: "Recurring", path: "/quick-pay", emoji: "🔄" },
   ];
 
+  const moneyIn = transactions.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
+  const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
+  const spendPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
+
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-28">
-      {/* ─── Top Bar ─── */}
-      <div className="px-4 pt-5 pb-3 animate-slide-up">
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <button onClick={() => { haptic.light(); navigate("/profile"); }} className="shrink-0">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20" />
-            ) : (
-              <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.25)]">
-                {initials}
+    <div className="min-h-screen bg-background pb-28">
+      {/* ─── Premium Top Bar ─── */}
+      <div className="relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full opacity-[0.07] blur-3xl" style={{ background: "hsl(42 78% 55%)" }} />
+        <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full opacity-[0.04] blur-3xl" style={{ background: "hsl(42 78% 65%)" }} />
+
+        <div className="relative z-10 px-5 pt-6 pb-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <button onClick={() => { haptic.light(); navigate("/profile"); }} className="shrink-0 group">
+                {profile?.avatar_url ? (
+                  <div className="relative">
+                    <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary/20 group-active:scale-95 transition-transform" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-background" />
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center text-sm font-bold text-primary-foreground shadow-[0_6px_20px_hsl(42_78%_55%/0.3)] group-active:scale-95 transition-transform">
+                      {initials}
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-background" />
+                  </div>
+                )}
+              </button>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">{greetingTime()} 👋</p>
+                <h1 className="text-[17px] font-bold tracking-[-0.3px]">{firstName || "User"}</h1>
               </div>
-            )}
-          </button>
+            </div>
 
-          {/* Search Bar */}
-          <button
-            onClick={() => { haptic.light(); navigate("/quick-pay"); }}
-            className="flex-1 flex items-center gap-2.5 h-10 px-4 rounded-full bg-card border border-border active:scale-[0.98] transition-all"
-          >
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Pay any contact</span>
-          </button>
-
-          {/* Notification */}
-          <button
-            onClick={() => { haptic.light(); navigate("/notifications"); }}
-            className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all relative shrink-0"
-          >
-            <Bell className="w-[18px] h-[18px] text-muted-foreground" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full gradient-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground animate-scale-in">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <button
+                onClick={() => { haptic.light(); navigate("/quick-pay"); }}
+                className="w-10 h-10 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/60 flex items-center justify-center active:scale-90 transition-all"
+              >
+                <Search className="w-[17px] h-[17px] text-muted-foreground" />
+              </button>
+              {/* Notification */}
+              <button
+                onClick={() => { haptic.light(); navigate("/notifications"); }}
+                className="w-10 h-10 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/60 flex items-center justify-center active:scale-90 transition-all relative"
+              >
+                <Bell className="w-[17px] h-[17px] text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full gradient-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.4)] animate-scale-in">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ─── Scan & Pay Hero ─── */}
-      <div className="px-4 mb-4 animate-slide-up-delay-1">
-        <button
-          onClick={() => { haptic.medium(); navigate("/scan"); }}
-          className="w-full relative rounded-3xl overflow-hidden active:scale-[0.98] transition-all duration-200"
-          style={{ background: "linear-gradient(160deg, hsl(220 18% 11%), hsl(220 20% 6%))" }}
+      {/* ─── Premium Balance Card ─── */}
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <div
+          className="relative rounded-[28px] overflow-hidden"
+          style={{ background: "linear-gradient(165deg, hsl(220 20% 12%), hsl(220 22% 6%))" }}
         >
-          {/* QR pattern background */}
+          {/* Shimmer overlay */}
           <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, hsl(42 78% 55%) 20px, hsl(42 78% 55%) 21px),
-              repeating-linear-gradient(90deg, transparent, transparent 20px, hsl(42 78% 55%) 20px, hsl(42 78% 55%) 21px)`,
+            backgroundImage: `radial-gradient(ellipse at 30% 20%, hsl(42 78% 55%), transparent 50%),
+              radial-gradient(ellipse at 70% 80%, hsl(42 78% 45%), transparent 50%)`
           }} />
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(42 78% 65%), transparent)" }} />
+          {/* Floating orbs */}
+          <div className="absolute top-4 right-8 w-20 h-20 rounded-full opacity-[0.06] blur-xl" style={{ background: "hsl(42 78% 55%)" }} />
+          <div className="absolute bottom-4 left-6 w-16 h-16 rounded-full opacity-[0.04] blur-xl" style={{ background: "hsl(42 78% 65%)" }} />
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.015]" style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 24px, hsl(42 78% 55%) 24px, hsl(42 78% 55%) 25px),
+              repeating-linear-gradient(90deg, transparent, transparent 24px, hsl(42 78% 55%) 24px, hsl(42 78% 55%) 25px)`,
+          }} />
 
-          <div className="relative z-10 flex flex-col items-center py-8 px-6">
-            {/* QR Icon */}
-            <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center mb-4 shadow-[0_8px_32px_hsl(42_78%_55%/0.3)]">
-              <QrCode className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
-            </div>
-            <h2 className="text-xl font-bold tracking-[-0.5px] mb-1">SCAN</h2>
-            <h2 className="text-xl font-bold tracking-[-0.5px] text-primary">& PAY</h2>
-
-            {/* Balance peek */}
-            {wallet && (
+          <div className="relative z-10 p-6">
+            {/* Balance section */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium tracking-wider uppercase mb-2">Total Balance</p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); haptic.selection(); setShowBalance(!showBalance); }}
+                  className="flex items-center gap-3 active:opacity-70 transition-opacity"
+                >
+                  {showBalance ? (
+                    <h2 className="text-[32px] font-bold tracking-[-1px] tabular-nums leading-none">
+                      {formatCompact(animatedBalance)}
+                    </h2>
+                  ) : (
+                    <h2 className="text-[32px] font-bold tracking-[2px] text-muted-foreground leading-none">•••••</h2>
+                  )}
+                  {showBalance ? (
+                    <EyeOff className="w-5 h-5 text-muted-foreground mt-1" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-muted-foreground mt-1" />
+                  )}
+                </button>
+              </div>
+              {/* QR Scan button */}
               <button
-                onClick={() => { haptic.selection(); setShowBalance(!showBalance); }}
-                className="mt-3 px-4 py-1.5 rounded-full bg-muted/20 backdrop-blur-sm border border-border/30 flex items-center gap-2 active:scale-95 transition-all"
+                onClick={() => { haptic.medium(); navigate("/scan"); }}
+                className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-[0_8px_24px_hsl(42_78%_55%/0.35)] active:scale-90 transition-transform"
               >
-                <span className="text-[11px] text-muted-foreground">Balance: </span>
-                {showBalance ? (
-                  <span className="text-[11px] font-bold tabular-nums transition-all" key="amount">
-                    {formatCompact(animatedBalance)}
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-bold tracking-wider text-muted-foreground">•••••</span>
-                )}
-                {showBalance ? (
-                  <EyeOff className="w-3 h-3 text-muted-foreground" />
-                ) : (
-                  <Eye className="w-3 h-3 text-muted-foreground" />
-                )}
+                <QrCode className="w-7 h-7 text-primary-foreground" strokeWidth={1.8} />
               </button>
-            )}
+            </div>
 
             {/* Frozen badge */}
             {wallet?.is_frozen && (
-              <div className="mt-3 px-3 py-1.5 bg-destructive/15 rounded-full inline-flex items-center gap-1.5 animate-scale-in">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                <span className="text-[10px] font-semibold text-destructive">Wallet Frozen</span>
+              <div className="mb-4 px-3 py-2 bg-destructive/10 rounded-xl inline-flex items-center gap-2 animate-scale-in border border-destructive/20">
+                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-[11px] font-semibold text-destructive">Wallet Frozen</span>
               </div>
             )}
+
+            {/* Money flow mini cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl p-3 bg-success/[0.06] border border-success/10 backdrop-blur-sm">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-5 h-5 rounded-lg bg-success/15 flex items-center justify-center">
+                    <ArrowDownLeft className="w-3 h-3 text-success" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-medium">Income</span>
+                </div>
+                <p className="text-[14px] font-bold text-success tabular-nums">{formatCompact(moneyIn)}</p>
+              </div>
+              <div className="rounded-2xl p-3 bg-destructive/[0.06] border border-destructive/10 backdrop-blur-sm">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-5 h-5 rounded-lg bg-destructive/15 flex items-center justify-center">
+                    <ArrowUpRight className="w-3 h-3 text-destructive" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-medium">Expense</span>
+                </div>
+                <p className="text-[14px] font-bold text-destructive tabular-nums">{formatCompact(moneyOut)}</p>
+              </div>
+            </div>
           </div>
-        </button>
+        </div>
       </div>
 
-      {/* ─── Quick Action Pills ─── */}
-      <div className="px-4 mb-4 animate-slide-up-delay-1">
-        <div className="flex gap-2">
+      {/* ─── Quick Actions Grid ─── */}
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.15s" }}>
+        <div className="grid grid-cols-4 gap-3">
           {quickActions.map((a) => (
             <button
               key={a.label}
               onClick={() => { haptic.light(); a.path && navigate(a.path); }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-card border border-border active:scale-95 transition-all"
+              className="flex flex-col items-center gap-2 py-3.5 rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 active:scale-90 transition-all duration-200 group"
             >
-              <a.icon className="w-4 h-4 text-muted-foreground" />
-              <span className="text-[11px] font-semibold text-foreground">{a.label}</span>
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${a.gradient} flex items-center justify-center border border-border/30 group-active:shadow-[0_0_16px_hsl(42_78%_55%/0.15)] transition-shadow`}>
+                <a.icon className="w-5 h-5 text-foreground" strokeWidth={1.8} />
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground">{a.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ─── Services Row ─── */}
-      <div className="px-4 mb-5 animate-slide-up-delay-2">
-        <div className="flex gap-2">
-          {serviceActions.map((a) => (
-            <button
-              key={a.label}
-              onClick={() => { haptic.light(); a.action ? a.action() : a.path && navigate(a.path); }}
-              className="flex-1 flex items-center gap-2 py-3 px-3 rounded-2xl bg-card border border-border active:scale-95 transition-all"
-            >
-              <span className="text-lg">{a.emoji}</span>
-              <span className="text-[11px] font-semibold text-foreground truncate">{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Quick Pay / Recommended ─── */}
+      {/* ─── Quick Pay Contacts ─── */}
       {favorites.length > 0 && (
-        <div className="mb-5 animate-slide-up-delay-2">
-          <div className="flex items-center justify-between mb-3 px-4">
-            <h3 className="text-[13px] font-bold">Recommended</h3>
-            <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5">
-              View All <ChevronRight className="w-3 h-3" />
+        <div className="mb-5 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <div className="flex items-center justify-between mb-3.5 px-5">
+            <h3 className="text-[13px] font-bold tracking-[-0.2px]">Quick Pay</h3>
+            <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5 active:opacity-70 transition-opacity">
+              See All <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="flex gap-4 overflow-x-auto px-4 pb-1">
+          <div className="flex gap-4 overflow-x-auto px-5 pb-2 scrollbar-hide">
             {favorites.map(fav => (
               <button key={fav.id} onClick={() => { haptic.light(); navigate("/quick-pay"); }}
-                className="flex flex-col items-center gap-1.5 min-w-[60px] active:scale-90 transition-all">
-                <div className="w-14 h-14 rounded-full bg-card border border-border flex items-center justify-center text-2xl shadow-sm">
+                className="flex flex-col items-center gap-2 min-w-[64px] active:scale-90 transition-all group">
+                <div className="w-[56px] h-[56px] rounded-2xl bg-card border border-border/60 flex items-center justify-center text-2xl shadow-sm group-active:shadow-[0_0_20px_hsl(42_78%_55%/0.1)] transition-shadow">
                   {fav.avatar_emoji}
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium truncate w-full text-center">{fav.contact_name.split(" ")[0]}</span>
               </button>
             ))}
             <button onClick={() => { haptic.light(); navigate("/quick-pay"); }}
-              className="flex flex-col items-center gap-1.5 min-w-[60px] active:scale-90 transition-all">
-              <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              className="flex flex-col items-center gap-2 min-w-[64px] active:scale-90 transition-all">
+              <div className="w-[56px] h-[56px] rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center">
                 <Plus className="w-5 h-5 text-primary" />
               </div>
-              <span className="text-[10px] text-primary font-medium">Add</span>
+              <span className="text-[10px] text-primary font-semibold">Add</span>
             </button>
           </div>
         </div>
       )}
 
       {/* ─── Feature Grid ─── */}
-      <div className="px-4 mb-5 animate-slide-up-delay-2">
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.25s" }}>
+        <h3 className="text-[13px] font-bold tracking-[-0.2px] mb-3.5">Services</h3>
         <div className="grid grid-cols-3 gap-2.5">
           {allFeatures.map((f) => (
             <button
               key={f.label}
               onClick={() => { haptic.light(); navigate(f.path); }}
-              className="group relative flex flex-col items-center gap-2 py-4 rounded-2xl transition-all duration-300 active:scale-90 overflow-hidden border border-border/50"
-              style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}
+              className="group relative flex flex-col items-center gap-2.5 py-5 rounded-2xl transition-all duration-300 active:scale-90 overflow-hidden border border-border/40 bg-card/40 backdrop-blur-sm"
             >
               <div className="absolute inset-0 opacity-0 group-active:opacity-100 transition-opacity duration-300" style={{ background: "radial-gradient(circle at center, hsl(42 78% 55% / 0.06), transparent)" }} />
-              <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
-                <f.icon className="w-5 h-5 text-primary" strokeWidth={1.8} />
-              </div>
+              <span className="text-2xl">{f.emoji}</span>
               <span className="text-[10px] font-semibold text-muted-foreground">{f.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ─── Picked for you / Rewards ─── */}
-      {rewards.length > 0 && (
-        <div className="mb-5 animate-slide-up-delay-3">
-          <div className="flex items-center justify-between mb-3 px-4">
-            <h3 className="text-[13px] font-bold">Picked for you</h3>
-            <button onClick={() => { haptic.light(); navigate("/rewards"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5">
-              View All <ChevronRight className="w-3 h-3" />
-            </button>
+      {/* ─── Monthly Spending Card ─── */}
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+        <div className="rounded-[24px] p-5 border border-border/40 bg-card/40 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
+                <Wallet className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="text-[13px] font-bold tracking-[-0.2px]">Monthly Spending</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground px-2.5 py-1 rounded-full bg-muted/20 border border-border/30">
+              {new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+            </span>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-            {rewards.map(r => (
-              <button
-                key={r.id}
-                onClick={() => { haptic.light(); navigate(`/rewards/${r.id}`); }}
-                className="min-w-[220px] rounded-2xl border border-border overflow-hidden active:scale-[0.97] transition-all"
-                style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}
-              >
-                {r.image_url ? (
-                  <div className="w-full h-28 overflow-hidden">
-                    <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="w-full h-28 flex items-center justify-center" style={{ background: "linear-gradient(135deg, hsl(42 78% 55% / 0.08), hsl(220 15% 10%))" }}>
-                    <Gift className="w-10 h-10 text-primary/30" />
-                  </div>
-                )}
-                <div className="p-3">
-                  <p className="text-[12px] font-semibold truncate">{r.title}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.description || "Limited time offer"}</p>
-                  <div className="mt-2 inline-flex px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                    {r.discount_type === "percentage" ? `${r.discount_value}% off` : `₹${r.discount_value} off`}
-                  </div>
-                </div>
-              </button>
-            ))}
+
+          <div className="mb-4">
+            <div className="flex justify-between items-end mb-2">
+              <div>
+                <p className="text-[22px] font-bold tabular-nums">{formatCompact(wallet?.spent_this_month || 0)}</p>
+                <p className="text-[10px] text-muted-foreground">of {formatCompact(wallet?.monthly_limit || 0)} limit</p>
+              </div>
+              <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${spendPct > 80 ? "bg-destructive/10 text-destructive" : spendPct > 50 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"}`}>
+                {Math.round(spendPct)}%
+              </span>
+            </div>
+            <div className="h-2.5 rounded-full bg-muted/15 overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{
+                width: `${spendPct}%`,
+                background: spendPct > 80
+                  ? "linear-gradient(90deg, hsl(0 72% 51%), hsl(0 72% 41%))"
+                  : spendPct > 50
+                    ? "linear-gradient(90deg, hsl(38 92% 50%), hsl(28 92% 45%))"
+                    : "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))",
+              }} />
+            </div>
+          </div>
+
+          {/* Daily limit */}
+          <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-muted/8 border border-border/20">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[10px] text-muted-foreground">Today's spending</span>
+            </div>
+            <span className="text-[11px] font-bold tabular-nums">{formatCompact(wallet?.spent_today || 0)} / {formatCompact(wallet?.daily_limit || 0)}</span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ─── Savings Goals ─── */}
       {goals.length > 0 && (
-        <div className="mb-5 animate-slide-up-delay-3">
-          <div className="flex items-center justify-between mb-3 px-4">
-            <h3 className="text-[13px] font-bold flex items-center gap-1.5">
+        <div className="mb-5 animate-fade-in" style={{ animationDelay: "0.35s" }}>
+          <div className="flex items-center justify-between mb-3.5 px-5">
+            <h3 className="text-[13px] font-bold tracking-[-0.2px] flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" /> Savings Goals
             </h3>
-            <button onClick={() => { haptic.light(); navigate("/savings"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5">
+            <button onClick={() => { haptic.light(); navigate("/savings"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5 active:opacity-70 transition-opacity">
               View All <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+          <div className="flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide">
             {goals.map(goal => {
               const pct = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
               return (
                 <button
                   key={goal.id}
                   onClick={() => { haptic.light(); navigate("/savings"); }}
-                  className="min-w-[150px] p-4 rounded-2xl border border-border active:scale-95 transition-all duration-200"
-                  style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}
+                  className="min-w-[150px] p-4 rounded-2xl border border-border/40 active:scale-95 transition-all duration-200 bg-card/40 backdrop-blur-sm"
                 >
-                  <div className="text-xl mb-2">{goal.icon || "🎯"}</div>
-                  <p className="text-xs font-semibold truncate mb-1">{goal.title}</p>
-                  <div className="w-full h-1.5 rounded-full bg-muted/20 overflow-hidden mb-1.5">
+                  <div className="text-2xl mb-2.5">{goal.icon || "🎯"}</div>
+                  <p className="text-[12px] font-semibold truncate mb-2">{goal.title}</p>
+                  <div className="w-full h-1.5 rounded-full bg-muted/15 overflow-hidden mb-2">
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))" }} />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{Math.round(pct)}% saved</p>
+                  <div className="flex justify-between">
+                    <p className="text-[10px] text-muted-foreground">{Math.round(pct)}%</p>
+                    <p className="text-[10px] text-primary font-semibold">{formatCompact(goal.current_amount)}</p>
+                  </div>
                 </button>
               );
             })}
@@ -449,81 +492,74 @@ const TeenHome = () => {
         </div>
       )}
 
-      {/* ─── Money Flow + Monthly Overview ─── */}
-      <div className="px-4 mb-5 animate-slide-up-delay-3">
-        <div className="rounded-2xl p-4 border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Wallet className="w-4 h-4 text-primary" />
-            <span className="text-[13px] font-bold">Monthly Overview</span>
-            <span className="ml-auto text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
+      {/* ─── Rewards ─── */}
+      {rewards.length > 0 && (
+        <div className="mb-5 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div className="flex items-center justify-between mb-3.5 px-5">
+            <h3 className="text-[13px] font-bold tracking-[-0.2px] flex items-center gap-2">
+              <Gift className="w-4 h-4 text-primary" /> Rewards
+            </h3>
+            <button onClick={() => { haptic.light(); navigate("/rewards"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5 active:opacity-70 transition-opacity">
+              View All <ChevronRight className="w-3 h-3" />
+            </button>
           </div>
-
-          {/* Money In / Out */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-xl p-3 bg-success/[0.04] border border-success/10">
-              <div className="flex items-center gap-1.5 mb-1">
-                <ArrowDownLeft className="w-3.5 h-3.5 text-success" />
-                <span className="text-[10px] text-muted-foreground">Money In</span>
-              </div>
-              <p className="text-sm font-bold text-success">
-                {formatCompact(transactions.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0))}
-              </p>
-            </div>
-            <div className="rounded-xl p-3 bg-destructive/[0.04] border border-destructive/10">
-              <div className="flex items-center gap-1.5 mb-1">
-                <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />
-                <span className="text-[10px] text-muted-foreground">Money Out</span>
-              </div>
-              <p className="text-sm font-bold text-destructive">
-                {formatCompact(transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0))}
-              </p>
-            </div>
-          </div>
-
-          {/* Spending progress */}
-          <div>
-            <div className="flex justify-between mb-1.5">
-              <span className="text-[10px] text-muted-foreground">Monthly Budget</span>
-              <span className="text-[10px] font-medium">{formatCompact(wallet?.spent_this_month || 0)} / {formatCompact(wallet?.monthly_limit || 0)}</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted/20 overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-1000" style={{
-                width: `${wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0}%`,
-                background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))",
-              }} />
-            </div>
+          <div className="flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide">
+            {rewards.map(r => (
+              <button
+                key={r.id}
+                onClick={() => { haptic.light(); navigate(`/rewards/${r.id}`); }}
+                className="min-w-[200px] rounded-2xl border border-border/40 overflow-hidden active:scale-[0.97] transition-all bg-card/40 backdrop-blur-sm"
+              >
+                {r.image_url ? (
+                  <div className="w-full h-24 overflow-hidden">
+                    <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full h-24 flex items-center justify-center" style={{ background: "linear-gradient(135deg, hsl(42 78% 55% / 0.08), transparent)" }}>
+                    <Gift className="w-8 h-8 text-primary/30" />
+                  </div>
+                )}
+                <div className="p-3.5">
+                  <p className="text-[11px] font-semibold truncate">{r.title}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{r.description || "Limited time offer"}</p>
+                  <div className="mt-2 inline-flex px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold border border-primary/15">
+                    {r.discount_type === "percentage" ? `${r.discount_value}% OFF` : `₹${r.discount_value} OFF`}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
       {/* ─── Recent Activity ─── */}
-      <div className="px-4 mb-5 animate-slide-up-delay-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[13px] font-bold flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4 text-primary" /> Recent Activity
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.45s" }}>
+        <div className="flex items-center justify-between mb-3.5">
+          <h3 className="text-[13px] font-bold tracking-[-0.2px] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" /> Recent Activity
           </h3>
-          <button onClick={() => { haptic.light(); navigate("/activity"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5">
+          <button onClick={() => { haptic.light(); navigate("/activity"); }} className="text-[11px] text-primary font-semibold flex items-center gap-0.5 active:opacity-70 transition-opacity">
             View All <ChevronRight className="w-3 h-3" />
           </button>
         </div>
 
         {transactions.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
-            <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-3">
-              <Clock className="w-7 h-7 text-muted-foreground" />
+          <div className="text-center py-14 rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-sm">
+            <div className="w-16 h-16 rounded-2xl bg-muted/15 flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-muted-foreground/50" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">No transactions yet</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Start by adding money to your wallet</p>
+            <p className="text-sm font-semibold text-muted-foreground">No transactions yet</p>
+            <p className="text-[11px] text-muted-foreground/60 mt-1">Start by adding money to your wallet</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+          <div className="rounded-[24px] border border-border/40 overflow-hidden bg-card/40 backdrop-blur-sm">
             {transactions.map((tx, idx) => (
               <button
                 key={tx.id}
                 onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 active:bg-muted/10 ${idx < transactions.length - 1 ? "border-b border-border/50" : ""}`}
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 active:bg-muted/8 ${idx < transactions.length - 1 ? "border-b border-border/20" : ""}`}
               >
-                <div className="w-10 h-10 rounded-xl bg-muted/15 flex items-center justify-center text-lg shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-muted/10 flex items-center justify-center text-lg shrink-0 border border-border/20">
                   {categoryIcons[tx.category || "other"] || "💸"}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
@@ -532,9 +568,14 @@ const TeenHome = () => {
                     {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </p>
                 </div>
-                <p className={`text-[12px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
-                  {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
-                </p>
+                <div className="text-right">
+                  <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
+                    {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
+                  </p>
+                  <p className={`text-[9px] font-medium mt-0.5 ${tx.status === "success" ? "text-success/60" : "text-warning/60"}`}>
+                    {tx.status === "success" ? "Completed" : tx.status}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -542,7 +583,7 @@ const TeenHome = () => {
       </div>
 
       {/* ─── Refer & Earn ─── */}
-      <div className="px-4 mb-5 animate-slide-up-delay-4">
+      <div className="px-5 mb-5 animate-fade-in" style={{ animationDelay: "0.5s" }}>
         <button
           onClick={() => {
             haptic.medium();
@@ -552,30 +593,28 @@ const TeenHome = () => {
               toast.success("Referral link copied!");
             });
           }}
-          className="w-full relative overflow-hidden rounded-3xl border border-primary/20 p-5 text-left active:scale-[0.98] transition-transform"
-          style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}
+          className="w-full relative overflow-hidden rounded-[24px] border border-primary/15 p-5 text-left active:scale-[0.98] transition-transform bg-card/40 backdrop-blur-sm"
         >
-          <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full blur-3xl opacity-30" style={{ background: "hsl(42 78% 55%)" }} />
-          <div className="absolute top-4 right-16 w-1 h-1 rounded-full bg-primary/40 animate-pulse" />
-          <div className="absolute top-10 right-8 w-1.5 h-1.5 rounded-full bg-primary/30 animate-pulse" style={{ animationDelay: "0.5s" }} />
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20" style={{ background: "hsl(42 78% 55%)" }} />
+          <div className="absolute top-3 right-14 w-1 h-1 rounded-full bg-primary/40 animate-pulse" />
+          <div className="absolute top-8 right-6 w-1.5 h-1.5 rounded-full bg-primary/30 animate-pulse" style={{ animationDelay: "0.5s" }} />
 
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex-1">
               <h3 className="text-[15px] font-bold leading-snug mb-0.5">
-                Flat ₹20 for you,
+                Invite & Earn ₹20
               </h3>
-              <h3 className="text-[15px] font-bold text-primary mb-1">₹20 for your friend*</h3>
-              <p className="text-[10px] text-muted-foreground mb-3">*Reward unlocks after first spend</p>
-              <div className="inline-flex items-center gap-2 bg-success text-white px-4 py-2 rounded-full">
+              <p className="text-[11px] text-muted-foreground mb-3">Your friend gets ₹20 too after first spend</p>
+              <div className="inline-flex items-center gap-2 gradient-primary text-primary-foreground px-4 py-2.5 rounded-xl shadow-[0_4px_16px_hsl(42_78%_55%/0.3)]">
                 <Send className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-semibold">Invite via WhatsApp</span>
+                <span className="text-[11px] font-bold">Invite Now</span>
               </div>
             </div>
             <div className="relative w-16 h-16 shrink-0">
-              <div className="absolute inset-0 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center">
                 <span className="text-3xl">🎁</span>
               </div>
-              <div className="absolute -top-2 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shadow-lg animate-bounce" style={{ animationDuration: "2s" }}>
+              <div className="absolute -top-2 -right-1 w-6 h-6 rounded-full gradient-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shadow-lg animate-bounce" style={{ animationDuration: "2s" }}>
                 ₹
               </div>
             </div>
@@ -583,29 +622,23 @@ const TeenHome = () => {
         </button>
       </div>
 
-      {/* ─── Invest Your Money ─── */}
-      <div className="px-4 mb-6 animate-slide-up-delay-4">
-        <h3 className="text-[13px] font-bold mb-3">Explore More</h3>
+      {/* ─── Explore More ─── */}
+      <div className="px-5 mb-8 animate-fade-in" style={{ animationDelay: "0.55s" }}>
+        <h3 className="text-[13px] font-bold tracking-[-0.2px] mb-3.5">Explore</h3>
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => { haptic.light(); navigate("/savings"); }}
-            className="rounded-2xl p-4 border border-border overflow-hidden relative active:scale-[0.97] transition-all"
-            style={{ background: "linear-gradient(145deg, hsl(152 60% 45% / 0.05), hsl(220 15% 8%))" }}>
-            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(152 60% 45%), transparent)" }} />
-            <div className="relative z-10">
-              <span className="text-2xl mb-2 block">🏦</span>
-              <p className="text-[12px] font-semibold mb-0.5">Save & Invest</p>
-              <p className="text-[10px] text-muted-foreground">Set savings goals</p>
-            </div>
+            className="rounded-2xl p-4 border border-border/40 overflow-hidden relative active:scale-[0.97] transition-all bg-card/40 backdrop-blur-sm">
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.08] blur-xl" style={{ background: "hsl(152 60% 45%)" }} />
+            <span className="text-2xl mb-2.5 block">🏦</span>
+            <p className="text-[12px] font-semibold mb-0.5">Save & Invest</p>
+            <p className="text-[10px] text-muted-foreground">Set savings goals</p>
           </button>
           <button onClick={() => { haptic.light(); navigate("/rewards"); }}
-            className="rounded-2xl p-4 border border-border overflow-hidden relative active:scale-[0.97] transition-all"
-            style={{ background: "linear-gradient(145deg, hsl(42 78% 55% / 0.05), hsl(220 15% 8%))" }}>
-            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
-            <div className="relative z-10">
-              <span className="text-2xl mb-2 block">🎟️</span>
-              <p className="text-[12px] font-semibold mb-0.5">Earn Rewards</p>
-              <p className="text-[10px] text-muted-foreground">Exclusive deals & offers</p>
-            </div>
+            className="rounded-2xl p-4 border border-border/40 overflow-hidden relative active:scale-[0.97] transition-all bg-card/40 backdrop-blur-sm">
+            <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.08] blur-xl" style={{ background: "hsl(42 78% 55%)" }} />
+            <span className="text-2xl mb-2.5 block">🎟️</span>
+            <p className="text-[12px] font-semibold mb-0.5">Earn Rewards</p>
+            <p className="text-[10px] text-muted-foreground">Exclusive deals</p>
           </button>
         </div>
       </div>
