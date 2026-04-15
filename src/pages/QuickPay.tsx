@@ -17,6 +17,16 @@ interface Favorite {
 
 const emojiOptions = ["👤", "🧑", "👩", "👨", "🦸", "🧑‍💻", "👸", "🤴", "🧑‍🎓", "🦊", "🐱", "🐶"];
 
+interface RecurringPayment {
+  id: string;
+  favorite_id: string;
+  amount: number;
+  frequency: string;
+  next_run_at: string;
+  is_active: boolean;
+  note: string | null;
+}
+
 const QuickPay = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
