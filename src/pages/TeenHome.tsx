@@ -170,9 +170,10 @@ const TeenHome = () => {
   }
 
   const quickActions = [
-    { icon: showBalance ? EyeOff : Eye, label: showBalance ? "Hide Balance" : "Show Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
-    { icon: QrCode, label: "Scan & Pay", path: "/scan" },
     { icon: Plus, label: "Add Money", path: "/add-money" },
+    { icon: Send, label: "Send Money", path: "/quick-pay" },
+    { icon: TrendingUp, label: "Analytics", path: "/analytics" },
+    { icon: Target, label: "Savings", path: "/savings" },
   ];
 
   const serviceActions = [
