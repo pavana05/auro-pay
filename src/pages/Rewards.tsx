@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, ChevronLeft, Tag, Sparkles, Clock } from "lucide-react";
+import { Gift, ChevronLeft, Tag, Sparkles, Clock, Search } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -64,8 +64,12 @@ const Rewards = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const filters = ["all", ...new Set(rewards.map(r => r.category || "general"))];
-  const filtered = activeFilter === "all" ? rewards : rewards.filter(r => (r.category || "general") === activeFilter);
+  const filtered = rewards
+    .filter(r => activeFilter === "all" || (r.category || "general") === activeFilter)
+    .filter(r => !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.description?.toLowerCase().includes(searchQuery.toLowerCase()) || (r.category || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -82,6 +86,19 @@ const Rewards = () => {
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <Gift className="w-4 h-4 text-primary" />
           </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search rewards..."
+            className="w-full h-11 rounded-2xl bg-card border border-border pl-11 pr-4 text-sm focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.1)] transition-all duration-200 outline-none"
+          />
         </div>
       </div>
 
