@@ -217,3 +217,8 @@
   50% { left: 150%; }
   100% { left: 150%; }
 }
+
+@keyframes grow-up {
+  0% { transform: scaleY(0); transform-origin: bottom; }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
