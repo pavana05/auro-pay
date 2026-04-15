@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Clock, User, Wallet, ShieldCheck, ArrowLeftRight, Filter } from "lucide-react";
+import { Clock, User, Wallet, ShieldCheck, ArrowLeftRight, Filter, RefreshCw } from "lucide-react";
 
 interface ActivityItem {
   id: string;
@@ -16,65 +16,36 @@ const AdminActivityLog = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    const fetchActivity = async () => {
-      setLoading(true);
-      const items: ActivityItem[] = [];
+  const fetchActivity = async () => {
+    setLoading(true);
+    const items: ActivityItem[] = [];
 
-      // Recent profiles (user signups)
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name, created_at, role").order("created_at", { ascending: false }).limit(20);
-      (profiles || []).forEach((p: any) => {
-        items.push({
-          id: `profile-${p.id}`,
-          type: "user_joined",
-          description: `${p.full_name || "Unknown"} joined as ${p.role || "user"}`,
-          timestamp: p.created_at,
-        });
-      });
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, created_at, role").order("created_at", { ascending: false }).limit(20);
+    (profiles || []).forEach((p: any) => {
+      items.push({ id: `profile-${p.id}`, type: "user_joined", description: `${p.full_name || "Unknown"} joined as ${p.role || "user"}`, timestamp: p.created_at });
+    });
 
-      // Recent KYC requests
-      const { data: kycs } = await supabase.from("kyc_requests").select("id, user_id, status, submitted_at, aadhaar_name").order("submitted_at", { ascending: false }).limit(20);
-      (kycs || []).forEach((k: any) => {
-        items.push({
-          id: `kyc-${k.id}`,
-          type: k.status === "verified" ? "kyc_verified" : "kyc_submitted",
-          description: `KYC ${k.status} for ${k.aadhaar_name || "user"}`,
-          timestamp: k.submitted_at,
-          meta: k.status,
-        });
-      });
+    const { data: kycs } = await supabase.from("kyc_requests").select("id, user_id, status, submitted_at, aadhaar_name").order("submitted_at", { ascending: false }).limit(20);
+    (kycs || []).forEach((k: any) => {
+      items.push({ id: `kyc-${k.id}`, type: k.status === "verified" ? "kyc_verified" : "kyc_submitted", description: `KYC ${k.status} for ${k.aadhaar_name || "user"}`, timestamp: k.submitted_at, meta: k.status });
+    });
 
-      // Recent transactions
-      const { data: txns } = await supabase.from("transactions").select("id, type, amount, merchant_name, status, created_at").order("created_at", { ascending: false }).limit(30);
-      (txns || []).forEach((t: any) => {
-        items.push({
-          id: `txn-${t.id}`,
-          type: "transaction",
-          description: `${t.type} of ₹${(t.amount / 100).toFixed(2)}${t.merchant_name ? ` at ${t.merchant_name}` : ""}`,
-          timestamp: t.created_at,
-          meta: t.status,
-        });
-      });
+    const { data: txns } = await supabase.from("transactions").select("id, type, amount, merchant_name, status, created_at").order("created_at", { ascending: false }).limit(30);
+    (txns || []).forEach((t: any) => {
+      items.push({ id: `txn-${t.id}`, type: "transaction", description: `${t.type} of ₹${(t.amount / 100).toFixed(2)}${t.merchant_name ? ` at ${t.merchant_name}` : ""}`, timestamp: t.created_at, meta: t.status });
+    });
 
-      // Recent wallets
-      const { data: wallets } = await supabase.from("wallets").select("id, user_id, created_at").order("created_at", { ascending: false }).limit(10);
-      (wallets || []).forEach((w: any) => {
-        items.push({
-          id: `wallet-${w.id}`,
-          type: "wallet_created",
-          description: `New wallet created`,
-          timestamp: w.created_at,
-        });
-      });
+    const { data: wallets } = await supabase.from("wallets").select("id, user_id, created_at").order("created_at", { ascending: false }).limit(10);
+    (wallets || []).forEach((w: any) => {
+      items.push({ id: `wallet-${w.id}`, type: "wallet_created", description: `New wallet created`, timestamp: w.created_at });
+    });
 
-      // Sort by timestamp
-      items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setActivities(items);
-      setLoading(false);
-    };
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setActivities(items);
+    setLoading(false);
+  };
 
-    fetchActivity();
-  }, []);
+  useEffect(() => { fetchActivity(); }, []);
 
   const iconMap = {
     user_joined: { icon: User, color: "text-primary", bg: "bg-primary/10" },
@@ -98,45 +69,57 @@ const AdminActivityLog = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[22px] font-semibold">Activity Log</h1>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input-auro w-auto px-3 h-9 text-xs">
-              <option value="all">All Activity</option>
-              <option value="user_joined">User Signups</option>
-              <option value="transaction">Transactions</option>
-              <option value="kyc_submitted">KYC Submissions</option>
-              <option value="kyc_verified">KYC Verified</option>
-              <option value="wallet_created">Wallets</option>
-            </select>
+      <div className="p-6 space-y-6 relative">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Activity Log</h1>
+            <p className="text-xs text-muted-foreground mt-1">Real-time platform activity feed</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={fetchActivity} className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground transition-all active:scale-90">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+              {[
+                { value: "all", label: "All" },
+                { value: "user_joined", label: "Signups" },
+                { value: "transaction", label: "Txns" },
+                { value: "kyc_submitted", label: "KYC" },
+              ].map(f => (
+                <button key={f.value} onClick={() => setFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${filter === f.value ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="rounded-lg bg-card border border-border card-glow">
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden">
           {loading ? (
-            <div className="p-6 space-y-4">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-muted rounded animate-pulse" />)}
+            <div className="p-6 space-y-3">
+              {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white/[0.02] rounded-xl animate-pulse" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">No activity found</div>
+            <div className="text-center py-16 text-muted-foreground text-sm">No activity found</div>
           ) : (
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-white/[0.03]">
               {filtered.slice(0, 50).map((a) => {
                 const { icon: Icon, color, bg } = iconMap[a.type];
                 return (
-                  <div key={a.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/10 transition-colors">
-                    <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center shrink-0`}>
+                  <div key={a.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+                    <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-4 h-4 ${color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">{a.description}</p>
                       {a.meta && (
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          a.meta === "success" || a.meta === "verified" ? "bg-success/20 text-success" :
-                          a.meta === "failed" || a.meta === "rejected" ? "bg-destructive/20 text-destructive" :
-                          "bg-warning/20 text-warning"
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          a.meta === "success" || a.meta === "verified" ? "bg-success/10 text-success" :
+                          a.meta === "failed" || a.meta === "rejected" ? "bg-destructive/10 text-destructive" :
+                          "bg-warning/10 text-warning"
                         }`}>
                           {a.meta}
                         </span>

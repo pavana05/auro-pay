@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, Settings, ToggleLeft, ToggleRight, Shield, Sliders } from "lucide-react";
 
 interface Setting {
   id: string;
@@ -10,12 +10,12 @@ interface Setting {
   value: string;
 }
 
-const settingLabels: Record<string, { label: string; type: "number" | "toggle" }> = {
-  default_daily_limit: { label: "Default Daily Limit (paise)", type: "number" },
-  max_wallet_balance: { label: "Maximum Wallet Balance (paise)", type: "number" },
-  min_transaction_amount: { label: "Minimum Transaction Amount (paise)", type: "number" },
-  maintenance_mode: { label: "Maintenance Mode", type: "toggle" },
-  kyc_required: { label: "KYC Required for Payments", type: "toggle" },
+const settingLabels: Record<string, { label: string; type: "number" | "toggle"; desc: string; icon: typeof Shield }> = {
+  default_daily_limit: { label: "Default Daily Limit", type: "number", desc: "Daily spending limit for new wallets (in paise)", icon: Sliders },
+  max_wallet_balance: { label: "Maximum Wallet Balance", type: "number", desc: "Maximum balance a wallet can hold (in paise)", icon: Sliders },
+  min_transaction_amount: { label: "Minimum Transaction", type: "number", desc: "Minimum transaction amount allowed (in paise)", icon: Sliders },
+  maintenance_mode: { label: "Maintenance Mode", type: "toggle", desc: "Temporarily disable all user-facing features", icon: Settings },
+  kyc_required: { label: "KYC Required", type: "toggle", desc: "Require KYC verification before allowing payments", icon: Shield },
 };
 
 const AdminSettings = () => {
@@ -39,55 +39,76 @@ const AdminSettings = () => {
   const saveSetting = async (key: string) => {
     const { error } = await supabase.from("app_settings").update({ value: editValues[key], updated_at: new Date().toISOString() }).eq("key", key);
     if (error) toast.error(error.message);
-    else toast.success(`${key} updated`);
+    else toast.success(`${settingLabels[key]?.label || key} updated`);
   };
 
   const toggleSetting = async (key: string) => {
     const newVal = editValues[key] === "true" ? "false" : "true";
     setEditValues({ ...editValues, [key]: newVal });
     await supabase.from("app_settings").update({ value: newVal, updated_at: new Date().toISOString() }).eq("key", key);
-    toast.success(`${key} ${newVal === "true" ? "enabled" : "disabled"}`);
+    toast.success(`${settingLabels[key]?.label || key} ${newVal === "true" ? "enabled" : "disabled"}`);
   };
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-[22px] font-semibold mb-6">Settings</h1>
+      <div className="p-6 space-y-6 relative">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
 
-        <div className="max-w-xl space-y-4">
+        {/* Header */}
+        <div className="relative z-10">
+          <h1 className="text-2xl font-bold tracking-tight">Platform Settings</h1>
+          <p className="text-xs text-muted-foreground mt-1">Configure global platform parameters</p>
+        </div>
+
+        <div className="max-w-2xl space-y-4">
           {loading ? (
-            Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />)
+            Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse border border-white/[0.04]" />)
+          ) : settings.length === 0 ? (
+            <div className="text-center py-16 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+              <Settings className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No settings configured</p>
+            </div>
           ) : (
             settings.map((s) => {
-              const meta = settingLabels[s.key] || { label: s.key, type: "number" };
+              const meta = settingLabels[s.key] || { label: s.key, type: "number" as const, desc: "", icon: Settings };
+              const Icon = meta.icon;
               return (
-                <div key={s.key} className="p-4 rounded-lg bg-card border border-border card-glow">
-                  <label className="text-xs font-medium tracking-wider text-muted-foreground mb-2 block">
-                    {meta.label}
-                  </label>
-                  {meta.type === "toggle" ? (
-                    <button
-                      onClick={() => toggleSetting(s.key)}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        editValues[s.key] === "true" ? "bg-primary" : "bg-muted"
-                      }`}
-                    >
-                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-foreground transition-transform ${
-                        editValues[s.key] === "true" ? "translate-x-6" : "translate-x-0.5"
-                      }`} />
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        value={editValues[s.key] || ""}
-                        onChange={(e) => setEditValues({ ...editValues, [s.key]: e.target.value })}
-                        className="input-auro flex-1"
-                      />
-                      <button onClick={() => saveSetting(s.key)} className="w-12 h-[52px] rounded-[14px] gradient-primary flex items-center justify-center hover:opacity-90 transition-colors">
-                        <Save className="w-4 h-4 text-primary-foreground" />
-                      </button>
+                <div key={s.key} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{meta.label}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{meta.desc}</p>
+                      </div>
                     </div>
-                  )}
+
+                    {meta.type === "toggle" ? (
+                      <button
+                        onClick={() => toggleSetting(s.key)}
+                        className="mt-1 transition-all duration-300 active:scale-90"
+                      >
+                        {editValues[s.key] === "true" ? (
+                          <ToggleRight className="w-10 h-10 text-primary" />
+                        ) : (
+                          <ToggleLeft className="w-10 h-10 text-muted-foreground" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          value={editValues[s.key] || ""}
+                          onChange={(e) => setEditValues({ ...editValues, [s.key]: e.target.value })}
+                          className="w-32 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 text-sm text-right font-mono focus:outline-none focus:border-primary/40 transition-all duration-200"
+                        />
+                        <button onClick={() => saveSetting(s.key)} className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all duration-200 active:scale-90">
+                          <Save className="w-4 h-4 text-primary" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })
