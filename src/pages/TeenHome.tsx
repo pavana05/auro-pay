@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Bell, RefreshCw, QrCode, Plus, Clock, Eye, EyeOff,
+  Bell, QrCode, Plus, Clock, Eye, EyeOff,
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Sparkles, Shield, CreditCard, Send, ChevronRight,
-  Wallet, Zap,
+  Wallet, Zap, BarChart3,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +65,54 @@ const useCountUp = (target: number, duration = 1200) => {
     return () => { if (ref.current) cancelAnimationFrame(ref.current); };
   }, [target, duration]);
   return value;
+};
+
+// Animated weekly spending chart
+const WeeklyChart = ({ transactions }: { transactions: Transaction[] }) => {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 300); return () => clearTimeout(t); }, []);
+
+  const days: { label: string; amount: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const dayAmount = transactions
+      .filter(t => t.type === "debit" && t.status === "success" && t.created_at.startsWith(dateStr))
+      .reduce((s, t) => s + t.amount, 0);
+    days.push({
+      label: d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3),
+      amount: dayAmount,
+    });
+  }
+
+  const max = Math.max(...days.map(d => d.amount), 1);
+
+  return (
+    <div className="flex items-end justify-between gap-1.5 h-20">
+      {days.map((day, i) => {
+        const pct = (day.amount / max) * 100;
+        const isToday = i === 6;
+        return (
+          <div key={i} className="flex flex-col items-center flex-1 gap-1">
+            <div className="w-full relative h-14 flex items-end">
+              <div
+                className="w-full rounded-md transition-all duration-700 ease-out"
+                style={{
+                  height: animated ? `${Math.max(pct, 4)}%` : "4%",
+                  background: isToday
+                    ? "linear-gradient(180deg, hsl(42 78% 55%), hsl(36 80% 42%))"
+                    : "hsl(42 78% 55% / 0.2)",
+                  transitionDelay: `${i * 80}ms`,
+                }}
+              />
+            </div>
+            <span className={`text-[9px] font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 const TeenHome = () => {
@@ -176,12 +224,6 @@ const TeenHome = () => {
                   {unreadCount}
                 </span>
               )}
-            </button>
-            <button
-              onClick={() => { haptic.light(); fetchData(); }}
-              className="w-11 h-11 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all duration-200"
-            >
-              <RefreshCw className="w-[18px] h-[18px] text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -388,7 +430,7 @@ const TeenHome = () => {
         </div>
       )}
 
-      {/* ─── Monthly Overview ─── */}
+      {/* ─── Monthly Overview with Weekly Chart ─── */}
       <div className="px-5 mb-6 animate-slide-up-delay-3">
         <div className="rounded-2xl p-5 border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
           <div className="flex items-center justify-between mb-4">
@@ -398,37 +440,48 @@ const TeenHome = () => {
             </div>
             <span className="text-[10px] text-muted-foreground font-medium">{new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>
           </div>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-[11px] text-muted-foreground">Monthly Budget</span>
-                <span className="text-[11px] font-medium">{formatCompact(wallet?.spent_this_month || 0)} / {formatCompact(wallet?.monthly_limit || 0)}</span>
-              </div>
-              <div className="h-2 rounded-full bg-muted/20 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-1000"
-                  style={{
-                    width: `${monthlyPct}%`,
-                    background: monthlyPct > 80
-                      ? "linear-gradient(90deg, hsl(0 72% 51%), hsl(0 72% 60%))"
-                      : "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))",
-                  }}
-                />
-              </div>
+
+          {/* Budget bar */}
+          <div className="mb-4">
+            <div className="flex justify-between mb-1">
+              <span className="text-[11px] text-muted-foreground">Monthly Budget</span>
+              <span className="text-[11px] font-medium">{formatCompact(wallet?.spent_this_month || 0)} / {formatCompact(wallet?.monthly_limit || 0)}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              <div className="text-center p-2.5 rounded-xl bg-muted/10">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Daily Avg</p>
-                <p className="text-xs font-bold">{formatCompact(Math.round((wallet?.spent_this_month || 0) / Math.max(new Date().getDate(), 1)))}</p>
-              </div>
-              <div className="text-center p-2.5 rounded-xl bg-muted/10">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Remaining</p>
-                <p className="text-xs font-bold text-success">{formatCompact(Math.max((wallet?.monthly_limit || 0) - (wallet?.spent_this_month || 0), 0))}</p>
-              </div>
-              <div className="text-center p-2.5 rounded-xl bg-muted/10">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Used</p>
-                <p className="text-xs font-bold">{Math.round(monthlyPct)}%</p>
-              </div>
+            <div className="h-2 rounded-full bg-muted/20 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${monthlyPct}%`,
+                  background: monthlyPct > 80
+                    ? "linear-gradient(90deg, hsl(0 72% 51%), hsl(0 72% 60%))"
+                    : "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Weekly spending chart */}
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-semibold text-muted-foreground">Weekly Spending</span>
+            </div>
+            <WeeklyChart transactions={transactions} />
+          </div>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center p-2.5 rounded-xl bg-muted/10">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Daily Avg</p>
+              <p className="text-xs font-bold">{formatCompact(Math.round((wallet?.spent_this_month || 0) / Math.max(new Date().getDate(), 1)))}</p>
+            </div>
+            <div className="text-center p-2.5 rounded-xl bg-muted/10">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Remaining</p>
+              <p className="text-xs font-bold text-success">{formatCompact(Math.max((wallet?.monthly_limit || 0) - (wallet?.spent_this_month || 0), 0))}</p>
+            </div>
+            <div className="text-center p-2.5 rounded-xl bg-muted/10">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Used</p>
+              <p className="text-xs font-bold">{Math.round(monthlyPct)}%</p>
             </div>
           </div>
         </div>

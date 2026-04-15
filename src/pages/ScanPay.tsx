@@ -323,7 +323,7 @@ const ScanPay = () => {
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 animate-slide-up">
-          <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-background/40 backdrop-blur-xl flex items-center justify-center border border-border/20 active:scale-90 transition-all">
+          <button onClick={() => { haptic.light(); navigate("/home"); }} className="w-11 h-11 rounded-full bg-background/40 backdrop-blur-xl flex items-center justify-center border border-border/20 active:scale-90 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/30 backdrop-blur-xl border border-border/20">

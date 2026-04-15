@@ -183,13 +183,39 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    const channel = supabase
+
+    // Realtime subscriptions for all admin-relevant tables
+    const txChannel = supabase
       .channel("admin-live-txns")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
-        setLiveTxns((prev) => [payload.new as Transaction, ...prev].slice(0, 50));
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          setLiveTxns((prev) => [payload.new as Transaction, ...prev].slice(0, 50));
+        }
+        fetchStats();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    const usersChannel = supabase
+      .channel("admin-users-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchStats())
+      .subscribe();
+
+    const walletsChannel = supabase
+      .channel("admin-wallets-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => fetchStats())
+      .subscribe();
+
+    const kycChannel = supabase
+      .channel("admin-kyc-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "kyc_requests" }, () => fetchStats())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(txChannel);
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(walletsChannel);
+      supabase.removeChannel(kycChannel);
+    };
   }, []);
 
   const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
@@ -233,9 +259,12 @@ const AdminDashboard = () => {
               Last updated: {lastRefresh.toLocaleTimeString("en-IN")}
             </p>
           </div>
-          <button onClick={fetchStats} className="flex items-center gap-2 px-4 py-2 rounded-pill border border-border-active text-primary text-sm font-medium hover:bg-primary/5 transition-colors">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <span className="text-[10px] text-success font-medium">Live</span>
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
