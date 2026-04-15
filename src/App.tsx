@@ -68,7 +68,10 @@ const App = () => (
           <Route path="/admin/wallets" element={<AdminWallets />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           <Route path="/admin/activity-log" element={<AdminActivityLog />} />
+          <Route path="/admin/rewards" element={<AdminRewards />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/rewards" element={<Rewards />} />
+          <Route path="/rewards/:id" element={<RewardDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
