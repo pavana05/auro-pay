@@ -316,7 +316,7 @@ const TeenHome = () => {
             { icon: QrCode, label: "Scan Pay", path: "/scan", accent: true },
             { icon: CreditCard, label: "My Card", path: "/card" },
             { icon: Target, label: "Goals", path: "/savings" },
-            { icon: Shield, label: "Limits", path: "/spending-limits" },
+            { icon: Gift, label: "Rewards", path: "/rewards" },
           ].map((action) => (
             <button
               key={action.label}
