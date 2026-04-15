@@ -228,8 +228,8 @@ const ProfileScreen = () => {
               <p className="text-[12px] font-semibold text-primary">Your Referral Code</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 bg-primary/[0.04] rounded-[14px] px-4 py-3 border border-primary/[0.06]">
-                <p className="text-lg font-bold tracking-[0.15em] text-primary">{referralCode}</p>
+              <div className="flex-1 bg-primary/[0.04] rounded-[14px] px-4 py-3 border border-primary/[0.06] overflow-hidden">
+                <SlotMachineText text={referralCode} />
               </div>
               <button onClick={copyReferral} className="w-11 h-11 rounded-[14px] bg-primary/[0.08] flex items-center justify-center active:scale-90 transition-all">
                 {copiedReferral ? <Check className="w-5 h-5 text-success" /> : <Copy className="w-5 h-5 text-primary" />}
