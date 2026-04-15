@@ -23,6 +23,7 @@ import AdminWallets from "./pages/admin/AdminWallets.tsx";
 import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
+import AdminRoles from "./pages/admin/AdminRoles.tsx";
 
 const queryClient = new QueryClient();
 
