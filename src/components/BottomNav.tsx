@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Home, CreditCard, QrCode, Clock, UserCircle } from "lucide-react";
+import { Home, CreditCard, QrCode, MessageCircle, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 
@@ -7,7 +7,7 @@ const tabs = [
   { path: "/home", icon: Home, label: "Home" },
   { path: "/card", icon: CreditCard, label: "Card" },
   { path: "/scan", icon: QrCode, label: "Pay", center: true },
-  { path: "/activity", icon: Clock, label: "Activity" },
+  { path: "/chats", icon: MessageCircle, label: "Chats" },
   { path: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
