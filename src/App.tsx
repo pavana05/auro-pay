@@ -49,6 +49,7 @@ import Friends from "./pages/Friends.tsx";
 import SupportTickets from "./pages/SupportTickets.tsx";
 import SpinWheel from "./pages/SpinWheel.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
+import Referrals from "./pages/Referrals.tsx";
 
 const queryClient = new QueryClient();
 
