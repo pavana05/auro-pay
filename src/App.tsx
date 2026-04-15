@@ -50,14 +50,22 @@ import SupportTickets from "./pages/SupportTickets.tsx";
 import SpinWheel from "./pages/SpinWheel.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
 import Referrals from "./pages/Referrals.tsx";
+import FinancialEducation from "./pages/FinancialEducation.tsx";
+import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 
 const queryClient = new QueryClient();
+
+const RealtimeWrapper = ({ children }: { children: React.ReactNode }) => {
+  useRealtimeNotifications();
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
+        <RealtimeWrapper>
         <PageTransition>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -106,9 +114,11 @@ const App = () => (
             <Route path="/spin-wheel" element={<SpinWheel />} />
             <Route path="/admin/support" element={<AdminSupport />} />
             <Route path="/referrals" element={<Referrals />} />
+            <Route path="/learn" element={<FinancialEducation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
+        </RealtimeWrapper>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
