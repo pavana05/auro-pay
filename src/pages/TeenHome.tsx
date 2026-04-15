@@ -642,17 +642,19 @@ const TeenHome = () => {
               <p className="text-[11px] text-white/15">Your activity will appear here</p>
             </div>
           ) : (
-            <div className="rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
-              background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))"
+             <div className="rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
+              background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+              boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5)"
             }}>
               <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.08), transparent)" }} />
               {transactions.map((tx, idx) => (
                 <button
                   key={tx.id}
                   onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                  className={`w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 active:bg-white/[0.02] ${idx < transactions.length - 1 ? "border-b border-white/[0.025]" : ""}`}
+                  className={`w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 active:bg-white/[0.03] hover:bg-white/[0.015] ${idx < transactions.length - 1 ? "border-b border-white/[0.025]" : ""}`}
+                  style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.45 + idx * 0.05}s both` }}
                 >
-                  <div className="w-[44px] h-[44px] rounded-[14px] bg-white/[0.03] flex items-center justify-center text-[20px] shrink-0 border border-white/[0.03]">
+                  <div className="w-[44px] h-[44px] rounded-[14px] bg-white/[0.03] flex items-center justify-center text-[20px] shrink-0 border border-white/[0.03] group-hover:scale-105 transition-transform">
                     {catEmoji[tx.category || "other"] || "💸"}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
