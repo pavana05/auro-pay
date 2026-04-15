@@ -218,9 +218,8 @@ const QuickPay = () => {
               <h1 className="text-[18px] font-bold tracking-[-0.3px]">Send Money</h1>
               <p className="text-[10px] text-white/30 flex items-center gap-1"><Shield className="w-2.5 h-2.5" /> Secured & Encrypted</p>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/15" style={{ animation: "gentle-pulse 3s ease-in-out infinite" }}>
-              <Zap className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-semibold text-primary">Instant</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+              <span className="text-[10px] font-semibold text-primary tabular-nums">{formatBal(balance)}</span>
             </div>
           </div>
         </div>
