@@ -191,6 +191,61 @@ const QuickPay = () => {
     setSending(false);
   };
 
+  const createRecurring = async () => {
+    if (!recurringFav || !recurringAmount) return;
+    setSavingRecurring(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSavingRecurring(false); return; }
+
+    const amountPaise = parseInt(recurringAmount) * 100;
+    const nextRun = new Date();
+    if (recurringFreq === "weekly") {
+      nextRun.setDate(nextRun.getDate() + 7);
+    } else {
+      nextRun.setMonth(nextRun.getMonth() + 1);
+    }
+
+    const { error } = await supabase.from("recurring_payments").insert({
+      user_id: user.id,
+      favorite_id: recurringFav.id,
+      amount: amountPaise,
+      frequency: recurringFreq,
+      next_run_at: nextRun.toISOString(),
+      note: recurringNote || null,
+    });
+
+    if (error) {
+      toast.error("Failed to set up recurring payment");
+    } else {
+      toast.success("Recurring payment scheduled!");
+      haptic.success();
+      setShowRecurring(false);
+      setRecurringFav(null);
+      setRecurringAmount("");
+      setRecurringNote("");
+      fetchFavs();
+    }
+    setSavingRecurring(false);
+  };
+
+  const toggleRecurring = async (id: string, isActive: boolean) => {
+    haptic.medium();
+    const { error } = await supabase.from("recurring_payments").update({ is_active: !isActive }).eq("id", id);
+    if (!error) {
+      setRecurringPayments(prev => prev.map(r => r.id === id ? { ...r, is_active: !isActive } : r));
+      toast.success(!isActive ? "Activated" : "Paused");
+    }
+  };
+
+  const deleteRecurring = async (id: string) => {
+    haptic.medium();
+    const { error } = await supabase.from("recurring_payments").delete().eq("id", id);
+    if (!error) {
+      setRecurringPayments(prev => prev.filter(r => r.id !== id));
+      toast.success("Recurring payment removed");
+    }
+  };
+
   const filtered = favorites.filter(f =>
     !search || f.contact_name.toLowerCase().includes(search.toLowerCase()) || f.contact_upi_id?.toLowerCase().includes(search.toLowerCase())
   );
