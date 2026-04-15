@@ -389,10 +389,9 @@ const TransactionDetailPage = () => {
               <div className={`absolute -inset-2 rounded-2xl ${theme.iconBg}`}
                 style={{ animation: "glow-pulse 3s ease-in-out infinite", boxShadow: `0 0 30px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.15)` }} />
               {/* Inner rotating border */}
-              <div className="absolute -inset-[1px] rounded-2xl"
+               <div className="absolute -inset-[1px] rounded-2xl"
                 style={{
-                  background: `conic-gradient(from 0deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3), transparent, transparent)`,
-                  animation: "spin 4s linear infinite",
+                  background: `conic-gradient(from 135deg, transparent 20%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.25) 40%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.35) 50%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.25) 60%, transparent 80%)`,
                 }} />
               <div className={`relative w-full h-full rounded-2xl flex items-center justify-center ${theme.iconBg} backdrop-blur-sm`}
                 style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both" : "none" }}>

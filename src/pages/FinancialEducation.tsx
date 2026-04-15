@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight, Trophy, Zap } from "lucide-react";
+import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight, Trophy, Zap, Flame, Medal, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,14 @@ interface Lesson {
 interface LessonContent {
   cards: { title: string; body: string; emoji: string }[];
   quiz: { question: string; options: string[]; correct: number }[];
+}
+
+interface LeaderboardEntry {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+  total_coins: number;
+  lessons_completed: number;
 }
 
 const SpringIn = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
@@ -116,6 +124,10 @@ const FinancialEducation = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [dbLessons, setDbLessons] = useState<Lesson[]>([]);
+  const [streakDays, setStreakDays] = useState(0);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -124,29 +136,89 @@ const FinancialEducation = () => {
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setCurrentUserId(user.id);
 
-    const [lessonsRes, completionsRes] = await Promise.all([
+    const [lessonsRes, completionsRes, streakRes] = await Promise.all([
       supabase.from("financial_lessons").select("*").order("order_index"),
-      supabase.from("lesson_completions").select("lesson_id").eq("user_id", user.id),
+      supabase.from("lesson_completions").select("lesson_id, completed_at").eq("user_id", user.id),
+      supabase.from("user_streaks").select("*").eq("user_id", user.id).single(),
     ]);
 
     if (lessonsRes.data) setDbLessons(lessonsRes.data as Lesson[]);
     if (completionsRes.data) {
       setCompletedLessons(new Set(completionsRes.data.map((c: any) => c.lesson_id)));
+      // Calculate lesson streak from completion dates
+      const dates = completionsRes.data
+        .map((c: any) => new Date(c.completed_at).toDateString())
+        .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
+        .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
+      
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < dates.length; i++) {
+        const expected = new Date(today);
+        expected.setDate(expected.getDate() - i);
+        if (dates[i] === expected.toDateString()) {
+          streak++;
+        } else break;
+      }
+      setStreakDays(streak);
     }
+
+    // Fetch leaderboard
+    fetchLeaderboard();
+  };
+
+  const fetchLeaderboard = async () => {
+    // Get all lesson completions with user info
+    const { data: completions } = await supabase
+      .from("lesson_completions")
+      .select("user_id, lesson_id");
+    
+    if (!completions || completions.length === 0) return;
+
+    // Get unique user IDs
+    const userIds = [...new Set(completions.map(c => c.user_id))];
+    
+    // Get profiles
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", userIds);
+
+    // Get streak coins
+    const { data: streaks } = await supabase
+      .from("user_streaks")
+      .select("user_id, streak_coins")
+      .in("user_id", userIds);
+
+    // Build leaderboard
+    const board: LeaderboardEntry[] = userIds.map(uid => {
+      const profile = profiles?.find(p => p.id === uid);
+      const userCompletions = completions.filter(c => c.user_id === uid);
+      const streak = streaks?.find(s => s.user_id === uid);
+      return {
+        user_id: uid,
+        full_name: profile?.full_name || "Learner",
+        avatar_url: profile?.avatar_url || null,
+        total_coins: streak?.streak_coins || 0,
+        lessons_completed: userCompletions.length,
+      };
+    });
+
+    board.sort((a, b) => b.total_coins - a.total_coins);
+    setLeaderboard(board.slice(0, 20));
   };
 
   const getLessonsForCategory = (cat: string): (LessonContent & { title: string; description: string; coin_reward: number; id: string })[] => {
     const fromDb = dbLessons.filter(l => l.category === cat);
     if (fromDb.length > 0) return fromDb.map(l => {
       const content = l.content_json as any[];
-      // DB stores flat array with type:"slide" and type:"quiz" — split them
       if (Array.isArray(content)) {
         const cards = content.filter((c: any) => c.type === "slide").map((c: any) => ({ title: c.title, body: c.body, emoji: c.emoji }));
         const quiz = content.filter((c: any) => c.type === "quiz").map((c: any) => ({ question: c.question, options: c.options, correct: c.correct }));
         return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, cards, quiz, id: l.id };
       }
-      // Fallback for old format
       return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, ...(content as unknown as LessonContent), id: l.id };
     });
     return BUILTIN_LESSONS[cat]?.map((l, i) => ({ ...l, id: `builtin-${cat}-${i}` })) || [];
@@ -176,7 +248,6 @@ const FinancialEducation = () => {
         if (passed) {
           completeLesson();
           setTimeout(() => setShowCelebration(true), 300);
-          completeLesson();
         }
       }
     }, 1200);
@@ -186,7 +257,6 @@ const FinancialEducation = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !activeLesson) return;
 
-    // Only award for DB lessons
     if (!activeLesson.id.startsWith("builtin-")) {
       await supabase.from("lesson_completions").upsert({
         user_id: user.id,
@@ -195,7 +265,6 @@ const FinancialEducation = () => {
       }, { onConflict: "user_id,lesson_id" });
     }
 
-    // Award coins
     const { data: streak } = await supabase.from("user_streaks").select("*").eq("user_id", user.id).single();
     if (streak) {
       await supabase.from("user_streaks").update({
@@ -204,6 +273,7 @@ const FinancialEducation = () => {
     }
 
     setCompletedLessons(prev => new Set([...prev, activeLesson.id]));
+    setStreakDays(prev => prev + (prev === 0 ? 1 : 0)); // bump if first today
     haptic.success();
     toast.success(`+${activeLesson.coin_reward} coins earned! 🎉`);
   };
@@ -219,7 +289,6 @@ const FinancialEducation = () => {
     setShowCelebration(false);
   };
 
-  // Confetti particles for celebration
   const confettiParticles = useMemo(() =>
     Array.from({ length: 50 }, (_, i) => ({
       left: Math.random() * 100,
@@ -228,16 +297,121 @@ const FinancialEducation = () => {
       size: 4 + Math.random() * 8,
       color: ['hsl(42 78% 55%)', 'hsl(152 60% 45%)', 'hsl(210 80% 55%)', 'hsl(330 70% 55%)', 'hsl(280 60% 55%)', 'hsl(42 90% 65%)'][i % 6],
       rotation: Math.random() * 360,
-      type: i % 3, // 0=square, 1=circle, 2=strip
+      type: i % 3,
     })),
   []);
+
+  const rankIcons = [
+    <Crown key="1" className="w-5 h-5 text-[hsl(42_78%_55%)]" />,
+    <Medal key="2" className="w-5 h-5 text-[hsl(220_20%_70%)]" />,
+    <Medal key="3" className="w-5 h-5 text-[hsl(25_60%_50%)]" />,
+  ];
+
+  // Leaderboard view
+  if (showLeaderboard) {
+    return (
+      <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "hsl(42 78% 55%)" }} />
+        </div>
+
+        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
+          <div className="flex items-center justify-between px-5 py-4">
+            <button onClick={() => setShowLeaderboard(false)} className="p-2 -ml-2 rounded-xl hover:bg-card/50 active:scale-90 transition-all">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold">Leaderboard</h1>
+            <Trophy className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+
+        <div className="relative z-10 px-5 pt-5 space-y-3">
+          {/* Top 3 podium */}
+          {leaderboard.length >= 3 && (
+            <SpringIn delay={0.05}>
+              <div className="flex items-end justify-center gap-3 mb-6 pt-4">
+                {[1, 0, 2].map((rank) => {
+                  const entry = leaderboard[rank];
+                  if (!entry) return null;
+                  const isFirst = rank === 0;
+                  return (
+                    <div key={rank} className="flex flex-col items-center" style={{ marginTop: isFirst ? 0 : 24 }}>
+                      <div className={`relative w-${isFirst ? 16 : 14} h-${isFirst ? 16 : 14} rounded-full flex items-center justify-center mb-2`}
+                        style={{
+                          width: isFirst ? 64 : 52,
+                          height: isFirst ? 64 : 52,
+                          background: `linear-gradient(160deg, hsl(220 18% 12%), hsl(220 18% 8%))`,
+                          border: `2px solid ${isFirst ? 'hsl(42 78% 55% / 0.5)' : 'hsl(220 15% 25%)'}`,
+                          boxShadow: isFirst ? '0 0 25px hsl(42 78% 55% / 0.2)' : 'none',
+                        }}>
+                        {entry.avatar_url ? (
+                          <img src={entry.avatar_url} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <span className="text-lg font-bold text-muted-foreground">{entry.full_name.charAt(0)}</span>
+                        )}
+                        <div className="absolute -top-2 -right-1">{rankIcons[rank]}</div>
+                      </div>
+                      <p className="text-[11px] font-semibold truncate max-w-[80px] text-center">{entry.full_name}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Coins className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] font-bold text-primary">{entry.total_coins}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SpringIn>
+          )}
+
+          {/* Full list */}
+          {leaderboard.map((entry, i) => {
+            const isMe = entry.user_id === currentUserId;
+            return (
+              <SpringIn key={entry.user_id} delay={0.1 + i * 0.04}>
+                <div className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
+                  isMe ? 'border-primary/20 bg-primary/[0.04]' : 'border-white/[0.04] bg-white/[0.02]'
+                }`}>
+                  <span className="text-sm font-bold text-muted-foreground w-6 text-center">
+                    {i < 3 ? rankIcons[i] : `#${i + 1}`}
+                  </span>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                    style={{ background: 'hsl(220 18% 12%)', border: '1px solid hsl(220 15% 20%)' }}>
+                    {entry.avatar_url ? (
+                      <img src={entry.avatar_url} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-muted-foreground">{entry.full_name.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{entry.full_name} {isMe && <span className="text-[10px] text-primary">(You)</span>}</p>
+                    <p className="text-[10px] text-muted-foreground">{entry.lessons_completed} lessons completed</p>
+                  </div>
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/[0.08]">
+                    <Coins className="w-3 h-3 text-primary" />
+                    <span className="text-[11px] font-bold text-primary">{entry.total_coins}</span>
+                  </div>
+                </div>
+              </SpringIn>
+            );
+          })}
+
+          {leaderboard.length === 0 && (
+            <div className="text-center py-16">
+              <Trophy className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No learners yet. Be the first!</p>
+            </div>
+          )}
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   // Quiz complete screen
   if (quizDone && activeLesson) {
     const passed = score >= 2;
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        {/* Ambient glow */}
         <div className="fixed inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[120px]"
             style={{ background: passed ? "hsl(152 60% 45%)" : "hsl(0 72% 51%)" }} />
@@ -245,7 +419,6 @@ const FinancialEducation = () => {
             style={{ background: "hsl(42 78% 55%)" }} />}
         </div>
 
-        {/* Confetti */}
         {passed && showCelebration && confettiParticles.map((p, i) => (
           <div key={i} className="fixed pointer-events-none z-30"
             style={{
@@ -263,7 +436,6 @@ const FinancialEducation = () => {
           />
         ))}
 
-        {/* Coin burst particles */}
         {passed && showCelebration && Array.from({ length: 8 }).map((_, i) => (
           <div key={`coin-${i}`} className="absolute z-20 pointer-events-none"
             style={{
@@ -281,7 +453,6 @@ const FinancialEducation = () => {
         ))}
 
         <div className="relative z-10 text-center w-full max-w-sm">
-          {/* Trophy / Icon */}
           <div style={{ animation: passed ? "celebration-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" : "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
             <div className="relative w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center"
               style={{
@@ -292,12 +463,10 @@ const FinancialEducation = () => {
                   ? "0 0 40px hsl(152 60% 45% / 0.15), 0 0 80px hsl(42 78% 55% / 0.08)"
                   : "0 0 30px hsl(0 72% 51% / 0.1)",
               }}>
-              {/* Rotating ring */}
               {passed && (
                 <div className="absolute -inset-1 rounded-full"
                   style={{
                     background: "conic-gradient(from 0deg, transparent, hsl(42 78% 55% / 0.3), transparent, hsl(152 60% 45% / 0.3), transparent)",
-                    animation: "spin 3s linear infinite",
                   }} />
               )}
               <div className="relative">
@@ -306,7 +475,6 @@ const FinancialEducation = () => {
             </div>
           </div>
 
-          {/* Title */}
           <div style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
             <h2 className="text-3xl font-bold mb-2">{passed ? "Lesson Complete! 🎉" : "Not Quite!"}</h2>
             <p className="text-sm text-muted-foreground">
@@ -314,15 +482,12 @@ const FinancialEducation = () => {
             </p>
           </div>
 
-          {/* Score card */}
           <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both" }}>
             <div className="mt-6 rounded-2xl border border-white/[0.06] p-5 relative overflow-hidden"
               style={{ background: "linear-gradient(160deg, hsl(220 18% 10%), hsl(220 20% 5.5%))" }}>
               <div className="absolute top-0 left-0 right-0 h-[1px]"
                 style={{ background: passed ? "linear-gradient(90deg, transparent, hsl(152 60% 45% / 0.4), transparent)" : "linear-gradient(90deg, transparent, hsl(0 72% 51% / 0.3), transparent)" }} />
-
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Quiz Results</p>
-
               <div className="flex items-center justify-center gap-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold">{score}</p>
@@ -346,14 +511,12 @@ const FinancialEducation = () => {
             </div>
           </div>
 
-          {/* Coin reward — animated */}
           {passed && (
             <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.65s both" }}>
               <div className="mt-4 rounded-2xl border border-primary/20 p-4 relative overflow-hidden"
                 style={{ background: "linear-gradient(160deg, hsl(42 60% 15% / 0.15), hsl(220 18% 8%))" }}>
                 <div className="absolute top-0 left-0 right-0 h-[1px]"
                   style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.5), transparent)" }} />
-
                 <div className="flex items-center justify-center gap-3">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center"
                     style={{
@@ -376,7 +539,6 @@ const FinancialEducation = () => {
             </div>
           )}
 
-          {/* Action button */}
           <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
             <button onClick={resetLesson}
               className="mt-6 w-full h-14 rounded-2xl font-semibold active:scale-[0.97] transition-all relative overflow-hidden"
@@ -482,7 +644,6 @@ const FinancialEducation = () => {
             </div>
           </div>
 
-          {/* Progress */}
           <div className="flex gap-1.5 mb-6">{activeLesson.cards.map((_, i) => (
             <div key={i} className="flex-1 h-1 rounded-full transition-all" style={{ background: i <= cardIndex ? "hsl(42 78% 55%)" : "hsl(220 15% 15%)" }} />
           ))}</div>
@@ -550,7 +711,6 @@ const FinancialEducation = () => {
         </div>
 
         <div className="relative z-10 px-5 pt-5 space-y-4">
-          {/* Progress ring */}
           <SpringIn delay={0.05}>
             <div className="rounded-[24px] p-5 border border-white/[0.04] flex items-center gap-5" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               <div className="relative w-16 h-16">
@@ -624,8 +784,47 @@ const FinancialEducation = () => {
       </div>
 
       <div className="relative z-10 px-5 pt-5 space-y-4">
+        {/* Streak + Leaderboard row */}
+        <div className="flex gap-3">
+          <SpringIn delay={0.05} className="flex-1">
+            <div className="rounded-[20px] p-4 border border-white/[0.04] h-full"
+              style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{
+                    background: streakDays > 0 ? "linear-gradient(135deg, hsl(25 90% 50% / 0.15), hsl(0 80% 50% / 0.1))" : "hsl(220 15% 12%)",
+                    border: streakDays > 0 ? "1px solid hsl(25 90% 50% / 0.25)" : "1px solid hsl(220 15% 18%)",
+                  }}>
+                  <Flame className={`w-6 h-6 ${streakDays > 0 ? "text-orange-400" : "text-muted-foreground"}`} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{streakDays}</p>
+                  <p className="text-[10px] text-muted-foreground">Day streak</p>
+                </div>
+              </div>
+            </div>
+          </SpringIn>
+
+          <SpringIn delay={0.08} className="flex-1">
+            <button
+              onClick={() => { haptic.light(); setShowLeaderboard(true); }}
+              className="w-full rounded-[20px] p-4 border border-white/[0.04] h-full text-left active:scale-[0.97] transition-all"
+              style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-primary/[0.08] border border-primary/20">
+                  <Trophy className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Leaderboard</p>
+                  <p className="text-[10px] text-muted-foreground">Top learners</p>
+                </div>
+              </div>
+            </button>
+          </SpringIn>
+        </div>
+
         {/* Hero */}
-        <SpringIn delay={0.05}>
+        <SpringIn delay={0.12}>
           <div className="rounded-[24px] p-6 border border-primary/[0.1] overflow-hidden relative"
             style={{ background: "linear-gradient(160deg, hsl(42 78% 55% / 0.06), hsl(220 18% 7%))" }}>
             <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-[0.08]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
@@ -648,7 +847,7 @@ const FinancialEducation = () => {
           const progress = lessons.length > 0 ? (completed / lessons.length) * 100 : 0;
 
           return (
-            <SpringIn key={cat.key} delay={0.12 + i * 0.06}>
+            <SpringIn key={cat.key} delay={0.18 + i * 0.06}>
               <button
                 onClick={() => { haptic.light(); setSelectedCategory(cat.key); }}
                 className="w-full text-left rounded-[20px] p-5 border border-white/[0.04] transition-all active:scale-[0.97]"
@@ -673,7 +872,7 @@ const FinancialEducation = () => {
         })}
 
         {/* Tips */}
-        <SpringIn delay={0.35}>
+        <SpringIn delay={0.4}>
           <div className="rounded-[20px] p-4 border border-white/[0.04]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
             <div className="flex items-center gap-2 mb-2">
               <Star className="w-4 h-4 text-primary" />
