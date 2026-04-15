@@ -1,5 +1,6 @@
 import { Home, CreditCard, QrCode, Clock, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { haptic } from "@/lib/haptics";
 
 const tabs = [
   { path: "/home", icon: Home, label: "Home" },
@@ -13,6 +14,13 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const handleTap = (path: string, isCenter: boolean) => {
+    if (location.pathname !== path) {
+      isCenter ? haptic.medium() : haptic.light();
+      navigate(path);
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-secondary/90 backdrop-blur-xl border-t border-border">
       <div className="flex items-end justify-around px-4 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
@@ -20,7 +28,7 @@ const BottomNav = () => {
           tab.center ? (
             <button
               key={tab.path}
-              onClick={() => navigate(tab.path)}
+              onClick={() => handleTap(tab.path, true)}
               className="relative -top-4 w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-[var(--glow-primary)] transition-all duration-300 hover:scale-105 active:scale-90 animate-glow-pulse"
             >
               <tab.icon className="w-6 h-6 text-primary-foreground" />
@@ -28,7 +36,7 @@ const BottomNav = () => {
           ) : (
             <button
               key={tab.path}
-              onClick={() => navigate(tab.path)}
+              onClick={() => handleTap(tab.path, false)}
               className={`flex flex-col items-center py-3 px-3 transition-all duration-300 relative ${
                 location.pathname === tab.path ? "text-primary" : "text-muted-foreground"
               }`}
