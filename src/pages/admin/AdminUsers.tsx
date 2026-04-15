@@ -201,6 +201,34 @@ const AdminUsers = () => {
   const formatDateTime = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
   const maskAadhaar = (num: string | null) => num ? `XXXX XXXX ${num.slice(-4)}` : "—";
 
+  const exportUsersCSV = () => {
+    const headers = "Name,Phone,Role,KYC Status,Balance,Transactions,Joined\n";
+    const rows = filtered.map((u) =>
+      `"${u.full_name || ""}",${u.phone || ""},${u.role || ""},${u.kyc_status || ""},${u.wallet ? (u.wallet.balance || 0) / 100 : 0},${u.txCount},${u.created_at || ""}`
+    ).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `users_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportUserTransactionsCSV = async (user: DetailedUser) => {
+    const headers = "ID,Type,Amount,Merchant,Category,Status,Date\n";
+    const rows = user.recentTxns.map((t) =>
+      `${t.id},${t.type},${t.amount / 100},${t.merchant_name || ""},${t.category || ""},${t.status},${t.created_at || ""}`
+    ).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions_${user.full_name?.replace(/\s/g, "_") || user.id}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Full-screen detail view
   if (selectedUser || detailLoading) {
     return (
