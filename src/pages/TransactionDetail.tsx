@@ -103,6 +103,7 @@ const TransactionDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
+  const [amountTapped, setAmountTapped] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Memoize random values so they don't regenerate on re-render
@@ -324,27 +325,29 @@ const TransactionDetailPage = () => {
             />
           ))}
 
-          {/* Comets — ultra-realistic streaks left-to-right */}
+          {/* Comets — diagonal top-left to bottom-right */}
           {particles.comets.map((c, i) => (
             <div key={`comet-${i}`} className="absolute"
               style={{
-                top: `${12 + i * 25}%`,
-                left: 0,
+                left: '-10%',
+                top: `-5%`,
                 height: '2px',
-                animation: `comet-streak ${2.5 + i * 1.2}s linear ${c.delay}s infinite`,
+                transform: 'rotate(35deg)',
+                transformOrigin: '0 0',
+                animation: `comet-diagonal ${2.2 + i * 0.8}s linear ${c.delay}s infinite`,
               }}>
-              {/* Comet head — bright glowing dot */}
+              {/* Comet head */}
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full"
                 style={{
                   background: `hsl(${theme.hue} ${theme.sat}% ${theme.light + 25}%)`,
                   color: `hsl(${theme.hue} ${theme.sat}% ${theme.light + 15}%)`,
                   animation: `comet-head-glow 0.8s ease-in-out infinite`,
                 }} />
-              {/* Comet tail — gradient trail */}
+              {/* Comet tail */}
               <div className="absolute inset-0 rounded-full"
                 style={{
-                  background: `linear-gradient(90deg, transparent 0%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.15) 30%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5) 70%, hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.9) 100%)`,
-                  filter: `blur(0.5px) drop-shadow(0 0 4px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4))`,
+                  background: `linear-gradient(90deg, transparent 0%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.1) 20%, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4) 60%, hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.9) 100%)`,
+                  filter: `blur(0.3px) drop-shadow(0 0 4px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4))`,
                 }} />
             </div>
           ))}
@@ -409,10 +412,19 @@ const TransactionDetailPage = () => {
               </div>
             </div>
 
-            {/* Amount */}
-            <p className={`text-[42px] font-bold mb-2 tracking-tight ${theme.amountColor}`}
-              style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" : "none",
-                textShadow: `0 0 40px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.2)` }}>
+            {/* Amount — tappable with gold pulse */}
+            <p className={`text-[42px] font-bold mb-2 tracking-tight ${theme.amountColor} cursor-pointer select-none transition-transform duration-300`}
+              onClick={() => { haptic.light(); setAmountTapped(true); setTimeout(() => setAmountTapped(false), 600); }}
+              style={{
+                animation: mounted
+                  ? amountTapped
+                    ? "amount-pulse 0.6s cubic-bezier(0.22, 1, 0.36, 1) both"
+                    : "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both"
+                  : "none",
+                textShadow: amountTapped
+                  ? `0 0 60px hsl(42 78% 55% / 0.5), 0 0 120px hsl(42 78% 55% / 0.2)`
+                  : `0 0 40px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.2)`,
+              }}>
               {isCredit ? "+" : ""}{formatAmount(tx.amount)}
             </p>
 
