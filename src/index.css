@@ -312,10 +312,11 @@
 }
 
 @keyframes comet-fall {
-  0% { transform: translateY(0) translateX(0) rotate(35deg); opacity: 0; }
-  5% { opacity: 1; }
-  40% { opacity: 0.8; }
-  100% { transform: translateY(120vh) translateX(-80px) rotate(35deg); opacity: 0; }
+  0% { transform: translateY(0) translateX(0) rotate(215deg) scaleX(0.15); opacity: 0; }
+  5% { opacity: 0.6; transform: translateY(15vh) translateX(10px) rotate(215deg) scaleX(0.3); }
+  15% { opacity: 1; transform: translateY(30vh) translateX(25px) rotate(215deg) scaleX(0.6); }
+  40% { opacity: 0.9; transform: translateY(55vh) translateX(50px) rotate(215deg) scaleX(1); }
+  100% { transform: translateY(120vh) translateX(80px) rotate(215deg) scaleX(1); opacity: 0; }
 }
 
 @keyframes particle-float {
@@ -323,6 +324,13 @@
   25% { transform: translateY(-20px) translateX(10px); }
   50% { transform: translateY(-8px) translateX(-12px); }
   75% { transform: translateY(-25px) translateX(8px); }
+}
+
+@keyframes parallax-drift {
+  0%, 100% { translate: 0 0; }
+  30% { translate: 6px -8px; }
+  60% { translate: -4px 5px; }
+  80% { translate: 3px -3px; }
 }
 
 @keyframes sparkle-twinkle {

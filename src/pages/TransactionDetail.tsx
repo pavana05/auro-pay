@@ -349,7 +349,7 @@ const TransactionDetailPage = () => {
                   ? `hsl(${(theme.hue + 160) % 360} 60% 65%)`
                   : `hsl(${theme.hue} ${theme.sat - f.variant * 18}% ${55 + f.variant * 10}%)`,
                 boxShadow: `0 0 ${f.shadowSize}px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4)`,
-                animation: `particle-float ${f.dur1}s ease-in-out ${f.delay1}s infinite, glow-pulse ${f.dur2}s ease-in-out ${f.delay2}s infinite`,
+                animation: `particle-float ${f.dur1}s ease-in-out ${f.delay1}s infinite, glow-pulse ${f.dur2}s ease-in-out ${f.delay2}s infinite, parallax-drift ${f.dur1 + 4}s ease-in-out ${f.delay1}s infinite`,
               }}
             />
           ))}
@@ -403,7 +403,7 @@ const TransactionDetailPage = () => {
             <p className={`text-[42px] font-bold mb-2 tracking-tight ${theme.amountColor}`}
               style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" : "none",
                 textShadow: `0 0 40px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.2)` }}>
-              {isCredit ? "+" : "-"}{formatAmount(tx.amount)}
+              {isCredit ? "+" : ""}{formatAmount(tx.amount)}
             </p>
 
             <p className="text-sm text-muted-foreground/80"
