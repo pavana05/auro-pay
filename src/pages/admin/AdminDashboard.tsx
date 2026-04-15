@@ -259,9 +259,12 @@ const AdminDashboard = () => {
               Last updated: {lastRefresh.toLocaleTimeString("en-IN")}
             </p>
           </div>
-          <button onClick={fetchStats} className="flex items-center gap-2 px-4 py-2 rounded-pill border border-border-active text-primary text-sm font-medium hover:bg-primary/5 transition-colors">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <span className="text-[10px] text-success font-medium">Live</span>
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
