@@ -89,6 +89,19 @@ const Rewards = () => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search rewards..."
+            className="w-full h-11 rounded-2xl bg-card border border-border pl-11 pr-4 text-sm focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.1)] transition-all duration-200 outline-none"
+          />
+        </div>
+      </div>
+
       {/* Category Filters */}
       <div className="px-4 pt-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
         {filters.map(f => (
