@@ -50,6 +50,7 @@ const App = () => (
           <Route path="/admin/kyc" element={<AdminKyc />} />
           <Route path="/admin/wallets" element={<AdminWallets />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
+          <Route path="/admin/activity-log" element={<AdminActivityLog />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
