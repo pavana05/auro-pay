@@ -158,8 +158,14 @@ const QuickPay = () => {
       const { data, error } = await supabase.functions.invoke("p2p-transfer", { body: { favorite_id: payTarget.id, amount: amountPaise, note: payNote || undefined } });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); setSending(false); return; }
-      haptic.success(); setPaySuccess(true); setBalance(prev => prev - amountPaise); toast.success(data?.message || "Money sent!");
-      setTimeout(() => { setPayTarget(null); setPaySuccess(false); fetchFavs(); }, 2500);
+      haptic.success();
+      setSuccessAmount(getFormattedAmount());
+      setSuccessTimestamp(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
+      setSuccessTxnId(data?.transaction_id || `TXN${Date.now().toString(36).toUpperCase()}`);
+      setPaySuccess(true);
+      setShowPaymentDetails(false);
+      setBalance(prev => prev - amountPaise);
+      fetchFavs();
     } catch (err: any) { toast.error(err?.message || "Transfer failed"); }
     setSending(false);
   };
