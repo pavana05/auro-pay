@@ -111,6 +111,31 @@ export default {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "icon-press": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(0.75)" },
+          "70%": { transform: "scale(1.15)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "icon-bounce": {
+          "0%": { transform: "translateY(0)" },
+          "30%": { transform: "translateY(-8px)" },
+          "50%": { transform: "translateY(0)" },
+          "70%": { transform: "translateY(-3px)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        "swipe-out-left": {
+          "0%": { transform: "translateX(0)", opacity: "1" },
+          "100%": { transform: "translateX(-120%)", opacity: "0" },
+        },
+        "swipe-out-right": {
+          "0%": { transform: "translateX(0)", opacity: "1" },
+          "100%": { transform: "translateX(120%)", opacity: "0" },
+        },
+        "nav-indicator": {
+          "0%": { width: "0px", opacity: "0" },
+          "100%": { width: "16px", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -127,6 +152,11 @@ export default {
         "slide-up-delay-3": "slide-up 0.4s ease-out 0.3s both",
         "slide-up-delay-4": "slide-up 0.4s ease-out 0.4s both",
         "count-up": "count-up 0.6s ease-out 0.2s both",
+        "icon-press": "icon-press 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "icon-bounce": "icon-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "swipe-out-left": "swipe-out-left 0.3s ease-out forwards",
+        "swipe-out-right": "swipe-out-right 0.3s ease-out forwards",
+        "nav-indicator": "nav-indicator 0.3s ease-out forwards",
       },
     },
   },

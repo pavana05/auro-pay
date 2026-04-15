@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { Home, CreditCard, QrCode, Clock, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -13,44 +14,79 @@ const tabs = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [pressedTab, setPressedTab] = useState<string | null>(null);
 
   const handleTap = (path: string, isCenter: boolean) => {
-    if (location.pathname !== path) {
-      isCenter ? haptic.medium() : haptic.light();
-      navigate(path);
-    }
+    setPressedTab(path);
+    isCenter ? haptic.medium() : haptic.light();
+    navigate(path);
+    setTimeout(() => setPressedTab(null), 400);
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-secondary/90 backdrop-blur-xl border-t border-border">
-      <div className="flex items-end justify-around px-4 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
-        {tabs.map((tab) =>
-          tab.center ? (
-            <button
-              key={tab.path}
-              onClick={() => handleTap(tab.path, true)}
-              className="relative -top-4 w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-[var(--glow-primary)] transition-all duration-300 hover:scale-105 active:scale-90 animate-glow-pulse"
-            >
-              <tab.icon className="w-6 h-6 text-primary-foreground" />
-            </button>
-          ) : (
+    <nav className="fixed bottom-0 left-0 right-0 z-40">
+      {/* Frosted glass background */}
+      <div className="absolute inset-0 bg-secondary/80 backdrop-blur-2xl border-t border-border" />
+      
+      {/* Top gold accent line */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), transparent)" }} />
+
+      <div className="relative flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
+        {tabs.map((tab) => {
+          const isActive = location.pathname === tab.path;
+          const isPressed = pressedTab === tab.path;
+
+          if (tab.center) {
+            return (
+              <button
+                key={tab.path}
+                onClick={() => handleTap(tab.path, true)}
+                className="relative -top-5 group"
+              >
+                {/* Outer glow ring */}
+                <div className="absolute inset-[-6px] rounded-full opacity-0 group-active:opacity-100 transition-opacity duration-300"
+                  style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.2), transparent)" }}
+                />
+                {/* Main button */}
+                <div className={`w-[56px] h-[56px] rounded-full gradient-primary flex items-center justify-center shadow-[0_4px_24px_hsl(42_78%_55%/0.35)] transition-all duration-300 active:scale-90 ${isPressed ? "animate-icon-press" : ""}`}>
+                  <tab.icon className="w-6 h-6 text-primary-foreground" />
+                </div>
+                {/* Label */}
+                <span className="text-[9px] font-semibold text-primary block text-center mt-1">{tab.label}</span>
+              </button>
+            );
+          }
+
+          return (
             <button
               key={tab.path}
               onClick={() => handleTap(tab.path, false)}
-              className={`flex flex-col items-center py-3 px-3 transition-all duration-300 relative ${
-                location.pathname === tab.path ? "text-primary" : "text-muted-foreground"
-              }`}
+              className="flex flex-col items-center py-3 px-4 transition-all duration-300 relative group"
             >
-              <div className="relative">
-                <tab.icon className={`w-5 h-5 mb-1 transition-transform duration-300 ${location.pathname === tab.path ? "scale-110" : ""}`} />
-                {location.pathname === tab.path && (
-                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                )}
+              <div className={`relative transition-all duration-300 ${isPressed ? "animate-icon-bounce" : ""}`}>
+                <tab.icon
+                  className={`w-[22px] h-[22px] transition-all duration-300 ${
+                    isActive ? "text-primary drop-shadow-[0_0_8px_hsl(42_78%_55%/0.4)]" : "text-muted-foreground group-active:text-foreground"
+                  }`}
+                  strokeWidth={isActive ? 2.2 : 1.8}
+                />
               </div>
-              <span className="text-[10px] font-medium">{tab.label}</span>
+
+              <span className={`text-[10px] mt-1 transition-all duration-300 ${
+                isActive ? "font-semibold text-primary" : "font-medium text-muted-foreground"
+              }`}>
+                {tab.label}
+              </span>
+
+              {/* Active indicator dot with animation */}
+              {isActive && (
+                <div className="absolute -bottom-0 left-1/2 -translate-x-1/2">
+                  <div className="h-[3px] rounded-full bg-primary animate-nav-indicator" />
+                </div>
+              )}
             </button>
-          )
-        )}
+          );
+        })}
       </div>
     </nav>
   );
