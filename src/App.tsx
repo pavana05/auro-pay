@@ -34,6 +34,10 @@ import AdminRewards from "./pages/admin/AdminRewards.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
+import ExpenseAnalytics from "./pages/ExpenseAnalytics.tsx";
+import BillSplitPage from "./pages/BillSplit.tsx";
+import BudgetPlanner from "./pages/BudgetPlanner.tsx";
+import QuickPay from "./pages/QuickPay.tsx";
 
 const queryClient = new QueryClient();
 
