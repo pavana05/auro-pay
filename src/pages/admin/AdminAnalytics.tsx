@@ -37,29 +37,47 @@ const AdminAnalytics = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [kycRequests, setKycRequests] = useState<any[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isLive, setIsLive] = useState(true);
 
   const days = DATE_RANGES.find(r => r.value === range)!.days;
 
+  const fetchAll = async () => {
+    setLoading(true);
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString();
+
+    const [pRes, tRes, kRes] = await Promise.all([
+      supabase.from("profiles").select("id, created_at, role"),
+      supabase.from("transactions").select("id, amount, type, status, category, created_at").gte("created_at", sinceStr).order("created_at", { ascending: true }).limit(1000),
+      supabase.from("kyc_requests").select("id, status, submitted_at, verified_at").gte("submitted_at", sinceStr),
+    ]);
+
+    setProfiles(pRes.data || []);
+    setTransactions(tRes.data || []);
+    setKycRequests(kRes.data || []);
+    setLastUpdate(new Date());
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-      const sinceStr = since.toISOString();
-
-      const [pRes, tRes, kRes] = await Promise.all([
-        supabase.from("profiles").select("id, created_at, role"),
-        supabase.from("transactions").select("id, amount, type, status, category, created_at").gte("created_at", sinceStr).order("created_at", { ascending: true }).limit(1000),
-        supabase.from("kyc_requests").select("id, status, submitted_at, verified_at").gte("submitted_at", sinceStr),
-      ]);
-
-      setProfiles(pRes.data || []);
-      setTransactions(tRes.data || []);
-      setKycRequests(kRes.data || []);
-      setLoading(false);
-    };
     fetchAll();
   }, [days]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!isLive) return;
+
+    const channel = supabase
+      .channel('admin-analytics-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_requests' }, () => fetchAll())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLive, days]);
 
   // Generate date labels
   const dateLabels = useMemo(() => {
@@ -182,7 +200,21 @@ const AdminAnalytics = () => {
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-primary" /> Analytics
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">Deep insights into your platform performance</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-xs text-muted-foreground">Deep insights into your platform performance</p>
+              <button
+                onClick={() => setIsLive(!isLive)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
+                  isLive ? "bg-success/10 border border-success/10 text-success" : "bg-white/[0.03] border border-white/[0.06] text-muted-foreground"
+                }`}
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
+                {isLive ? "Live" : "Paused"}
+              </button>
+              <span className="text-[10px] text-muted-foreground">
+                Updated {lastUpdate.toLocaleTimeString()}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />

@@ -146,20 +146,24 @@ const QuickPay = () => {
 
   // Full-screen Send Money view
   if (payTarget) {
+    const amountNum = parseInt(payAmount) || 0;
+    const balPercent = balance > 0 ? Math.min((amountNum * 100 / (balance / 100)) * 100, 100) : 0;
+    const isOverBalance = amountNum * 100 > balance;
+
     return (
-      <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.06) 0%, hsl(220 20% 4%) 30%)" }}>
-        {/* Ambient glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.04), transparent 70%)" }} />
+      <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(220 22% 8%) 0%, hsl(225 28% 3%) 100%)" }}>
+        {/* Ambient glows */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.04), transparent 65%)" }} />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(210 80% 55% / 0.03), transparent 60%)" }} />
 
         {/* Header */}
-        <div className="px-5 pt-6 pb-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+        <div className="px-5 pt-6 pb-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
           <div className="flex items-center gap-3">
-            <button onClick={() => !sending && setPayTarget(null)} className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center active:scale-90 transition-all backdrop-blur-xl">
+            <button onClick={() => !sending && setPayTarget(null)} className="w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all backdrop-blur-xl hover:bg-white/[0.08] hover:border-primary/20">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="flex-1">
-              <h1 className="text-[18px] font-bold">Send Money</h1>
-              <p className="text-[10px] text-muted-foreground">Balance: {formatBal(balance)}</p>
+              <h1 className="text-[18px] font-bold tracking-[-0.3px]">Send Money</h1>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/15">
               <Zap className="w-3 h-3 text-primary" />
@@ -170,10 +174,11 @@ const QuickPay = () => {
 
         {paySuccess ? (
           <div className="flex-1 flex flex-col items-center justify-center px-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            <div className="relative w-24 h-24 mb-5">
-              <div className="absolute inset-[-8px] rounded-full border border-success/10" style={{ animation: "scanner-ring 2s ease-in-out infinite" }} />
-              <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="w-14 h-14 text-success" />
+            <div className="relative w-28 h-28 mb-6">
+              <div className="absolute inset-[-12px] rounded-full border-2 border-success/10" style={{ animation: "scanner-ring 2s ease-in-out infinite" }} />
+              <div className="absolute inset-[-6px] rounded-full border border-success/5" style={{ animation: "scanner-ring 2s ease-in-out 0.3s infinite" }} />
+              <div className="w-28 h-28 rounded-full bg-success/10 flex items-center justify-center shadow-[0_0_40px_hsl(152_60%_45%/0.15)]">
+                <CheckCircle2 className="w-16 h-16 text-success" />
               </div>
             </div>
             <p className="text-2xl font-bold">Payment Sent!</p>
@@ -181,57 +186,99 @@ const QuickPay = () => {
           </div>
         ) : (
           <>
+            {/* Balance Card */}
+            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
+              <div className="relative rounded-[22px] p-4 overflow-hidden border border-white/[0.06]" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
+                <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.2), transparent)" }} />
+                <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-white/25 font-semibold tracking-[0.2em] uppercase mb-1">Available Balance</p>
+                    <p className="text-[22px] font-bold tabular-nums" style={{ textShadow: "0 0 30px hsl(42 78% 55% / 0.08)" }}>{formatBal(balance)}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="w-16 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${isOverBalance ? "bg-destructive" : "bg-primary"}`} style={{ width: `${balPercent}%` }} />
+                    </div>
+                    <p className={`text-[9px] font-medium ${isOverBalance ? "text-destructive" : "text-white/20"}`}>
+                      {isOverBalance ? "Exceeds balance" : `${Math.round(balPercent)}% of balance`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Beneficiaries horizontal scroll */}
-            <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
-              <p className="text-[10px] font-semibold text-muted-foreground mb-3 tracking-widest uppercase">Recent</p>
+            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s both" }}>
+              <p className="text-[10px] font-semibold text-white/25 mb-3 tracking-[0.2em] uppercase">Sending To</p>
               <div className="flex gap-3 overflow-x-auto no-scrollbar">
-                {favorites.slice(0, 5).map((fav, i) => (
+                {favorites.slice(0, 6).map((fav, i) => (
                   <button key={fav.id} onClick={() => { haptic.light(); setPayTarget(fav); setPayAmount("0"); }}
-                    className={`flex flex-col items-center gap-1.5 shrink-0 transition-all duration-200 ${payTarget.id === fav.id ? "opacity-100 scale-100" : "opacity-40 scale-95"}`}
-                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.04}s both` }}>
+                    className={`flex flex-col items-center gap-1.5 shrink-0 transition-all duration-300 ${payTarget.id === fav.id ? "opacity-100 scale-100" : "opacity-30 scale-90"}`}
+                    style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.12 + i * 0.04}s both` }}>
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border-2 transition-all duration-300 ${
-                      payTarget.id === fav.id ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(42_78%_55%/0.3)]" : "border-white/[0.06] bg-white/[0.03]"
+                      payTarget.id === fav.id
+                        ? "border-primary bg-primary/10 shadow-[0_0_24px_hsl(42_78%_55%/0.3),inset_0_0_20px_hsl(42_78%_55%/0.05)]"
+                        : "border-white/[0.05] bg-white/[0.02]"
                     }`}>{fav.avatar_emoji}</div>
-                    <p className="text-[10px] font-medium w-14 truncate text-center">{fav.contact_name.split(" ")[0]}</p>
+                    <p className={`text-[10px] font-medium w-14 truncate text-center transition-colors ${payTarget.id === fav.id ? "text-primary" : "text-white/30"}`}>{fav.contact_name.split(" ")[0]}</p>
                   </button>
                 ))}
-                <button onClick={() => { setPayTarget(null); setShowAdd(true); }} className="flex flex-col items-center gap-1.5 shrink-0 opacity-40">
-                  <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-white/[0.1] flex items-center justify-center bg-white/[0.02]">
-                    <Plus className="w-5 h-5 text-muted-foreground" />
+                <button onClick={() => { setPayTarget(null); setShowAdd(true); }} className="flex flex-col items-center gap-1.5 shrink-0 opacity-30">
+                  <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-white/[0.08] flex items-center justify-center bg-white/[0.01]">
+                    <Plus className="w-5 h-5 text-white/20" />
                   </div>
-                  <p className="text-[10px] font-medium text-muted-foreground">Add</p>
+                  <p className="text-[10px] font-medium text-white/20">Add</p>
                 </button>
               </div>
             </div>
 
             {/* Amount Display */}
-            <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-              <div className="rounded-3xl p-6 border border-white/[0.06] relative overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10% / 0.9), hsl(220 18% 6%))" }}>
-                <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
-                <p className="text-[10px] text-muted-foreground mb-2 tracking-wider uppercase font-medium">Enter amount</p>
+            <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both" }}>
+              <div className="rounded-[24px] p-7 border border-white/[0.06] relative overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10% / 0.95), hsl(225 22% 5%))" }}>
+                <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.25), transparent)" }} />
+                <div className="absolute -bottom-10 -right-10 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
+                <p className="text-[10px] text-white/25 mb-3 tracking-[0.2em] uppercase font-semibold text-center">Enter Amount</p>
                 <div className="flex items-center justify-center">
-                  <span className="text-4xl font-light tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{getFormattedAmount()}</span>
-                  <span className="w-0.5 h-10 bg-primary/60 ml-1 animate-pulse rounded-full" />
+                  <span className={`text-[44px] font-bold tracking-[-1px] transition-colors duration-300 ${isOverBalance ? "text-destructive" : ""}`} style={{ fontVariantNumeric: "tabular-nums", textShadow: isOverBalance ? "0 0 20px hsl(0 84% 60% / 0.2)" : "0 0 30px hsl(42 78% 55% / 0.06)" }}>
+                    {getFormattedAmount()}
+                  </span>
+                  <span className="w-0.5 h-12 bg-primary/60 ml-1.5 animate-pulse rounded-full" />
+                </div>
+                {/* Quick amounts */}
+                <div className="flex justify-center gap-2 mt-4">
+                  {[100, 200, 500, 1000].map(amt => (
+                    <button
+                      key={amt}
+                      onClick={() => { haptic.light(); setPayAmount(amt.toString()); }}
+                      className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-[11px] font-medium text-white/40 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all duration-200 active:scale-90"
+                    >
+                      ₹{amt}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
             {/* Note input */}
-            <div className="px-5 mb-3" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both" }}>
-              <input value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="Add a note..."
-                className="w-full h-11 rounded-2xl bg-white/[0.03] border border-white/[0.06] px-4 text-[13px] text-muted-foreground placeholder:text-muted-foreground/30 focus:border-primary/30 outline-none transition-all backdrop-blur" />
+            <div className="px-5 mb-3" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.16s both" }}>
+              <div className="relative">
+                <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/15" />
+                <input value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="Add a note..."
+                  className="w-full h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] pl-10 pr-4 text-[13px] text-foreground placeholder:text-white/15 focus:border-primary/30 focus:shadow-[0_0_0_4px_hsl(42_78%_55%/0.05)] outline-none transition-all backdrop-blur" />
+              </div>
             </div>
 
             {/* Numpad */}
             <div className="flex-1" />
-            <div className="px-8 pb-3" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" }}>
-              <div className="grid grid-cols-3 gap-2.5">
+            <div className="px-6 pb-3" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" }}>
+              <div className="grid grid-cols-3 gap-2">
                 {["1","2","3","4","5","6","7","8","9","","0","backspace"].map((key, i) => {
                   if (key === "") return <div key={i} />;
                   return (
                     <button key={key} onClick={() => handleNumpad(key)}
-                      className="h-[56px] rounded-2xl flex items-center justify-center text-xl font-medium transition-all duration-150 active:scale-90 active:bg-primary/10 bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.05]">
-                      {key === "backspace" ? <Delete className="w-5 h-5 text-muted-foreground" /> : key}
+                      className="h-[54px] rounded-2xl flex items-center justify-center text-xl font-semibold transition-all duration-150 active:scale-[0.88] active:bg-primary/10 bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.05] hover:border-white/[0.08]">
+                      {key === "backspace" ? <Delete className="w-5 h-5 text-white/30" /> : key}
                     </button>
                   );
                 })}
@@ -240,9 +287,11 @@ const QuickPay = () => {
 
             {/* Send Button */}
             <div className="px-5 pb-8" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" }}>
-              <button onClick={sendMoney} disabled={sending || parseInt(payAmount) <= 0}
-                className="w-full h-14 rounded-2xl font-semibold text-[15px] flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all disabled:opacity-40 gradient-primary text-primary-foreground shadow-[0_4px_20px_hsl(42_78%_55%/0.25)] shimmer-border relative overflow-hidden">
-                {sending ? (<><Loader2 className="w-5 h-5 animate-spin" /> Sending...</>) : (<><Send className="w-5 h-5" /> Send Money</>)}
+              <button onClick={sendMoney} disabled={sending || amountNum <= 0 || isOverBalance}
+                className="w-full h-[56px] rounded-2xl font-semibold text-[15px] flex items-center justify-center gap-2.5 active:scale-[0.97] transition-all disabled:opacity-40 gradient-primary text-primary-foreground relative overflow-hidden"
+                style={{ boxShadow: amountNum > 0 && !isOverBalance ? "0 6px 30px hsl(42 78% 55% / 0.3), 0 2px 8px hsl(42 78% 55% / 0.15)" : "none" }}>
+                <div className="absolute inset-0 shimmer-border rounded-2xl" />
+                {sending ? (<><Loader2 className="w-5 h-5 animate-spin" /> Sending...</>) : (<><Send className="w-5 h-5" /> Send {amountNum > 0 ? getFormattedAmount() : "Money"}</>)}
               </button>
             </div>
           </>
