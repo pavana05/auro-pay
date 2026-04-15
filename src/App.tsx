@@ -8,6 +8,12 @@ import TeenHome from "./pages/TeenHome.tsx";
 import Activity from "./pages/Activity.tsx";
 import CardScreen from "./pages/CardScreen.tsx";
 import ProfileScreen from "./pages/ProfileScreen.tsx";
+import PersonalInfo from "./pages/PersonalInfo.tsx";
+import SecurityPin from "./pages/SecurityPin.tsx";
+import SpendingLimits from "./pages/SpendingLimits.tsx";
+import LinkedParents from "./pages/LinkedParents.tsx";
+import HelpSupport from "./pages/HelpSupport.tsx";
+import AboutApp from "./pages/AboutApp.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
@@ -38,6 +44,12 @@ const App = () => (
           <Route path="/activity" element={<Activity />} />
           <Route path="/card" element={<CardScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
+          <Route path="/personal-info" element={<PersonalInfo />} />
+          <Route path="/security" element={<SecurityPin />} />
+          <Route path="/spending-limits" element={<SpendingLimits />} />
+          <Route path="/linked-parents" element={<LinkedParents />} />
+          <Route path="/help" element={<HelpSupport />} />
+          <Route path="/about" element={<AboutApp />} />
           <Route path="/savings" element={<SavingsGoals />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/scan" element={<ScanPay />} />

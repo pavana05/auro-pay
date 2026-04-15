@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Bell } from "lucide-react";
+import { ArrowLeft, Bell, Settings, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Notification {
@@ -15,6 +15,8 @@ interface Notification {
 const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [prefs, setPrefs] = useState({ payments: true, credits: true, alerts: true, kyc: true, system: true });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,12 +25,13 @@ const Notifications = () => {
       if (!user) return;
       const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
       setNotifications((data || []) as Notification[]);
-      // Mark all as read
       await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
       setLoading(false);
     };
     fetch();
   }, []);
+
+  const togglePref = (key: keyof typeof prefs) => setPrefs(p => ({ ...p, [key]: !p[key] }));
 
   const relativeTime = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -48,12 +51,44 @@ const Notifications = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-[22px] font-semibold">Notifications</h1>
+        </div>
+        <button onClick={() => setShowSettings(!showSettings)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+          <Settings className="w-5 h-5" />
         </button>
-        <h1 className="text-[22px] font-semibold">Notifications</h1>
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="rounded-xl bg-card border border-border card-glow p-4 mb-6 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Notification Settings</h3>
+            <button onClick={() => setShowSettings(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+          </div>
+          {[
+            { key: "payments" as const, label: "Payment Alerts", icon: "💳" },
+            { key: "credits" as const, label: "Money Received", icon: "💰" },
+            { key: "alerts" as const, label: "Security Alerts", icon: "⚠️" },
+            { key: "kyc" as const, label: "KYC Updates", icon: "🪪" },
+            { key: "system" as const, label: "System Notifications", icon: "🔔" },
+          ].map(item => (
+            <button key={item.key} onClick={() => togglePref(item.key)} className="w-full flex items-center justify-between py-3 border-b border-border last:border-0">
+              <div className="flex items-center gap-2">
+                <span>{item.icon}</span>
+                <span className="text-sm">{item.label}</span>
+              </div>
+              <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${prefs[item.key] ? "bg-primary justify-end" : "bg-muted justify-start"}`}>
+                <div className="w-5 h-5 rounded-full bg-background shadow-sm transition-transform" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="w-full h-16 rounded-lg bg-muted animate-pulse" />)}</div>
