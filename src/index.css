@@ -311,18 +311,26 @@
   100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
 }
 
-@keyframes comet-streak {
-  0% { transform: translateX(-120px) translateY(0); opacity: 0; width: 8px; }
-  8% { opacity: 0.8; width: 30px; }
-  20% { opacity: 1; width: 80px; }
-  50% { opacity: 0.95; width: 140px; }
-  85% { opacity: 0.6; width: 120px; }
-  100% { transform: translateX(calc(100vw + 60px)) translateY(80px); opacity: 0; width: 60px; }
+@keyframes comet-diagonal {
+  0% { transform: rotate(35deg) translateX(-40px); opacity: 0; width: 6px; }
+  6% { opacity: 0.7; width: 25px; }
+  18% { opacity: 1; width: 70px; }
+  50% { opacity: 0.9; width: 120px; }
+  80% { opacity: 0.5; width: 100px; }
+  100% { transform: rotate(35deg) translateX(calc(140vw)); opacity: 0; width: 50px; }
 }
 
 @keyframes comet-head-glow {
   0%, 100% { box-shadow: 0 0 4px 1px currentColor; }
   50% { box-shadow: 0 0 12px 3px currentColor, 0 0 24px 6px currentColor; }
+}
+
+@keyframes amount-pulse {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.08); }
+  50% { transform: scale(0.97); }
+  75% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
 
 @keyframes badge-haptic {
