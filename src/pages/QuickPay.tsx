@@ -234,36 +234,138 @@ const QuickPay = () => {
           </div>
         </div>
 
-        {paySuccess ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            {/* Success confetti-like particles */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="absolute w-1.5 h-1.5 rounded-full" style={{
-                  left: `${10 + Math.random() * 80}%`,
-                  top: `${20 + Math.random() * 40}%`,
-                  background: i % 3 === 0 ? "hsl(42 78% 55%)" : i % 3 === 1 ? "hsl(152 60% 45%)" : "hsl(210 80% 60%)",
-                  animation: `confetti-fall ${1 + Math.random() * 2}s ease-out ${Math.random() * 0.5}s both`,
-                  opacity: 0.6,
-                }} />
-              ))}
-            </div>
-            <div className="relative w-28 h-28 mb-6">
-              <div className="absolute inset-[-16px] rounded-full border-2 border-success/15" style={{ animation: "scanner-ring 2s ease-in-out infinite" }} />
-              <div className="absolute inset-[-8px] rounded-full border border-success/8" style={{ animation: "scanner-ring 2s ease-in-out 0.3s infinite" }} />
-              <div className="w-28 h-28 rounded-full bg-success/10 flex items-center justify-center" style={{ boxShadow: "0 0 60px hsl(152 60% 45% / 0.2), 0 0 120px hsl(152 60% 45% / 0.08)", animation: "success-glow 2s ease-in-out infinite" }}>
-                <CheckCircle2 className="w-16 h-16 text-success" style={{ animation: "scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }} />
+        {/* Premium Processing Animation */}
+        {sending && !paySuccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "linear-gradient(180deg, hsl(220 22% 6% / 0.95), hsl(225 28% 3% / 0.98))", animation: "fade-in 0.3s ease-out both" }}>
+            <div className="flex flex-col items-center px-8">
+              {/* Animated rings */}
+              <div className="relative w-32 h-32 mb-8">
+                <div className="absolute inset-0 rounded-full border border-primary/10" style={{ animation: "processing-ring-1 2s linear infinite" }} />
+                <div className="absolute inset-2 rounded-full border border-primary/15" style={{ animation: "processing-ring-2 2.5s linear infinite reverse" }} />
+                <div className="absolute inset-4 rounded-full border border-primary/20" style={{ animation: "processing-ring-1 1.5s linear infinite" }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center" style={{ animation: "gentle-pulse 1.5s ease-in-out infinite", boxShadow: "0 0 40px hsl(42 78% 55% / 0.15)" }}>
+                    <Send className="w-7 h-7 text-primary" style={{ animation: "processing-send 2s ease-in-out infinite" }} />
+                  </div>
+                </div>
               </div>
-            </div>
-            <p className="text-2xl font-bold" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" }}>Payment Sent!</p>
-            <p className="text-sm text-muted-foreground mt-2" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>{getFormattedAmount()} sent to {payTarget.contact_name}</p>
-            <div className="flex gap-3 mt-6" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both" }}>
-              <button onClick={() => { haptic.light(); setShowShareSheet(true); }} className="px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[12px] font-semibold flex items-center gap-2 active:scale-95 transition-all hover:bg-white/[0.06]">
-                <Share2 className="w-3.5 h-3.5" /> Share Receipt
-              </button>
+              {/* Animated dots */}
+              <p className="text-[16px] font-bold mb-2">Processing Payment</p>
+              <div className="flex items-center gap-1.5 mb-4">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: `processing-dot 1.4s ease-in-out ${i * 0.2}s infinite` }} />
+                ))}
+              </div>
+              <p className="text-[11px] text-white/30 flex items-center gap-1.5"><Shield className="w-3 h-3" /> Securely transferring {getFormattedAmount()}</p>
             </div>
           </div>
-        ) : (
+        )}
+
+        {paySuccess ? (
+          <div className="flex-1 flex flex-col relative overflow-y-auto">
+            {/* Success view */}
+            <div className="flex flex-col items-center justify-center px-5 pt-8 pb-6" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+              {/* Confetti particles */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {Array.from({ length: 24 }).map((_, i) => (
+                  <div key={i} className="absolute rounded-full" style={{
+                    width: 2 + Math.random() * 4,
+                    height: 2 + Math.random() * 4,
+                    left: `${5 + Math.random() * 90}%`,
+                    top: `${10 + Math.random() * 50}%`,
+                    background: i % 4 === 0 ? "hsl(42 78% 55%)" : i % 4 === 1 ? "hsl(152 60% 45%)" : i % 4 === 2 ? "hsl(210 80% 60%)" : "hsl(330 70% 55%)",
+                    animation: `confetti-fall ${1.5 + Math.random() * 2}s ease-out ${Math.random() * 0.8}s both`,
+                    opacity: 0.7,
+                  }} />
+                ))}
+              </div>
+
+              <div className="relative w-24 h-24 mb-5">
+                <div className="absolute inset-[-16px] rounded-full border-2 border-success/15" style={{ animation: "scanner-ring 2.5s ease-in-out infinite" }} />
+                <div className="absolute inset-[-8px] rounded-full border border-success/8" style={{ animation: "scanner-ring 2.5s ease-in-out 0.4s infinite" }} />
+                <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center" style={{ boxShadow: "0 0 60px hsl(152 60% 45% / 0.2), 0 0 100px hsl(152 60% 45% / 0.08)", animation: "success-glow 2s ease-in-out infinite" }}>
+                  <CheckCircle2 className="w-14 h-14 text-success" style={{ animation: "scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }} />
+                </div>
+              </div>
+              <p className="text-[22px] font-bold" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both" }}>Payment Successful!</p>
+              <p className="text-[28px] font-bold text-primary mt-1 tabular-nums" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both", textShadow: "0 0 30px hsl(42 78% 55% / 0.15)" }}>{successAmount}</p>
+              <p className="text-[12px] text-muted-foreground mt-1" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" }}>sent to {payTarget.contact_name}</p>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 mt-6 w-full px-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
+                <button onClick={() => { haptic.medium(); setShowPaymentDetails(prev => !prev); }}
+                  className="flex-1 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all text-primary hover:bg-primary/15">
+                  <Receipt className="w-4 h-4" /> {showPaymentDetails ? "Hide Details" : "Payment Details"}
+                </button>
+                <button onClick={() => { haptic.light(); setPaySuccess(false); setPayAmount("0"); setPayNote(""); }}
+                  className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.25)]">
+                  <Send className="w-4 h-4" /> Send Again
+                </button>
+              </div>
+
+              <button onClick={() => { haptic.light(); setPayTarget(null); setPaySuccess(false); setPayAmount("0"); }}
+                className="mt-3 text-[11px] text-white/30 hover:text-white/50 transition-colors"
+                style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both" }}>
+                ← Back to Contacts
+              </button>
+            </div>
+
+            {/* Payment Details Panel */}
+            {showPaymentDetails && (
+              <div className="px-5 pb-8" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+                <div className="rounded-[22px] border border-white/[0.06] overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
+                  {/* Top accent */}
+                  <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
+
+                  {/* Recipient info */}
+                  <div className="p-5 border-b border-white/[0.04]" style={{ animation: "fade-in 0.3s ease-out 0.1s both" }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-2xl">{payTarget.avatar_emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold">{payTarget.contact_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{payTarget.contact_upi_id || payTarget.contact_phone || "—"}</p>
+                      </div>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/8 border border-success/10">
+                        <CheckCircle2 className="w-2.5 h-2.5 text-success/70" />
+                        <span className="text-[9px] font-medium text-success/70">Completed</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Details grid */}
+                  <div className="p-5 space-y-4">
+                    {[
+                      { label: "Amount", value: successAmount, highlight: true },
+                      { label: "Date & Time", value: successTimestamp },
+                      { label: "Transaction ID", value: successTxnId },
+                      { label: "Payment Method", value: "Wallet Transfer" },
+                      { label: "Status", value: "Completed", status: true },
+                      ...(payNote ? [{ label: "Note", value: payNote }] : []),
+                    ].map((item, i) => (
+                      <div key={item.label} className="flex items-center justify-between" style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.05}s both` }}>
+                        <span className="text-[11px] text-white/30">{item.label}</span>
+                        <span className={`text-[12px] font-semibold tabular-nums flex items-center gap-1.5 ${
+                          (item as any).highlight ? "text-primary" : (item as any).status ? "text-success" : "text-foreground"
+                        }`}>
+                          {(item as any).status && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />}
+                          {item.value}
+                          {item.label === "Transaction ID" && (
+                            <button onClick={() => { navigator.clipboard.writeText(item.value); haptic.light(); toast.success("Copied!"); }} className="text-white/20 hover:text-white/40 transition-colors">
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bottom shimmer */}
+                  <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.15), transparent)" }} />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : !sending && (
           <>
             {/* Paying To */}
             <div className="px-5 mb-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.04s both" }}>
