@@ -23,6 +23,7 @@ const navItems = [
   { path: "/admin/activity-log", icon: Activity, label: "Activity Log" },
   { path: "/admin/audit-log", icon: FileText, label: "Audit Log" },
   { path: "/admin/rewards", icon: Gift, label: "Rewards" },
+  { path: "/admin/analytics", icon: Activity, label: "Analytics" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
