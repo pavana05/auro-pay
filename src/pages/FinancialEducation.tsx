@@ -34,7 +34,7 @@ const CATEGORIES = [
 ];
 
 // Built-in lessons for when DB is empty
-const BUILTIN_LESSONS: Record<string, LessonContent & { title: string; description: string; coin_reward: number }[]> = {
+const BUILTIN_LESSONS: Record<string, (LessonContent & { title: string; description: string; coin_reward: number })[]> = {
   budgeting: [
     {
       title: "Budget Basics",
@@ -135,7 +135,7 @@ const FinancialEducation = () => {
     }
   };
 
-  const getLessonsForCategory = (cat: string) => {
+  const getLessonsForCategory = (cat: string): (LessonContent & { title: string; description: string; coin_reward: number; id: string })[] => {
     const fromDb = dbLessons.filter(l => l.category === cat);
     if (fromDb.length > 0) return fromDb.map(l => ({
       title: l.title,
