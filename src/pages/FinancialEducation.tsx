@@ -172,7 +172,10 @@ const FinancialEducation = () => {
         setAnswered(null);
       } else {
         setQuizDone(true);
-        if (score + (isCorrect ? 1 : 0) >= 2) {
+        const passed = score + (isCorrect ? 1 : 0) >= 2;
+        if (passed) {
+          completeLesson();
+          setTimeout(() => setShowCelebration(true), 300);
           completeLesson();
         }
       }
