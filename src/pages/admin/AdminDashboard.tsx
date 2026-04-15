@@ -26,6 +26,8 @@ interface Stats {
   successRate: number;
   teens: number;
   parents: number;
+  verifiedKyc: number;
+  avgBalance: number;
 }
 
 interface Transaction {
@@ -36,6 +38,19 @@ interface Transaction {
   status: string | null;
   created_at: string | null;
   wallet_id: string;
+}
+
+interface RecentSignup {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+  created_at: string | null;
+}
+
+interface TopMerchant {
+  name: string;
+  count: number;
+  volume: number;
 }
 
 const CHART_COLORS = ["#c8952e", "#d4a843", "#a67a1e", "#e8c56d"];
