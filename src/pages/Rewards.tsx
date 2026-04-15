@@ -25,7 +25,7 @@ const categoryColors: Record<string, string> = {
   general: "from-primary/20 to-primary/5",
   food: "from-orange-500/20 to-orange-500/5",
   shopping: "from-pink-500/20 to-pink-500/5",
-  entertainment: "from-purple-500/20 to-purple-500/5",
+  entertainment: "from-blue-500/20 to-blue-500/5",
   travel: "from-blue-500/20 to-blue-500/5",
   education: "from-emerald-500/20 to-emerald-500/5",
 };
