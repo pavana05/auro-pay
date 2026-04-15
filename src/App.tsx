@@ -105,6 +105,7 @@ const App = () => (
             <Route path="/support" element={<SupportTickets />} />
             <Route path="/spin-wheel" element={<SpinWheel />} />
             <Route path="/admin/support" element={<AdminSupport />} />
+            <Route path="/referrals" element={<Referrals />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
