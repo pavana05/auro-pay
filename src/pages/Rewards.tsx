@@ -133,6 +133,7 @@ const Rewards = () => {
                 </div>
                 <span className="text-[10px] font-medium text-primary">View →</span>
               </div>
+              </div>
             </div>
           </button>
         ))}
