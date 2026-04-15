@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Star, Send, X, Search } from "lucide-react";
+import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -16,6 +16,7 @@ interface Favorite {
 }
 
 const emojiOptions = ["👤", "🧑", "👩", "👨", "🦸", "🧑‍💻", "👸", "🤴", "🧑‍🎓", "🦊", "🐱", "🐶"];
+const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
 
 const QuickPay = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -27,14 +28,27 @@ const QuickPay = () => {
   const [emoji, setEmoji] = useState("👤");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [balance, setBalance] = useState(0);
+
+  // Transfer state
+  const [payTarget, setPayTarget] = useState<Favorite | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [paySuccess, setPaySuccess] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchFavs = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from("quick_pay_favorites").select("*").eq("user_id", user.id).order("last_paid_at", { ascending: false, nullsFirst: false });
-    setFavorites((data || []) as Favorite[]);
+    const [favsRes, walletRes] = await Promise.all([
+      supabase.from("quick_pay_favorites").select("*").eq("user_id", user.id).order("last_paid_at", { ascending: false, nullsFirst: false }),
+      supabase.from("wallets").select("balance").eq("user_id", user.id).single(),
+    ]);
+    setFavorites((favsRes.data || []) as Favorite[]);
+    setBalance(walletRes.data?.balance || 0);
     setLoading(false);
   };
 
@@ -74,9 +88,61 @@ const QuickPay = () => {
     }
   };
 
+  const openPay = (fav: Favorite) => {
+    haptic.medium();
+    setPayTarget(fav);
+    setPayAmount("");
+    setPayNote("");
+    setPaySuccess(false);
+  };
+
+  const sendMoney = async () => {
+    if (!payTarget || !payAmount) return;
+    const amountPaise = Math.round(parseFloat(payAmount) * 100);
+    if (isNaN(amountPaise) || amountPaise <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    if (amountPaise > balance) {
+      toast.error("Insufficient balance");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("p2p-transfer", {
+        body: { favorite_id: payTarget.id, amount: amountPaise, note: payNote || undefined },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        setSending(false);
+        return;
+      }
+
+      haptic.success();
+      setPaySuccess(true);
+      setBalance(prev => prev - amountPaise);
+      toast.success(data?.message || "Money sent!");
+
+      // Auto-close after 2s
+      setTimeout(() => {
+        setPayTarget(null);
+        setPaySuccess(false);
+        fetchFavs();
+      }, 2000);
+    } catch (err: any) {
+      toast.error(err?.message || "Transfer failed");
+    }
+    setSending(false);
+  };
+
   const filtered = favorites.filter(f =>
     !search || f.contact_name.toLowerCase().includes(search.toLowerCase()) || f.contact_upi_id?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const formatBal = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
   return (
     <div className="min-h-screen bg-background noise-overlay pb-28">
@@ -87,7 +153,7 @@ const QuickPay = () => {
           </button>
           <div className="flex-1">
             <h1 className="text-[18px] font-bold">Quick Pay</h1>
-            <p className="text-[10px] text-muted-foreground">{favorites.length} saved contacts</p>
+            <p className="text-[10px] text-muted-foreground">{favorites.length} saved contacts · Balance: {formatBal(balance)}</p>
           </div>
           <button onClick={() => { haptic.light(); setShowAdd(true); }} className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center active:scale-90 transition-all shadow-[0_4px_12px_hsl(42_78%_55%/0.3)]">
             <Plus className="w-5 h-5 text-primary-foreground" />
@@ -145,6 +211,85 @@ const QuickPay = () => {
         </div>
       )}
 
+      {/* Pay Modal */}
+      {payTarget && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 backdrop-blur-sm animate-fade-in" onClick={() => !sending && setPayTarget(null)}>
+          <div className="w-full max-w-lg rounded-t-3xl border-t border-border p-6 animate-slide-up" style={{ background: "linear-gradient(180deg, hsl(220 15% 12%), hsl(220 18% 7%))" }} onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-muted/30 rounded-full mx-auto mb-5" />
+
+            {paySuccess ? (
+              <div className="flex flex-col items-center py-8 animate-scale-in">
+                <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
+                </div>
+                <p className="text-lg font-bold">Payment Sent!</p>
+                <p className="text-sm text-muted-foreground mt-1">₹{payAmount} sent to {payTarget.contact_name}</p>
+              </div>
+            ) : (
+              <>
+                {/* Recipient info */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-3xl">
+                    {payTarget.avatar_emoji}
+                  </div>
+                  <div>
+                    <p className="text-[15px] font-bold">{payTarget.contact_name}</p>
+                    <p className="text-[11px] text-muted-foreground">{payTarget.contact_upi_id || payTarget.contact_phone || "—"}</p>
+                  </div>
+                </div>
+
+                {/* Amount input */}
+                <div className="mb-4">
+                  <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Amount (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-primary">₹</span>
+                    <input
+                      value={payAmount}
+                      onChange={e => setPayAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                      placeholder="0"
+                      type="text"
+                      inputMode="decimal"
+                      className="w-full h-14 rounded-xl bg-card border border-border pl-10 pr-4 text-2xl font-bold focus:border-primary/40 outline-none transition-all"
+                      autoFocus
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">Available: {formatBal(balance)}</p>
+                </div>
+
+                {/* Quick amounts */}
+                <div className="flex gap-2 flex-wrap mb-4">
+                  {quickAmounts.map(amt => (
+                    <button key={amt} onClick={() => setPayAmount(amt.toString())}
+                      className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition-all active:scale-95 ${
+                        payAmount === amt.toString() ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"
+                      }`}>
+                      ₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Note */}
+                <div className="mb-5">
+                  <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Note (optional)</label>
+                  <input value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="What's it for?"
+                    className="w-full h-11 rounded-xl bg-card border border-border px-4 text-sm focus:border-primary/40 outline-none transition-all" />
+                </div>
+
+                {/* Send button */}
+                <button onClick={sendMoney} disabled={sending || !payAmount || parseFloat(payAmount) <= 0}
+                  className="w-full h-13 py-3.5 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_4px_16px_hsl(42_78%_55%/0.3)] flex items-center justify-center gap-2">
+                  {sending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Send className="w-4 h-4" /> Send ₹{payAmount || "0"}</>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Favorites Grid */}
       <div className="px-5">
         {loading ? (
@@ -169,7 +314,12 @@ const QuickPay = () => {
                 </div>
                 <p className="text-[11px] font-semibold truncate w-full">{fav.contact_name}</p>
                 <p className="text-[9px] text-muted-foreground truncate w-full">{fav.contact_upi_id || fav.contact_phone || "—"}</p>
-                <button className="mt-2 w-full py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all">
+                {fav.last_paid_at && (
+                  <p className="text-[8px] text-muted-foreground mt-0.5">
+                    Last: {new Date(fav.last_paid_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  </p>
+                )}
+                <button onClick={() => openPay(fav)} className="mt-2 w-full py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all">
                   <Send className="w-3 h-3" /> Pay
                 </button>
               </div>
