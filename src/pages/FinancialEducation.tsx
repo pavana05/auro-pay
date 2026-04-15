@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, BookOpen, TrendingUp, PiggyBank, Coins, CheckCircle2, XCircle, Star, Sparkles, ChevronRight, Trophy, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,6 +113,7 @@ const FinancialEducation = () => {
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState<number | null>(null);
   const [quizDone, setQuizDone] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [dbLessons, setDbLessons] = useState<Lesson[]>([]);
 
@@ -137,13 +138,17 @@ const FinancialEducation = () => {
 
   const getLessonsForCategory = (cat: string): (LessonContent & { title: string; description: string; coin_reward: number; id: string })[] => {
     const fromDb = dbLessons.filter(l => l.category === cat);
-    if (fromDb.length > 0) return fromDb.map(l => ({
-      title: l.title,
-      description: l.description || "",
-      coin_reward: l.coin_reward,
-      ...(l.content_json as LessonContent),
-      id: l.id,
-    }));
+    if (fromDb.length > 0) return fromDb.map(l => {
+      const content = l.content_json as any[];
+      // DB stores flat array with type:"slide" and type:"quiz" — split them
+      if (Array.isArray(content)) {
+        const cards = content.filter((c: any) => c.type === "slide").map((c: any) => ({ title: c.title, body: c.body, emoji: c.emoji }));
+        const quiz = content.filter((c: any) => c.type === "quiz").map((c: any) => ({ question: c.question, options: c.options, correct: c.correct }));
+        return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, cards, quiz, id: l.id };
+      }
+      // Fallback for old format
+      return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, ...(content as unknown as LessonContent), id: l.id };
+    });
     return BUILTIN_LESSONS[cat]?.map((l, i) => ({ ...l, id: `builtin-${cat}-${i}` })) || [];
   };
 
@@ -167,7 +172,10 @@ const FinancialEducation = () => {
         setAnswered(null);
       } else {
         setQuizDone(true);
-        if (score + (isCorrect ? 1 : 0) >= 2) {
+        const passed = score + (isCorrect ? 1 : 0) >= 2;
+        if (passed) {
+          completeLesson();
+          setTimeout(() => setShowCelebration(true), 300);
           completeLesson();
         }
       }
@@ -208,31 +216,183 @@ const FinancialEducation = () => {
     setScore(0);
     setAnswered(null);
     setQuizDone(false);
+    setShowCelebration(false);
   };
+
+  // Confetti particles for celebration
+  const confettiParticles = useMemo(() =>
+    Array.from({ length: 50 }, (_, i) => ({
+      left: Math.random() * 100,
+      delay: Math.random() * 2,
+      dur: 2 + Math.random() * 3,
+      size: 4 + Math.random() * 8,
+      color: ['hsl(42 78% 55%)', 'hsl(152 60% 45%)', 'hsl(210 80% 55%)', 'hsl(330 70% 55%)', 'hsl(280 60% 55%)', 'hsl(42 90% 65%)'][i % 6],
+      rotation: Math.random() * 360,
+      type: i % 3, // 0=square, 1=circle, 2=strip
+    })),
+  []);
 
   // Quiz complete screen
   if (quizDone && activeLesson) {
     const passed = score >= 2;
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
+        {/* Ambient glow */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-[0.06] blur-[120px]" style={{ background: passed ? "hsl(152 60% 45%)" : "hsl(0 72% 51%)" }} />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[120px]"
+            style={{ background: passed ? "hsl(152 60% 45%)" : "hsl(0 72% 51%)" }} />
+          {passed && <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full opacity-[0.06] blur-[100px]"
+            style={{ background: "hsl(42 78% 55%)" }} />}
         </div>
-        <div className="relative z-10 text-center" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: passed ? "hsl(152 60% 45% / 0.15)" : "hsl(0 72% 51% / 0.15)" }}>
-            {passed ? <CheckCircle2 className="w-10 h-10 text-[hsl(152_60%_45%)]" /> : <XCircle className="w-10 h-10 text-destructive" />}
+
+        {/* Confetti */}
+        {passed && showCelebration && confettiParticles.map((p, i) => (
+          <div key={i} className="fixed pointer-events-none z-30"
+            style={{
+              left: `${p.left}%`,
+              top: '-5%',
+              width: p.type === 2 ? `${p.size * 0.4}px` : `${p.size}px`,
+              height: p.type === 2 ? `${p.size * 1.5}px` : `${p.size}px`,
+              borderRadius: p.type === 1 ? '50%' : p.type === 2 ? '2px' : '2px',
+              background: p.color,
+              transform: `rotate(${p.rotation}deg)`,
+              animation: `confetti-fall ${p.dur}s ease-in ${p.delay}s both`,
+              boxShadow: `0 0 ${p.size}px ${p.color}`,
+              opacity: 0.9,
+            }}
+          />
+        ))}
+
+        {/* Coin burst particles */}
+        {passed && showCelebration && Array.from({ length: 8 }).map((_, i) => (
+          <div key={`coin-${i}`} className="absolute z-20 pointer-events-none"
+            style={{
+              left: '50%',
+              top: '40%',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, hsl(42 78% 55%), hsl(42 90% 70%))',
+              boxShadow: '0 0 10px hsl(42 78% 55% / 0.5)',
+              animation: `coin-burst 1s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + i * 0.05}s both`,
+              transform: `rotate(${i * 45}deg) translateY(-60px)`,
+            }}
+          />
+        ))}
+
+        <div className="relative z-10 text-center w-full max-w-sm">
+          {/* Trophy / Icon */}
+          <div style={{ animation: passed ? "celebration-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" : "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className="relative w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center"
+              style={{
+                background: passed
+                  ? "linear-gradient(160deg, hsl(152 60% 45% / 0.15), hsl(42 78% 55% / 0.1))"
+                  : "hsl(0 72% 51% / 0.12)",
+                boxShadow: passed
+                  ? "0 0 40px hsl(152 60% 45% / 0.15), 0 0 80px hsl(42 78% 55% / 0.08)"
+                  : "0 0 30px hsl(0 72% 51% / 0.1)",
+              }}>
+              {/* Rotating ring */}
+              {passed && (
+                <div className="absolute -inset-1 rounded-full"
+                  style={{
+                    background: "conic-gradient(from 0deg, transparent, hsl(42 78% 55% / 0.3), transparent, hsl(152 60% 45% / 0.3), transparent)",
+                    animation: "spin 3s linear infinite",
+                  }} />
+              )}
+              <div className="relative">
+                {passed ? <Trophy className="w-12 h-12 text-[hsl(42_78%_55%)]" /> : <XCircle className="w-12 h-12 text-destructive" />}
+              </div>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold mb-2">{passed ? "Quiz Passed! 🎉" : "Try Again"}</h2>
-          <p className="text-sm text-muted-foreground mb-1">Score: {score}/{activeLesson.quiz.length}</p>
+
+          {/* Title */}
+          <div style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
+            <h2 className="text-3xl font-bold mb-2">{passed ? "Lesson Complete! 🎉" : "Not Quite!"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {passed ? "Outstanding work! You've mastered this lesson." : "Don't worry — review the lesson and try again."}
+            </p>
+          </div>
+
+          {/* Score card */}
+          <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both" }}>
+            <div className="mt-6 rounded-2xl border border-white/[0.06] p-5 relative overflow-hidden"
+              style={{ background: "linear-gradient(160deg, hsl(220 18% 10%), hsl(220 20% 5.5%))" }}>
+              <div className="absolute top-0 left-0 right-0 h-[1px]"
+                style={{ background: passed ? "linear-gradient(90deg, transparent, hsl(152 60% 45% / 0.4), transparent)" : "linear-gradient(90deg, transparent, hsl(0 72% 51% / 0.3), transparent)" }} />
+
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Quiz Results</p>
+
+              <div className="flex items-center justify-center gap-6">
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{score}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Correct</p>
+                </div>
+                <div className="w-[1px] h-10 bg-white/[0.06]" />
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-muted-foreground">{activeLesson.quiz.length}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Total</p>
+                </div>
+                {passed && (
+                  <>
+                    <div className="w-[1px] h-10 bg-white/[0.06]" />
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-primary">{Math.round((score / activeLesson.quiz.length) * 100)}%</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Score</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Coin reward — animated */}
           {passed && (
-            <div className="flex items-center justify-center gap-2 mt-3 mb-6">
-              <Coins className="w-5 h-5 text-primary" />
-              <span className="text-lg font-bold text-primary">+{activeLesson.coin_reward} coins</span>
+            <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.65s both" }}>
+              <div className="mt-4 rounded-2xl border border-primary/20 p-4 relative overflow-hidden"
+                style={{ background: "linear-gradient(160deg, hsl(42 60% 15% / 0.15), hsl(220 18% 8%))" }}>
+                <div className="absolute top-0 left-0 right-0 h-[1px]"
+                  style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.5), transparent)" }} />
+
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(42 78% 55% / 0.2), hsl(42 90% 65% / 0.1))",
+                      boxShadow: "0 0 20px hsl(42 78% 55% / 0.15)",
+                      animation: "glow-pulse 2s ease-in-out infinite",
+                    }}>
+                    <Coins className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-2xl font-bold text-primary"
+                      style={{ animation: showCelebration ? "coin-counter 1s ease-out 0.8s both" : "none" }}>
+                      +{activeLesson.coin_reward}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Coins earned</p>
+                  </div>
+                  <Zap className="w-5 h-5 text-primary/50 ml-auto" style={{ animation: "glow-pulse 1.5s ease-in-out infinite" }} />
+                </div>
+              </div>
             </div>
           )}
-          <button onClick={resetLesson} className="mt-6 w-full h-14 rounded-2xl gradient-primary text-primary-foreground font-semibold active:scale-[0.97] transition-transform">
-            {passed ? "Back to Lessons" : "Retry Lesson"}
-          </button>
+
+          {/* Action button */}
+          <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
+            <button onClick={resetLesson}
+              className="mt-6 w-full h-14 rounded-2xl font-semibold active:scale-[0.97] transition-all relative overflow-hidden"
+              style={{
+                background: passed
+                  ? "linear-gradient(135deg, hsl(152 60% 40%), hsl(152 50% 35%))"
+                  : "linear-gradient(135deg, hsl(42 78% 50%), hsl(42 68% 40%))",
+                boxShadow: passed
+                  ? "0 4px 20px hsl(152 60% 45% / 0.25)"
+                  : "0 4px 20px hsl(42 78% 55% / 0.25)",
+              }}>
+              <span className="relative z-10 text-white font-bold">
+                {passed ? "Continue Learning" : "Retry Lesson"}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     );
