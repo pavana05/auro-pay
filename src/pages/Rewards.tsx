@@ -96,7 +96,12 @@ const Rewards = () => {
           <button key={r.id} onClick={() => { haptic.medium(); navigate(`/rewards/${r.id}`); }}
             className="w-full text-left animate-fade-in active:scale-[0.98] transition-all duration-200"
             style={{ animationDelay: `${i * 60}ms` }}>
-            <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${categoryColors[r.category || "general"]} p-4`}>
+            <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${categoryColors[r.category || "general"]}`}>
+              {/* Banner image */}
+              {r.image_url && (
+                <img src={r.image_url} alt={r.title} className="w-full h-28 object-cover" />
+              )}
+              <div className="p-4">
               {/* Sparkle decoration */}
               <div className="absolute top-3 right-3 opacity-30">
                 <Sparkles className="w-8 h-8 text-primary" />
@@ -127,6 +132,7 @@ const Rewards = () => {
                   <span className="text-[10px] text-muted-foreground">Tap to reveal code</span>
                 </div>
                 <span className="text-[10px] font-medium text-primary">View →</span>
+              </div>
               </div>
             </div>
           </button>

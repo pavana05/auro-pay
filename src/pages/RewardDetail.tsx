@@ -28,15 +28,41 @@ const RewardDetail = () => {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [alreadyRedeemed, setAlreadyRedeemed] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       const { data } = await supabase.from("rewards").select("*").eq("id", id).single();
       if (data) setReward(data as unknown as Reward);
+
+      // Check if already redeemed
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && id) {
+        const { data: existing } = await supabase
+          .from("reward_redemptions")
+          .select("id")
+          .eq("reward_id", id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (existing) {
+          setAlreadyRedeemed(true);
+          setRevealed(true);
+        }
+      }
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [id]);
+
+  const trackRedemption = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !id || alreadyRedeemed) return;
+    await supabase.from("reward_redemptions").insert({
+      reward_id: id,
+      user_id: user.id,
+    } as any);
+    setAlreadyRedeemed(true);
+  };
 
   const handleReveal = () => {
     haptic.heavy();
@@ -45,6 +71,7 @@ const RewardDetail = () => {
       setRevealed(true);
       setRevealing(false);
       haptic.medium();
+      trackRedemption();
     }, 1500);
   };
 
@@ -72,6 +99,13 @@ const RewardDetail = () => {
       </div>
 
       <div className="px-4 pt-6 pb-12 space-y-6 animate-fade-in">
+        {/* Banner Image */}
+        {reward.image_url && (
+          <div className="rounded-3xl overflow-hidden border border-border">
+            <img src={reward.image_url} alt={reward.title} className="w-full h-44 object-cover" />
+          </div>
+        )}
+
         {/* Hero Card */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/20 p-6">
           {/* Ambient orbs */}
