@@ -413,3 +413,26 @@
   80% { transform: scale(0.9); }
   100% { transform: scale(1); }
 }
+
+@keyframes processing-ring-1 {
+  0% { transform: rotate(0deg); border-color: hsl(42 78% 55% / 0.1); }
+  50% { border-color: hsl(42 78% 55% / 0.25); }
+  100% { transform: rotate(360deg); border-color: hsl(42 78% 55% / 0.1); }
+}
+
+@keyframes processing-ring-2 {
+  0% { transform: rotate(0deg); border-color: hsl(42 78% 55% / 0.08); }
+  50% { border-color: hsl(42 78% 55% / 0.2); }
+  100% { transform: rotate(360deg); border-color: hsl(42 78% 55% / 0.08); }
+}
+
+@keyframes processing-send {
+  0%, 100% { transform: translateX(0) scale(1); opacity: 1; }
+  30% { transform: translateX(4px) scale(1.05); opacity: 0.8; }
+  60% { transform: translateX(-2px) scale(0.95); opacity: 1; }
+}
+
+@keyframes processing-dot {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
