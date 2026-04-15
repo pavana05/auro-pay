@@ -26,6 +26,8 @@ interface Stats {
   successRate: number;
   teens: number;
   parents: number;
+  verifiedKyc: number;
+  avgBalance: number;
 }
 
 interface Transaction {
@@ -38,6 +40,19 @@ interface Transaction {
   wallet_id: string;
 }
 
+interface RecentSignup {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+  created_at: string | null;
+}
+
+interface TopMerchant {
+  name: string;
+  count: number;
+  volume: number;
+}
+
 const CHART_COLORS = ["#c8952e", "#d4a843", "#a67a1e", "#e8c56d"];
 
 const AdminDashboard = () => {
@@ -46,24 +61,28 @@ const AdminDashboard = () => {
     totalUsers: 0, totalTransactionsToday: 0, totalVolumeToday: 0,
     pendingKyc: 0, frozenWallets: 0, activeWallets: 0, totalBalance: 0,
     newUsersToday: 0, totalTransactionsAll: 0, successRate: 0, teens: 0, parents: 0,
+    verifiedKyc: 0, avgBalance: 0,
   });
   const [liveTxns, setLiveTxns] = useState<Transaction[]>([]);
   const [dailyVolume, setDailyVolume] = useState<any[]>([]);
   const [txTypeData, setTxTypeData] = useState<any[]>([]);
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [roleDistribution, setRoleDistribution] = useState<any[]>([]);
+  const [recentSignups, setRecentSignups] = useState<RecentSignup[]>([]);
+  const [topMerchants, setTopMerchants] = useState<TopMerchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const fetchStats = async () => {
     const today = new Date().toISOString().split("T")[0];
 
-    const [usersRes, txnsRes, kycRes, walletsRes, allTxnsRes] = await Promise.all([
-      supabase.from("profiles").select("id, created_at, role"),
+    const [usersRes, txnsRes, kycRes, walletsRes, allTxnsRes, verifiedKycRes] = await Promise.all([
+      supabase.from("profiles").select("id, created_at, role, full_name"),
       supabase.from("transactions").select("*").gte("created_at", today),
       supabase.from("kyc_requests").select("id").eq("status", "pending"),
       supabase.from("wallets").select("id, balance, is_frozen"),
-      supabase.from("transactions").select("id, status").limit(1000),
+      supabase.from("transactions").select("id, status, merchant_name, amount").limit(1000),
+      supabase.from("kyc_requests").select("id").eq("status", "verified"),
     ]);
 
     const allUsers = usersRes.data || [];
@@ -77,6 +96,7 @@ const AdminDashboard = () => {
     const successCount = allTxns.filter((t: any) => t.status === "success").length;
     const teens = allUsers.filter((u: any) => u.role === "teen").length;
     const parents = allUsers.filter((u: any) => u.role === "parent").length;
+    const avgBalance = wallets.length > 0 ? Math.round(totalBalance / wallets.length) : 0;
 
     setStats({
       totalUsers: allUsers.length,
@@ -91,6 +111,8 @@ const AdminDashboard = () => {
       successRate: allTxns.length > 0 ? Math.round((successCount / allTxns.length) * 100) : 0,
       teens,
       parents,
+      verifiedKyc: verifiedKycRes.data?.length || 0,
+      avgBalance,
     });
 
     setRoleDistribution([
@@ -98,6 +120,24 @@ const AdminDashboard = () => {
       { name: "Parents", value: parents || 1 },
       { name: "Others", value: Math.max(1, allUsers.length - teens - parents) },
     ]);
+
+    // Recent signups (last 5)
+    const sortedUsers = [...allUsers].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setRecentSignups(sortedUsers.slice(0, 5) as RecentSignup[]);
+
+    // Top merchants
+    const merchantMap = new Map<string, { count: number; volume: number }>();
+    allTxns.forEach((t: any) => {
+      if (t.merchant_name) {
+        const existing = merchantMap.get(t.merchant_name) || { count: 0, volume: 0 };
+        merchantMap.set(t.merchant_name, { count: existing.count + 1, volume: existing.volume + (t.amount || 0) });
+      }
+    });
+    const topMerch = Array.from(merchantMap.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    setTopMerchants(topMerch);
 
     const { data: latest } = await supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(50);
     setLiveTxns((latest || []) as Transaction[]);
@@ -309,23 +349,72 @@ const AdminDashboard = () => {
           <div className="p-4 rounded-lg bg-card border border-border card-premium shimmer-border">
             <h3 className="text-sm font-semibold mb-3">Key Metrics</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Teens</p>
-                <p className="text-lg font-bold">{stats.teens}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Parents</p>
-                <p className="text-lg font-bold">{stats.parents}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Frozen Wallets</p>
-                <p className="text-lg font-bold text-warning">{stats.frozenWallets}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Success Rate</p>
-                <p className="text-lg font-bold text-success">{stats.successRate}%</p>
-              </div>
+              {[
+                { label: "Teens", value: stats.teens, color: "" },
+                { label: "Parents", value: stats.parents, color: "" },
+                { label: "Frozen Wallets", value: stats.frozenWallets, color: "text-warning" },
+                { label: "Success Rate", value: `${stats.successRate}%`, color: "text-success" },
+                { label: "Verified KYC", value: stats.verifiedKyc, color: "text-success" },
+                { label: "Avg Balance", value: formatAmount(stats.avgBalance), color: "text-primary" },
+              ].map(m => (
+                <div key={m.label} className="p-3 rounded-lg bg-muted/20">
+                  <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                  <p className={`text-lg font-bold ${m.color}`}>{m.value}</p>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+
+        {/* Recent Signups & Top Merchants */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-5 rounded-lg bg-card border border-border card-premium">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Recent Signups</h3>
+              <button onClick={() => navigate("/admin/users")} className="text-xs text-primary hover:underline">View All</button>
+            </div>
+            {recentSignups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No signups yet</p>
+            ) : (
+              <div className="space-y-2">
+                {recentSignups.map(u => (
+                  <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/10 transition-colors">
+                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
+                      {u.full_name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize">{u.role || "user"}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 rounded-lg bg-card border border-border card-premium">
+            <h3 className="text-sm font-semibold mb-4">Top Merchants</h3>
+            {topMerchants.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No merchant data yet</p>
+            ) : (
+              <div className="space-y-2">
+                {topMerchants.map((m, i) => (
+                  <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/10 transition-colors">
+                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{m.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.count} txns</p>
+                    </div>
+                    <span className="text-xs font-medium">{formatAmount(m.volume)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
