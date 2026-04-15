@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [refCode, setRefCode] = useState("");
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) setRefCode(ref);
+  }, [searchParams]);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -20,11 +28,24 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
+        // If referral code present, create referral record
+        if (refCode && signUpData.user) {
+          // Find referrer by code pattern AURO<first6>
+          const refUserId = refCode.replace("AURO", "").toLowerCase();
+          const { data: profiles } = await supabase.from("profiles").select("id").ilike("id", `${refUserId}%`).limit(1);
+          if (profiles && profiles.length > 0) {
+            await supabase.from("referrals").insert({
+              referrer_id: profiles[0].id,
+              referred_id: signUpData.user.id,
+              referral_code: refCode,
+            });
+          }
+        }
         toast.success("Account created!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({

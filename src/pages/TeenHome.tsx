@@ -162,6 +162,7 @@ const TeenHome = () => {
     { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn rewards" },
     { label: "Achievements", path: "/achievements", emoji: "🏆", desc: "Your badges" },
     { label: "Friends", path: "/friends", emoji: "🤝", desc: "Social hub" },
+    { label: "Learn", path: "/learn", emoji: "📚", desc: "Earn coins" },
     { label: "Support", path: "/support", emoji: "💬", desc: "Get help" },
   ];
 
