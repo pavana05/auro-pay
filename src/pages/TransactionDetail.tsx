@@ -648,6 +648,7 @@ const TransactionDetailPage = () => {
           </div>
         </div>
       )}
+    </div>
   );
 };
 
