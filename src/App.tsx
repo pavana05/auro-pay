@@ -22,6 +22,7 @@ import AdminKyc from "./pages/admin/AdminKyc.tsx";
 import AdminWallets from "./pages/admin/AdminWallets.tsx";
 import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
+import AdminActivityLog from "./pages/admin/AdminActivityLog.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/admin/kyc" element={<AdminKyc />} />
           <Route path="/admin/wallets" element={<AdminWallets />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
+          <Route path="/admin/activity-log" element={<AdminActivityLog />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
