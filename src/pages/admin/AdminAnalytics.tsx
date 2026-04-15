@@ -200,7 +200,21 @@ const AdminAnalytics = () => {
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-primary" /> Analytics
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">Deep insights into your platform performance</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-xs text-muted-foreground">Deep insights into your platform performance</p>
+              <button
+                onClick={() => setIsLive(!isLive)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
+                  isLive ? "bg-success/10 border border-success/10 text-success" : "bg-white/[0.03] border border-white/[0.06] text-muted-foreground"
+                }`}
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
+                {isLive ? "Live" : "Paused"}
+              </button>
+              <span className="text-[10px] text-muted-foreground">
+                Updated {lastUpdate.toLocaleTimeString()}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
