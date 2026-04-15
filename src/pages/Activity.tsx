@@ -24,6 +24,14 @@ const categoryIcons: Record<string, string> = {
 
 const filters = ["All", "Sent", "Received", "Food", "Transport", "Shopping", "Education", "Entertainment"];
 
+const quickDateFilters = [
+  { label: "Today", getRange: () => { const d = new Date(); d.setHours(0,0,0,0); return { from: d, to: new Date() }; } },
+  { label: "Yesterday", getRange: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); const e = new Date(d); e.setHours(23,59,59,999); return { from: d, to: e }; } },
+  { label: "This Week", getRange: () => { const d = new Date(); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); const start = new Date(d); start.setDate(diff); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
+  { label: "This Month", getRange: () => { const d = new Date(); const start = new Date(d.getFullYear(), d.getMonth(), 1); return { from: start, to: new Date() }; } },
+  { label: "Last 30 Days", getRange: () => { const d = new Date(); const start = new Date(d); start.setDate(d.getDate()-30); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
+];
+
 const Activity = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [search, setSearch] = useState("");
@@ -32,6 +40,7 @@ const Activity = () => {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showDatePicker, setShowDatePicker] = useState<"from" | "to" | null>(null);
+  const [activeQuickDate, setActiveQuickDate] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, ChevronLeft, Tag, Sparkles } from "lucide-react";
+import { Gift, ChevronLeft, Tag, Sparkles, Clock } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -28,6 +28,20 @@ const categoryColors: Record<string, string> = {
   entertainment: "from-purple-500/20 to-purple-500/5",
   travel: "from-blue-500/20 to-blue-500/5",
   education: "from-emerald-500/20 to-emerald-500/5",
+};
+
+const getExpiryInfo = (expiresAt: string | null) => {
+  if (!expiresAt) return null;
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diffMs = expiry.getTime() - now.getTime();
+  if (diffMs <= 0) return { text: "Expired", color: "text-destructive", bg: "bg-destructive/10", urgent: true };
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffHours < 24) return { text: `Expires in ${diffHours}h`, color: "text-destructive", bg: "bg-destructive/10", urgent: true };
+  if (diffDays <= 2) return { text: `Expires in ${diffDays}d ${diffHours % 24}h`, color: "text-destructive", bg: "bg-destructive/10", urgent: true };
+  if (diffDays <= 7) return { text: `Expires in ${diffDays} days`, color: "text-warning", bg: "bg-warning/10", urgent: false };
+  return { text: `Expires in ${diffDays} days`, color: "text-muted-foreground", bg: "bg-muted/10", urgent: false };
 };
 
 const Rewards = () => {
@@ -92,51 +106,57 @@ const Rewards = () => {
             <Gift className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
             <p className="text-muted-foreground text-sm">No rewards available</p>
           </div>
-        ) : filtered.map((r, i) => (
-          <button key={r.id} onClick={() => { haptic.medium(); navigate(`/rewards/${r.id}`); }}
-            className="w-full text-left animate-fade-in active:scale-[0.98] transition-all duration-200"
-            style={{ animationDelay: `${i * 60}ms` }}>
-            <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${categoryColors[r.category || "general"]}`}>
-              {/* Banner image */}
-              {r.image_url && (
-                <img src={r.image_url} alt={r.title} className="w-full h-28 object-cover" />
-              )}
-              <div className="p-4">
-              {/* Sparkle decoration */}
-              <div className="absolute top-3 right-3 opacity-30">
-                <Sparkles className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-xl bg-card/80 backdrop-blur flex items-center justify-center text-xl shrink-0">
-                  {categoryEmojis[r.category || "general"]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm">{r.title}</h3>
-                  {r.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-lg">
-                      {r.discount_type === "percentage" ? `${r.discount_value}% OFF` : `₹${r.discount_value} OFF`}
-                    </span>
-                    {r.expires_at && (
-                      <span className="text-[10px] text-muted-foreground">
-                        Expires {new Date(r.expires_at).toLocaleDateString()}
-                      </span>
-                    )}
+        ) : filtered.map((r, i) => {
+          const expiry = getExpiryInfo(r.expires_at);
+          return (
+            <button key={r.id} onClick={() => { haptic.medium(); navigate(`/rewards/${r.id}`); }}
+              className="w-full text-left animate-fade-in active:scale-[0.98] transition-all duration-200"
+              style={{ animationDelay: `${i * 60}ms` }}>
+              <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${categoryColors[r.category || "general"]}`}>
+                {/* Banner image */}
+                {r.image_url && (
+                  <img src={r.image_url} alt={r.title} className="w-full h-28 object-cover" />
+                )}
+                <div className="p-4">
+                  {/* Sparkle decoration */}
+                  <div className="absolute top-3 right-3 opacity-30">
+                    <Sparkles className="w-8 h-8 text-primary" />
+                  </div>
+                  {/* Expiry countdown badge */}
+                  {expiry && (
+                    <div className={`absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-lg ${expiry.bg} backdrop-blur-sm`}>
+                      <Clock className={`w-3 h-3 ${expiry.color}`} />
+                      <span className={`text-[10px] font-semibold ${expiry.color}`}>{expiry.text}</span>
+                      {expiry.urgent && <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />}
+                    </div>
+                  )}
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-card/80 backdrop-blur flex items-center justify-center text-xl shrink-0">
+                      {categoryEmojis[r.category || "general"]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm">{r.title}</h3>
+                      {r.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-lg">
+                          {r.discount_type === "percentage" ? `${r.discount_value}% OFF` : `₹${r.discount_value} OFF`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Dashed coupon line */}
+                  <div className="mt-3 pt-3 border-t border-dashed border-border/50 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Tag className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Tap to reveal code</span>
+                    </div>
+                    <span className="text-[10px] font-medium text-primary">View →</span>
                   </div>
                 </div>
               </div>
-              {/* Dashed coupon line */}
-              <div className="mt-3 pt-3 border-t border-dashed border-border/50 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Tag className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Tap to reveal code</span>
-                </div>
-                <span className="text-[10px] font-medium text-primary">View →</span>
-              </div>
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       <BottomNav />
     </div>
