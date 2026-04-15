@@ -205,7 +205,7 @@ const AdminRewards = () => {
             { label: "Expired", value: rewards.filter(r => r.expires_at && new Date(r.expires_at) < new Date()).length, icon: Clock, color: "text-orange-400" },
             { label: "Total Used", value: rewards.reduce((s, r) => s + (r.used_count || 0), 0), icon: Users, color: "text-blue-400" },
             { label: "Today's Redemptions", value: todayRedemptions, icon: TrendingUp, color: "text-primary" },
-            { label: "Top Reward", value: topReward?.used_count || 0, icon: BarChart3, color: "text-purple-400", sub: topReward?.title },
+            { label: "Top Reward", value: topReward?.used_count || 0, icon: BarChart3, color: "text-primary", sub: topReward?.title },
           ].map(s => (
             <div key={s.label} className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
