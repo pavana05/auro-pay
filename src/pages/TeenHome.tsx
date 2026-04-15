@@ -67,6 +67,54 @@ const useCountUp = (target: number, duration = 1200) => {
   return value;
 };
 
+// Animated weekly spending chart
+const WeeklyChart = ({ transactions }: { transactions: Transaction[] }) => {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 300); return () => clearTimeout(t); }, []);
+
+  const days: { label: string; amount: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const dayAmount = transactions
+      .filter(t => t.type === "debit" && t.status === "success" && t.created_at.startsWith(dateStr))
+      .reduce((s, t) => s + t.amount, 0);
+    days.push({
+      label: d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3),
+      amount: dayAmount,
+    });
+  }
+
+  const max = Math.max(...days.map(d => d.amount), 1);
+
+  return (
+    <div className="flex items-end justify-between gap-1.5 h-20">
+      {days.map((day, i) => {
+        const pct = (day.amount / max) * 100;
+        const isToday = i === 6;
+        return (
+          <div key={i} className="flex flex-col items-center flex-1 gap-1">
+            <div className="w-full relative h-14 flex items-end">
+              <div
+                className="w-full rounded-md transition-all duration-700 ease-out"
+                style={{
+                  height: animated ? `${Math.max(pct, 4)}%` : "4%",
+                  background: isToday
+                    ? "linear-gradient(180deg, hsl(42 78% 55%), hsl(36 80% 42%))"
+                    : "hsl(42 78% 55% / 0.2)",
+                  transitionDelay: `${i * 80}ms`,
+                }}
+              />
+            </div>
+            <span className={`text-[9px] font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
