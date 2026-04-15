@@ -248,9 +248,25 @@ const TeenHome = () => {
                     {showBalance ? (
                       <h2 className="text-[40px] font-bold tracking-[-2px] tabular-nums leading-none" style={{ textShadow: "0 0 40px hsl(42 78% 55% / 0.08)" }}>{fmt(animBal)}</h2>
                     ) : (
-                      <h2 className="text-[40px] font-bold tracking-[4px] text-white/15 leading-none select-none">•••••</h2>
+                      <div className="flex items-center gap-2">
+                        <span
+                          key={balanceEmoji}
+                          className="text-[32px] inline-block"
+                          style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both", filter: "drop-shadow(0 4px 12px hsl(42 78% 55% / 0.3))" }}
+                        >
+                          {BALANCE_EMOJIS[balanceEmoji]}
+                        </span>
+                        <h2 className="text-[36px] font-bold tracking-[6px] leading-none select-none" style={{
+                          background: "linear-gradient(90deg, hsl(42 78% 55% / 0.25), hsl(42 78% 55% / 0.08), hsl(42 78% 55% / 0.25))",
+                          backgroundSize: "200% 100%",
+                          animation: "shimmer-card 2.5s linear infinite",
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                          backgroundClip: "text",
+                        }}>•••••</h2>
+                      </div>
                     )}
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.04] hover:bg-white/[0.08] transition-colors">
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.04] hover:bg-white/[0.08] transition-colors hover:border-primary/20">
                       {showBalance ? <EyeOff className="w-[15px] h-[15px] text-white/30" /> : <Eye className="w-[15px] h-[15px] text-white/30" />}
                     </div>
                   </button>
