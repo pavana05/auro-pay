@@ -204,27 +204,30 @@ const TeenHome = () => {
           </div>
         </SpringIn>
 
-        {/* ─── Balance Card ─── */}
+        {/* ─── Balance Card — Ultra Premium ─── */}
         <SpringIn delay={0.05} className="px-5 mb-5">
-          <div className="relative rounded-[28px] overflow-hidden">
+          <div className="relative rounded-[28px] overflow-hidden" style={{ boxShadow: "0 20px 60px -15px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.08)" }}>
             {/* Card background with mesh gradient */}
             <div className="absolute inset-0" style={{
               background: `
-                radial-gradient(ellipse 80% 60% at 80% 10%, hsl(42 78% 55% / 0.08) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 10% 90%, hsl(210 80% 55% / 0.04) 0%, transparent 60%),
-                linear-gradient(165deg, hsl(220 20% 10%), hsl(220 22% 5%))
+                radial-gradient(ellipse 80% 60% at 80% 10%, hsl(42 78% 55% / 0.1) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 15% 85%, hsl(210 80% 55% / 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, hsl(42 78% 55% / 0.02) 0%, transparent 50%),
+                linear-gradient(165deg, hsl(220 22% 11%), hsl(220 24% 5%))
               `
             }} />
             {/* Noise texture */}
             <div className="absolute inset-0 opacity-[0.015] noise-overlay" />
-            {/* Shimmer line */}
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.15), transparent)" }} />
+            {/* Shimmer line top */}
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.2) 50%, transparent 90%)" }} />
+            {/* Bottom subtle border */}
+            <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 20%, hsl(42 78% 55% / 0.06) 50%, transparent 80%)" }} />
 
             <div className="relative z-10 p-6 pb-5">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-[6px] h-[6px] rounded-full bg-primary" style={{ boxShadow: "0 0 8px hsl(42 78% 55% / 0.6)" }} />
+                    <div className="w-[6px] h-[6px] rounded-full bg-primary" style={{ boxShadow: "0 0 10px hsl(42 78% 55% / 0.7), 0 0 20px hsl(42 78% 55% / 0.3)", animation: "glow-pulse 2.5s ease-in-out infinite" }} />
                     <p className="text-[10px] text-white/25 font-semibold tracking-[0.2em] uppercase">Available Balance</p>
                   </div>
                   <button
@@ -232,19 +235,19 @@ const TeenHome = () => {
                     className="flex items-center gap-3 active:opacity-60 transition-opacity"
                   >
                     {showBalance ? (
-                      <h2 className="text-[38px] font-bold tracking-[-2px] tabular-nums leading-none">{fmt(animBal)}</h2>
+                      <h2 className="text-[40px] font-bold tracking-[-2px] tabular-nums leading-none" style={{ textShadow: "0 0 40px hsl(42 78% 55% / 0.08)" }}>{fmt(animBal)}</h2>
                     ) : (
-                      <h2 className="text-[38px] font-bold tracking-[4px] text-white/20 leading-none select-none">•••••</h2>
+                      <h2 className="text-[40px] font-bold tracking-[4px] text-white/15 leading-none select-none">•••••</h2>
                     )}
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.04]">
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.04] hover:bg-white/[0.08] transition-colors">
                       {showBalance ? <EyeOff className="w-[15px] h-[15px] text-white/30" /> : <Eye className="w-[15px] h-[15px] text-white/30" />}
                     </div>
                   </button>
                 </div>
                 <button
                   onClick={() => { haptic.medium(); navigate("/scan"); }}
-                  className="w-[56px] h-[56px] rounded-[20px] gradient-primary flex items-center justify-center shadow-[0_8px_32px_hsl(42_78%_55%/0.4)] active:scale-90 transition-transform"
-                  style={{ animation: "float-up 3s ease-in-out infinite" }}
+                  className="w-[56px] h-[56px] rounded-[20px] gradient-primary flex items-center justify-center active:scale-90 transition-transform"
+                  style={{ boxShadow: "0 8px 32px hsl(42 78% 55% / 0.35), 0 2px 8px hsl(42 78% 55% / 0.2), inset 0 1px 0 hsl(48 90% 70% / 0.3)", animation: "float-up 3s ease-in-out infinite" }}
                 >
                   <QrCode className="w-[26px] h-[26px] text-primary-foreground" strokeWidth={1.8} />
                 </button>
@@ -259,7 +262,7 @@ const TeenHome = () => {
 
               {/* Income / Expense Pills */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[16px] px-4 py-3 bg-[hsl(152_60%_45%/0.04)] border border-[hsl(152_60%_45%/0.06)]">
+                <div className="rounded-[16px] px-4 py-3 bg-[hsl(152_60%_45%/0.04)] border border-[hsl(152_60%_45%/0.06)] backdrop-blur-sm hover:bg-[hsl(152_60%_45%/0.06)] transition-colors">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-[22px] h-[22px] rounded-[7px] bg-[hsl(152_60%_45%/0.12)] flex items-center justify-center">
                       <ArrowDownLeft className="w-3 h-3 text-[hsl(152_60%_45%)]" />
@@ -268,7 +271,7 @@ const TeenHome = () => {
                   </div>
                   <p className="text-[15px] font-bold text-[hsl(152_60%_45%)] tabular-nums">{fmt(moneyIn)}</p>
                 </div>
-                <div className="rounded-[16px] px-4 py-3 bg-destructive/[0.04] border border-destructive/[0.06]">
+                <div className="rounded-[16px] px-4 py-3 bg-destructive/[0.04] border border-destructive/[0.06] backdrop-blur-sm hover:bg-destructive/[0.06] transition-colors">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-[22px] h-[22px] rounded-[7px] bg-destructive/[0.12] flex items-center justify-center">
                       <ArrowUpRight className="w-3 h-3 text-destructive" />
@@ -282,25 +285,27 @@ const TeenHome = () => {
           </div>
         </SpringIn>
 
-        {/* ─── Quick Actions ─── */}
+        {/* ─── Quick Actions — Premium Glassmorphism ─── */}
         <SpringIn delay={0.1} className="px-5 mb-6">
           <div className="grid grid-cols-4 gap-2.5">
-            {quickActions.map((a) => (
+            {quickActions.map((a, i) => (
               <button
                 key={a.label}
                 onClick={() => { haptic.light(); navigate(a.path); }}
-                className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 group border border-white/[0.03] hover:border-white/[0.06]"
+                className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 group border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.04]"
+                style={{ animationDelay: `${i * 50}ms` }}
               >
                 <div
-                  className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-all duration-300 group-active:shadow-[0_0_20px_var(--glow)]"
+                  className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-all duration-300 group-active:shadow-[0_0_24px_var(--glow)] group-hover:scale-110"
                   style={{
                     background: `${a.glow}10`,
-                    "--glow": `${a.glow}40`,
+                    "--glow": `${a.glow}50`,
+                    boxShadow: `0 4px 12px ${a.glow}08`,
                   } as React.CSSProperties}
                 >
                   <a.icon className="w-[20px] h-[20px]" style={{ color: a.glow }} strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/45">{a.label}</span>
+                <span className="text-[10px] font-semibold text-white/45 group-hover:text-white/60 transition-colors">{a.label}</span>
               </button>
             ))}
           </div>
