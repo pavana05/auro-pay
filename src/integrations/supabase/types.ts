@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          points: number | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          points?: number | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          points?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
@@ -162,6 +195,81 @@ export type Database = {
           month?: string
           monthly_limit?: number
           spent?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chores: {
+        Row: {
+          approved_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          is_recurring: boolean | null
+          parent_id: string
+          proof_image_url: string | null
+          recurrence: string | null
+          reward_amount: number
+          status: string
+          teen_id: string
+          title: string
+        }
+        Insert: {
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_id: string
+          proof_image_url?: string | null
+          recurrence?: string | null
+          reward_amount?: number
+          status?: string
+          teen_id: string
+          title: string
+        }
+        Update: {
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_id?: string
+          proof_image_url?: string | null
+          recurrence?: string | null
+          reward_amount?: number
+          status?: string
+          teen_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          created_at: string | null
+          friend_id: string
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          friend_id: string
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          friend_id?: string
+          id?: string
+          status?: string | null
           user_id?: string
         }
         Relationships: []
@@ -542,6 +650,39 @@ export type Database = {
           },
         ]
       }
+      scratch_cards: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_scratched: boolean | null
+          reward_type: string | null
+          reward_value: number | null
+          scratched_at: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_scratched?: boolean | null
+          reward_type?: string | null
+          reward_value?: number | null
+          scratched_at?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_scratched?: boolean | null
+          reward_type?: string | null
+          reward_value?: number | null
+          scratched_at?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       spending_limits: {
         Row: {
           category: string | null
@@ -580,6 +721,83 @@ export type Database = {
             columns: ["teen_wallet_id"]
             isOneToOne: false
             referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string | null
+          created_at: string | null
+          description: string
+          id: string
+          priority: string | null
+          resolved_at: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          message?: string
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -637,6 +855,35 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -651,6 +898,39 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          current_streak: number | null
+          id: string
+          last_login_date: string | null
+          longest_streak: number | null
+          streak_coins: number | null
+          total_logins: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          streak_coins?: number | null
+          total_logins?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          streak_coins?: number | null
+          total_logins?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

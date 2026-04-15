@@ -157,6 +157,12 @@ const TeenHome = () => {
     { label: "Budget", path: "/budget", emoji: "📈", desc: "Plan ahead" },
     { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
     { label: "Recurring", path: "/quick-pay", emoji: "🔄", desc: "Auto-pay" },
+    { label: "Scratch & Win", path: "/scratch-cards", emoji: "🎰", desc: "Win rewards" },
+    { label: "Spin Wheel", path: "/spin-wheel", emoji: "🎡", desc: "Spin to win" },
+    { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn rewards" },
+    { label: "Achievements", path: "/achievements", emoji: "🏆", desc: "Your badges" },
+    { label: "Friends", path: "/friends", emoji: "🤝", desc: "Social hub" },
+    { label: "Support", path: "/support", emoji: "💬", desc: "Get help" },
   ];
 
   return (

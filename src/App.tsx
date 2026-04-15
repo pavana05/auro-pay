@@ -42,6 +42,13 @@ import BillSplitPage from "./pages/BillSplit.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import QuickPay from "./pages/QuickPay.tsx";
 import BillPayments from "./pages/BillPayments.tsx";
+import ScratchCards from "./pages/ScratchCards.tsx";
+import Chores from "./pages/Chores.tsx";
+import Achievements from "./pages/Achievements.tsx";
+import Friends from "./pages/Friends.tsx";
+import SupportTickets from "./pages/SupportTickets.tsx";
+import SpinWheel from "./pages/SpinWheel.tsx";
+import AdminSupport from "./pages/admin/AdminSupport.tsx";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +97,13 @@ const App = () => (
             <Route path="/budget" element={<BudgetPlanner />} />
             <Route path="/quick-pay" element={<QuickPay />} />
             <Route path="/bill-payments" element={<BillPayments />} />
+            <Route path="/scratch-cards" element={<ScratchCards />} />
+            <Route path="/chores" element={<Chores />} />
+            <Route path="/achievements" element={<Achievements />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="/support" element={<SupportTickets />} />
+            <Route path="/spin-wheel" element={<SpinWheel />} />
+            <Route path="/admin/support" element={<AdminSupport />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>

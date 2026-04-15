@@ -25,6 +25,7 @@ const navItems = [
   { path: "/admin/rewards", icon: Gift, label: "Rewards" },
   { path: "/admin/analytics", icon: Activity, label: "Analytics" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
+  { path: "/admin/support", icon: Bell, label: "Support Tickets" },
 ];
 
 interface BadgeCounts {
