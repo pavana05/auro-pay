@@ -285,3 +285,29 @@
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
+
+@keyframes star-fall {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+}
+
+@keyframes comet-fall {
+  0% { transform: translateY(0) translateX(0) rotate(35deg); opacity: 0; }
+  5% { opacity: 1; }
+  40% { opacity: 0.8; }
+  100% { transform: translateY(120vh) translateX(-80px) rotate(35deg); opacity: 0; }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-20px) translateX(10px); }
+  50% { transform: translateY(-8px) translateX(-12px); }
+  75% { transform: translateY(-25px) translateX(8px); }
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
