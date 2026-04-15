@@ -49,6 +49,7 @@ import Friends from "./pages/Friends.tsx";
 import SupportTickets from "./pages/SupportTickets.tsx";
 import SpinWheel from "./pages/SpinWheel.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
+import Referrals from "./pages/Referrals.tsx";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/support" element={<SupportTickets />} />
             <Route path="/spin-wheel" element={<SpinWheel />} />
             <Route path="/admin/support" element={<AdminSupport />} />
+            <Route path="/referrals" element={<Referrals />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
