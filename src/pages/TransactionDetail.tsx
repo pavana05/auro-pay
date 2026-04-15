@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2,
   XCircle, AlertCircle, Copy, Check, Share2, MapPin, Tag, Receipt,
-  Sparkles, Download, FileText, Image,
+  Download, FileText, Image, Shield,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
@@ -29,10 +29,71 @@ const categoryIcons: Record<string, string> = {
   entertainment: "🎮", other: "💸", transfer: "💰", recharge: "📱",
 };
 
-const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; label: string; glow: string }> = {
-  success: { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-400/10", label: "Successful", glow: "shadow-[0_0_20px_hsl(152_60%_45%/0.15)]" },
-  pending: { icon: Clock, color: "text-amber-400", bg: "bg-amber-400/10", label: "Pending", glow: "shadow-[0_0_20px_hsl(38_92%_50%/0.15)]" },
-  failed: { icon: XCircle, color: "text-red-400", bg: "bg-red-400/10", label: "Failed", glow: "shadow-[0_0_20px_hsl(0_72%_51%/0.15)]" },
+// Status-based theme system
+const statusThemes = {
+  success: {
+    icon: CheckCircle2,
+    label: "Successful",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10",
+    hue: 152,
+    sat: 60,
+    light: 45,
+    accent: "emerald",
+    cardGradient: "linear-gradient(160deg, hsl(152 50% 18% / 0.25) 0%, hsl(152 30% 10% / 0.15) 30%, hsl(220 15% 6%) 60%, hsl(220 15% 7%) 100%)",
+    glowColor: "hsl(152 60% 45% / 0.08)",
+    shimmerColor: "hsl(152 60% 45% / 0.5)",
+    particleHue: "152",
+    borderGlow: "0 0 30px hsl(152 60% 45% / 0.12), inset 0 1px 0 hsl(152 60% 45% / 0.1)",
+    amountColor: "text-emerald-400",
+    iconBg: "bg-emerald-400/10",
+    iconGlow: "shadow-[0_0_25px_hsl(152_60%_45%/0.2)]",
+    badgeBorder: "border-emerald-400/20",
+    detailIconBg: "bg-emerald-400/[0.06]",
+    actionAccentBg: "bg-emerald-400/10 border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/15",
+  },
+  pending: {
+    icon: Clock,
+    label: "Pending",
+    color: "text-amber-400",
+    bg: "bg-amber-400/10",
+    hue: 38,
+    sat: 92,
+    light: 50,
+    accent: "amber",
+    cardGradient: "linear-gradient(160deg, hsl(38 60% 22% / 0.2) 0%, hsl(38 40% 12% / 0.12) 30%, hsl(220 15% 6%) 60%, hsl(220 15% 7%) 100%)",
+    glowColor: "hsl(38 92% 50% / 0.08)",
+    shimmerColor: "hsl(38 92% 50% / 0.5)",
+    particleHue: "38",
+    borderGlow: "0 0 30px hsl(38 92% 50% / 0.12), inset 0 1px 0 hsl(38 92% 50% / 0.1)",
+    amountColor: "text-amber-400",
+    iconBg: "bg-amber-400/10",
+    iconGlow: "shadow-[0_0_25px_hsl(38_92%_50%/0.2)]",
+    badgeBorder: "border-amber-400/20",
+    detailIconBg: "bg-amber-400/[0.06]",
+    actionAccentBg: "bg-amber-400/10 border-amber-400/20 text-amber-400 hover:bg-amber-400/15",
+  },
+  failed: {
+    icon: XCircle,
+    label: "Failed",
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    hue: 0,
+    sat: 72,
+    light: 51,
+    accent: "red",
+    cardGradient: "linear-gradient(160deg, hsl(0 50% 20% / 0.2) 0%, hsl(0 30% 12% / 0.12) 30%, hsl(220 15% 6%) 60%, hsl(220 15% 7%) 100%)",
+    glowColor: "hsl(0 72% 51% / 0.08)",
+    shimmerColor: "hsl(0 72% 51% / 0.5)",
+    particleHue: "0",
+    borderGlow: "0 0 30px hsl(0 72% 51% / 0.12), inset 0 1px 0 hsl(0 72% 51% / 0.1)",
+    amountColor: "text-red-400",
+    iconBg: "bg-red-400/10",
+    iconGlow: "shadow-[0_0_25px_hsl(0_72%_51%/0.2)]",
+    badgeBorder: "border-red-400/20",
+    detailIconBg: "bg-red-400/[0.06]",
+    actionAccentBg: "bg-red-400/10 border-red-400/20 text-red-400 hover:bg-red-400/15",
+  },
 };
 
 const TransactionDetailPage = () => {
@@ -43,6 +104,30 @@ const TransactionDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Memoize random values so they don't regenerate on re-render
+  const particles = useMemo(() => ({
+    stars: Array.from({ length: 18 }, () => ({
+      w: 1 + Math.random() * 2, left: Math.random() * 100, topOff: Math.random() * 20,
+      lightness: 55 + Math.random() * 20, shadowSize: 3 + Math.random() * 4,
+      shadowAlpha: 0.3 + Math.random() * 0.4, dur: 4 + Math.random() * 6,
+      delay: Math.random() * 5, opacity: 0.3 + Math.random() * 0.5,
+    })),
+    comets: Array.from({ length: 3 }, (_, i) => ({
+      w: 60 + Math.random() * 80, left: 10 + Math.random() * 60,
+      dur: 5 + i * 2.5, delay: i * 3,
+    })),
+    floaters: Array.from({ length: 12 }, (_, i) => ({
+      w: 2 + Math.random() * 3, left: Math.random() * 100, top: Math.random() * 100,
+      variant: i % 3, shadowSize: 6 + Math.random() * 8,
+      dur1: 6 + Math.random() * 8, dur2: 3 + Math.random() * 3,
+      delay1: Math.random() * 4, delay2: Math.random() * 2,
+    })),
+    sparkles: Array.from({ length: 25 }, () => ({
+      left: Math.random() * 100, top: Math.random() * 100,
+      dur: 2 + Math.random() * 3, delay: Math.random() * 3,
+    })),
+  }), []);
 
   useEffect(() => {
     const fetch = async () => {
@@ -84,16 +169,16 @@ const TransactionDetailPage = () => {
     if (!tx) return canvas;
     const isCredit = tx.type === "credit";
     const date = tx.created_at ? new Date(tx.created_at) : new Date();
-    const status = tx.status || "pending";
+    const sts = tx.status || "pending";
     ctx.fillStyle = isCredit ? "#4ade80" : "#f0f0f0";
     ctx.font = "bold 52px system-ui, sans-serif";
     ctx.fillText(`${isCredit ? "+" : "-"}${formatAmount(tx.amount)}`, w / 2, 200);
-    ctx.fillStyle = status === "success" ? "#065f46" : status === "failed" ? "#7f1d1d" : "#78350f";
+    ctx.fillStyle = sts === "success" ? "#065f46" : sts === "failed" ? "#7f1d1d" : "#78350f";
     const badgeW = 140, badgeH = 32, badgeX = (w - badgeW) / 2, badgeY = 225;
     ctx.beginPath(); ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16); ctx.fill();
-    ctx.fillStyle = status === "success" ? "#4ade80" : status === "failed" ? "#f87171" : "#fbbf24";
+    ctx.fillStyle = sts === "success" ? "#4ade80" : sts === "failed" ? "#f87171" : "#fbbf24";
     ctx.font = "bold 14px system-ui, sans-serif";
-    ctx.fillText(statusConfig[status]?.label || status, w / 2, badgeY + 22);
+    ctx.fillText(statusThemes[sts as keyof typeof statusThemes]?.label || sts, w / 2, badgeY + 22);
     ctx.strokeStyle = "#222"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(60, 290); ctx.lineTo(w - 60, 290); ctx.stroke();
     const details = [
@@ -154,8 +239,9 @@ const TransactionDetailPage = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="relative">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-          <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-transparent border-b-primary/40 animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+          <div className="w-14 h-14 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-transparent border-b-primary/40 animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+          <div className="absolute inset-2 w-10 h-10 rounded-full border border-primary/10 border-t-primary/30 animate-spin" style={{ animationDuration: "2s" }} />
         </div>
       </div>
     );
@@ -171,8 +257,9 @@ const TransactionDetailPage = () => {
     );
   }
 
-  const status = statusConfig[tx.status || "pending"];
-  const StatusIcon = status.icon;
+  const txStatus = tx.status || "pending";
+  const theme = statusThemes[txStatus as keyof typeof statusThemes] || statusThemes.pending;
+  const StatusIcon = theme.icon;
   const isCredit = tx.type === "credit";
   const date = tx.created_at ? new Date(tx.created_at) : new Date();
 
@@ -186,180 +273,211 @@ const TransactionDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Ambient page glow only */}
+      {/* Status-themed ambient glow */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full"
-          style={{ background: isCredit ? "radial-gradient(circle, hsl(152 60% 45% / 0.06), transparent 70%)" : "radial-gradient(circle, hsl(42 78% 55% / 0.06), transparent 70%)" }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full"
+          style={{ background: `radial-gradient(circle, ${theme.glowColor}, transparent 70%)` }} />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full"
+          style={{ background: `radial-gradient(circle, ${theme.glowColor}, transparent 70%)`, opacity: 0.4 }} />
       </div>
 
-      {/* Header */}
+      {/* Header with themed accent */}
       <div className="sticky top-0 z-20 backdrop-blur-2xl border-b border-border/30 px-4 py-3 flex items-center gap-3"
         style={{ background: "linear-gradient(180deg, hsl(220 20% 4% / 0.95), hsl(220 20% 4% / 0.8))" }}>
+        {/* Themed top line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px]"
+          style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.6 }} />
         <button onClick={() => { haptic.light(); navigate(-1); }}
           className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center active:scale-90 transition-all duration-200 hover:bg-white/[0.08]">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold flex-1">Transaction Details</h1>
+        <div className={`w-2 h-2 rounded-full ${theme.bg} mr-1`}
+          style={{ boxShadow: `0 0 8px ${theme.shimmerColor}`, animation: "glow-pulse 2s ease-in-out infinite" }} />
         <button onClick={() => { haptic.light(); setShowDownload(true); }}
-          className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center active:scale-90 transition-all duration-200 hover:bg-primary/15">
-          <Download className="w-4 h-4 text-primary" />
+          className={`w-9 h-9 rounded-full ${theme.detailIconBg} border border-white/[0.08] flex items-center justify-center active:scale-90 transition-all duration-200`}>
+          <Download className={`w-4 h-4 ${theme.color}`} />
         </button>
       </div>
 
       <div className="px-5 pt-6 pb-12 space-y-5 relative z-10">
-        {/* Hero Amount Card — FamPay-inspired big card */}
+        {/* Hero Amount Card — status-themed */}
         <div
-          className={`relative overflow-hidden rounded-3xl border border-white/[0.06] p-7 text-center transition-all duration-700 ${mounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-95"}`}
+          className={`relative overflow-hidden rounded-3xl border border-white/[0.06] p-8 text-center transition-all duration-700 ${mounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-95"}`}
           style={{
-            background: isCredit
-              ? "linear-gradient(160deg, hsl(152 50% 20% / 0.2) 0%, hsl(220 15% 6%) 40%, hsl(220 15% 8%) 100%)"
-              : "linear-gradient(160deg, hsl(42 60% 25% / 0.15) 0%, hsl(220 15% 6%) 40%, hsl(220 15% 8%) 100%)",
+            background: theme.cardGradient,
+            boxShadow: theme.borderGlow,
             transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}>
-          {/* Falling Stars */}
-          {Array.from({ length: 18 }).map((_, i) => (
+
+          {/* Falling Stars — themed */}
+          {particles.stars.map((s, i) => (
             <div key={`star-${i}`} className="absolute rounded-full"
               style={{
-                width: `${1 + Math.random() * 2}px`,
-                height: `${1 + Math.random() * 2}px`,
-                left: `${Math.random() * 100}%`,
-                top: `-${Math.random() * 20}%`,
-                background: `hsl(42 78% ${55 + Math.random() * 20}%)`,
-                boxShadow: `0 0 ${3 + Math.random() * 4}px hsl(42 78% 55% / ${0.3 + Math.random() * 0.4})`,
-                animation: `star-fall ${4 + Math.random() * 6}s linear ${Math.random() * 5}s infinite`,
-                opacity: 0.3 + Math.random() * 0.5,
+                width: `${s.w}px`, height: `${s.w}px`,
+                left: `${s.left}%`, top: `-${s.topOff}%`,
+                background: `hsl(${theme.hue} ${theme.sat}% ${s.lightness}%)`,
+                boxShadow: `0 0 ${s.shadowSize}px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / ${s.shadowAlpha})`,
+                animation: `star-fall ${s.dur}s linear ${s.delay}s infinite`,
+                opacity: s.opacity,
               }}
             />
           ))}
 
-          {/* Comets */}
-          {Array.from({ length: 3 }).map((_, i) => (
+          {/* Comets — themed */}
+          {particles.comets.map((c, i) => (
             <div key={`comet-${i}`} className="absolute"
               style={{
-                width: `${60 + Math.random() * 80}px`,
-                height: '1.5px',
-                left: `${10 + Math.random() * 60}%`,
-                top: `-5%`,
-                background: `linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), hsl(42 78% 75% / 0.9))`,
+                width: `${c.w}px`, height: '1.5px',
+                left: `${c.left}%`, top: `-5%`,
+                background: `linear-gradient(90deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.6), hsl(${theme.hue} ${theme.sat}% ${theme.light + 20}% / 0.9))`,
                 borderRadius: '999px',
-                filter: `blur(0.5px) drop-shadow(0 0 6px hsl(42 78% 55% / 0.5))`,
-                animation: `comet-fall ${5 + i * 2.5}s ease-in ${i * 3}s infinite`,
+                filter: `blur(0.5px) drop-shadow(0 0 6px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5))`,
+                animation: `comet-fall ${c.dur}s ease-in ${c.delay}s infinite`,
                 transformOrigin: 'right center',
               }}
             />
           ))}
 
-          {/* Floating Light Particles */}
-          {Array.from({ length: 12 }).map((_, i) => (
+          {/* Floating Light Particles — themed */}
+          {particles.floaters.map((f, i) => (
             <div key={`particle-${i}`} className="absolute rounded-full"
               style={{
-                width: `${2 + Math.random() * 3}px`,
-                height: `${2 + Math.random() * 3}px`,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                background: i % 3 === 0
-                  ? `hsl(42 78% 65%)`
-                  : i % 3 === 1
-                  ? `hsl(36 60% 55%)`
-                  : `hsl(200 60% 65%)`,
-                boxShadow: `0 0 ${6 + Math.random() * 8}px ${i % 3 === 2 ? 'hsl(200 60% 65% / 0.4)' : 'hsl(42 78% 55% / 0.4)'}`,
-                animation: `particle-float ${6 + Math.random() * 8}s ease-in-out ${Math.random() * 4}s infinite, glow-pulse ${3 + Math.random() * 3}s ease-in-out ${Math.random() * 2}s infinite`,
+                width: `${f.w}px`, height: `${f.w}px`,
+                left: `${f.left}%`, top: `${f.top}%`,
+                background: f.variant === 2
+                  ? `hsl(${(theme.hue + 160) % 360} 60% 65%)`
+                  : `hsl(${theme.hue} ${theme.sat - f.variant * 18}% ${55 + f.variant * 10}%)`,
+                boxShadow: `0 0 ${f.shadowSize}px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4)`,
+                animation: `particle-float ${f.dur1}s ease-in-out ${f.delay1}s infinite, glow-pulse ${f.dur2}s ease-in-out ${f.delay2}s infinite`,
               }}
             />
           ))}
 
-          {/* Subtle Sparkle Dots */}
-          {Array.from({ length: 25 }).map((_, i) => (
+          {/* Sparkle Dots — themed */}
+          {particles.sparkles.map((sp, i) => (
             <div key={`sparkle-${i}`} className="absolute rounded-full"
               style={{
-                width: '1px',
-                height: '1px',
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                background: 'hsl(42 78% 70%)',
-                boxShadow: '0 0 3px hsl(42 78% 65% / 0.5)',
-                animation: `sparkle-twinkle ${2 + Math.random() * 3}s ease-in-out ${Math.random() * 3}s infinite`,
+                width: '1px', height: '1px',
+                left: `${sp.left}%`, top: `${sp.top}%`,
+                background: `hsl(${theme.hue} ${theme.sat}% 70%)`,
+                boxShadow: `0 0 3px hsl(${theme.hue} ${theme.sat}% 65% / 0.5)`,
+                animation: `sparkle-twinkle ${sp.dur}s ease-in-out ${sp.delay}s infinite`,
               }}
             />
           ))}
 
-          {/* Sparkle particles */}
-          <div className="absolute top-6 right-8 w-1.5 h-1.5 rounded-full bg-primary/40" style={{ animation: "glow-pulse 2s ease-in-out infinite" }} />
-          <div className="absolute bottom-10 left-10 w-1 h-1 rounded-full bg-primary/30" style={{ animation: "glow-pulse 2.5s ease-in-out 0.5s infinite" }} />
-          <div className="absolute top-1/3 right-1/4 w-1 h-1 rounded-full bg-white/20" style={{ animation: "glow-pulse 3s ease-in-out 1s infinite" }} />
+          {/* Pulsing corner accents */}
+          <div className="absolute top-4 right-5 w-1.5 h-1.5 rounded-full"
+            style={{ background: `hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.4)`, animation: "glow-pulse 2s ease-in-out infinite" }} />
+          <div className="absolute bottom-8 left-8 w-1 h-1 rounded-full"
+            style={{ background: `hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3)`, animation: "glow-pulse 2.5s ease-in-out 0.5s infinite" }} />
+          <div className="absolute top-1/3 right-1/4 w-1 h-1 rounded-full bg-white/20"
+            style={{ animation: "glow-pulse 3s ease-in-out 1s infinite" }} />
 
-          {/* Top shimmer line */}
+          {/* Top shimmer line — themed */}
           <div className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: isCredit ? "linear-gradient(90deg, transparent, hsl(152 60% 45% / 0.5), transparent)" : "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.5), transparent)" }} />
+            style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)` }} />
+          {/* Bottom subtle shimmer */}
+          <div className="absolute bottom-0 left-0 right-0 h-[1px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.3 }} />
 
           <div className="relative z-10">
-            {/* Category Icon with ring animation */}
-            <div className={`relative w-20 h-20 mx-auto mb-5`}>
-              <div className={`absolute inset-0 rounded-2xl ${isCredit ? "bg-emerald-400/10" : "bg-primary/10"} ${status.glow}`}
-                style={{ animation: "glow-pulse 3s ease-in-out infinite" }} />
-              <div className={`relative w-full h-full rounded-2xl flex items-center justify-center ${isCredit ? "bg-emerald-400/5" : "bg-primary/5"}`}
+            {/* Category Icon with status-themed ring */}
+            <div className="relative w-22 h-22 mx-auto mb-6" style={{ width: 88, height: 88 }}>
+              {/* Outer pulsing ring */}
+              <div className={`absolute -inset-2 rounded-2xl ${theme.iconBg}`}
+                style={{ animation: "glow-pulse 3s ease-in-out infinite", boxShadow: `0 0 30px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.15)` }} />
+              {/* Inner rotating border */}
+              <div className="absolute -inset-[1px] rounded-2xl"
+                style={{
+                  background: `conic-gradient(from 0deg, transparent, hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3), transparent, transparent)`,
+                  animation: "spin 4s linear infinite",
+                }} />
+              <div className={`relative w-full h-full rounded-2xl flex items-center justify-center ${theme.iconBg} backdrop-blur-sm`}
                 style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both" : "none" }}>
                 <span className="text-4xl">{categoryIcons[tx.category || "other"]}</span>
               </div>
             </div>
 
-            {/* Amount with counter animation feel */}
-            <p className={`text-4xl font-bold mb-2 tracking-tight ${isCredit ? "text-emerald-400" : "text-foreground"}`}
-              style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" : "none" }}>
+            {/* Amount */}
+            <p className={`text-[42px] font-bold mb-2 tracking-tight ${theme.amountColor}`}
+              style={{ animation: mounted ? "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" : "none",
+                textShadow: `0 0 40px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.2)` }}>
               {isCredit ? "+" : "-"}{formatAmount(tx.amount)}
             </p>
 
-            <p className="text-sm text-muted-foreground"
+            <p className="text-sm text-muted-foreground/80"
               style={{ animation: mounted ? "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" : "none" }}>
               {tx.merchant_name || tx.description || "Transaction"}
             </p>
 
-            {/* Status badge */}
-            <div className={`inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-full ${status.bg} backdrop-blur-sm border border-white/[0.05]`}
-              style={{ animation: mounted ? "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both" : "none" }}>
-              <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
-              <span className={`text-xs font-semibold ${status.color}`}>{status.label}</span>
+            {/* Status badge — larger, more prominent */}
+            <div className={`inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-full ${theme.bg} backdrop-blur-sm border ${theme.badgeBorder}`}
+              style={{
+                animation: mounted ? "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both" : "none",
+                boxShadow: `0 0 20px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.1)`,
+              }}>
+              <StatusIcon className={`w-4 h-4 ${theme.color}`} />
+              <span className={`text-xs font-bold uppercase tracking-wider ${theme.color}`}>{theme.label}</span>
             </div>
           </div>
         </div>
 
-        {/* Details Grid — staggered entry */}
-        <div className={`bg-card/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-          style={{ transitionDelay: "0.3s" }}>
+        {/* Details Grid — glass card with themed accents */}
+        <div className={`relative overflow-hidden backdrop-blur-xl border border-white/[0.06] rounded-2xl transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+          style={{
+            transitionDelay: "0.3s",
+            background: "linear-gradient(180deg, hsl(220 15% 8% / 0.8), hsl(220 15% 6% / 0.9))",
+          }}>
+          {/* Top themed line */}
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.4 }} />
+
           {detailItems.map((item, i) => (
             <div key={i}
-              className="flex items-center gap-3 px-4 py-4 border-b border-white/[0.03] last:border-b-0 hover:bg-white/[0.015] transition-colors duration-200"
+              className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.03] last:border-b-0 hover:bg-white/[0.02] transition-all duration-300 group"
               style={{ animation: mounted ? `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.4 + i * 0.06}s both` : "none" }}>
-              <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0">
-                <item.icon className="w-4 h-4 text-muted-foreground" />
+              <div className={`w-10 h-10 rounded-xl ${theme.detailIconBg} flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105`}
+                style={{ boxShadow: `0 0 12px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.06)` }}>
+                <item.icon className={`w-4 h-4 ${theme.color} opacity-70`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">{item.label}</p>
                 <p className="text-sm font-medium truncate mt-0.5">{item.value}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Transaction Reference */}
-        <div className={`bg-card/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-          style={{ transitionDelay: "0.5s" }}>
-          <p className="text-[10px] text-muted-foreground mb-2.5 uppercase tracking-widest font-medium">Transaction Reference</p>
+        {/* Transaction Reference — themed card */}
+        <div className={`relative overflow-hidden backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+          style={{
+            transitionDelay: "0.5s",
+            background: "linear-gradient(180deg, hsl(220 15% 8% / 0.8), hsl(220 15% 6% / 0.9))",
+          }}>
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.3 }} />
+
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className={`w-3.5 h-3.5 ${theme.color} opacity-60`} />
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">Transaction Reference</p>
+          </div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs font-mono text-muted-foreground bg-white/[0.03] border border-white/[0.04] px-3 py-2.5 rounded-xl truncate">
+            <code className="flex-1 text-xs font-mono text-muted-foreground bg-white/[0.03] border border-white/[0.04] px-3 py-3 rounded-xl truncate">
               {tx.razorpay_payment_id || tx.id}
             </code>
             <button onClick={copyId}
-              className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center active:scale-90 transition-all duration-200 hover:bg-primary/15 shrink-0">
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-primary" />}
+              className={`w-11 h-11 rounded-xl ${theme.detailIconBg} border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all duration-200 shrink-0`}>
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className={`w-4 h-4 ${theme.color} opacity-70`} />}
             </button>
           </div>
           {tx.razorpay_order_id && (
-            <p className="text-[10px] text-muted-foreground mt-2.5 font-mono opacity-60">Order: {tx.razorpay_order_id}</p>
+            <p className="text-[10px] text-muted-foreground/40 mt-3 font-mono">Order: {tx.razorpay_order_id}</p>
           )}
         </div>
 
-        {/* Actions — FamPay-style pill buttons */}
+        {/* Actions — themed pill buttons */}
         <div className={`grid grid-cols-3 gap-3 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
           style={{ transitionDelay: "0.6s" }}>
           {[
@@ -368,26 +486,29 @@ const TransactionDetailPage = () => {
             { icon: Share2, label: "Share", onClick: () => { haptic.light(); navigator.share?.({ text: `₹${(tx.amount/100).toFixed(2)} ${isCredit ? "received from" : "paid to"} ${tx.merchant_name || "someone"} via AuroPay` }).catch(() => {}); }, accent: true },
           ].map((action, i) => (
             <button key={action.label} onClick={action.onClick}
-              className={`flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-xs font-medium active:scale-[0.95] transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-2.5 py-5 rounded-2xl text-xs font-semibold active:scale-[0.95] transition-all duration-200 ${
                 action.accent
-                  ? "bg-primary/10 border border-primary/20 text-primary hover:bg-primary/15"
+                  ? theme.actionAccentBg
                   : "bg-white/[0.03] border border-white/[0.06] text-foreground hover:bg-white/[0.05]"
               }`}
               style={{ animation: mounted ? `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.65 + i * 0.06}s both` : "none" }}>
-              <action.icon className={`w-5 h-5 ${action.accent ? "text-primary" : "text-muted-foreground"}`} />
+              <action.icon className={`w-5 h-5 ${action.accent ? theme.color : "text-muted-foreground"}`} />
               {action.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Download Modal — slide-up sheet */}
+      {/* Download Modal */}
       {showDownload && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowDownload(false)}>
           <div className="absolute inset-0 bg-background/60 backdrop-blur-md" style={{ animation: "fade-in 0.2s ease-out" }} />
           <div className="relative w-full max-w-lg rounded-t-3xl border-t border-white/[0.08] p-6"
             style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
             onClick={e => e.stopPropagation()}>
+            {/* Themed top accent */}
+            <div className="absolute top-0 left-0 right-0 h-[1px]"
+              style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)` }} />
             <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mb-5" />
             <h2 className="text-[16px] font-bold mb-1">Download Receipt</h2>
             <p className="text-[11px] text-muted-foreground mb-5">Choose your preferred format</p>
@@ -397,10 +518,10 @@ const TransactionDetailPage = () => {
                 { fn: downloadAsPDF, icon: FileText, title: "Save as PDF", sub: "Print-ready format" },
               ].map((opt, i) => (
                 <button key={opt.title} onClick={opt.fn}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:scale-[0.98] transition-all duration-200 hover:bg-white/[0.05] hover:border-primary/20"
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:scale-[0.98] transition-all duration-200 hover:bg-white/[0.05] hover:border-white/[0.1]"
                   style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.08}s both` }}>
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <opt.icon className="w-6 h-6 text-primary" />
+                  <div className={`w-12 h-12 rounded-xl ${theme.detailIconBg} flex items-center justify-center`}>
+                    <opt.icon className={`w-6 h-6 ${theme.color}`} />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-semibold">{opt.title}</p>
