@@ -151,6 +151,7 @@ const TeenHome = () => {
   const initials = profile?.full_name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const firstName = profile?.full_name?.split(" ")[0] || "";
   const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+  const animatedBalance = useCountUp(wallet?.balance || 0, 800, showBalance);
 
   if (loading) {
     return (
@@ -169,7 +170,7 @@ const TeenHome = () => {
   }
 
   const quickActions = [
-    { icon: Eye, label: "Check Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
+    { icon: showBalance ? EyeOff : Eye, label: showBalance ? "Hide Balance" : "Show Balance", path: null, action: () => { haptic.selection(); setShowBalance(!showBalance); } },
     { icon: QrCode, label: "Scan & Pay", path: "/scan" },
     { icon: Plus, label: "Add Money", path: "/add-money" },
   ];
