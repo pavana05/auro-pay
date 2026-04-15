@@ -149,12 +149,18 @@ const TeenHome = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-28 relative">
-      {/* ─── Ambient Background ─── */}
+    <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
+      {/* ─── Ultra-Premium Ambient Background ─── */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
-        <div className="absolute top-1/3 -left-32 w-[300px] h-[300px] rounded-full opacity-[0.02] blur-[80px]" style={{ background: "hsl(210 80% 55%)" }} />
-        <div className="absolute bottom-40 right-0 w-[250px] h-[250px] rounded-full opacity-[0.02] blur-[80px]" style={{ background: "hsl(152 60% 45%)" }} />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "hsl(42 78% 55%)" }} />
+        <div className="absolute top-1/4 -left-40 w-[350px] h-[350px] rounded-full opacity-[0.025] blur-[100px]" style={{ background: "hsl(210 80% 55%)" }} />
+        <div className="absolute bottom-1/3 right-0 w-[300px] h-[300px] rounded-full opacity-[0.02] blur-[90px]" style={{ background: "hsl(152 60% 45%)" }} />
+        <div className="absolute top-1/2 left-1/3 w-[200px] h-[200px] rounded-full opacity-[0.015] blur-[80px]" style={{ background: "hsl(270 60% 55%)", animation: "glow-pulse 6s ease-in-out infinite" }} />
+        {/* Mesh grid overlay */}
+        <div className="absolute inset-0 opacity-[0.008]" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(42 78% 55%) 0.5px, transparent 0)`,
+          backgroundSize: "48px 48px"
+        }} />
       </div>
 
       <div className="relative z-10">
