@@ -140,11 +140,17 @@ const ProfileScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-28">
+    <div className="min-h-screen bg-background pb-28 relative">
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
+      </div>
+
+      <div className="relative z-10">
       {/* Profile Hero */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.06) 0%, transparent 60%)" }} />
-        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-[0.06]" style={{ background: "hsl(42 78% 55%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.04) 0%, transparent 60%)" }} />
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-[0.04]" style={{ background: "hsl(42 78% 55%)" }} />
 
         <div className="relative z-10 flex flex-col items-center pt-8 pb-6 px-5">
           <div className="relative mb-4">
@@ -162,15 +168,15 @@ const ProfileScreen = () => {
           </div>
 
           <h2 className="text-xl font-bold tracking-[-0.5px]">{profile?.full_name}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{profile?.phone}</p>
+          <p className="text-[11px] text-white/25 mt-0.5">{profile?.phone}</p>
 
           <div className="flex items-center gap-2 mt-3">
             <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${
-              profile?.kyc_status === "verified" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
+              profile?.kyc_status === "verified" ? "bg-[hsl(152_60%_45%/0.1)] text-[hsl(152_60%_45%)]" : "bg-[hsl(38_92%_50%/0.1)] text-[hsl(38_92%_50%)]"
             }`}>
               {profile?.kyc_status === "verified" ? "✓ Verified" : "⏳ Pending KYC"}
             </div>
-            <div className="px-3 py-1 rounded-full text-[10px] font-semibold" style={{ background: `${currentLevel.color}20`, color: currentLevel.color }}>
+            <div className="px-3 py-1 rounded-full text-[10px] font-semibold" style={{ background: `${currentLevel.color}15`, color: currentLevel.color }}>
               {currentLevel.name} · {xp} XP
             </div>
           </div>
@@ -179,17 +185,17 @@ const ProfileScreen = () => {
 
       {/* Level Progress Card */}
       <div className="px-5 mb-5 animate-slide-up-delay-1">
-        <div className="rounded-2xl p-4 border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+        <div className="rounded-[20px] p-4 border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <LevelIcon className="w-4 h-4" style={{ color: currentLevel.color }} />
               <span className="text-[12px] font-semibold">{currentLevel.name}</span>
             </div>
             {nextLevel && (
-              <span className="text-[10px] text-muted-foreground">{nextLevel.minXP - xp} XP to {nextLevel.name}</span>
+              <span className="text-[10px] text-white/20">{nextLevel.minXP - xp} XP to {nextLevel.name}</span>
             )}
           </div>
-          <div className="w-full h-2 rounded-full bg-muted/20 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-white/[0.04] overflow-hidden">
             <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${levelProgress}%`, background: currentLevel.color }} />
           </div>
         </div>
@@ -204,9 +210,9 @@ const ProfileScreen = () => {
             { label: "Goals", value: goalCount.toString() },
             { label: "Points", value: totalPoints.toString() },
           ].map(s => (
-            <div key={s.label} className="rounded-2xl p-3 border border-border text-center" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+            <div key={s.label} className="rounded-[16px] p-3 border border-white/[0.03] text-center" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               <p className="text-sm font-bold">{s.value}</p>
-              <p className="text-[9px] text-muted-foreground font-medium">{s.label}</p>
+              <p className="text-[9px] text-white/20 font-medium">{s.label}</p>
             </div>
           ))}
         </div>
@@ -214,7 +220,7 @@ const ProfileScreen = () => {
 
       {/* Referral Code Card */}
       <div className="px-5 mb-5 animate-slide-up-delay-2">
-        <div className="relative rounded-2xl p-4 border border-primary/20 overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(42 78% 55% / 0.05), hsl(220 15% 8%))" }}>
+        <div className="relative rounded-[20px] p-4 border border-primary/[0.08] overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(42 78% 55% / 0.03), hsl(220 18% 7%))" }}>
           <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
@@ -222,14 +228,14 @@ const ProfileScreen = () => {
               <p className="text-[12px] font-semibold text-primary">Your Referral Code</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 bg-primary/5 rounded-xl px-4 py-3 border border-primary/10">
+              <div className="flex-1 bg-primary/[0.04] rounded-[14px] px-4 py-3 border border-primary/[0.06]">
                 <p className="text-lg font-bold tracking-[0.15em] text-primary">{referralCode}</p>
               </div>
-              <button onClick={copyReferral} className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center active:scale-90 transition-all">
+              <button onClick={copyReferral} className="w-11 h-11 rounded-[14px] bg-primary/[0.08] flex items-center justify-center active:scale-90 transition-all">
                 {copiedReferral ? <Check className="w-5 h-5 text-success" /> : <Copy className="w-5 h-5 text-primary" />}
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Share & earn ₹100 for each referral</p>
+            <p className="text-[10px] text-white/20 mt-2">Share & earn ₹100 for each referral</p>
           </div>
         </div>
       </div>
@@ -242,16 +248,16 @@ const ProfileScreen = () => {
               <Tag className="w-4 h-4 text-primary" />
               <p className="text-[13px] font-semibold">My Rewards</p>
             </div>
-            <span className="text-[10px] text-muted-foreground">{redeemedRewards.length} redeemed</span>
+            <span className="text-[10px] text-white/20">{redeemedRewards.length} redeemed</span>
           </div>
           <div className="space-y-2.5">
             {redeemedRewards.slice(0, 5).map(rr => {
               const reward = rr.reward;
               if (!reward) return null;
               return (
-                <div key={rr.id} className="rounded-2xl p-3.5 border border-border" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+                <div key={rr.id} className="rounded-[20px] p-3.5 border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg shrink-0">
+                    <div className="w-10 h-10 rounded-[14px] bg-primary/[0.06] flex items-center justify-center text-lg shrink-0">
                       {categoryEmojis[reward.category || "general"]}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -267,7 +273,7 @@ const ProfileScreen = () => {
                       </div>
                     </div>
                     <button onClick={() => copyCoupon(reward.coupon_code)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 active:scale-90 transition-all">
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] bg-primary/[0.06] active:scale-90 transition-all">
                       {copiedCoupon === reward.coupon_code ? (
                         <Check className="w-3.5 h-3.5 text-success" />
                       ) : (
@@ -297,27 +303,27 @@ const ProfileScreen = () => {
             <Award className="w-4 h-4 text-primary" />
             <p className="text-[13px] font-semibold">Achievements</p>
           </div>
-          <span className="text-[10px] text-muted-foreground">{earnedCount}/{badges.length} unlocked</span>
+          <span className="text-[10px] text-white/20">{earnedCount}/{badges.length} unlocked</span>
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           {badges.map(b => (
             <div key={b.label}
-              className={`relative rounded-2xl p-3 border flex flex-col items-center text-center transition-all ${
+              className={`relative rounded-[16px] p-3 border flex flex-col items-center text-center transition-all ${
                 b.earned
-                  ? "border-primary/30 bg-primary/[0.03]"
-                  : "border-border opacity-40"
+                  ? "border-primary/[0.15] bg-primary/[0.02]"
+                  : "border-white/[0.03] opacity-40"
               }`}
-              style={{ background: b.earned ? undefined : "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+              style={{ background: b.earned ? undefined : "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               {b.earned && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-success flex items-center justify-center">
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[hsl(152_60%_45%)] flex items-center justify-center">
                   <Check className="w-2.5 h-2.5 text-white" />
                 </div>
               )}
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 ${b.earned ? "bg-primary/10" : "bg-muted/20"}`}>
-                <b.icon className={`w-5 h-5 ${b.earned ? "text-primary" : "text-muted-foreground"}`} />
+              <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mb-1.5 ${b.earned ? "bg-primary/[0.06]" : "bg-white/[0.03]"}`}>
+                <b.icon className={`w-5 h-5 ${b.earned ? "text-primary" : "text-white/20"}`} />
               </div>
               <p className="text-[10px] font-semibold leading-tight">{b.label}</p>
-              <p className="text-[8px] text-muted-foreground mt-0.5">{b.points} pts</p>
+              <p className="text-[8px] text-white/15 mt-0.5">{b.points} pts</p>
             </div>
           ))}
         </div>
@@ -325,23 +331,23 @@ const ProfileScreen = () => {
 
       {/* Menu Items */}
       <div className="px-5 mb-5 animate-slide-up-delay-2">
-        <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
+        <div className="rounded-[20px] border border-white/[0.03] overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           {menuItems.map((item, i) => (
             <button
               key={item.label}
               onClick={() => { haptic.light(); navigate(item.path); }}
-              className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-muted/10 transition-all ${
-                i < menuItems.length - 1 ? "border-b border-border/30" : ""
+              className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-white/[0.02] transition-all ${
+                i < menuItems.length - 1 ? "border-b border-white/[0.025]" : ""
               }`}
             >
-              <div className="w-9 h-9 rounded-xl bg-muted/15 flex items-center justify-center shrink-0">
-                <item.icon className="w-[18px] h-[18px] text-muted-foreground" />
+              <div className="w-9 h-9 rounded-[12px] bg-white/[0.03] flex items-center justify-center shrink-0">
+                <item.icon className="w-[18px] h-[18px] text-white/30" />
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-[13px] font-semibold">{item.label}</p>
-                <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                <p className="text-[10px] text-white/20">{item.desc}</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              <ChevronRight className="w-4 h-4 text-white/10 shrink-0" />
             </button>
           ))}
         </div>
@@ -350,10 +356,11 @@ const ProfileScreen = () => {
       {/* Logout */}
       <div className="px-5 mb-8">
         <button onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-destructive/5 border border-destructive/20 text-destructive text-sm font-semibold active:scale-[0.98] transition-all">
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[16px] bg-destructive/[0.04] border border-destructive/[0.08] text-destructive/70 text-[13px] font-semibold active:scale-[0.98] transition-all">
           <LogOut className="w-4 h-4" />
           Log Out
         </button>
+      </div>
       </div>
 
       <BottomNav />
