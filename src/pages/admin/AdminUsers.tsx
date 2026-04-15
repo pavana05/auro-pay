@@ -141,28 +141,19 @@ const AdminUsers = () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      // Delete related data in order
-      const { data: w } = await supabase.from("wallets").select("id").eq("user_id", deleteTarget.id).single();
-      if (w) {
-        await supabase.from("transactions").delete().eq("wallet_id", w.id);
-        await supabase.from("spending_limits").delete().eq("teen_wallet_id", w.id);
-        await supabase.from("wallets").delete().eq("id", w.id);
-      }
-      await supabase.from("kyc_requests").delete().eq("user_id", deleteTarget.id);
-      await supabase.from("notifications").delete().eq("user_id", deleteTarget.id);
-      await supabase.from("savings_goals").delete().eq("teen_id", deleteTarget.id);
-      await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
-      await supabase.from("quick_pay_favorites").delete().eq("user_id", deleteTarget.id);
-      await supabase.from("parent_teen_links").delete().or(`parent_id.eq.${deleteTarget.id},teen_id.eq.${deleteTarget.id}`);
-      await supabase.from("budgets").delete().eq("user_id", deleteTarget.id);
-      await supabase.from("profiles").delete().eq("id", deleteTarget.id);
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: deleteTarget.id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       await logAuditAction("user_delete", "user", deleteTarget.id, { name: deleteTarget.name });
       toast.success(`User "${deleteTarget.name}" deleted successfully`);
       cancelDelete();
       fetchUsers();
-    } catch (err) {
-      toast.error("Failed to delete user");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete user");
     }
     setDeleteLoading(false);
   };
