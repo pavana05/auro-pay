@@ -221,7 +221,7 @@ const Activity = () => {
                     <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
                       {tx.type === "credit" ? "+" : "-"}{formatCompact(tx.amount)}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
