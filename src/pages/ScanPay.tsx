@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { haptic } from "@/lib/haptics";
 
 interface ParsedUPI {
   pa?: string;
@@ -120,6 +121,7 @@ const ScanPay = () => {
 
   const toggleTorch = async () => {
     setAutoTorchApplied(false);
+    haptic.light();
     enableTorch(!torchOn);
   };
 
@@ -178,7 +180,7 @@ const ScanPay = () => {
       if (error) throw new Error(error.message || "Payment failed");
       if (data?.error) throw new Error(data.error);
       setSuccess(true);
-      if (navigator.vibrate) navigator.vibrate(200);
+      haptic.success();
     } catch (err: any) {
       toast.error(err.message || "Payment failed");
     } finally {
