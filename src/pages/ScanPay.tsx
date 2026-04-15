@@ -121,6 +121,7 @@ const ScanPay = () => {
 
   const toggleTorch = async () => {
     setAutoTorchApplied(false);
+    haptic.light();
     enableTorch(!torchOn);
   };
 
