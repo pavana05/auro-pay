@@ -37,29 +37,47 @@ const AdminAnalytics = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [kycRequests, setKycRequests] = useState<any[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isLive, setIsLive] = useState(true);
 
   const days = DATE_RANGES.find(r => r.value === range)!.days;
 
+  const fetchAll = async () => {
+    setLoading(true);
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString();
+
+    const [pRes, tRes, kRes] = await Promise.all([
+      supabase.from("profiles").select("id, created_at, role"),
+      supabase.from("transactions").select("id, amount, type, status, category, created_at").gte("created_at", sinceStr).order("created_at", { ascending: true }).limit(1000),
+      supabase.from("kyc_requests").select("id, status, submitted_at, verified_at").gte("submitted_at", sinceStr),
+    ]);
+
+    setProfiles(pRes.data || []);
+    setTransactions(tRes.data || []);
+    setKycRequests(kRes.data || []);
+    setLastUpdate(new Date());
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-      const sinceStr = since.toISOString();
-
-      const [pRes, tRes, kRes] = await Promise.all([
-        supabase.from("profiles").select("id, created_at, role"),
-        supabase.from("transactions").select("id, amount, type, status, category, created_at").gte("created_at", sinceStr).order("created_at", { ascending: true }).limit(1000),
-        supabase.from("kyc_requests").select("id, status, submitted_at, verified_at").gte("submitted_at", sinceStr),
-      ]);
-
-      setProfiles(pRes.data || []);
-      setTransactions(tRes.data || []);
-      setKycRequests(kRes.data || []);
-      setLoading(false);
-    };
     fetchAll();
   }, [days]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!isLive) return;
+
+    const channel = supabase
+      .channel('admin-analytics-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_requests' }, () => fetchAll())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLive, days]);
 
   // Generate date labels
   const dateLabels = useMemo(() => {
