@@ -76,10 +76,11 @@ const Referrals = () => {
 
   const shareCode = async () => {
     haptic.medium();
-    const shareText = `Hey! Join AuroPay using my referral code ${referralCode} and we both earn ₹100! 🎉\n\nDownload now: https://auro-pay.lovable.app`;
+    const shareUrl = `https://auro-pay.lovable.app?ref=${referralCode}`;
+    const shareText = `Hey! Join AuroPay using my referral code ${referralCode} and we both earn ₹100! 🎉\n\nSign up here: ${shareUrl}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Join AuroPay", text: shareText });
+        await navigator.share({ title: "Join AuroPay", text: shareText, url: shareUrl });
       } catch {}
     } else {
       navigator.clipboard.writeText(shareText);
