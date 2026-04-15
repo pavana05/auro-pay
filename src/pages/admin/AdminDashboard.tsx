@@ -349,23 +349,72 @@ const AdminDashboard = () => {
           <div className="p-4 rounded-lg bg-card border border-border card-premium shimmer-border">
             <h3 className="text-sm font-semibold mb-3">Key Metrics</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Teens</p>
-                <p className="text-lg font-bold">{stats.teens}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Parents</p>
-                <p className="text-lg font-bold">{stats.parents}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Frozen Wallets</p>
-                <p className="text-lg font-bold text-warning">{stats.frozenWallets}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">Success Rate</p>
-                <p className="text-lg font-bold text-success">{stats.successRate}%</p>
-              </div>
+              {[
+                { label: "Teens", value: stats.teens, color: "" },
+                { label: "Parents", value: stats.parents, color: "" },
+                { label: "Frozen Wallets", value: stats.frozenWallets, color: "text-warning" },
+                { label: "Success Rate", value: `${stats.successRate}%`, color: "text-success" },
+                { label: "Verified KYC", value: stats.verifiedKyc, color: "text-success" },
+                { label: "Avg Balance", value: formatAmount(stats.avgBalance), color: "text-primary" },
+              ].map(m => (
+                <div key={m.label} className="p-3 rounded-lg bg-muted/20">
+                  <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                  <p className={`text-lg font-bold ${m.color}`}>{m.value}</p>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+
+        {/* Recent Signups & Top Merchants */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-5 rounded-lg bg-card border border-border card-premium">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Recent Signups</h3>
+              <button onClick={() => navigate("/admin/users")} className="text-xs text-primary hover:underline">View All</button>
+            </div>
+            {recentSignups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No signups yet</p>
+            ) : (
+              <div className="space-y-2">
+                {recentSignups.map(u => (
+                  <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/10 transition-colors">
+                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
+                      {u.full_name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize">{u.role || "user"}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 rounded-lg bg-card border border-border card-premium">
+            <h3 className="text-sm font-semibold mb-4">Top Merchants</h3>
+            {topMerchants.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No merchant data yet</p>
+            ) : (
+              <div className="space-y-2">
+                {topMerchants.map((m, i) => (
+                  <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/10 transition-colors">
+                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{m.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.count} txns</p>
+                    </div>
+                    <span className="text-xs font-medium">{formatAmount(m.volume)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
