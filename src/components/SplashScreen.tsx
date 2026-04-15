@@ -6,50 +6,58 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("glow"), 400);
-    const t2 = setTimeout(() => setPhase("exit"), 2000);
+    const t2 = setTimeout(() => setPhase("exit"), 2200);
     const t3 = setTimeout(() => {
       setVisible(false);
       onComplete();
-    }, 2500);
+    }, 2700);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 
   if (!visible) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background noise-overlay transition-opacity duration-500 ${phase === "exit" ? "opacity-0" : "opacity-100"}`}>
-      {/* Ambient gold glow */}
+    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background noise-overlay transition-all duration-500 ${phase === "exit" ? "opacity-0 scale-105" : "opacity-100 scale-100"}`}>
+      {/* Multi-layer ambient glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className={`w-64 h-64 rounded-full transition-all duration-1000 ${phase === "glow" ? "opacity-100 scale-100" : "opacity-0 scale-50"}`}
-          style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.08) 0%, transparent 70%)" }}
+        <div className={`w-72 h-72 rounded-full transition-all duration-[1.5s] ${phase === "glow" ? "opacity-100 scale-100" : "opacity-0 scale-50"}`}
+          style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.1) 0%, hsl(42 78% 55% / 0.03) 40%, transparent 70%)" }}
+        />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className={`w-96 h-96 rounded-full transition-all duration-[2s] delay-300 ${phase === "glow" ? "opacity-100 scale-100" : "opacity-0 scale-50"}`}
+          style={{ background: "radial-gradient(circle, hsl(36 80% 42% / 0.05) 0%, transparent 60%)" }}
         />
       </div>
 
       <div className="relative">
         {/* Pulsing gold rings */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-32 h-32 rounded-full border border-primary/20 animate-pulse-ring" />
+          <div className="w-36 h-36 rounded-full border border-primary/15 animate-pulse-ring" />
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-32 h-32 rounded-full border border-primary/10 animate-pulse-ring [animation-delay:0.5s]" />
+          <div className="w-36 h-36 rounded-full border border-primary/8 animate-pulse-ring [animation-delay:0.5s]" />
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-36 h-36 rounded-full border border-primary/4 animate-pulse-ring [animation-delay:1s]" />
         </div>
 
         {/* Logo */}
-        <h1 className={`relative text-5xl font-bold z-10 transition-all duration-700 ${phase === "enter" ? "opacity-0 scale-90" : "opacity-100 scale-100"}`}>
+        <h1 className={`relative text-5xl font-bold z-10 transition-all duration-700 ${phase === "enter" ? "opacity-0 scale-90 translate-y-2" : "opacity-100 scale-100 translate-y-0"}`}>
           <span className="gradient-text">Auro</span>
           <span className="text-foreground">Pay</span>
         </h1>
       </div>
 
-      <p className={`mt-4 text-sm tracking-[0.2em] uppercase transition-all duration-700 delay-200 ${phase === "enter" ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}
-        style={{ color: "hsl(42 40% 50% / 0.6)" }}
+      <p className={`mt-5 text-[11px] tracking-[0.25em] uppercase transition-all duration-700 delay-200 font-medium ${phase === "enter" ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
+        style={{ color: "hsl(42 40% 50% / 0.5)" }}
       >
         Premium Banking
       </p>
 
-      {/* Bottom shimmer line */}
-      <div className="absolute bottom-16 w-32 h-px overflow-hidden">
-        <div className="w-full h-full shimmer-glow" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
+      {/* Animated bottom line */}
+      <div className={`absolute bottom-20 h-px overflow-hidden transition-all duration-1000 ${phase === "glow" ? "w-32" : "w-0"}`}>
+        <div className="w-full h-full" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), transparent)" }} />
       </div>
     </div>
   );
