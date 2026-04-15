@@ -431,7 +431,7 @@ const TeenHome = () => {
               </div>
             </div>
           </div>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Financial Health Score ─── */}
         <ScrollReveal className="px-5 mb-6">
@@ -476,7 +476,7 @@ const TeenHome = () => {
               <ChevronRight className="w-4 h-4 text-white/15 shrink-0" />
             </div>
           </button>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Bill Payments ─── */}
         <ScrollReveal className="px-5 mb-6">
@@ -500,7 +500,7 @@ const TeenHome = () => {
               </button>
             ))}
           </div>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Quick Pay Contacts ─── */}
         {favorites.length > 0 && (
@@ -529,7 +529,7 @@ const TeenHome = () => {
                 <span className="text-[10px] text-primary/50 font-semibold">Add</span>
               </button>
             </div>
-          </SpringIn>
+          </ScrollReveal>
         )}
 
         {/* ─── Services — Premium Grid ─── */}
@@ -549,7 +549,7 @@ const TeenHome = () => {
               </button>
             ))}
           </div>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Monthly Spending Dashboard ─── */}
         <ScrollReveal className="px-5 mb-6">
@@ -614,7 +614,7 @@ const TeenHome = () => {
               </div>
             </div>
           </div>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Savings Goals ─── */}
         {goals.length > 0 && (
@@ -646,7 +646,7 @@ const TeenHome = () => {
                 );
               })}
             </div>
-          </SpringIn>
+          </ScrollReveal>
         )}
 
         {/* ─── Rewards ─── */}
@@ -681,7 +681,7 @@ const TeenHome = () => {
                 </button>
               ))}
             </div>
-          </SpringIn>
+          </ScrollReveal>
         )}
 
         {/* ─── Recent Activity ─── */}
@@ -741,7 +741,7 @@ const TeenHome = () => {
               ))}
             </div>
           )}
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Refer & Earn ─── */}
         <ScrollReveal className="px-5 mb-6">
@@ -783,7 +783,7 @@ const TeenHome = () => {
               </div>
             </div>
           </button>
-        </SpringIn>
+        </ScrollReveal>
 
         {/* ─── Explore ─── */}
         <ScrollReveal className="px-5 mb-8">
@@ -804,7 +804,7 @@ const TeenHome = () => {
               <p className="text-[10px] text-white/20">Exclusive deals</p>
             </button>
           </div>
-        </SpringIn>
+        </ScrollReveal>
       </div>
 
       <BottomNav />
