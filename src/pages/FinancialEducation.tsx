@@ -137,13 +137,17 @@ const FinancialEducation = () => {
 
   const getLessonsForCategory = (cat: string): (LessonContent & { title: string; description: string; coin_reward: number; id: string })[] => {
     const fromDb = dbLessons.filter(l => l.category === cat);
-    if (fromDb.length > 0) return fromDb.map(l => ({
-      title: l.title,
-      description: l.description || "",
-      coin_reward: l.coin_reward,
-      ...(l.content_json as LessonContent),
-      id: l.id,
-    }));
+    if (fromDb.length > 0) return fromDb.map(l => {
+      const content = l.content_json as any[];
+      // DB stores flat array with type:"slide" and type:"quiz" — split them
+      if (Array.isArray(content)) {
+        const cards = content.filter((c: any) => c.type === "slide").map((c: any) => ({ title: c.title, body: c.body, emoji: c.emoji }));
+        const quiz = content.filter((c: any) => c.type === "quiz").map((c: any) => ({ question: c.question, options: c.options, correct: c.correct }));
+        return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, cards, quiz, id: l.id };
+      }
+      // Fallback for old format
+      return { title: l.title, description: l.description || "", coin_reward: l.coin_reward, ...(content as unknown as LessonContent), id: l.id };
+    });
     return BUILTIN_LESSONS[cat]?.map((l, i) => ({ ...l, id: `builtin-${cat}-${i}` })) || [];
   };
 
