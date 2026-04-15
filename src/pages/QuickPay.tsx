@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2, Delete, ChevronLeft, RefreshCw, Clock, CalendarDays, Sparkles, Zap, UserPlus, Shield, TrendingUp, Heart, Copy, Share2 } from "lucide-react";
+import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2, Delete, ChevronLeft, RefreshCw, Clock, CalendarDays, Sparkles, Zap, UserPlus, Shield, TrendingUp, Heart, Copy, Share2, FileText, ArrowRight, Receipt } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
