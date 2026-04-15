@@ -67,6 +67,15 @@ const QuickPay = () => {
     ]);
     setFavorites((favsRes.data || []) as Favorite[]);
     setBalance(walletRes.data?.balance || 0);
+
+    // Fetch recurring payments
+    const { data: recData } = await supabase
+      .from("recurring_payments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (recData) setRecurringPayments(recData as RecurringPayment[]);
+
     setLoading(false);
   };
 
