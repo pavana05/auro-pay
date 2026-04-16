@@ -24,10 +24,16 @@ const AddMoney = () => {
   const navigate = useNavigate();
 
   const methods = [
-    { id: "upi", label: "UPI", desc: "Instant transfer", icon: Zap, fee: "Free", accent: "152 60% 45%" },
-    { id: "card", label: "Debit Card", desc: "Visa, Mastercard", icon: CreditCard, fee: "0.9%", accent: "210 80% 55%" },
-    { id: "netbanking", label: "Net Banking", desc: "All major banks", icon: Building2, fee: "₹15", accent: "270 60% 55%" },
+    { id: "upi", label: "UPI", desc: "Instant transfer", icon: Zap, fee: "Free", feeLabel: "Free", badge: "Recommended", time: "Instant", accent: "152 60% 45%" },
+    { id: "card", label: "Debit Card", desc: "Visa, Mastercard, Rupay", icon: CreditCard, fee: "0.9%", feeLabel: "0.9% fee", tooltip: "A 0.9% convenience fee is charged by your card issuer for instant top-ups.", time: "Instant", accent: "210 80% 55%" },
+    { id: "netbanking", label: "Net Banking", desc: "Redirects to your bank", icon: Building2, fee: "₹15", feeLabel: "₹15 fee", time: "1–2 min", accent: "270 60% 55%" },
   ];
+
+  const amt = parseFloat(amount) || 0;
+  const MIN = 10, MAX = 10000;
+  const outOfRange = amt > 0 && (amt < MIN || amt > MAX);
+  const canPay = amt >= MIN && amt <= MAX;
+  const selectedMethod = methods.find(m => m.id === method)!;
 
   const processingSteps = ["Connecting...", "Verifying payment...", "Crediting wallet..."];
 
