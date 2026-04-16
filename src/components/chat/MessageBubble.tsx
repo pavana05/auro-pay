@@ -92,7 +92,7 @@ const MessageBubble = ({
           </div>
           <div className="flex items-center justify-end gap-1 mt-1.5">
             <span className="text-[9px] opacity-40">{time}</span>
-            {isMine && <CheckCheck className="w-3 h-3 opacity-40" />}
+            {isMine && <CheckCheck className={`w-3 h-3 ${isRead ? "text-emerald-400 opacity-80" : "opacity-40"}`} />}
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@ const MessageBubble = ({
         <p className="text-[14px] leading-relaxed">{content}</p>
         <div className="flex items-center justify-end gap-1 mt-1">
           <span className="text-[9px] opacity-40">{time}</span>
-          {isMine && <CheckCheck className="w-3 h-3 opacity-50" />}
+          {isMine && <CheckCheck className={`w-3 h-3 ${isRead ? "text-emerald-400 opacity-80" : "opacity-50"}`} />}
         </div>
       </div>
     </div>
