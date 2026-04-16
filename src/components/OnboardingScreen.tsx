@@ -6,6 +6,8 @@ import rewardsImg from "@/assets/onboarding-rewards.png";
 import scanImg from "@/assets/onboarding-scan.png";
 import parentImg from "@/assets/onboarding-parent.png";
 import saveImg from "@/assets/onboarding-save.png";
+import introVideo from "@/assets/onboarding-intro.mp4";
+import { haptic } from "@/lib/haptics";
 
 const AUTOPLAY_DURATION = 8000; // ms per slide — slower, more premium pacing
 
