@@ -496,20 +496,21 @@ const AddMoney = () => {
           ))}
         </div>
 
-        {/* CTA Button */}
+        {/* CTA Button — dynamic label */}
         <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>
           <button
             onClick={handleAddMoney}
-            disabled={!amount || parseFloat(amount) <= 0}
-            className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all duration-300 disabled:opacity-30 disabled:scale-100 relative overflow-hidden"
+            disabled={!canPay}
+            className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all duration-300 disabled:scale-100 relative overflow-hidden"
             style={{
-              background: (!amount || parseFloat(amount) <= 0)
+              background: !canPay
                 ? "hsl(220 15% 12%)"
                 : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
-              color: (!amount || parseFloat(amount) <= 0) ? "hsl(220 10% 30%)" : "hsl(220 20% 6%)",
-              boxShadow: (amount && parseFloat(amount) > 0) ? "0 4px 24px hsl(var(--primary) / 0.3)" : "none",
+              color: !canPay ? "hsl(220 10% 35%)" : "hsl(220 20% 6%)",
+              boxShadow: canPay ? "0 4px 24px hsl(var(--primary) / 0.3)" : "none",
+              opacity: !canPay ? 0.55 : 1,
             }}>
-            {amount && parseFloat(amount) > 0 && (
+            {canPay && (
               <div className="absolute inset-0"
                 style={{
                   background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.1) 50%, transparent 70%)",
@@ -519,7 +520,7 @@ const AddMoney = () => {
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4" />
-              Add ₹{amount || "0"}
+              {amt > 0 ? `Pay ₹${amt.toLocaleString("en-IN")} via ${selectedMethod.label}` : "Enter an amount"}
             </span>
           </button>
         </div>
@@ -533,6 +534,19 @@ const AddMoney = () => {
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes chip-bounce {
+          0% { transform: scale(0.92); }
+          60% { transform: scale(1.06); }
+          100% { transform: scale(1); }
+        }
+        @keyframes cursor-blink {
+          50% { opacity: 0.85; }
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
