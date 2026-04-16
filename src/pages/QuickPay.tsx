@@ -442,7 +442,9 @@ const QuickPay = () => {
                               <p className="text-[11px] font-medium truncate">{tx.merchant_name || tx.description || "Transfer"}</p>
                               <p className="text-[9px] text-white/20">{new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                             </div>
-                            <p className={`text-[11px] font-bold tabular-nums ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
+                            <p className={`text-[11px] font-bold tabular-nums ${
+                              tx.status === "success" ? "text-success" : tx.status === "pending" ? "text-warning" : tx.status === "failed" ? "text-destructive" : "text-muted-foreground"
+                            }`}>
                               {tx.type === "credit" ? "+" : "-"}₹{(tx.amount / 100).toLocaleString("en-IN")}
                             </p>
                           </div>
