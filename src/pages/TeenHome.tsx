@@ -239,31 +239,80 @@ const TeenHome = () => {
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
           className="px-5 pt-4 pb-5"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: avatar with budget progress ring + greeting */}
+            <div className={`flex items-center gap-3.5 transition-all duration-300 ${searchOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100 flex-1 min-w-0"}`}>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => { haptic.light(); navigate("/profile"); }}
-                className="shrink-0"
+                className="shrink-0 relative w-[54px] h-[54px]"
+                aria-label="Open profile"
               >
-                <div className="relative">
+                {/* Progress ring (monthly budget used) */}
+                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 54 54">
+                  <circle cx="27" cy="27" r="25" fill="none" stroke="hsl(220 15% 14%)" strokeWidth="2" />
+                  <motion.circle
+                    cx="27" cy="27" r="25" fill="none"
+                    stroke={spendPct > 80 ? "hsl(0 72% 51%)" : spendPct > 50 ? "hsl(38 92% 50%)" : "hsl(42 78% 55%)"}
+                    strokeWidth="2.2" strokeLinecap="round"
+                    initial={{ strokeDasharray: "0 157" }}
+                    animate={{ strokeDasharray: `${(spendPct / 100) * 157} 157` }}
+                    transition={{ duration: 1.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ filter: "drop-shadow(0 0 4px hsl(42 78% 55% / 0.45))" }}
+                  />
+                </svg>
+                <div className="absolute inset-[3px] rounded-full overflow-hidden">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-[50px] h-[50px] rounded-[17px] object-cover ring-[1.5px] ring-primary/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]" />
+                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-[50px] h-[50px] rounded-[17px] gradient-primary flex items-center justify-center text-[15px] font-bold text-primary-foreground shadow-[0_8px_32px_hsl(42_78%_55%/0.35)] ring-[1.5px] ring-primary/20">
+                    <div className="w-full h-full gradient-primary flex items-center justify-center text-[15px] font-bold text-primary-foreground">
                       {initials}
                     </div>
                   )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-[13px] h-[13px] rounded-full bg-success border-[2px] border-background" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.6)" }} />
                 </div>
+                {/* Online indicator */}
+                <div className="absolute bottom-0 right-0 w-[13px] h-[13px] rounded-full bg-success border-[2px] border-background z-10" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.6)" }} />
               </motion.button>
-              <div>
-                <p className="text-[11px] text-muted-foreground/50 font-medium tracking-wide">{greet()}</p>
-                <h1 className="text-[19px] font-bold tracking-[-0.5px] text-foreground leading-tight font-sora">{firstName || "User"} ✨</h1>
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground/50 font-medium tracking-wide truncate">{greet()}{firstName ? `, ${firstName}` : ""}</p>
+                <h1 className="text-[18px] font-bold tracking-[-0.5px] text-foreground leading-tight font-sora truncate">Welcome back ✨</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {/* Family Chat Button */}
+
+            {/* Expanding search */}
+            <motion.div
+              animate={{ width: searchOpen ? "100%" : 40 }}
+              transition={{ type: "spring", stiffness: 280, damping: 28 }}
+              className="relative h-[40px] shrink-0"
+              style={{ flexBasis: searchOpen ? "100%" : 40 }}
+            >
+              {searchOpen ? (
+                <div className="w-full h-full rounded-[13px] bg-muted/30 backdrop-blur-sm border border-primary/30 flex items-center pl-3 pr-1 gap-2"
+                  style={{ boxShadow: "0 0 16px hsl(42 78% 55% / 0.15)" }}>
+                  <Search className="w-[15px] h-[15px] text-primary shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); } }}
+                    placeholder="Search contacts, transactions…"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-[12px] font-sora placeholder:text-muted-foreground/40 text-foreground"
+                  />
+                  <button onClick={() => { haptic.light(); setSearchOpen(false); setSearchQuery(""); }}
+                    className="w-[28px] h-[28px] rounded-[9px] bg-muted/40 flex items-center justify-center shrink-0">
+                    <X className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  </button>
+                </div>
+              ) : (
+                <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); setSearchOpen(true); }}
+                  className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center border border-border/30">
+                  <Search className="w-[17px] h-[17px] text-muted-foreground/50" />
+                </motion.button>
+              )}
+            </motion.div>
+
+            {/* Hide chat + bell when search is open */}
+            <div className={`flex items-center gap-2 transition-all duration-200 ${searchOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
               <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/chats"); }}
                 className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
                 <MessageCircle className="w-[17px] h-[17px] text-muted-foreground/50" />
