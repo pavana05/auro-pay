@@ -15,6 +15,24 @@ import { toast } from "sonner";
 
 const ADMIN_PASSWORD = "180525Pt";
 
+/* Gold theme tokens */
+const G = {
+  bg: "#0a0c0f",
+  sidebar: "#0c0e13",
+  card: "#0d0e12",
+  primary: "#c8952e",
+  secondary: "#d4a84b",
+  glow: "#e8c060",
+  border: "rgba(200,149,46,0.12)",
+  borderHover: "rgba(200,149,46,0.3)",
+  borderSubtle: "rgba(200,149,46,0.08)",
+  accent10: "rgba(200,149,46,0.1)",
+  accent04: "rgba(200,149,46,0.04)",
+  accent15: "rgba(200,149,46,0.15)",
+  danger: "#ef4444",
+  success: "#22c55e",
+};
+
 interface NavSection {
   title: string;
   items: {
@@ -198,7 +216,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ background: "#070412" }}>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ background: G.bg }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {[...Array(6)].map((_, i) => (
             <div
@@ -209,19 +227,19 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 height: `${120 + i * 60}px`,
                 top: `${10 + i * 15}%`,
                 left: `${15 + (i % 3) * 30}%`,
-                background: `radial-gradient(circle, rgba(124,58,237,${0.03 + i * 0.005}), transparent 70%)`,
+                background: `radial-gradient(circle, rgba(200,149,46,${0.03 + i * 0.005}), transparent 70%)`,
                 animation: `admin-orb-drift ${18 + i * 4}s ease-in-out infinite`,
                 animationDelay: `${i * -3}s`,
               }}
             />
           ))}
-          <div className="absolute top-1/4 left-1/3 w-[600px] h-[600px] rounded-full blur-[150px]" style={{ background: "rgba(124,58,237,0.04)" }} />
+          <div className="absolute top-1/4 left-1/3 w-[600px] h-[600px] rounded-full blur-[150px]" style={{ background: "rgba(200,149,46,0.04)" }} />
         </div>
 
         <div className="w-full max-w-md mx-4 relative z-10" style={{ animation: "admin-slide-up 0.6s ease-out" }}>
-          <div className="rounded-3xl border p-8 shadow-[0_20px_60px_rgba(0,0,0,0.4)] relative overflow-hidden" style={{ borderColor: "rgba(139,92,246,0.12)", background: "#0f0720" }}>
+          <div className="rounded-3xl border p-8 shadow-[0_20px_60px_rgba(0,0,0,0.4)] relative overflow-hidden" style={{ borderColor: G.border, background: G.card }}>
             <div className="absolute top-0 left-0 right-0 h-[1px]" style={{
-              background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.5), transparent)",
+              background: `linear-gradient(90deg, transparent, ${G.primary}, transparent)`,
               backgroundSize: "200% 100%",
               animation: "admin-shimmer 3s linear infinite",
             }} />
@@ -229,13 +247,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="flex flex-col items-center mb-8">
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mb-5 relative"
-                style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", animation: "admin-glow-pulse 3s ease-in-out infinite" }}
+                style={{ background: G.accent10, border: `1px solid rgba(200,149,46,0.2)`, animation: "admin-glow-pulse 3s ease-in-out infinite" }}
               >
-                <KeyRound className="w-9 h-9 drop-shadow-[0_0_12px_rgba(124,58,237,0.5)]" style={{ color: "#7c3aed", animation: "admin-lock-float 4s ease-in-out infinite" }} />
+                <KeyRound className="w-9 h-9 drop-shadow-[0_0_12px_rgba(200,149,46,0.5)]" style={{ color: G.primary, animation: "admin-lock-float 4s ease-in-out infinite" }} />
               </div>
               <h1 className="text-2xl font-bold tracking-tight" style={{ color: "#fff" }}>Admin Access</h1>
               <p className="text-sm mt-1.5 flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-                <Sparkles className="w-3.5 h-3.5" style={{ color: "#a855f7" }} />
+                <Sparkles className="w-3.5 h-3.5" style={{ color: G.secondary }} />
                 Secure admin authentication
               </p>
             </div>
@@ -249,7 +267,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   onChange={(e) => { setPassword(e.target.value); setAuthError(""); }}
                   placeholder="Enter admin password"
                   className="w-full h-14 rounded-2xl pl-11 pr-12 text-sm focus:outline-none transition-all duration-300"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(139,92,246,0.12)", color: "#fff" }}
+                  style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${G.border}`, color: "#fff" }}
                   autoFocus
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors" style={{ color: "rgba(255,255,255,0.3)" }}>
@@ -258,7 +276,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
 
               {authError && (
-                <div className="flex items-center gap-2 text-sm px-1" style={{ color: "#ef4444", animation: "admin-slide-up 0.3s ease-out" }}>
+                <div className="flex items-center gap-2 text-sm px-1" style={{ color: G.danger, animation: "admin-slide-up 0.3s ease-out" }}>
                   <ShieldCheck className="w-4 h-4" />
                   <span>{authError}</span>
                 </div>
@@ -268,7 +286,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 type="submit"
                 disabled={authLoading || !password}
                 className="w-full h-13 rounded-2xl font-semibold text-sm transition-all duration-300 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden text-white"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+                style={{ background: `linear-gradient(135deg, ${G.primary}, ${G.secondary})` }}
               >
                 {authLoading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -300,20 +318,20 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     return (
       <>
         {/* Logo */}
-        <div className="p-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(139,92,246,0.08)" }}>
+        <div className="p-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${G.borderSubtle}` }}>
           {showLabel && (
             <div style={{ animation: "admin-slide-up 0.4s ease-out" }}>
               <h1 className="text-lg font-bold flex items-center gap-2" style={{ color: "#fff" }}>
-                <Sparkles className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                <Sparkles className="w-4 h-4" style={{ color: G.primary }} />
                 AuroPay
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Admin Console</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.15)", color: "#a855f7" }}>PRO</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: G.accent15, color: G.secondary }}>PRO</span>
               </div>
             </div>
           )}
-          {collapsed && !isMobile && <Sparkles className="w-5 h-5 mx-auto" style={{ color: "#7c3aed" }} />}
+          {collapsed && !isMobile && <Sparkles className="w-5 h-5 mx-auto" style={{ color: G.primary }} />}
           {isMobile ? (
             <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-xl transition-all duration-200 active:scale-90" style={{ color: "rgba(255,255,255,0.3)" }}>
               <X className="w-5 h-5" />
@@ -347,24 +365,24 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                     onClick={() => { haptic.light(); navigate(item.path); if (isMobile) setMobileOpen(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative ${!showLabel ? "justify-center px-0" : ""}`}
                     style={{
-                      background: active ? "rgba(124,58,237,0.1)" : "transparent",
+                      background: active ? G.accent10 : "transparent",
                       color: active ? "#fff" : "rgba(255,255,255,0.45)",
                       fontWeight: active ? 500 : 400,
                     }}
                     title={!showLabel ? item.label : undefined}
                   >
                     {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ background: "#7c3aed", boxShadow: "0 0 12px rgba(124,58,237,0.6)" }} />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ background: G.primary, boxShadow: `0 0 12px rgba(200,149,46,0.6)` }} />
                     )}
                     <div className="relative">
-                      <item.icon className="w-[18px] h-[18px] shrink-0 transition-all duration-200" style={{ color: active ? "#a855f7" : "rgba(255,255,255,0.35)" }} />
+                      <item.icon className="w-[18px] h-[18px] shrink-0 transition-all duration-200" style={{ color: active ? G.secondary : "rgba(255,255,255,0.35)" }} />
                       {badgeCount > 0 && !showLabel && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white" style={{ background: "#ef4444" }}>
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white" style={{ background: G.danger }}>
                           {badgeCount > 9 ? "9+" : badgeCount}
                         </span>
                       )}
                       {item.label === "Live Activity" && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "#ef4444", animation: "admin-glow-pulse 2s ease-in-out infinite" }} />
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: G.danger, animation: "admin-glow-pulse 2s ease-in-out infinite" }} />
                       )}
                     </div>
                     {showLabel && <span className="truncate">{item.label}</span>}
@@ -381,18 +399,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         {/* User section */}
-        <div className="p-3" style={{ borderTop: "1px solid rgba(139,92,246,0.08)" }}>
-          <div className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 ${!showLabel ? "justify-center px-2" : ""}`} style={{ background: "rgba(139,92,246,0.04)", border: "1px solid rgba(139,92,246,0.08)" }}>
+        <div className="p-3" style={{ borderTop: `1px solid ${G.borderSubtle}` }}>
+          <div className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 ${!showLabel ? "justify-center px-2" : ""}`} style={{ background: G.accent04, border: `1px solid ${G.borderSubtle}` }}>
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", boxShadow: "0 4px 12px rgba(124,58,237,0.3)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white" style={{ background: `linear-gradient(135deg, ${G.primary}, ${G.secondary})`, boxShadow: `0 4px 12px rgba(200,149,46,0.3)` }}>
                 {initials}
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full" style={{ background: "#22c55e", border: "2px solid #0a0118", boxShadow: "0 0 6px rgba(34,197,94,0.5)" }} />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full" style={{ background: G.success, border: `2px solid ${G.sidebar}`, boxShadow: `0 0 6px rgba(34,197,94,0.5)` }} />
             </div>
             {showLabel && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate" style={{ color: "#fff" }}>{profile?.full_name}</p>
-                <p className="text-[10px] flex items-center gap-1 font-medium" style={{ color: "#a855f7" }}>
+                <p className="text-[10px] flex items-center gap-1 font-medium" style={{ color: G.secondary }}>
                   <Crown className="w-3 h-3" /> Super Admin
                 </p>
               </div>
@@ -407,7 +425,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#070412" }}>
+    <div className="flex min-h-screen" style={{ background: G.bg }}>
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
@@ -420,7 +438,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile Drawer */}
       <aside
         className={`fixed top-0 left-0 bottom-0 w-[260px] flex flex-col z-50 lg:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ background: "#0a0118", backdropFilter: "blur(20px)" }}
+        style={{ background: G.sidebar, backdropFilter: "blur(20px)" }}
       >
         <SidebarContent isMobile />
       </aside>
@@ -428,10 +446,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Desktop Sidebar */}
       <aside
         className={`${collapsed ? "w-[72px]" : "w-[260px]"} shrink-0 flex-col transition-all duration-400 relative hidden lg:flex`}
-        style={{ background: "#0a0118", borderRight: "1px solid rgba(139,92,246,0.08)" }}
+        style={{ background: G.sidebar, borderRight: `1px solid ${G.borderSubtle}` }}
       >
         <div className="absolute top-0 left-0 w-[2px] h-full" style={{
-          background: "linear-gradient(180deg, transparent, rgba(124,58,237,0.4) 30%, rgba(124,58,237,0.6) 50%, rgba(124,58,237,0.4) 70%, transparent)",
+          background: `linear-gradient(180deg, transparent, rgba(200,149,46,0.4) 30%, rgba(200,149,46,0.6) 50%, rgba(200,149,46,0.4) 70%, transparent)`,
           animation: "admin-glow-pulse 4s ease-in-out infinite",
         }} />
         <SidebarContent />
@@ -440,7 +458,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-3 sm:px-4 lg:px-8 shrink-0 sticky top-0 z-30" style={{ background: "rgba(7,4,18,0.8)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(139,92,246,0.08)" }}>
+        <header className="h-16 flex items-center justify-between px-3 sm:px-4 lg:px-8 shrink-0 sticky top-0 z-30" style={{ background: "rgba(10,12,15,0.8)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${G.borderSubtle}` }}>
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => { haptic.light(); setMobileOpen(true); }}
@@ -464,7 +482,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               <input
                 placeholder="Search users, transactions..."
                 className="h-9 w-32 sm:w-48 lg:w-64 rounded-[10px] pl-9 pr-3 text-xs focus:outline-none transition-all duration-300"
-                style={{ background: "rgba(139,92,246,0.04)", border: "1px solid rgba(139,92,246,0.1)", color: "#fff" }}
+                style={{ background: G.accent04, border: `1px solid ${G.border}`, color: "#fff" }}
               />
             </div>
 
@@ -472,7 +490,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="hidden xl:flex items-center gap-2 text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>
               <Calendar className="w-3.5 h-3.5" />
               <span>{currentTime.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</span>
-              <span style={{ color: "rgba(124,58,237,0.5)" }}>|</span>
+              <span style={{ color: "rgba(200,149,46,0.5)" }}>|</span>
               <span className="tabular-nums font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: "rgba(255,255,255,0.6)" }}>
                 {currentTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Kolkata" })}
               </span>
@@ -482,21 +500,21 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <button className="relative p-2 rounded-xl transition-all duration-200" style={{ color: "rgba(255,255,255,0.4)" }}>
               <Bell className="w-4 h-4" />
               {totalBadges > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.5)", animation: "admin-glow-pulse 2s ease-in-out infinite" }} />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: G.danger, boxShadow: "0 0 6px rgba(239,68,68,0.5)", animation: "admin-glow-pulse 2s ease-in-out infinite" }} />
               )}
             </button>
 
             {/* Live badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.1)" }}>
-              <div className="w-1.5 h-1.5 rounded-full relative" style={{ background: "#22c55e" }}>
-                <div className="absolute inset-0 rounded-full" style={{ background: "#22c55e", animation: "admin-ripple 2s ease-out infinite" }} />
+              <div className="w-1.5 h-1.5 rounded-full relative" style={{ background: G.success }}>
+                <div className="absolute inset-0 rounded-full" style={{ background: G.success, animation: "admin-ripple 2s ease-out infinite" }} />
               </div>
-              <span className="text-[10px] font-semibold tracking-wider" style={{ color: "#22c55e" }}>LIVE</span>
+              <span className="text-[10px] font-semibold tracking-wider" style={{ color: G.success }}>LIVE</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto" style={{ background: "#070412" }}>
+        <main className="flex-1 overflow-auto" style={{ background: G.bg }}>
           {children}
         </main>
       </div>
