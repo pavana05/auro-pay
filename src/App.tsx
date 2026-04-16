@@ -76,7 +76,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <RealtimeWrapper>
-        <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
         <PageTransition>
           <Routes>
             <Route path="/" element={<Index />} />
