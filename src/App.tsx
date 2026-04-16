@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PageTransition from "@/components/PageTransition";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import TeenHome from "./pages/TeenHome.tsx";
 import Activity from "./pages/Activity.tsx";
 import CardScreen from "./pages/CardScreen.tsx";
@@ -116,6 +117,7 @@ const App = () => (
                 <PageTransition>
                   <Routes>
                     <Route path="/" element={<Index />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
                     <Route path="/card" element={<CardScreen />} />
