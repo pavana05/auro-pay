@@ -52,9 +52,8 @@ const AdminSettings = () => {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
 
-        {/* Header */}
         <div className="relative z-10">
           <h1 className="text-2xl font-bold tracking-tight">Platform Settings</h1>
           <p className="text-xs text-muted-foreground mt-1">Configure global platform parameters</p>
@@ -64,19 +63,22 @@ const AdminSettings = () => {
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse border border-white/[0.04]" />)
           ) : settings.length === 0 ? (
-            <div className="text-center py-16 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-              <Settings className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <div className="text-center py-20 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                <Settings className="w-8 h-8 text-muted-foreground/30" />
+              </div>
               <p className="text-sm text-muted-foreground">No settings configured</p>
             </div>
           ) : (
-            settings.map((s) => {
+            settings.map((s, i) => {
               const meta = settingLabels[s.key] || { label: s.key, type: "number" as const, desc: "", icon: Settings };
               const Icon = meta.icon;
               return (
-                <div key={s.key} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                <div key={s.key} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300 backdrop-blur-sm group"
+                  style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.06}s both` }}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-primary/10 transition-colors">
                         <Icon className="w-5 h-5 text-primary" />
                       </div>
                       <div>
@@ -86,10 +88,7 @@ const AdminSettings = () => {
                     </div>
 
                     {meta.type === "toggle" ? (
-                      <button
-                        onClick={() => toggleSetting(s.key)}
-                        className="mt-1 transition-all duration-300 active:scale-90"
-                      >
+                      <button onClick={() => toggleSetting(s.key)} className="mt-1 transition-all duration-300 active:scale-90">
                         {editValues[s.key] === "true" ? (
                           <ToggleRight className="w-10 h-10 text-primary" />
                         ) : (
@@ -101,9 +100,9 @@ const AdminSettings = () => {
                         <input
                           value={editValues[s.key] || ""}
                           onChange={(e) => setEditValues({ ...editValues, [s.key]: e.target.value })}
-                          className="w-32 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 text-sm text-right font-mono focus:outline-none focus:border-primary/40 transition-all duration-200"
+                          className="w-32 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 text-sm text-right font-mono focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-200"
                         />
-                        <button onClick={() => saveSetting(s.key)} className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all duration-200 active:scale-90">
+                        <button onClick={() => saveSetting(s.key)} className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all duration-200 active:scale-90 hover:shadow-[0_0_15px_hsl(42_78%_55%/0.1)]">
                           <Save className="w-4 h-4 text-primary" />
                         </button>
                       </div>

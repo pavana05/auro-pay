@@ -15,33 +15,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify caller is admin
-    const callerClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const callerId = claims.claims.sub;
-
     // Service role client to bypass RLS
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Verify caller identity using the token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized: invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check admin role
     const { data: isAdmin } = await admin.rpc("has_role", {
-      _user_id: callerId,
+      _user_id: caller.id,
       _role: "admin",
     });
 
@@ -55,6 +47,14 @@ Deno.serve(async (req: Request) => {
     const { user_id } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Prevent self-deletion
+    if (user_id === caller.id) {
+      return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -84,6 +84,14 @@ Deno.serve(async (req: Request) => {
     if (splitIds.length > 0) {
       await admin.from("bill_split_members").delete().in("split_id", splitIds);
     }
+
+    // Conversation members and messages
+    const { data: convMembers } = await admin.from("conversation_members").select("conversation_id").eq("user_id", user_id);
+    if (convMembers && convMembers.length > 0) {
+      await admin.from("conversation_members").delete().eq("user_id", user_id);
+    }
+    // Delete messages sent by this user
+    await admin.from("messages").delete().eq("sender_id", user_id);
 
     // Direct deletes
     await admin.from("scratch_cards").delete().eq("user_id", user_id);

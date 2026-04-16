@@ -501,80 +501,99 @@ const AdminUsers = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[22px] font-semibold">Users</h1>
-          <button onClick={exportUsersCSV} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] transition-all duration-200 active:scale-95">
-            <Download className="w-4 h-4" /> Export Users CSV
+      <div className="p-6 space-y-6 relative">
+        {/* Ambient */}
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-500/[0.02] blur-[100px] pointer-events-none" />
+
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+            <p className="text-xs text-muted-foreground mt-1">{users.length} users loaded</p>
+          </div>
+          <button onClick={exportUsersCSV} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-white/[0.1] transition-all duration-200 active:scale-95">
+            <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or phone..." className="input-auro w-full pl-10" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or phone..."
+              className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-200" />
           </div>
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="input-auro w-auto px-3">
-            <option>All</option><option>Teen</option><option>Parent</option><option>Admin</option>
-          </select>
-          <select value={kycFilter} onChange={(e) => setKycFilter(e.target.value)} className="input-auro w-auto px-3">
-            <option>All</option><option>Verified</option><option>Pending</option><option>Rejected</option>
-          </select>
+          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+            {["All", "Teen", "Parent", "Admin"].map(f => (
+              <button key={f} onClick={() => setRoleFilter(f)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${roleFilter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                {f}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+            {["All", "Verified", "Pending", "Rejected"].map(f => (
+              <button key={f} onClick={() => setKycFilter(f)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${kycFilter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-xl bg-card border border-border card-glow overflow-x-auto">
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-x-auto backdrop-blur-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-white/[0.04]">
                 {["Name", "Phone", "Role", "KYC", "Balance", "Txns", "Joined", "Actions"].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">{h}</th>
+                  <th key={h} className="text-left py-3.5 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={8} className="py-3 px-4"><div className="h-5 bg-muted rounded animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={8} className="py-4 px-5"><div className="h-5 bg-white/[0.03] rounded-lg animate-pulse" /></td></tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={8} className="text-center py-16 text-muted-foreground text-sm">No users found</td></tr>
               ) : (
-                filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => openUserDetail(u)}>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
+                filtered.map((u, i) => (
+                  <tr key={u.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => openUserDetail(u)}
+                    style={{ animation: `slide-up-spring 0.3s ease ${Math.min(i * 0.03, 0.2)}s both` }}>
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-2.5">
                         {u.avatar_url ? (
-                          <img src={u.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                          <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-xl object-cover border border-white/[0.06]" />
                         ) : (
-                          <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary">
                             {u.full_name?.charAt(0)?.toUpperCase() || "?"}
                           </div>
                         )}
                         <span className="font-medium">{u.full_name || "—"}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{u.phone || "—"}</td>
-                    <td className="py-3 px-4 capitalize">{u.role || "—"}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                        u.kyc_status === "verified" ? "bg-success/20 text-success" :
-                        u.kyc_status === "rejected" ? "bg-destructive/20 text-destructive" :
-                        "bg-warning/20 text-warning"
+                    <td className="py-3.5 px-5 text-muted-foreground text-xs">{u.phone || "—"}</td>
+                    <td className="py-3.5 px-5 capitalize text-xs">{u.role || "—"}</td>
+                    <td className="py-3.5 px-5">
+                      <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+                        u.kyc_status === "verified" ? "bg-success/10 text-success" :
+                        u.kyc_status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-warning/10 text-warning"
                       }`}>{u.kyc_status}</span>
                     </td>
-                    <td className="py-3 px-4">{u.wallet ? formatAmount(u.wallet.balance || 0) : "—"}</td>
-                    <td className="py-3 px-4">{u.txCount}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">
+                    <td className="py-3.5 px-5 font-semibold text-xs">{u.wallet ? formatAmount(u.wallet.balance || 0) : "—"}</td>
+                    <td className="py-3.5 px-5 text-xs">{u.txCount}</td>
+                    <td className="py-3.5 px-5 text-xs text-muted-foreground">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN") : "—"}
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => openUserDetail(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="View Details">
+                    <td className="py-3.5 px-5">
+                      <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => openUserDetail(u)} className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-90" title="View Details">
                           <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
-                        <button onClick={() => toggleFreeze(u.id, u.wallet?.is_frozen || false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="Freeze/Unfreeze">
+                        <button onClick={() => toggleFreeze(u.id, u.wallet?.is_frozen || false)} className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-90" title="Freeze/Unfreeze">
                           <Snowflake className={`w-3.5 h-3.5 ${u.wallet?.is_frozen ? "text-primary" : "text-muted-foreground"}`} />
                         </button>
                       </div>
@@ -587,10 +606,16 @@ const AdminUsers = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-4">
-          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="text-sm text-primary disabled:text-muted-foreground">Previous</button>
+        <div className="flex justify-between items-center">
+          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
+            className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium disabled:opacity-30 hover:bg-white/[0.06] transition-all">
+            Previous
+          </button>
           <span className="text-xs text-muted-foreground">Page {page + 1}</span>
-          <button onClick={() => setPage(page + 1)} disabled={filtered.length < pageSize} className="text-sm text-primary disabled:text-muted-foreground">Next</button>
+          <button onClick={() => setPage(page + 1)} disabled={filtered.length < pageSize}
+            className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium disabled:opacity-30 hover:bg-white/[0.06] transition-all">
+            Next
+          </button>
         </div>
 
         {/* 2-Step Delete Confirmation Modal */}

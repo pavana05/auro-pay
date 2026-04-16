@@ -37,7 +37,6 @@ const AdminAuditLog = () => {
     const entries = (data || []) as AuditEntry[];
     setLogs(entries);
 
-    // Fetch admin names
     const adminIds = [...new Set(entries.map(e => e.admin_user_id))];
     if (adminIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", adminIds);
@@ -50,65 +49,74 @@ const AdminAuditLog = () => {
 
   useEffect(() => { fetchLogs(); }, [actionFilter]);
 
-  const formatTime = (ts: string) => {
-    const d = new Date(ts);
-    return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
-  };
+  const formatTime = (ts: string) => new Date(ts).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-6 space-y-6 relative">
+        {/* Ambient */}
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-500/[0.02] blur-[100px] pointer-events-none" />
+
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h1 className="text-[22px] font-semibold">Audit Log</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Audit Log</h1>
             <p className="text-xs text-muted-foreground mt-1">Track all admin actions with timestamps</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={fetchLogs} className="p-2 rounded-lg hover:bg-white/[0.04] text-muted-foreground transition-colors">
+            <button onClick={fetchLogs} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground hover:border-white/[0.1] transition-all active:scale-90">
               <RefreshCw className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="input-auro w-auto px-3 h-9 text-xs">
-                <option value="all">All Actions</option>
-                <option value="role_change">Role Changes</option>
-                <option value="wallet_freeze">Wallet Freeze</option>
-                <option value="wallet_unfreeze">Wallet Unfreeze</option>
-                <option value="kyc_approve">KYC Approvals</option>
-                <option value="kyc_reject">KYC Rejections</option>
-                <option value="user_delete">User Deletions</option>
-              </select>
+            <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+              {[
+                { value: "all", label: "All" },
+                { value: "role_change", label: "Roles" },
+                { value: "wallet_freeze", label: "Freeze" },
+                { value: "kyc_approve", label: "KYC ✓" },
+                { value: "kyc_reject", label: "KYC ✗" },
+                { value: "user_delete", label: "Delete" },
+              ].map(f => (
+                <button key={f.value} onClick={() => setActionFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                    actionFilter === f.value ? "bg-primary/15 text-primary shadow-[0_0_12px_hsl(42_78%_55%/0.1)]" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+                  }`}>
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl bg-card border border-border card-glow">
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden backdrop-blur-sm">
           {loading ? (
             <div className="p-6 space-y-3">
-              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-14 bg-muted rounded-lg animate-pulse" />)}
+              {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white/[0.02] rounded-xl animate-pulse" />)}
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <FileText className="w-10 h-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No audit logs found</p>
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground">No audit logs found</p>
             </div>
           ) : (
-            <div className="divide-y divide-border/50">
-              {logs.map((log) => {
+            <div className="divide-y divide-white/[0.03]">
+              {logs.map((log, i) => {
                 const meta = actionMeta[log.action] || actionMeta.default;
                 const Icon = meta.icon;
                 return (
-                  <div key={log.id} className="flex items-start gap-4 px-5 py-4 hover:bg-muted/5 transition-colors">
-                    <div className={`w-9 h-9 rounded-full ${meta.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                  <div key={log.id} className="flex items-start gap-4 px-5 py-4 hover:bg-white/[0.02] transition-all duration-200"
+                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.3)}s both` }}>
+                    <div className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center shrink-0 mt-0.5`}>
                       <Icon className={`w-4 h-4 ${meta.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium capitalize">{log.action.replace(/_/g, " ")}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {log.target_type}{log.target_id ? ` • ${log.target_id.slice(0, 8)}...` : ""}
+                        {log.target_type}{log.target_id ? ` • ${log.target_id.slice(0, 8)}…` : ""}
                       </p>
                       {log.details && Object.keys(log.details).length > 0 && (
-                        <div className="mt-1.5 text-[11px] text-muted-foreground bg-muted/10 rounded-lg px-3 py-2 font-mono">
+                        <div className="mt-2 text-[11px] text-muted-foreground bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-2 font-mono">
                           {Object.entries(log.details).map(([k, v]) => (
                             <div key={k}><span className="text-primary/70">{k}:</span> {String(v)}</div>
                           ))}
