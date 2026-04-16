@@ -445,16 +445,41 @@ const AddMoney = () => {
                   style={{ color: method === m.id ? `hsl(${m.accent})` : "hsl(220 10% 35%)" }} />
               </div>
 
-              <div className="flex-1 text-left">
-                <p className={`text-[13px] font-semibold transition-colors duration-300 ${method === m.id ? "text-white/80" : "text-white/40"}`}>{m.label}</p>
-                <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${method === m.id ? "text-white/30" : "text-white/15"}`}>{m.desc}</p>
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`text-[13px] font-semibold transition-colors duration-300 ${method === m.id ? "text-white/85" : "text-white/45"}`}>{m.label}</p>
+                  {m.id === "upi" && (
+                    <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-md"
+                      style={{ background: "hsl(152 60% 45% / 0.15)", color: "hsl(152 60% 55%)", border: "1px solid hsl(152 60% 45% / 0.25)" }}>
+                      Recommended
+                    </span>
+                  )}
+                </div>
+                <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${method === m.id ? "text-white/35" : "text-white/20"}`}>{m.desc}</p>
               </div>
 
-              <div className="text-right">
-                <span className={`text-[11px] font-semibold ${m.id === "upi" ? "" : "text-white/30"}`}
-                  style={{ color: m.id === "upi" ? "hsl(152 60% 50%)" : undefined }}>
-                  {m.fee}
-                </span>
+              <div className="text-right shrink-0">
+                <div className="flex items-center justify-end gap-1">
+                  <span className="text-[11px] font-mono font-semibold"
+                    style={{ color: m.id === "upi" ? "hsl(152 60% 55%)" : "hsl(220 10% 50%)" }}>
+                    {m.feeLabel}
+                  </span>
+                  {m.tooltip && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                            <Info className="w-3 h-3 text-white/30" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[200px] text-[11px]">
+                          {m.tooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                <p className="text-[9px] text-white/25 font-medium mt-0.5">{m.time}</p>
               </div>
 
               <div className="w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0"
