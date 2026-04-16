@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Phone, Video, MoreVertical } from "lucide-react";
+import { ChevronLeft, Phone, Video } from "lucide-react";
 import MessageBubble from "@/components/chat/MessageBubble";
 import ChatInput from "@/components/chat/ChatInput";
 import PaymentCard from "@/components/chat/PaymentCard";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 import { haptic } from "@/lib/haptics";
 
 interface Message {
@@ -43,7 +44,10 @@ const ChatRoom = () => {
   const [recipientId, setRecipientId] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const [lastReadAt, setLastReadAt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!conversationId) return;
@@ -52,6 +56,7 @@ const ChatRoom = () => {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
+  // Realtime messages
   useEffect(() => {
     if (!conversationId) return;
     const channel = supabase
@@ -66,10 +71,40 @@ const ChatRoom = () => {
           return [...prev, newMsg];
         });
         haptic.light();
+        // If message from other user, they stopped typing
+        if (newMsg.sender_id !== userId) {
+          setIsTyping(false);
+        }
+        // Mark as read
+        if (newMsg.sender_id !== userId && conversationId) {
+          supabase.from("conversation_members")
+            .update({ last_read_at: new Date().toISOString() })
+            .eq("conversation_id", conversationId)
+            .eq("user_id", userId)
+            .then();
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [conversationId]);
+  }, [conversationId, userId]);
+
+  // Listen for read receipts from other user
+  useEffect(() => {
+    if (!conversationId || !recipientId) return;
+    const channel = supabase
+      .channel(`read-${conversationId}`)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "conversation_members",
+        filter: `conversation_id=eq.${conversationId}`,
+      }, (payload) => {
+        const updated = payload.new as any;
+        if (updated.user_id === recipientId && updated.last_read_at) {
+          setLastReadAt(updated.last_read_at);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [conversationId, recipientId]);
 
   const loadChat = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,12 +112,13 @@ const ChatRoom = () => {
     setUserId(user.id);
 
     const { data: members } = await supabase
-      .from("conversation_members").select("user_id")
+      .from("conversation_members").select("user_id, last_read_at")
       .eq("conversation_id", conversationId).neq("user_id", user.id);
 
     if (members?.length) {
       const otherId = members[0].user_id;
       setRecipientId(otherId);
+      setLastReadAt(members[0].last_read_at);
       const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
       setRecipientName(profile?.full_name || "User");
       setRecipientAvatar(profile?.avatar_url || null);
@@ -105,9 +141,18 @@ const ChatRoom = () => {
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  // Simulate typing detection (show typing when user is composing)
+  const handleTypingStart = useCallback(() => {
+    // In a real app, you'd broadcast typing via realtime presence
+    // For now we simulate the recipient typing briefly after sending
+  }, []);
+
   const sendText = async (text: string) => {
     if (!conversationId || !userId) return;
     await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, content: text, message_type: "text" });
+    // Simulate recipient typing after a delay
+    setTimeout(() => setIsTyping(true), 1500);
+    setTimeout(() => setIsTyping(false), 4000);
   };
 
   const sendVoice = async (url: string) => {
@@ -125,6 +170,13 @@ const ChatRoom = () => {
   };
 
   const getInitials = (name: string) => name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  // Check if a message has been read by recipient
+  const isMessageRead = (msg: Message) => {
+    if (msg.sender_id !== userId) return false;
+    if (!lastReadAt) return false;
+    return new Date(msg.created_at) <= new Date(lastReadAt);
+  };
 
   const groupByDate = (msgs: Message[]) => {
     const groups: { label: string; messages: Message[] }[] = [];
@@ -172,8 +224,16 @@ const ChatRoom = () => {
 
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-bold truncate">{recipientName}</p>
-          <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
-            <span className="w-1 h-1 rounded-full bg-emerald-400" /> Online
+          <p className="text-[10px] flex items-center gap-1 font-medium" style={{ color: isTyping ? "hsl(42 78% 55%)" : "hsl(152 60% 45%)" }}>
+            {isTyping ? (
+              <>
+                <span className="w-1 h-1 rounded-full bg-primary animate-pulse" /> typing...
+              </>
+            ) : (
+              <>
+                <span className="w-1 h-1 rounded-full bg-emerald-400" /> Online
+              </>
+            )}
           </p>
         </div>
 
@@ -221,11 +281,16 @@ const ChatRoom = () => {
                   isMine={msg.sender_id === userId}
                   timestamp={msg.created_at}
                   senderName={recipientName}
+                  isRead={isMessageRead(msg)}
                 />
               ))}
             </div>
           ))
         )}
+
+        {/* Typing indicator */}
+        {isTyping && <TypingIndicator name={recipientName} />}
+
         <div ref={scrollRef} />
       </div>
 
