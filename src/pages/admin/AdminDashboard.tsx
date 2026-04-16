@@ -182,8 +182,20 @@ const AdminDashboard = () => {
   const [greeting, setGreeting] = useState("");
   const [uptime, setUptime] = useState(0);
   const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "operations">("overview");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [hourlyTraffic, setHourlyTraffic] = useState<{ hour: number; count: number }[]>([]);
 
+  // ⌘K / Ctrl+K opens palette
   useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(p => !p);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
     const h = new Date().getHours();
     setGreeting(h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening");
     setUptime(Date.now());
