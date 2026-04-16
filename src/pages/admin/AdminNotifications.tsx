@@ -26,9 +26,7 @@ const AdminNotifications = () => {
   const sendNotification = async () => {
     if (!title.trim() || !body.trim()) { toast.error("Fill title and body"); return; }
     setSending(true);
-
     let userIds: string[] = [];
-
     if (target === "specific") {
       const { data } = await supabase.from("profiles").select("id").eq("phone", specificPhone);
       userIds = (data || []).map((p) => p.id);
@@ -40,21 +38,12 @@ const AdminNotifications = () => {
       const { data } = await query;
       userIds = (data || []).map((p) => p.id);
     }
-
-    const notifications = userIds.map((uid) => ({
-      user_id: uid,
-      title: title.trim(),
-      body: body.trim(),
-      type: "system",
-    }));
-
+    const notifications = userIds.map((uid) => ({ user_id: uid, title: title.trim(), body: body.trim(), type: "system" }));
     const { error } = await supabase.from("notifications").insert(notifications);
-    if (error) { toast.error(error.message); }
-    else { toast.success(`Notification sent to ${userIds.length} users`); }
-
+    if (error) toast.error(error.message);
+    else toast.success(`Notification sent to ${userIds.length} users`);
     setTitle(""); setBody("");
     setSending(false);
-
     const { data: updated } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(50);
     setHistory(updated || []);
   };
@@ -69,20 +58,22 @@ const AdminNotifications = () => {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+        {/* Ambient */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[10%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
 
         {/* Header */}
-        <div className="relative z-10">
+        <div className="relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>
           <h1 className="text-2xl font-bold tracking-tight">Broadcast Center</h1>
           <p className="text-xs text-muted-foreground mt-1">Send notifications to users across the platform</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Send Form */}
-          <div className="space-y-5">
-            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+          <div className="space-y-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>
+            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Send className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -93,24 +84,21 @@ const AdminNotifications = () => {
 
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Title</label>
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Notification title"
-                className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:outline-none focus:border-primary/40 transition-all duration-200 mb-4" />
+                className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-300 mb-4" />
 
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Message</label>
               <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write your message..."
-                className="w-full h-28 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 text-sm resize-none focus:outline-none focus:border-primary/40 transition-all duration-200 mb-4" />
+                className="w-full h-28 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 text-sm resize-none focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-300 mb-4" />
 
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">Target Audience</label>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {targetOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setTarget(opt.value)}
-                    className={`p-3 rounded-xl border text-left transition-all duration-200 ${
+                  <button key={opt.value} onClick={() => setTarget(opt.value)}
+                    className={`p-3 rounded-xl border text-left transition-all duration-300 ${
                       target === opt.value
-                        ? "border-primary/30 bg-primary/5 shadow-[0_0_15px_hsl(42_78%_55%/0.06)]"
+                        ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_hsl(42_78%_55%/0.08)]"
                         : "border-white/[0.04] bg-white/[0.01] hover:border-white/[0.08]"
-                    }`}
-                  >
+                    }`}>
                     <div className="flex items-center gap-2 mb-1">
                       <opt.icon className={`w-3.5 h-3.5 ${target === opt.value ? "text-primary" : "text-muted-foreground"}`} />
                       <span className="text-xs font-medium">{opt.label}</span>
@@ -125,7 +113,6 @@ const AdminNotifications = () => {
                   className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:outline-none focus:border-primary/40 transition-all duration-200 mb-4" />
               )}
 
-              {/* Preview */}
               {(title || body) && (
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -145,9 +132,9 @@ const AdminNotifications = () => {
           </div>
 
           {/* History */}
-          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both" }}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
                 <Bell className="w-5 h-5 text-accent" />
               </div>
               <div>
@@ -157,15 +144,23 @@ const AdminNotifications = () => {
             </div>
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {historyLoading ? (
-                Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 bg-white/[0.02] rounded-xl animate-pulse" />)
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl overflow-hidden relative">
+                    <div className="absolute inset-0 bg-white/[0.02]" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
+                  </div>
+                ))
               ) : history.length === 0 ? (
                 <div className="text-center py-16">
-                  <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-muted-foreground/30" />
+                  </div>
                   <p className="text-sm text-muted-foreground">No notifications sent yet</p>
                 </div>
               ) : (
-                history.map((n: any) => (
-                  <div key={n.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.06] transition-all duration-200">
+                history.map((n: any, i: number) => (
+                  <div key={n.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.2)}s both` }}>
                     <p className="text-sm font-medium">{n.title}</p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{n.body}</p>
                     <div className="flex items-center gap-3 mt-2">
@@ -173,7 +168,7 @@ const AdminNotifications = () => {
                         <Clock className="w-3 h-3" />
                         {n.created_at ? new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
                       </div>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${n.is_read ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${n.is_read ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"}`}>
                         {n.is_read ? "Read" : "Unread"}
                       </span>
                     </div>

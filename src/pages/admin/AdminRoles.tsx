@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
-import { Shield, ChevronDown, Crown, UserCheck, User, Search, AlertTriangle, Plus, X, UserPlus } from "lucide-react";
+import { Shield, ChevronDown, Crown, UserCheck, User, Search, AlertTriangle, X, UserPlus } from "lucide-react";
 
 interface UserWithRole {
   id: string;
@@ -32,8 +32,6 @@ const AdminRoles = () => {
   const [loading, setLoading] = useState(true);
   const [actionUser, setActionUser] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ userId: string; userName: string; role: string; action: "add" | "remove" } | null>(null);
-
-  // Add user modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
@@ -44,31 +42,13 @@ const AdminRoles = () => {
   const fetchUsersWithRoles = async () => {
     setLoading(true);
     const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
-    
-    if (!allRoles || allRoles.length === 0) {
-      setUsersWithRoles([]);
-      setLoading(false);
-      return;
-    }
-
-    // Get unique user IDs that have roles
+    if (!allRoles || allRoles.length === 0) { setUsersWithRoles([]); setLoading(false); return; }
     const userIdSet = new Set<string>();
     const roleMap = new Map<string, string[]>();
-    allRoles.forEach((r: any) => {
-      userIdSet.add(r.user_id);
-      const existing = roleMap.get(r.user_id) || [];
-      existing.push(r.role);
-      roleMap.set(r.user_id, existing);
-    });
-
+    allRoles.forEach((r: any) => { userIdSet.add(r.user_id); const e = roleMap.get(r.user_id) || []; e.push(r.role); roleMap.set(r.user_id, e); });
     const userIds = Array.from(userIdSet);
     const { data: profiles } = await supabase.from("profiles").select("id, full_name, phone, role, created_at").in("id", userIds);
-
-    const enriched = (profiles || []).map((p: any) => ({
-      ...p,
-      appRoles: roleMap.get(p.id) || [],
-    }));
-
+    const enriched = (profiles || []).map((p: any) => ({ ...p, appRoles: roleMap.get(p.id) || [] }));
     setUsersWithRoles(enriched);
     setLoading(false);
   };
@@ -79,15 +59,10 @@ const AdminRoles = () => {
     (u) => !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.phone?.includes(search)
   );
 
-  // Search users for add modal
   const searchUsers = async (query: string) => {
     if (query.length < 2) { setSearchResults([]); return; }
     setSearching(true);
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, phone, role")
-      .or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`)
-      .limit(10);
+    const { data } = await supabase.from("profiles").select("id, full_name, phone, role").or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`).limit(10);
     setSearchResults((data || []) as SearchUser[]);
     setSearching(false);
   };
@@ -99,12 +74,8 @@ const AdminRoles = () => {
 
   const assignRole = async (userId: string, role: string) => {
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
-    if (error) {
-      if (error.code === "23505") toast.error("User already has this role");
-      else toast.error(error.message);
-    } else {
-      toast.success(`Role "${role}" assigned successfully`);
-    }
+    if (error) { if (error.code === "23505") toast.error("User already has this role"); else toast.error(error.message); }
+    else toast.success(`Role "${role}" assigned successfully`);
     setConfirmAction(null);
     fetchUsersWithRoles();
   };
@@ -136,119 +107,120 @@ const AdminRoles = () => {
 
   const getRoleBadgeClass = (role: string) => {
     switch (role) {
-      case "admin": return "badge-premium text-[10px] px-2 py-0.5 rounded-full";
-      case "moderator": return "bg-accent/20 text-accent text-[10px] px-2 py-0.5 rounded-full font-medium";
-      default: return "bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full font-medium";
+      case "admin": return "bg-primary/10 text-primary border border-primary/20 text-[10px] px-2 py-0.5 rounded-full font-medium";
+      case "moderator": return "bg-accent/10 text-accent border border-accent/20 text-[10px] px-2 py-0.5 rounded-full font-medium";
+      default: return "bg-white/[0.04] text-muted-foreground border border-white/[0.06] text-[10px] px-2 py-0.5 rounded-full font-medium";
     }
   };
 
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+        {/* Ambient */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
 
-        <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center justify-between relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Role Management</h1>
             <p className="text-xs text-muted-foreground mt-1">Manage system roles — only users with assigned roles appear here</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-[0_0_30px_hsl(42_78%_55%/0.2)] transition-all duration-300 active:scale-95"
-          >
+          <button onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-[0_0_30px_hsl(42_78%_55%/0.2)] transition-all duration-300 active:scale-95">
             <UserPlus className="w-4 h-4" /> Add User
           </button>
         </div>
 
         {/* Role Legend */}
         <div className="grid grid-cols-3 gap-3">
-          {ROLES.map((r) => (
-            <div key={r.value} className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
-              <div className="flex items-center gap-2 mb-1.5">
+          {ROLES.map((r, i) => (
+            <div key={r.value}
+              className="group p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/15 transition-all duration-500 hover:shadow-[0_0_25px_hsl(42_78%_55%/0.05)] relative overflow-hidden"
+              style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.08 + i * 0.05}s both` }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10 flex items-center gap-2 mb-1.5">
                 <r.icon className={`w-4 h-4 ${r.color}`} />
                 <span className="text-sm font-semibold">{r.label}</span>
               </div>
-              <p className="text-[10px] text-muted-foreground">{r.desc}</p>
+              <p className="text-[10px] text-muted-foreground relative z-10">{r.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Search */}
         {usersWithRoles.length > 0 && (
-          <div className="relative">
+          <div className="relative" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.25s both" }}>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assigned users..."
-              className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-200" />
+              className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-300" />
           </div>
         )}
 
         {/* Users Table */}
-        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-x-auto">
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-x-auto backdrop-blur-sm" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.04]">
+              <tr className="border-b border-white/[0.06]">
                 {["User", "Phone", "Profile Role", "System Roles", "Actions"].map((h) => (
-                  <th key={h} className="text-left py-3.5 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+                  <th key={h} className="text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="py-3 px-4"><div className="h-5 bg-muted rounded animate-pulse" /></td></tr>
+                  <tr key={i} className="border-b border-white/[0.03]">
+                    <td colSpan={5} className="py-4 px-5">
+                      <div className="h-5 rounded-lg overflow-hidden relative">
+                        <div className="absolute inset-0 bg-white/[0.03]" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
+                      </div>
+                    </td>
+                  </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                        <Crown className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">No users with assigned roles</p>
-                      <button onClick={() => setShowAddModal(true)} className="text-xs text-primary hover:underline">
-                        + Add a user with a role
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan={5} className="text-center py-16">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                    <Crown className="w-8 h-8 text-muted-foreground/30" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No users with assigned roles</p>
+                  <button onClick={() => setShowAddModal(true)} className="text-xs text-primary hover:underline mt-2">+ Add a user with a role</button>
+                </td></tr>
               ) : (
-                filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
+                filtered.map((u, i) => (
+                  <tr key={u.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group"
+                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.2)}s both` }}>
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-[11px] font-semibold text-primary group-hover:scale-105 transition-transform duration-300">
                           {u.full_name?.charAt(0)?.toUpperCase() || "?"}
                         </div>
                         <span className="font-medium">{u.full_name || "—"}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{u.phone || "—"}</td>
-                    <td className="py-3 px-4 capitalize">{u.role || "—"}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-5 text-muted-foreground text-xs">{u.phone || "—"}</td>
+                    <td className="py-3.5 px-5 capitalize text-xs">{u.role || "—"}</td>
+                    <td className="py-3.5 px-5">
                       <div className="flex gap-1.5 flex-wrap">
                         {u.appRoles.map((role) => (
                           <span key={role} className={getRoleBadgeClass(role)}>{role}</span>
                         ))}
                       </div>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-5">
                       <div className="relative">
-                        <button
-                          onClick={() => setActionUser(actionUser === u.id ? null : u.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:border-border-active transition-colors"
-                        >
+                        <button onClick={() => setActionUser(actionUser === u.id ? null : u.id)}
+                          className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-white/[0.06] text-xs font-medium hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-200">
                           Manage <ChevronDown className="w-3 h-3" />
                         </button>
                         {actionUser === u.id && (
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-xl z-20 overflow-hidden animate-fade-in-up">
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] z-20 overflow-hidden animate-scale-in">
                             {ROLES.map((r) => {
                               const hasRole = u.appRoles.includes(r.value);
                               return (
-                                <button
-                                  key={r.value}
+                                <button key={r.value}
                                   onClick={() => { handleRoleAction(u.id, r.value); setActionUser(null); }}
-                                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-muted/30 transition-colors"
-                                >
+                                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-white/[0.04] transition-colors">
                                   <div className="flex items-center gap-2">
                                     <r.icon className={`w-3.5 h-3.5 ${r.color}`} />
                                     <span>{hasRole ? `Remove ${r.label}` : `Assign ${r.label}`}</span>
@@ -271,96 +243,76 @@ const AdminRoles = () => {
         {/* Add User Modal */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={() => { setShowAddModal(false); setSelectedAddUser(null); setAddSearch(""); setSearchResults([]); }} />
-            <div className="relative w-[440px] max-w-[90vw] bg-card border border-border rounded-lg p-6 card-glow animate-fade-in-up">
-              <div className="flex items-center justify-between mb-5">
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-md" onClick={() => { setShowAddModal(false); setSelectedAddUser(null); setAddSearch(""); setSearchResults([]); }} />
+            <div className="relative w-[440px] max-w-[90vw] bg-card/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.5)] animate-scale-in">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-transparent rounded-2xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-5 relative z-10">
                 <h3 className="text-base font-semibold">Add User to Role Management</h3>
-                <button onClick={() => { setShowAddModal(false); setSelectedAddUser(null); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <button onClick={() => { setShowAddModal(false); setSelectedAddUser(null); }} className="p-2 rounded-xl hover:bg-white/[0.04] transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Search for user */}
-              <label className="text-xs font-medium text-muted-foreground mb-2 block">SEARCH USER</label>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  value={addSearch}
-                  onChange={(e) => { setAddSearch(e.target.value); setSelectedAddUser(null); }}
-                  placeholder="Search by name or phone..."
-                  className="input-auro w-full pl-10"
-                  autoFocus
-                />
-              </div>
-
-              {/* Search Results */}
-              {addSearch.length >= 2 && !selectedAddUser && (
-                <div className="max-h-48 overflow-y-auto border border-border rounded-lg mb-4">
-                  {searching ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground">Searching...</div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground">No users found</div>
-                  ) : (
-                    searchResults.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => { setSelectedAddUser(u); setAddSearch(u.full_name || u.phone || ""); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors text-left border-b border-border/50 last:border-0"
-                      >
-                        <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
-                          {u.full_name?.charAt(0)?.toUpperCase() || "?"}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{u.full_name || "—"}</p>
-                          <p className="text-[10px] text-muted-foreground">{u.phone || "—"} · {u.role || "no role"}</p>
-                        </div>
-                      </button>
-                    ))
-                  )}
+              <div className="relative z-10">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Search User</label>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input value={addSearch} onChange={(e) => { setAddSearch(e.target.value); setSelectedAddUser(null); }}
+                    placeholder="Search by name or phone..."
+                    className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-10 pr-4 text-sm focus:outline-none focus:border-primary/40 transition-all" autoFocus />
                 </div>
-              )}
 
-              {/* Selected User */}
-              {selectedAddUser && (
-                <div className="p-3 rounded-lg bg-muted/10 border border-border-active mb-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
-                    {selectedAddUser.full_name?.charAt(0)?.toUpperCase() || "?"}
+                {addSearch.length >= 2 && !selectedAddUser && (
+                  <div className="max-h-48 overflow-y-auto border border-white/[0.06] rounded-xl mb-4">
+                    {searching ? (
+                      <div className="p-4 text-center text-xs text-muted-foreground">Searching...</div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-muted-foreground">No users found</div>
+                    ) : (
+                      searchResults.map((u) => (
+                        <button key={u.id} onClick={() => { setSelectedAddUser(u); setAddSearch(u.full_name || u.phone || ""); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left border-b border-white/[0.04] last:border-0">
+                          <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-semibold text-primary">
+                            {u.full_name?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{u.full_name || "—"}</p>
+                            <p className="text-[10px] text-muted-foreground">{u.phone || "—"} · {u.role || "no role"}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{selectedAddUser.full_name}</p>
-                    <p className="text-[10px] text-muted-foreground">{selectedAddUser.phone}</p>
+                )}
+
+                {selectedAddUser && (
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-primary/20 mb-4 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-semibold text-primary">
+                      {selectedAddUser.full_name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{selectedAddUser.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{selectedAddUser.phone}</p>
+                    </div>
+                    <button onClick={() => { setSelectedAddUser(null); setAddSearch(""); }} className="text-xs text-muted-foreground hover:text-foreground">Change</button>
                   </div>
-                  <button onClick={() => { setSelectedAddUser(null); setAddSearch(""); }} className="text-xs text-muted-foreground hover:text-foreground">
-                    Change
-                  </button>
+                )}
+
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Assign Role</label>
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  {ROLES.map((r) => (
+                    <button key={r.value} onClick={() => setSelectedAddRole(r.value)}
+                      className={`p-2.5 rounded-xl border text-xs font-medium text-center transition-all duration-200 ${
+                        selectedAddRole === r.value ? "border-primary/30 bg-primary/10 text-primary" : "border-white/[0.06] text-muted-foreground hover:border-white/[0.1]"
+                      }`}>{r.label}</button>
+                  ))}
                 </div>
-              )}
 
-              {/* Role Selection */}
-              <label className="text-xs font-medium text-muted-foreground mb-2 block">ASSIGN ROLE</label>
-              <div className="grid grid-cols-3 gap-2 mb-6">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setSelectedAddRole(r.value)}
-                    className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all ${
-                      selectedAddRole === r.value
-                        ? "border-border-active bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-border-active"
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
+                <button onClick={handleAddUser} disabled={!selectedAddUser}
+                  className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:shadow-[0_0_30px_hsl(42_78%_55%/0.2)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                  Assign Role
+                </button>
               </div>
-
-              <button
-                onClick={handleAddUser}
-                disabled={!selectedAddUser}
-                className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Assign Role
-              </button>
             </div>
           </div>
         )}
@@ -368,35 +320,26 @@ const AdminRoles = () => {
         {/* Confirm Dialog */}
         {confirmAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={() => setConfirmAction(null)} />
-            <div className="relative w-96 bg-card border border-border rounded-lg p-6 card-glow animate-fade-in-up">
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-md" onClick={() => setConfirmAction(null)} />
+            <div className="relative w-96 bg-card/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.5)] animate-scale-in">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-warning" />
                 </div>
                 <div>
                   <h3 className="text-base font-semibold">Confirm Role Change</h3>
                   <p className="text-xs text-muted-foreground">
-                    {confirmAction.action === "add"
-                      ? `Assign "${confirmAction.role}" to ${confirmAction.userName}?`
-                      : `Remove "${confirmAction.role}" from ${confirmAction.userName}?`
-                    }
+                    {confirmAction.action === "add" ? `Assign "${confirmAction.role}" to ${confirmAction.userName}?` : `Remove "${confirmAction.role}" from ${confirmAction.userName}?`}
                   </p>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setConfirmAction(null)} className="flex-1 h-10 rounded-pill border border-border text-sm font-medium hover:bg-muted transition-colors">
-                  Cancel
-                </button>
+                <button onClick={() => setConfirmAction(null)} className="flex-1 h-11 rounded-xl border border-white/[0.06] text-sm font-medium hover:bg-white/[0.03] transition-colors">Cancel</button>
                 <button
-                  onClick={() => {
-                    if (confirmAction.action === "add") assignRole(confirmAction.userId, confirmAction.role);
-                    else removeRole(confirmAction.userId, confirmAction.role);
-                  }}
-                  className={`flex-1 h-10 rounded-pill text-sm font-medium hover:opacity-90 transition-colors ${
-                    confirmAction.action === "remove" ? "bg-destructive text-destructive-foreground" : "gradient-primary text-primary-foreground"
-                  }`}
-                >
+                  onClick={() => { if (confirmAction.action === "add") assignRole(confirmAction.userId, confirmAction.role); else removeRole(confirmAction.userId, confirmAction.role); }}
+                  className={`flex-1 h-11 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    confirmAction.action === "remove" ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:shadow-[0_0_30px_hsl(42_78%_55%/0.2)]"
+                  }`}>
                   {confirmAction.action === "add" ? "Assign Role" : "Remove Role"}
                 </button>
               </div>
