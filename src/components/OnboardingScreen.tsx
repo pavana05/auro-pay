@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Sparkles, ChevronRight, ArrowRight } from "lucide-react";
+import { Sparkles, ChevronRight } from "lucide-react";
 import welcomeImg from "@/assets/onboarding-welcome.png";
 import heroImg from "@/assets/onboarding-hero.png";
 import rewardsImg from "@/assets/onboarding-rewards.png";
@@ -7,7 +7,7 @@ import scanImg from "@/assets/onboarding-scan.png";
 import parentImg from "@/assets/onboarding-parent.png";
 import saveImg from "@/assets/onboarding-save.png";
 
-const AUTOPLAY_DURATION = 5000; // ms per slide
+const AUTOPLAY_DURATION = 8000; // ms per slide — slower, more premium pacing
 
 const slides = [
   {
@@ -73,7 +73,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     setTimeout(() => {
       setCurrent(idx);
       setAnimating(false);
-    }, 250);
+    }, 400);
   }, [animating, current]);
 
   const next = useCallback(() => {
@@ -190,25 +190,37 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
       onMouseLeave={handleMouseLeave}
     >
       {/* Ambient glow per slide */}
-      <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: slide.bg }} />
-      
+      <div className="absolute inset-0 pointer-events-none transition-all duration-1000" style={{ background: slide.bg }} />
+
+      {/* Premium gold aura — top */}
+      <div
+        className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.18] pointer-events-none transition-all duration-1000"
+        style={{ background: "radial-gradient(circle, hsl(42 78% 55%) 0%, transparent 70%)" }}
+      />
+
       {/* Subtle noise texture */}
-      <div className="absolute inset-0 pointer-events-none noise-overlay" />
+      <div className="absolute inset-0 pointer-events-none noise-overlay opacity-60" />
 
       {/* Auto-play progress bar */}
-      <div className="absolute top-0 left-0 right-0 z-30 h-[3px] bg-white/[0.06]">
+      <div className="absolute top-0 left-0 right-0 z-30 h-[2px] bg-white/[0.04]">
         <div
-          className="h-full bg-gradient-to-r from-primary to-amber-400 transition-[width] duration-75 ease-linear"
-          style={{ width: `${progress}%` }}
+          className="h-full transition-[width] duration-75 ease-linear shadow-[0_0_12px_hsl(42_78%_55%/0.6)]"
+          style={{ width: `${progress}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(45 90% 70%))" }}
         />
       </div>
 
-      {/* Skip button */}
-      <div className="flex justify-end px-6 pt-5 relative z-20">
+      {/* Top bar: brand mark + Skip */}
+      <div className="flex justify-between items-center px-6 pt-6 relative z-20">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shadow-[0_4px_12px_hsl(42_78%_55%/0.4)]">
+            <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
+          </div>
+          <span className="text-[11px] font-bold tracking-[0.2em] text-foreground/70">AUROPAY</span>
+        </div>
         {current < slides.length - 1 && (
           <button
             onClick={onComplete}
-            className="text-[11px] text-muted-foreground/50 hover:text-primary transition-colors px-4 py-2 rounded-full border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm"
+            className="text-[11px] font-medium text-muted-foreground/60 hover:text-primary transition-colors px-4 py-2 rounded-full border border-white/[0.08] bg-white/[0.03] backdrop-blur-md"
           >
             Skip
           </button>
@@ -217,88 +229,112 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Text section */}
-        <div
-          key={`text-${current}`}
-          className={`px-8 pt-6 pb-4 ${animating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"} transition-all duration-300`}
-        >
-          <h2 className="text-[28px] font-black leading-[1.1] tracking-tight whitespace-pre-line">
-            {slide.title}{" "}
-            <span className="bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent">
-              {slide.highlight}
-            </span>
-          </h2>
-          <p className="text-[13px] text-muted-foreground/50 mt-3 leading-relaxed max-w-[300px]">
-            {slide.subtitle}
-          </p>
-
-          {current === 1 && (
-            <div className="mt-5 w-12 h-12 rounded-full border-2 border-white/15 flex items-center justify-center animate-float">
-              <ArrowRight className="w-4 h-4 text-foreground/60" />
-            </div>
-          )}
-        </div>
-
         {/* Illustration section */}
-        <div className="flex-1 flex items-end justify-center px-4 pb-0 relative">
+        <div className="flex-1 flex items-center justify-center px-4 pt-6 pb-2 relative">
           <div
             key={`img-${current}`}
-            className={`relative w-full max-w-[320px] ${animating ? "opacity-0 scale-95 translate-y-6" : "opacity-100 scale-100 translate-y-0"} transition-all duration-400`}
+            className={`relative w-full max-w-[340px] aspect-square ${animating ? "opacity-0 scale-90 translate-y-4" : "opacity-100 scale-100 translate-y-0"} transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]`}
           >
-            {/* Parallax glow layer (moves opposite) */}
+            {/* Outer rotating gold ring */}
             <div
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20 transition-transform duration-300 ease-out"
+              className="absolute inset-0 rounded-full opacity-30 pointer-events-none"
               style={{
-                background: "hsl(42 78% 55%)",
-                transform: `translate(${-parallax.x * 0.5}px, ${-parallax.y * 0.5}px)`,
+                background: "conic-gradient(from 0deg, transparent 0%, hsl(42 78% 55% / 0.6) 25%, transparent 50%, hsl(42 78% 55% / 0.4) 75%, transparent 100%)",
+                animation: "spin 12s linear infinite",
+                mask: "radial-gradient(circle, transparent 58%, black 60%, black 62%, transparent 64%)",
+                WebkitMask: "radial-gradient(circle, transparent 58%, black 60%, black 62%, transparent 64%)",
+              }}
+            />
+            {/* Inner soft ring */}
+            <div
+              className="absolute inset-[8%] rounded-full border border-white/[0.06] pointer-events-none"
+              style={{ boxShadow: "inset 0 0 60px hsl(42 78% 55% / 0.08)" }}
+            />
+            {/* Parallax glow layer */}
+            <div
+              className="absolute inset-[15%] rounded-full blur-3xl opacity-40 transition-transform duration-500 ease-out pointer-events-none"
+              style={{
+                background: "radial-gradient(circle, hsl(42 78% 55% / 0.5), transparent 70%)",
+                transform: `translate(${-parallax.x * 0.4}px, ${-parallax.y * 0.4}px)`,
               }}
             />
             {/* Main image with parallax */}
             <img
               src={slide.image}
               alt={slide.highlight}
-              className="w-full h-auto object-contain drop-shadow-2xl relative z-10 transition-transform duration-200 ease-out"
-              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.02)` }}
+              className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_20px_40px_hsl(42_78%_55%/0.25)] z-10 transition-transform duration-300 ease-out"
+              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)` }}
               width={768}
-              height={1024}
+              height={768}
             />
-            {/* Floating sparkle accents with deeper parallax */}
+            {/* Floating sparkle accents */}
             <div
-              className="absolute top-[15%] right-[10%] w-2 h-2 rounded-full z-20 transition-transform duration-300 ease-out"
+              className="absolute top-[12%] right-[14%] w-2 h-2 rounded-full z-20 transition-transform duration-500 ease-out"
               style={{
-                background: "hsl(42 78% 55%)",
-                boxShadow: "0 0 8px hsl(42 78% 55% / 0.6)",
+                background: "hsl(42 90% 65%)",
+                boxShadow: "0 0 12px hsl(42 78% 55% / 0.8), 0 0 24px hsl(42 78% 55% / 0.4)",
                 transform: `translate(${parallax.x * 2}px, ${parallax.y * 2}px)`,
-                animation: "sparkle-twinkle 2s ease-in-out infinite",
+                animation: "sparkle-twinkle 2.5s ease-in-out infinite",
               }}
             />
             <div
-              className="absolute top-[25%] left-[8%] w-1.5 h-1.5 rounded-full z-20 transition-transform duration-300 ease-out"
+              className="absolute top-[28%] left-[10%] w-1.5 h-1.5 rounded-full z-20 transition-transform duration-500 ease-out"
               style={{
-                background: "hsl(42 78% 65%)",
-                boxShadow: "0 0 6px hsl(42 78% 55% / 0.4)",
+                background: "hsl(42 90% 70%)",
+                boxShadow: "0 0 8px hsl(42 78% 55% / 0.6)",
                 transform: `translate(${parallax.x * 1.5}px, ${parallax.y * 1.5}px)`,
-                animation: "sparkle-twinkle 2.5s ease-in-out 0.5s infinite",
+                animation: "sparkle-twinkle 3s ease-in-out 0.6s infinite",
+              }}
+            />
+            <div
+              className="absolute bottom-[20%] right-[8%] w-1 h-1 rounded-full z-20 transition-transform duration-500 ease-out"
+              style={{
+                background: "hsl(42 90% 75%)",
+                boxShadow: "0 0 6px hsl(42 78% 55% / 0.5)",
+                transform: `translate(${parallax.x * 1.8}px, ${parallax.y * 1.8}px)`,
+                animation: "sparkle-twinkle 2.8s ease-in-out 1.2s infinite",
               }}
             />
           </div>
         </div>
+
+        {/* Text section */}
+        <div
+          key={`text-${current}`}
+          className={`px-8 pt-2 pb-6 ${animating ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"} transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+        >
+          <h2 className="text-[32px] font-black leading-[1.05] tracking-tight whitespace-pre-line">
+            {slide.title}{" "}
+            <span
+              className="bg-clip-text text-transparent inline-block"
+              style={{
+                backgroundImage: "linear-gradient(135deg, hsl(42 95% 70%) 0%, hsl(42 78% 55%) 50%, hsl(38 80% 50%) 100%)",
+                filter: "drop-shadow(0 2px 12px hsl(42 78% 55% / 0.3))",
+              }}
+            >
+              {slide.highlight}
+            </span>
+          </h2>
+          <p className="text-[14px] text-muted-foreground/70 mt-4 leading-relaxed max-w-[320px] font-light">
+            {slide.subtitle}
+          </p>
+        </div>
       </div>
 
       {/* Bottom controls */}
-      <div className="px-6 pb-8 pt-4 relative z-20" style={{ background: "linear-gradient(to top, hsl(var(--background)) 60%, transparent)" }}>
+      <div className="px-6 pb-8 pt-4 relative z-20" style={{ background: "linear-gradient(to top, hsl(var(--background)) 70%, transparent)" }}>
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center gap-2 mb-7">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className={`h-[5px] rounded-full transition-all duration-500 ${
+              className={`h-[6px] rounded-full transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 i === current
-                  ? "w-8 gradient-primary shadow-[0_0_8px_hsl(42_78%_55%/0.3)]"
+                  ? "w-10 gradient-primary shadow-[0_0_16px_hsl(42_78%_55%/0.6)]"
                   : i < current
-                    ? "w-3 bg-primary/30"
-                    : "w-[5px] bg-white/[0.08]"
+                    ? "w-2 bg-primary/40"
+                    : "w-2 bg-white/[0.1]"
               }`}
             />
           ))}
@@ -307,19 +343,22 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
         {/* CTA Button */}
         <button
           onClick={next}
-          className="w-full h-[54px] rounded-[16px] gradient-primary text-primary-foreground font-bold text-[14px] transition-all duration-200 active:scale-[0.97] flex items-center justify-center gap-2 shadow-[0_8px_32px_hsl(42_78%_55%/0.25)]"
+          className="group relative w-full h-[58px] rounded-[18px] gradient-primary text-primary-foreground font-bold text-[15px] transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-2 shadow-[0_12px_40px_hsl(42_78%_55%/0.35),inset_0_1px_0_hsl(45_100%_85%/0.4)] overflow-hidden"
         >
-          {current === slides.length - 1 ? (
-            <>Get Started <Sparkles className="w-4 h-4" /></>
-          ) : (
-            <>Continue <ChevronRight className="w-4 h-4" /></>
-          )}
+          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <span className="relative z-10 flex items-center gap-2">
+            {current === slides.length - 1 ? (
+              <>Get Started <Sparkles className="w-4 h-4" /></>
+            ) : (
+              <>Continue <ChevronRight className="w-4 h-4" /></>
+            )}
+          </span>
         </button>
 
         {/* Secondary link */}
         <button
           onClick={onComplete}
-          className="w-full mt-3 text-[11px] text-muted-foreground/30 hover:text-foreground/50 transition-colors py-2"
+          className="w-full mt-4 text-[12px] text-muted-foreground/40 hover:text-foreground/60 transition-colors py-2 font-medium"
         >
           I already have an account
         </button>
