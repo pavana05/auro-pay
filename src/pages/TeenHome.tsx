@@ -443,20 +443,26 @@ const TeenHome = () => {
                           {fmt(animBal)}
                         </motion.h2>
                       ) : (
-                        <motion.h2
+                        <motion.div
                           key="hidden"
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
-                          className="text-[34px] font-extrabold tracking-[4px] leading-none select-none"
-                          style={{
-                            background: "linear-gradient(90deg, hsl(42 78% 55% / 0.2), hsl(42 78% 55% / 0.06), hsl(42 78% 55% / 0.2))",
-                            backgroundSize: "200% 100%", animation: "shimmer-card 2s linear infinite",
-                            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                          }}
+                          className="flex items-end gap-1.5 leading-none select-none h-[44px]"
+                          aria-label="Balance hidden"
                         >
-                          •••••
-                        </motion.h2>
+                          <span className="text-[40px] font-bold text-primary/35 mr-1">₹</span>
+                          {[0, 1, 2, 3, 4, 5].map((i) => (
+                            <span
+                              key={i}
+                              className="w-2.5 h-2.5 rounded-full bg-primary/40"
+                              style={{
+                                animation: `dot-pulse 1.4s ease-in-out ${i * 0.12}s infinite`,
+                                boxShadow: "0 0 6px hsl(42 78% 55% / 0.4)",
+                              }}
+                            />
+                          ))}
+                        </motion.div>
                       )}
                     </AnimatePresence>
                     <div className="w-8 h-8 rounded-[10px] bg-muted/20 flex items-center justify-center backdrop-blur-sm border border-border/20">
