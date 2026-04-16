@@ -446,3 +446,54 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Admin Premium Animations */
+@keyframes admin-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes admin-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.03; }
+  33% { transform: translate(20px, -30px) scale(1.1); opacity: 0.06; }
+  66% { transform: translate(-15px, 15px) scale(0.9); opacity: 0.04; }
+}
+
+@keyframes admin-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px hsl(42 78% 55% / 0.1); }
+  50% { box-shadow: 0 0 20px hsl(42 78% 55% / 0.25), 0 0 40px hsl(42 78% 55% / 0.1); }
+}
+
+@keyframes admin-border-glow {
+  0%, 100% { border-color: hsl(42 78% 55% / 0.08); }
+  50% { border-color: hsl(42 78% 55% / 0.2); }
+}
+
+@keyframes admin-ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes admin-slide-up {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes admin-count-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes admin-orb-drift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(60px, -40px) rotate(90deg); }
+  50% { transform: translate(-30px, -80px) rotate(180deg); }
+  75% { transform: translate(-60px, 20px) rotate(270deg); }
+  100% { transform: translate(0, 0) rotate(360deg); }
+}
+
+@keyframes admin-lock-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
