@@ -226,8 +226,7 @@ const Notifications = () => {
 
   const dismissNotification = useCallback(async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-    // Try to delete, but don't error out if RLS prevents it
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    await supabase.from("notifications").delete().eq("id", id);
   }, []);
 
   const clearAll = useCallback(async () => {
