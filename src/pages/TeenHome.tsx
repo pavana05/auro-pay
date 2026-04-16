@@ -946,7 +946,7 @@ const TeenHome = () => {
                 View All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
+            <div ref={rewardsScrollRef} className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide scroll-smooth">
               {rewards.map((r, i) => (
                 <motion.button
                   key={r.id}
@@ -1073,6 +1073,10 @@ const TeenHome = () => {
         @keyframes glow-pulse {
           0%, 100% { opacity: 1; box-shadow: 0 0 10px hsl(42 78% 55% / 0.8); }
           50% { opacity: 0.6; box-shadow: 0 0 4px hsl(42 78% 55% / 0.4); }
+        }
+        @keyframes dot-pulse {
+          0%, 100% { opacity: 0.35; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.15); }
         }
       `}</style>
     </div>
