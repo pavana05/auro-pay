@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import AdminCommandPalette from "@/components/admin/AdminCommandPalette";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, TrendingUp,
   Clock, RefreshCw, Zap, Download,
@@ -12,6 +13,7 @@ import {
   Signal, Wifi, MonitorSmartphone,
   Calendar, Layers, Rocket, Timer,
   CheckCircle2, XCircle, Gauge,
+  Trophy, Search, Command,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell,
@@ -20,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCountUp } from "@/hooks/useCountUp";
+import { toast } from "sonner";
 
 /* ── Semantic color refs (gold theme) ── */
 const C = {
