@@ -7,11 +7,12 @@ import {
   ArrowUpRight, ArrowDownRight, Crown,
   DollarSign, UserPlus, BarChart3, Server,
   Activity, Globe, Shield, Database, Cpu,
-  CheckCircle2, Sparkles,
+  CheckCircle2, Sparkles, MoreVertical, Filter,
+  Eye, Percent, CreditCard, PiggyBank,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell,
-  Tooltip, AreaChart, Area,
+  Tooltip, AreaChart, Area, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 
@@ -56,6 +57,11 @@ interface TopMerchant {
 }
 
 const CHART_COLORS = ["#c8952e", "#d4a843", "#a67a1e", "#e8c56d", "#8B7355"];
+const STATUS_COLORS = {
+  success: { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
+  failed: { bg: "bg-rose-500/10", text: "text-rose-400", dot: "bg-rose-400" },
+  pending: { bg: "bg-amber-500/10", text: "text-amber-400", dot: "bg-amber-400" },
+};
 
 const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) => {
   const [display, setDisplay] = useState(0);
@@ -75,14 +81,55 @@ const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: number; p
   return <span>{prefix}{display.toLocaleString("en-IN")}{suffix}</span>;
 };
 
-const GlassCard = ({ children, className = "", delay = 0, hover = true }: { children: React.ReactNode; className?: string; delay?: number; hover?: boolean }) => (
+/* Premium Widget Card - inspired by reference design */
+const WidgetCard = ({
+  children,
+  className = "",
+  delay = 0,
+  noPadding = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  noPadding?: boolean;
+}) => (
   <div
-    className={`relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm overflow-hidden group transition-all duration-400 ${hover ? "hover:border-primary/15 hover:shadow-[0_8px_40px_hsl(42_78%_55%/0.06)]" : ""} ${className}`}
+    className={`relative rounded-[20px] border border-white/[0.06] bg-[hsl(220_18%_11%)] overflow-hidden group transition-all duration-500 hover:border-primary/15 hover:shadow-[0_8px_40px_hsl(42_78%_55%/0.06)] ${!noPadding ? "p-5" : ""} ${className}`}
     style={{ animation: `admin-slide-up 0.5s ease-out ${delay}ms both` }}
   >
-    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+    {/* Top shimmer line */}
+    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     {children}
+  </div>
+);
+
+const WidgetHeader = ({
+  icon: Icon,
+  title,
+  action,
+  actionLabel,
+}: {
+  icon: React.ElementType;
+  title: string;
+  action?: () => void;
+  actionLabel?: string;
+}) => (
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+      </div>
+      {title}
+    </h3>
+    {action ? (
+      <button onClick={action} className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors flex items-center gap-1">
+        {actionLabel || "View All"} <ArrowUpRight className="w-3 h-3" />
+      </button>
+    ) : (
+      <button className="p-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">
+        <MoreVertical className="w-3.5 h-3.5 text-muted-foreground/40" />
+      </button>
+    )}
   </div>
 );
 
@@ -104,6 +151,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const [volumePeriod, setVolumePeriod] = useState<"Week" | "Month">("Week");
 
   const fetchStats = async () => {
     const today = new Date().toISOString().split("T")[0];
@@ -196,35 +244,8 @@ const AdminDashboard = () => {
   const handleRefresh = async () => { setRefreshing(true); await fetchStats(); setRefreshing(false); };
   const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
-  const statCards = [
-    { label: "Total Users", value: stats.totalUsers, icon: Users, glow: "hsl(42 78% 55%)", sub: `+${stats.newUsersToday} today`, trend: "+12%", trendUp: true },
-    { label: "Txns Today", value: stats.totalTransactionsToday, icon: ArrowLeftRight, glow: "hsl(36 60% 48%)", sub: `${stats.totalTransactionsAll} total`, trend: "+8%", trendUp: true },
-    { label: "Volume Today", value: formatAmount(stats.totalVolumeToday), icon: DollarSign, glow: "hsl(152 60% 45%)", sub: "processed", trend: "+15%", trendUp: true },
-    { label: "Pending KYC", value: stats.pendingKyc, icon: ShieldCheck, glow: "hsl(38 92% 50%)", sub: "awaiting review", trend: "", trendUp: false },
-    { label: "System Balance", value: formatAmount(stats.totalBalance), icon: Wallet, glow: "hsl(42 78% 55%)", sub: `${stats.activeWallets} wallets`, trend: "+5%", trendUp: true },
-    { label: "Success Rate", value: `${stats.successRate}%`, icon: BarChart3, glow: "hsl(152 60% 45%)", sub: "payment success", trend: "+2%", trendUp: true },
-  ];
-
-  const quickActions = [
-    { label: "Review KYC", icon: ShieldCheck, path: "/admin/kyc", count: stats.pendingKyc, glow: "hsl(38 92% 50%)", desc: "Pending verifications" },
-    { label: "Manage Roles", icon: Crown, path: "/admin/roles", glow: "hsl(42 78% 55%)", desc: "User permissions" },
-    { label: "View Wallets", icon: Wallet, path: "/admin/wallets", count: stats.activeWallets + stats.frozenWallets, glow: "hsl(36 60% 48%)", desc: "All user wallets" },
-    { label: "Send Alert", icon: Zap, path: "/admin/notifications", glow: "hsl(152 60% 45%)", desc: "Push notifications" },
-    { label: "Transactions", icon: ArrowLeftRight, path: "/admin/transactions", glow: "hsl(42 78% 55%)", desc: "All transactions" },
-    { label: "User Mgmt", icon: Users, path: "/admin/users", glow: "hsl(36 60% 48%)", desc: "Manage users" },
-  ];
-
-  const systemHealth = [
-    { label: "Database", status: "Operational", icon: Database, ok: true },
-    { label: "Auth Service", status: "Operational", icon: Shield, ok: true },
-    { label: "Payment Gateway", status: "Active", icon: Globe, ok: true },
-    { label: "KYC Service", status: stats.pendingKyc > 5 ? "Backlog" : "Normal", icon: Cpu, ok: stats.pendingKyc <= 5 },
-    { label: "Wallets", status: stats.frozenWallets > 0 ? `${stats.frozenWallets} Frozen` : "All Active", icon: Wallet, ok: stats.frozenWallets === 0 },
-    { label: "API Gateway", status: "Running", icon: Server, ok: true },
-  ];
-
   const tooltipStyle = {
-    background: "hsl(220 15% 8% / 0.95)",
+    background: "hsl(220 18% 11% / 0.98)",
     border: "1px solid rgba(200,149,46,0.15)",
     borderRadius: 14,
     color: "#f5edd6",
@@ -233,13 +254,24 @@ const AdminDashboard = () => {
     backdropFilter: "blur(12px)",
   };
 
+  /* Revenue split data */
+  const receivedAmount = stats.totalVolumeToday;
+  const orderedAmount = stats.totalBalance;
+
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-3 sm:p-4 lg:p-6 space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="h-28 sm:h-36 rounded-2xl bg-white/[0.02] border border-white/[0.04] relative overflow-hidden">
+        <div className="p-4 lg:p-6 space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-32 rounded-[20px] bg-[hsl(220_18%_11%)] border border-white/[0.04] relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent" style={{ animation: "admin-shimmer 1.5s linear infinite", backgroundSize: "200% 100%" }} />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="h-64 rounded-[20px] bg-[hsl(220_18%_11%)] border border-white/[0.04] relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent" style={{ animation: "admin-shimmer 1.5s linear infinite", backgroundSize: "200% 100%" }} />
               </div>
             ))}
@@ -251,430 +283,439 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6 relative">
-        {/* Ambient background orbs */}
-        <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full bg-primary/[0.015] blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full bg-primary/[0.01] blur-[120px] pointer-events-none" />
+      <div className="p-4 lg:p-6 space-y-5 relative min-h-full">
+        {/* Ambient glow */}
+        <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full bg-primary/[0.015] blur-[200px] pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10" style={{ animation: "admin-slide-up 0.4s ease-out" }}>
+        {/* ── Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ animation: "admin-slide-up 0.4s ease-out" }}>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 text-primary" />
-              Command Center
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-4.5 h-4.5 text-primary" />
+              </div>
+              Your Dashboard
             </h1>
-            <p className="text-[10px] sm:text-xs text-muted-foreground/60 flex items-center gap-1.5 mt-1">
+            <p className="text-xs text-muted-foreground/50 mt-1 flex items-center gap-1.5">
               <Clock className="w-3 h-3" />
-              Last synced: {lastRefresh.toLocaleTimeString("en-IN")}
+              Real-time overview • Last synced {lastRefresh.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className={`p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/20 hover:shadow-[0_0_20px_hsl(42_78%_55%/0.08)] transition-all duration-300 active:scale-90 ${refreshing ? "animate-spin" : ""}`}
+              className={`p-2.5 rounded-xl bg-[hsl(220_18%_11%)] border border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/20 transition-all duration-300 active:scale-90 ${refreshing ? "animate-spin" : ""}`}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
+            <button className="p-2.5 rounded-xl bg-[hsl(220_18%_11%)] border border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/20 transition-all duration-300">
+              <Filter className="w-4 h-4" />
+            </button>
             <button
               onClick={() => navigate("/admin/users")}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs sm:text-sm font-medium hover:bg-white/[0.06] hover:border-primary/15 transition-all duration-300 active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/15 transition-all duration-300 active:scale-95"
             >
-              <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export</span>
+              <Download className="w-3.5 h-3.5" /> Export
             </button>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-          {statCards.map((s, i) => (
-            <GlassCard key={s.label} delay={i * 60} className="p-3 sm:p-4">
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center relative"
-                  style={{ background: `${s.glow.replace(')', ' / 0.1)')}` }}
-                >
-                  <s.icon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" style={{ color: s.glow, filter: `drop-shadow(0 0 6px ${s.glow.replace(')', ' / 0.4)')})` }} />
-                  <div className="absolute inset-0 rounded-lg sm:rounded-xl" style={{ boxShadow: `inset 0 0 12px ${s.glow.replace(')', ' / 0.08)')}` }} />
-                </div>
-                {s.trend && (
-                  <span className={`text-[9px] sm:text-[10px] font-semibold flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded-full ${s.trendUp ? "text-success bg-success/10" : "text-destructive bg-destructive/10"}`}>
-                    {s.trendUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
-                    {s.trend}
-                  </span>
-                )}
-              </div>
-              <p className="text-base sm:text-xl font-bold tracking-tight">{typeof s.value === "number" ? <AnimatedCounter value={s.value} /> : s.value}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1 font-semibold uppercase tracking-wider">{s.label}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground/50 mt-0.5">{s.sub}</p>
-            </GlassCard>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div style={{ animation: "admin-slide-up 0.5s ease-out 200ms both" }}>
-          <h3 className="text-[10px] sm:text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2 sm:mb-3 flex items-center gap-2">
-            <Zap className="w-3 h-3 text-primary" /> Quick Actions
-          </h3>
-          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {quickActions.map((a, i) => (
+        {/* ── Row 1: AI Assistant + Total Volume + Revenue ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* AI Assistant Card - dark premium */}
+          <WidgetCard className="lg:col-span-4 bg-gradient-to-br from-[hsl(220_20%_8%)] to-[hsl(220_18%_12%)] relative overflow-hidden" delay={50} noPadding>
+            <div className="p-5 relative z-10">
+              <h3 className="text-lg font-bold text-foreground mb-1.5">AI Assistant</h3>
+              <p className="text-xs text-muted-foreground/60 leading-relaxed mb-6">
+                Analyze user activity, revenue trends, and system health with AI-powered insights.
+              </p>
               <button
-                key={a.label}
-                onClick={() => navigate(a.path)}
-                className="group p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-primary/20 text-left transition-all duration-300 hover:shadow-[0_8px_30px_hsl(42_78%_55%/0.06)] active:scale-[0.96] relative overflow-hidden"
-                style={{ animation: `admin-slide-up 0.5s ease-out ${250 + i * 40}ms both` }}
+                onClick={() => navigate("/admin/analytics")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/20 transition-all duration-300 group"
               >
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <div className="flex items-center justify-between mb-1.5 sm:mb-2.5">
-                  <div
-                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                    style={{ background: `${a.glow.replace(')', ' / 0.1)')}` }}
-                  >
-                    <a.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: a.glow }} />
-                  </div>
-                  <ArrowUpRight className="w-3 h-3 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 hidden sm:block" />
-                </div>
-                <p className="text-[10px] sm:text-xs font-semibold mt-1 truncate">{a.label}</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 hidden sm:block">{a.desc}</p>
-                {a.count !== undefined && a.count > 0 && (
-                  <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2 sm:px-2.5 py-0.5 w-fit border border-primary/10">
-                    {a.count}
-                  </div>
-                )}
+                Analyze data
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
+            {/* Decorative sphere */}
+            <div className="absolute bottom-0 right-0 w-40 h-40 opacity-30">
+              <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-transparent" style={{ animation: "admin-glow-pulse 4s ease-in-out infinite" }} />
+              <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/20 to-transparent" style={{ animation: "admin-glow-pulse 4s ease-in-out infinite 1s" }} />
+            </div>
+          </WidgetCard>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <GlassCard delay={350} className="p-3 sm:p-5">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Daily Volume
-              </h3>
-              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
+          {/* Total Volume Chart */}
+          <WidgetCard className="lg:col-span-4" delay={100}>
+            <div className="flex items-center justify-between mb-4">
+              <WidgetHeader icon={BarChart3} title="Total Volume" />
+              <div className="flex items-center gap-1 bg-white/[0.03] rounded-lg border border-white/[0.06] p-0.5">
+                {(["Week", "Month"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setVolumePeriod(p)}
+                    className={`px-3 py-1 rounded-md text-[10px] font-medium transition-all ${volumePeriod === p ? "bg-primary/15 text-primary" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={dailyVolume}>
+              <BarChart data={dailyVolume} barCategoryGap="20%">
                 <defs>
-                  <linearGradient id="barGradAdmin" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="barGradAdmin2" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#c8952e" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#c8952e" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#c8952e" stopOpacity={0.3} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="volume" fill="url(#barGradAdmin)" radius={[6, 6, 0, 0]} />
+                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "hsl(42 78% 55% / 0.04)" }} />
+                <Bar dataKey="volume" fill="url(#barGradAdmin2)" radius={[8, 8, 4, 4]} />
               </BarChart>
             </ResponsiveContainer>
-          </GlassCard>
+          </WidgetCard>
 
-          <GlassCard delay={400} className="p-3 sm:p-5">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <UserPlus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> User Growth
-              </h3>
-              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
+          {/* Revenue Split */}
+          <WidgetCard className="lg:col-span-4" delay={150}>
+            <WidgetHeader icon={DollarSign} title="Revenue Summary" />
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] text-emerald-400 font-semibold">↑ 24%</span>
+                </div>
+                <p className="text-lg font-bold">{formatAmount(receivedAmount)}</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5 flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" /> Today's Volume
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <TrendingUp className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] text-primary font-semibold">↑ 8%</span>
+                </div>
+                <p className="text-lg font-bold">{formatAmount(orderedAmount)}</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5 flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> System Balance
+                </p>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={80}>
               <AreaChart data={userGrowth}>
                 <defs>
-                  <linearGradient id="userGradAdmin2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c8952e" stopOpacity={0.3} />
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#c8952e" stopOpacity={0.2} />
                     <stop offset="100%" stopColor="#c8952e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} allowDecimals={false} width={25} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="users" stroke="#c8952e" fill="url(#userGradAdmin2)" strokeWidth={2} />
+                <Area type="monotone" dataKey="users" stroke="#c8952e" fill="url(#revenueGrad)" strokeWidth={2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
-          </GlassCard>
-
-          <GlassCard delay={450} className="p-3 sm:p-5 md:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Distribution
-              </h3>
-              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">By role</span>
-            </div>
-            <ResponsiveContainer width="100%" height={130}>
-              <PieChart>
-                <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
-                  {roleDistribution.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-2">
-              {roleDistribution.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ background: CHART_COLORS[i % CHART_COLORS.length], color: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
+          </WidgetCard>
         </div>
 
-        {/* System Health */}
-        <div style={{ animation: "admin-slide-up 0.5s ease-out 500ms both" }}>
-          <h3 className="text-[10px] sm:text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2 sm:mb-3 flex items-center gap-2">
-            <Shield className="w-3 h-3 text-success" /> System Health
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {systemHealth.map((h, i) => (
-              <div
-                key={h.label}
-                className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.08] transition-all duration-300"
-                style={{ animation: `admin-slide-up 0.4s ease-out ${550 + i * 40}ms both` }}
-              >
-                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center relative shrink-0 ${h.ok ? "bg-success/10" : "bg-warning/10"}`}>
-                  <h.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${h.ok ? "text-success" : "text-warning"}`} />
-                  <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${h.ok ? "bg-success" : "bg-warning"}`}>
-                    <div className={`absolute inset-0 rounded-full ${h.ok ? "bg-success" : "bg-warning"}`} style={{ animation: "admin-ripple 2.5s ease-out infinite" }} />
-                  </div>
+        {/* ── Row 2: Stat Cards ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { label: "Total Users", value: stats.totalUsers, icon: Users, trend: `+${stats.newUsersToday}`, trendUp: true, color: "text-primary" },
+            { label: "Txns Today", value: stats.totalTransactionsToday, icon: ArrowLeftRight, trend: "+8%", trendUp: true, color: "text-primary" },
+            { label: "Active Wallets", value: stats.activeWallets, icon: Wallet, trend: `${stats.frozenWallets} frozen`, trendUp: stats.frozenWallets === 0, color: "text-emerald-400" },
+            { label: "Pending KYC", value: stats.pendingKyc, icon: ShieldCheck, trend: "review", trendUp: false, color: "text-amber-400" },
+            { label: "Success Rate", value: `${stats.successRate}%`, icon: Percent, trend: "+2%", trendUp: true, color: "text-emerald-400" },
+            { label: "Avg Balance", value: formatAmount(stats.avgBalance), icon: PiggyBank, trend: "+5%", trendUp: true, color: "text-primary" },
+          ].map((s, i) => (
+            <WidgetCard key={s.label} delay={200 + i * 40}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center">
+                  <s.icon className={`w-4 h-4 ${s.color}`} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs font-medium truncate">{h.label}</p>
-                  <p className={`text-[9px] sm:text-[10px] font-semibold ${h.ok ? "text-success" : "text-warning"}`}>{h.status}</p>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
+                  {s.trend}
+                </span>
+              </div>
+              <p className="text-xl font-bold tracking-tight">
+                {typeof s.value === "number" ? <AnimatedCounter value={s.value} /> : s.value}
+              </p>
+              <p className="text-[10px] text-muted-foreground/50 mt-1 font-medium">{s.label}</p>
+            </WidgetCard>
+          ))}
+        </div>
+
+        {/* ── Row 3: Recent Transactions + Growth + Top Merchants ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Recent Transactions */}
+          <WidgetCard className="lg:col-span-5" delay={400}>
+            <WidgetHeader icon={Activity} title="Recent Transactions" action={() => navigate("/admin/transactions")} actionLabel="View All" />
+            <div className="space-y-1">
+              {liveTxns.length === 0 ? (
+                <p className="text-sm text-muted-foreground/40 text-center py-10">No transactions yet</p>
+              ) : (
+                liveTxns.slice(0, 6).map((tx, i) => {
+                  const statusKey = (tx.status as keyof typeof STATUS_COLORS) || "pending";
+                  const sc = STATUS_COLORS[statusKey] || STATUS_COLORS.pending;
+                  const isNew = tx.created_at && (Date.now() - new Date(tx.created_at).getTime()) < 3600000;
+                  return (
+                    <div
+                      key={tx.id}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-all duration-300"
+                      style={{ animation: `admin-slide-up 0.3s ease-out ${450 + i * 40}ms both` }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0 relative">
+                        {tx.type === "credit"
+                          ? <ArrowDownRight className="w-4 h-4 text-emerald-400" />
+                          : <ArrowUpRight className="w-4 h-4 text-rose-400" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold truncate">{tx.merchant_name || (tx.type === "credit" ? "Credit" : "Debit")}</p>
+                          {isNew && (
+                            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">New</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/40">
+                          {tx.created_at ? new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={`text-sm font-bold ${tx.type === "credit" ? "text-emerald-400" : "text-foreground"}`}>
+                          {tx.type === "credit" ? "+" : "-"}{formatAmount(tx.amount)}
+                        </p>
+                        <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </WidgetCard>
+
+          {/* Growth Donut */}
+          <WidgetCard className="lg:col-span-3" delay={450}>
+            <WidgetHeader icon={TrendingUp} title="Growth" />
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <ResponsiveContainer width={180} height={180}>
+                  <PieChart>
+                    <Pie
+                      data={roleDistribution}
+                      cx="50%" cy="50%"
+                      innerRadius={55} outerRadius={78}
+                      dataKey="value"
+                      paddingAngle={4}
+                      strokeWidth={0}
+                    >
+                      {roleDistribution.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-2xl font-bold text-primary">
+                    +{stats.successRate > 0 ? stats.successRate : 73}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/50">Growth rate</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Key Metrics + Transaction Mix */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          <GlassCard delay={600} className="p-3 sm:p-5">
-            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-              <BarChart3 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Key Metrics
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
-              {[
-                { label: "Teens", value: stats.teens, icon: Users, glow: "hsl(42 78% 55%)" },
-                { label: "Parents", value: stats.parents, icon: Users, glow: "hsl(36 60% 48%)" },
-                { label: "Frozen Wallets", value: stats.frozenWallets, icon: AlertTriangle, glow: "hsl(38 92% 50%)" },
-                { label: "Success Rate", value: `${stats.successRate}%`, icon: CheckCircle2, glow: "hsl(152 60% 45%)" },
-                { label: "Verified KYC", value: stats.verifiedKyc, icon: ShieldCheck, glow: "hsl(152 60% 45%)" },
-                { label: "Avg Balance", value: formatAmount(stats.avgBalance), icon: DollarSign, glow: "hsl(42 78% 55%)" },
-              ].map(m => (
-                <div key={m.label} className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5">
-                    <m.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: m.glow }} />
-                    <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 font-medium truncate">{m.label}</p>
-                  </div>
-                  <p className="text-sm sm:text-lg font-bold" style={{ color: m.glow }}>{m.value}</p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-
-          <GlassCard delay={650} className="p-3 sm:p-5">
-            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-              <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Transaction Mix
-            </h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={txTypeData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={2}>
-                  {txTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-1">
-              {txTypeData.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Recent Signups & Top Merchants */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          <GlassCard delay={700} className="p-3 sm:p-5">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <UserPlus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Recent Signups
-              </h3>
-              <button onClick={() => navigate("/admin/users")} className="text-[9px] sm:text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
-                View All <ArrowUpRight className="w-3 h-3" />
-              </button>
-            </div>
-            {recentSignups.length === 0 ? (
-              <p className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">No signups yet</p>
-            ) : (
-              <div className="space-y-0.5 sm:space-y-1">
-                {recentSignups.map((u, i) => (
-                  <div
-                    key={u.id}
-                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/[0.02] transition-all duration-300 group"
-                    style={{ animation: `admin-slide-up 0.4s ease-out ${750 + i * 60}ms both` }}
-                  >
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.25)] relative shrink-0">
-                      {u.full_name?.charAt(0)?.toUpperCase() || "?"}
-                      {u.created_at && new Date(u.created_at).toDateString() === new Date().toDateString() && (
-                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-success text-[6px] sm:text-[7px] font-bold text-white flex items-center justify-center border border-card">N</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
-                      <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 capitalize">{u.role || "user"}</p>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 hidden sm:inline">
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
-                      </span>
-                      <ArrowUpRight className="w-3 h-3 text-muted-foreground/20 group-hover:text-primary transition-colors" />
-                    </div>
+              <div className="flex items-center gap-4 mt-3">
+                {roleDistribution.map((d, i) => (
+                  <div key={d.name} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="text-[10px] text-muted-foreground/60">{d.name}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </GlassCard>
+            </div>
+          </WidgetCard>
 
-          <GlassCard delay={750} className="p-3 sm:p-5">
-            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-              <Crown className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Top Merchants
-            </h3>
+          {/* Top Merchants */}
+          <WidgetCard className="lg:col-span-4" delay={500}>
+            <WidgetHeader icon={Crown} title="Top Merchants" action={() => navigate("/admin/transactions")} actionLabel="View All" />
             {topMerchants.length === 0 ? (
-              <p className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">No merchant data yet</p>
+              <p className="text-sm text-muted-foreground/40 text-center py-10">No merchant data yet</p>
             ) : (
-              <div className="space-y-1.5 sm:space-y-2">
+              <div className="space-y-3">
                 {topMerchants.map((m, i) => {
                   const maxCount = topMerchants[0]?.count || 1;
                   const pct = Math.round((m.count / maxCount) * 100);
                   return (
-                    <div key={m.name} className="p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/[0.02] transition-all duration-300 relative overflow-hidden" style={{ animation: `admin-slide-up 0.4s ease-out ${800 + i * 60}ms both` }}>
-                      <div className="absolute inset-0 rounded-lg sm:rounded-xl overflow-hidden pointer-events-none">
-                        <div className="absolute top-0 left-0 bottom-0 bg-primary/[0.04] transition-all duration-700" style={{ width: `${pct}%` }} />
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-3 relative z-10">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg gradient-primary flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.2)] shrink-0">
-                          #{i + 1}
+                    <div key={m.name} className="flex items-center gap-3" style={{ animation: `admin-slide-up 0.3s ease-out ${550 + i * 40}ms both` }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div>
+                            <p className="text-sm font-medium truncate">{m.name}</p>
+                            <p className="text-[10px] text-muted-foreground/40">{m.count} transactions</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-primary">{formatAmount(m.volume)}</p>
+                            <p className="text-[9px] text-emerald-400 font-semibold">↑ {Math.round(pct * 0.4)}%</p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm font-medium truncate">{m.name}</p>
-                          <p className="text-[9px] sm:text-[10px] text-muted-foreground/50">{m.count} txns</p>
+                        <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-700"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-primary shrink-0">{formatAmount(m.volume)}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </GlassCard>
+          </WidgetCard>
         </div>
 
-        {/* Live Transaction Feed */}
-        <GlassCard delay={800} className="p-3 sm:p-5">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Live Feed
-              </h3>
-              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-success/[0.08] border border-success/10">
-                <div className="w-1.5 h-1.5 rounded-full bg-success relative">
-                  <div className="absolute inset-0 rounded-full bg-success" style={{ animation: "admin-ripple 2s ease-out infinite" }} />
+        {/* ── Row 4: Quick Actions + System Health ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Quick Actions */}
+          <WidgetCard delay={600}>
+            <WidgetHeader icon={Zap} title="Quick Actions" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { label: "Review KYC", icon: ShieldCheck, path: "/admin/kyc", count: stats.pendingKyc, color: "text-amber-400" },
+                { label: "Manage Roles", icon: Crown, path: "/admin/roles", color: "text-primary" },
+                { label: "View Wallets", icon: Wallet, path: "/admin/wallets", count: stats.activeWallets, color: "text-emerald-400" },
+                { label: "Send Alert", icon: Zap, path: "/admin/notifications", color: "text-sky-400" },
+                { label: "Transactions", icon: ArrowLeftRight, path: "/admin/transactions", color: "text-primary" },
+                { label: "User Mgmt", icon: Users, path: "/admin/users", color: "text-violet-400" },
+              ].map((a, i) => (
+                <button
+                  key={a.label}
+                  onClick={() => navigate(a.path)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/15 hover:bg-white/[0.04] transition-all duration-300 active:scale-[0.97] group text-left"
+                  style={{ animation: `admin-slide-up 0.3s ease-out ${650 + i * 30}ms both` }}
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <a.icon className={`w-4 h-4 ${a.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{a.label}</p>
+                    {a.count !== undefined && a.count > 0 && (
+                      <p className="text-[10px] text-primary font-bold">{a.count}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </WidgetCard>
+
+          {/* System Health */}
+          <WidgetCard delay={650}>
+            <WidgetHeader icon={Shield} title="System Health" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { label: "Database", status: "Operational", icon: Database, ok: true },
+                { label: "Auth Service", status: "Operational", icon: Shield, ok: true },
+                { label: "Payments", status: "Active", icon: Globe, ok: true },
+                { label: "KYC Service", status: stats.pendingKyc > 5 ? "Backlog" : "Normal", icon: Cpu, ok: stats.pendingKyc <= 5 },
+                { label: "Wallets", status: stats.frozenWallets > 0 ? `${stats.frozenWallets} Frozen` : "All Active", icon: Wallet, ok: stats.frozenWallets === 0 },
+                { label: "API Gateway", status: "Running", icon: Server, ok: true },
+              ].map((h, i) => (
+                <div
+                  key={h.label}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] transition-all duration-300"
+                  style={{ animation: `admin-slide-up 0.3s ease-out ${700 + i * 30}ms both` }}
+                >
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${h.ok ? "bg-emerald-500/10" : "bg-amber-500/10"}`}>
+                    <h.icon className={`w-4 h-4 ${h.ok ? "text-emerald-400" : "text-amber-400"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium truncate">{h.label}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${h.ok ? "bg-emerald-400" : "bg-amber-400"}`}>
+                        <div className={`w-full h-full rounded-full ${h.ok ? "bg-emerald-400" : "bg-amber-400"}`} style={{ animation: "admin-ripple 2.5s ease-out infinite" }} />
+                      </div>
+                      <p className={`text-[10px] font-semibold ${h.ok ? "text-emerald-400" : "text-amber-400"}`}>{h.status}</p>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[8px] sm:text-[9px] text-success font-bold tracking-wider">LIVE</span>
+              ))}
+            </div>
+          </WidgetCard>
+        </div>
+
+        {/* ── Row 5: Charts + Recent Signups ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* User Growth */}
+          <WidgetCard className="lg:col-span-4" delay={750}>
+            <WidgetHeader icon={UserPlus} title="User Growth" />
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={userGrowth}>
+                <defs>
+                  <linearGradient id="userGrowthGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#c8952e" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#c8952e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 18% 15%)" />
+                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={25} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="users" stroke="#c8952e" fill="url(#userGrowthGrad)" strokeWidth={2.5} dot={{ r: 3, fill: "#c8952e", strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </WidgetCard>
+
+          {/* Transaction Mix */}
+          <WidgetCard className="lg:col-span-4" delay={800}>
+            <WidgetHeader icon={CreditCard} title="Transaction Mix" />
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width={140} height={140}>
+                <PieChart>
+                  <Pie data={txTypeData} cx="50%" cy="50%" innerRadius={40} outerRadius={62} dataKey="value" paddingAngle={3} strokeWidth={0}>
+                    {txTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2.5 flex-1">
+                {txTypeData.map((d, i) => (
+                  <div key={d.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-xs text-muted-foreground/70">{d.name}</span>
+                    </div>
+                    <span className="text-xs font-bold">{d.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <button onClick={() => navigate("/admin/transactions")} className="text-[9px] sm:text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
-              View All <ArrowUpRight className="w-3 h-3" />
-            </button>
-          </div>
+          </WidgetCard>
 
-          {/* Mobile card view */}
-          <div className="sm:hidden space-y-2">
-            {liveTxns.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground/50 text-xs">No transactions yet</p>
+          {/* Recent Signups */}
+          <WidgetCard className="lg:col-span-4" delay={850}>
+            <WidgetHeader icon={UserPlus} title="Recent Signups" action={() => navigate("/admin/users")} actionLabel="View All" />
+            {recentSignups.length === 0 ? (
+              <p className="text-sm text-muted-foreground/40 text-center py-10">No signups yet</p>
             ) : (
-              liveTxns.slice(0, 10).map((tx, i) => (
-                <div
-                  key={tx.id}
-                  className="p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] flex items-center gap-3"
-                  style={{ animation: `admin-slide-up 0.3s ease-out ${850 + i * 30}ms both` }}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                    {tx.type === "credit" ? <ArrowDownRight className="w-3.5 h-3.5 text-success" /> : <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold">{formatAmount(tx.amount)}</p>
-                    <p className="text-[9px] text-muted-foreground/50 truncate">{tx.merchant_name || tx.type}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full ${
-                      tx.status === "success" ? "bg-success/10 text-success" :
-                      tx.status === "failed" ? "bg-destructive/10 text-destructive" :
-                      "bg-warning/10 text-warning"
-                    }`}>
-                      {tx.status}
-                    </span>
-                    <span className="text-[8px] text-muted-foreground/40">
-                      {tx.created_at ? new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
+              <div className="space-y-1">
+                {recentSignups.map((u, i) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.02] transition-all duration-300"
+                    style={{ animation: `admin-slide-up 0.3s ease-out ${900 + i * 40}ms both` }}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
+                      {u.full_name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
+                      <p className="text-[10px] text-muted-foreground/40 capitalize">{u.role || "user"}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/40 shrink-0">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
                     </span>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-
-          {/* Desktop table view */}
-          <div className="overflow-x-auto hidden sm:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.04]">
-                  {["Time", "Type", "Amount", "Merchant", "Status"].map(h => (
-                    <th key={h} className="text-left py-2.5 sm:py-3 px-2 sm:px-3 text-[9px] sm:text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {liveTxns.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center py-8 sm:py-12 text-muted-foreground/50 text-xs sm:text-sm">No transactions yet</td></tr>
-                ) : (
-                  liveTxns.slice(0, 15).map((tx, i) => (
-                    <tr
-                      key={tx.id}
-                      className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-all duration-300"
-                      style={{ animation: `admin-slide-up 0.3s ease-out ${850 + i * 30}ms both` }}
-                    >
-                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 text-[10px] sm:text-xs text-muted-foreground/60 tabular-nums">
-                        {tx.created_at ? new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
-                      </td>
-                      <td className="py-2.5 sm:py-3 px-2 sm:px-3">
-                        <span className={`text-[10px] sm:text-xs font-semibold capitalize flex items-center gap-1 sm:gap-1.5 ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
-                          <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                            {tx.type === "credit" ? <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
-                          </div>
-                          {tx.type}
-                        </span>
-                      </td>
-                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 font-bold text-xs sm:text-sm">{formatAmount(tx.amount)}</td>
-                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 text-muted-foreground/60 text-[10px] sm:text-xs truncate max-w-[100px] sm:max-w-none">{tx.merchant_name || "—"}</td>
-                      <td className="py-2.5 sm:py-3 px-2 sm:px-3">
-                        <span className={`text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${
-                          tx.status === "success" ? "bg-success/10 text-success shadow-[0_0_8px_hsl(152_60%_45%/0.15)]" :
-                          tx.status === "failed" ? "bg-destructive/10 text-destructive shadow-[0_0_8px_hsl(0_72%_51%/0.15)]" :
-                          "bg-warning/10 text-warning shadow-[0_0_8px_hsl(38_92%_50%/0.15)]"
-                        }`}>
-                          {tx.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </GlassCard>
+          </WidgetCard>
+        </div>
       </div>
     </AdminLayout>
   );
