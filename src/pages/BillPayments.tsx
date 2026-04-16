@@ -102,36 +102,40 @@ const quickCategories = [
 
 const categories = [
   {
-    key: "mobile",
-    label: "Mobile Recharge",
-    desc: "Prepaid & Postpaid plans",
-    image: mobileImg,
-    gradient: "from-primary/20 to-amber-600/10",
-    borderColor: "border-primary/15",
+    key: "mobile", label: "Mobile Recharge", desc: "Prepaid & Postpaid plans",
+    image: mobileImg, gradient: "from-primary/20 to-amber-600/10", borderColor: "border-primary/15",
   },
   {
-    key: "electricity",
-    label: "Electricity",
-    desc: "Pay your electricity bills instantly",
-    image: electricityImg,
-    gradient: "from-amber-500/20 to-yellow-600/10",
-    borderColor: "border-amber-500/15",
+    key: "electricity", label: "Electricity", desc: "Pay your electricity bills instantly",
+    image: electricityImg, gradient: "from-amber-500/20 to-yellow-600/10", borderColor: "border-amber-500/15",
   },
   {
-    key: "water",
-    label: "Water",
-    desc: "Water supply & sewage bills",
-    image: waterImg,
-    gradient: "from-sky-500/20 to-cyan-500/10",
-    borderColor: "border-sky-500/15",
+    key: "water", label: "Water", desc: "Water supply & sewage bills",
+    image: waterImg, gradient: "from-sky-500/20 to-cyan-500/10", borderColor: "border-sky-500/15",
   },
   {
-    key: "broadband",
-    label: "Broadband",
-    desc: "Internet & fiber connections",
-    image: broadbandImg,
-    gradient: "from-violet-500/20 to-purple-500/10",
-    borderColor: "border-violet-500/15",
+    key: "broadband", label: "Broadband", desc: "Internet & fiber connections",
+    image: broadbandImg, gradient: "from-emerald-500/20 to-teal-500/10", borderColor: "border-emerald-500/15",
+  },
+  {
+    key: "gas", label: "Gas Cylinder", desc: "LPG & piped gas payments",
+    image: gasImg, gradient: "from-orange-500/20 to-red-500/10", borderColor: "border-orange-500/15",
+  },
+  {
+    key: "insurance", label: "Insurance", desc: "Life, health & vehicle premiums",
+    image: insuranceImg, gradient: "from-emerald-500/20 to-green-600/10", borderColor: "border-emerald-500/15",
+  },
+  {
+    key: "education", label: "Education Fees", desc: "School, college & coaching fees",
+    image: educationImg, gradient: "from-blue-500/20 to-indigo-500/10", borderColor: "border-blue-500/15",
+  },
+  {
+    key: "creditcard", label: "Credit Card", desc: "Pay credit card bills instantly",
+    image: creditcardImg, gradient: "from-primary/20 to-yellow-500/10", borderColor: "border-primary/15",
+  },
+  {
+    key: "tax", label: "Municipal Tax", desc: "Property, water & municipal taxes",
+    image: taxImg, gradient: "from-fuchsia-500/20 to-pink-500/10", borderColor: "border-fuchsia-500/15",
   },
 ];
 
