@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { Link2, Users, Wallet, Calendar, RefreshCw } from "lucide-react";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", success: "#22c55e", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", success: "#22c55e", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminParentLinks = () => {
   const [links, setLinks] = useState<any[]>([]);
@@ -45,7 +45,7 @@ const AdminParentLinks = () => {
         </div>
 
         <div className="rounded-[16px] overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
-          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(139,92,246,0.08)" }}>
+          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(200,149,46,0.06)" }}>
             {["Parent", "Teen", "Pocket Money", "Frequency", "Created", "Status", "Actions"].map(h => (
               <span key={h} className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textMuted }}>{h}</span>
             ))}
@@ -57,7 +57,7 @@ const AdminParentLinks = () => {
           ) : (
             links.map((l: any) => (
               <div key={l.id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center transition-all duration-200" style={{ borderTop: `1px solid ${C.border}` }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.04)")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(200,149,46,0.04)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <div>

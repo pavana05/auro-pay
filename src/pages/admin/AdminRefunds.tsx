@@ -1,7 +1,7 @@
 import AdminLayout from "@/components/AdminLayout";
 import { RefreshCw } from "lucide-react";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminRefunds = () => (
   <AdminLayout>

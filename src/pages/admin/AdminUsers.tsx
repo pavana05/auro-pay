@@ -504,7 +504,7 @@ const AdminUsers = () => {
       <div className="p-6 space-y-6 relative">
         {/* Ambient */}
         <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-500/[0.02] blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
 
         <div className="flex items-center justify-between relative z-10">
           <div>

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { PiggyBank, Target, TrendingUp } from "lucide-react";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminSavingsOversight = () => {
   const [goals, setGoals] = useState<any[]>([]);
@@ -52,7 +52,7 @@ const AdminSavingsOversight = () => {
         </div>
 
         <div className="rounded-[16px] overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
-          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(139,92,246,0.08)" }}>
+          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(200,149,46,0.06)" }}>
             {["Teen", "Goal", "Target", "Current", "Progress", "Deadline", "Status"].map(h => (
               <span key={h} className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textMuted }}>{h}</span>
             ))}
@@ -72,7 +72,7 @@ const AdminSavingsOversight = () => {
                   <span className="text-sm font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: C.textPrimary }}>₹{((g.target_amount || 0) / 100).toLocaleString("en-IN")}</span>
                   <span className="text-sm font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: C.success }}>₹{((g.current_amount || 0) / 100).toLocaleString("en-IN")}</span>
                   <div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(139,92,246,0.1)" }}>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(200,149,46,0.1)" }}>
                       <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: statusColor }} />
                     </div>
                     <span className="text-[10px]" style={{ color: C.textMuted }}>{pct}%</span>

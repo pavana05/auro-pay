@@ -95,7 +95,7 @@ const AdminKyc = () => {
       <div className="p-6 space-y-6 relative">
         {/* Ambient */}
         <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[20%] left-0 w-[250px] h-[250px] rounded-full bg-teal-500/[0.02] blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[250px] h-[250px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
 
         {/* Confetti overlay */}
         {confettiActive && (
@@ -105,7 +105,7 @@ const AdminKyc = () => {
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `-5%`,
-                  background: ['#c8952e', '#5a9e6f', '#e8c56d', '#e06060', '#60a5fa', '#a78bfa'][i % 6],
+                  background: ['#c8952e', '#5a9e6f', '#e8c56d', '#e06060', '#60a5fa', '#d4a84b'][i % 6],
                   animation: `confetti-fall ${1.5 + Math.random() * 1.5}s ease-out forwards`,
                   animationDelay: `${Math.random() * 0.5}s`,
                 }} />

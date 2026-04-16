@@ -118,7 +118,7 @@ const AdminRoles = () => {
       <div className="p-6 space-y-6 relative">
         {/* Ambient */}
         <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-primary/[0.02] blur-[80px] pointer-events-none" />
 
         <div className="flex items-center justify-between relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>
           <div>

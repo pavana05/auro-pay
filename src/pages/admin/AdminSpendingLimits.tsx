@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { Target, Shield } from "lucide-react";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", secondary: "#a855f7", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminSpendingLimits = () => {
   const [limits, setLimits] = useState<any[]>([]);
@@ -59,7 +59,7 @@ const AdminSpendingLimits = () => {
           ) : (
             <div className="space-y-2">
               {limits.map((l: any) => (
-                <div key={l.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(139,92,246,0.04)" }}>
+                <div key={l.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(200,149,46,0.04)" }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{l.category || "All"}</p>
                     <p className="text-[10px]" style={{ color: C.textMuted }}>Set by {l.parent?.full_name || "System"}</p>

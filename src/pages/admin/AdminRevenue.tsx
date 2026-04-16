@@ -4,7 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { TrendingUp, DollarSign, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", secondary: "#a855f7", success: "#22c55e", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminRevenue = () => {
   const [dailyData, setDailyData] = useState<any[]>([]);
@@ -39,7 +39,7 @@ const AdminRevenue = () => {
   }, []);
 
   const fmt = (v: number) => `₹${(v / 100).toLocaleString("en-IN")}`;
-  const tooltipStyle = { background: "#140a28", border: `1px solid ${C.border}`, borderRadius: 12, color: C.textPrimary, fontSize: 11 };
+  const tooltipStyle = { background: "rgba(18,20,24,0.95)", border: `1px solid ${C.border}`, borderRadius: 12, color: C.textPrimary, fontSize: 11 };
 
   return (
     <AdminLayout>
@@ -73,7 +73,7 @@ const AdminRevenue = () => {
                     <stop offset="100%" stopColor={C.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,92,246,0.06)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.06)" />
                 <XAxis dataKey="day" tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                 <YAxis tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
                 <Tooltip contentStyle={tooltipStyle} />
