@@ -264,15 +264,34 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
                 transform: `translate(${-parallax.x * 0.4}px, ${-parallax.y * 0.4}px)`,
               }}
             />
-            {/* Main image with parallax */}
-            <img
-              src={slide.image}
-              alt={slide.highlight}
-              className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_20px_40px_hsl(42_78%_55%/0.25)] z-10 transition-transform duration-300 ease-out"
-              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)` }}
-              width={768}
-              height={768}
-            />
+            {/* Main media — video for slide 0 (branded intro), image for others */}
+            {current === 0 ? (
+              <video
+                key="intro-video"
+                src={introVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className="absolute inset-[8%] w-[84%] h-[84%] object-cover rounded-full z-10 transition-transform duration-300 ease-out"
+                style={{
+                  transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)`,
+                  filter: "drop-shadow(0 20px 40px hsl(42 78% 55% / 0.35))",
+                  maskImage: "radial-gradient(circle, black 70%, transparent 95%)",
+                  WebkitMaskImage: "radial-gradient(circle, black 70%, transparent 95%)",
+                }}
+              />
+            ) : (
+              <img
+                src={slide.image}
+                alt={slide.highlight}
+                className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_20px_40px_hsl(42_78%_55%/0.25)] z-10 transition-transform duration-300 ease-out"
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)` }}
+                width={768}
+                height={768}
+              />
+            )}
             {/* Floating sparkle accents */}
             <div
               className="absolute top-[12%] right-[14%] w-2 h-2 rounded-full z-20 transition-transform duration-500 ease-out"
