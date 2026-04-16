@@ -194,6 +194,42 @@ const BillPayments = () => {
     ? currentProviders.filter(p => p.name.toLowerCase().includes(mobileType) && p.name.toLowerCase().includes(searchProvider.toLowerCase()))
     : currentProviders.filter(p => p.name.toLowerCase().includes(searchProvider.toLowerCase()));
 
+  const removeFavorite = (idx: number) => {
+    setRemovingIdx(idx);
+    haptic.medium();
+    setTimeout(() => {
+      const updated = favorites.filter((_, i) => i !== idx);
+      setFavorites(updated);
+      localStorage.setItem("bill_favorites", JSON.stringify(updated));
+      setSwipeOffsets(prev => { const n = { ...prev }; delete n[idx]; return n; });
+      setRemovingIdx(null);
+    }, 300);
+  };
+
+  const handleFavTouchStart = (idx: number, e: React.TouchEvent) => {
+    swipeStartX.current[idx] = e.touches[0].clientX;
+    swipeStartY.current[idx] = e.touches[0].clientY;
+  };
+
+  const handleFavTouchMove = (idx: number, e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - (swipeStartX.current[idx] || 0);
+    const dy = e.touches[0].clientY - (swipeStartY.current[idx] || 0);
+    // Only allow vertical swipe (upward to delete)
+    if (Math.abs(dy) > Math.abs(dx) && dy < 0) {
+      e.preventDefault();
+      setSwipeOffsets(prev => ({ ...prev, [idx]: Math.min(0, dy) }));
+    }
+  };
+
+  const handleFavTouchEnd = (idx: number) => {
+    const offset = swipeOffsets[idx] || 0;
+    if (offset < -60) {
+      removeFavorite(idx);
+    } else {
+      setSwipeOffsets(prev => ({ ...prev, [idx]: 0 }));
+    }
+  };
+
   const handleSelectCategory = (key: string) => {
     haptic.light();
     setSelectedCategory(key);
