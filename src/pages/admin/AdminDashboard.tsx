@@ -18,13 +18,13 @@ import { useNavigate } from "react-router-dom";
 
 /* ── Design tokens ── */
 const C = {
-  cardBg: "#0f0720",
-  elevated: "#140a28",
-  border: "rgba(139,92,246,0.12)",
-  borderHover: "rgba(139,92,246,0.3)",
-  primary: "#7c3aed",
-  secondary: "#a855f7",
-  glow: "#c084fc",
+  cardBg: "#0d0e12",
+  elevated: "#121418",
+  border: "rgba(200,149,46,0.12)",
+  borderHover: "rgba(200,149,46,0.3)",
+  primary: "#c8952e",
+  secondary: "#d4a84b",
+  glow: "#e8c060",
   success: "#22c55e",
   danger: "#ef4444",
   warning: "#f59e0b",
@@ -311,10 +311,10 @@ const AdminDashboard = () => {
                     <stop offset="100%" stopColor={C.primary} stopOpacity={0.3} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,92,246,0.06)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.06)" />
                 <XAxis dataKey="day" tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                 <YAxis tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
-                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(200,149,46,0.04)" }} />
                 <Bar dataKey="volume" fill="url(#barGradDash)" radius={[6, 6, 2, 2]} animationDuration={1200} />
               </BarChart>
             </ResponsiveContainer>
@@ -385,7 +385,7 @@ const AdminDashboard = () => {
                     <stop offset="100%" stopColor={C.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,92,246,0.06)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.06)" />
                 <XAxis dataKey="day" tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                 <YAxis tick={{ fill: C.textMuted, fontSize: 9 }} axisLine={false} tickLine={false} allowDecimals={false} width={25} />
                 <Tooltip contentStyle={tooltipStyle} />
@@ -416,7 +416,7 @@ const AdminDashboard = () => {
                     key={a.label}
                     onClick={() => navigate(a.path)}
                     className="flex flex-col items-center gap-2 p-3 rounded-[10px] transition-all duration-200 active:scale-95"
-                    style={{ background: "rgba(139,92,246,0.04)", border: `1px solid ${C.border}` }}
+                    style={{ background: "rgba(200,149,46,0.04)", border: `1px solid ${C.border}` }}
                     onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.borderHover)}
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}
                   >
@@ -445,7 +445,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Table header */}
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 rounded-[10px] mb-1" style={{ background: "rgba(139,92,246,0.08)" }}>
+          <div className="grid grid-cols-12 gap-2 px-3 py-2 rounded-[10px] mb-1" style={{ background: "rgba(200,149,46,0.08)" }}>
             {["Time", "User", "Type", "Amount", "Merchant", "Category", "Status"].map((h, i) => (
               <span key={h} className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${i === 0 ? "col-span-2" : i === 1 ? "col-span-2" : i === 3 ? "col-span-2" : i === 4 ? "col-span-2" : "col-span-1"}`} style={{ color: C.textMuted }}>
                 {h}
@@ -472,7 +472,7 @@ const AdminDashboard = () => {
                     key={tx.id}
                     className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-[8px] transition-all duration-200"
                     style={{ animation: `admin-slide-up 0.3s ease-out ${i * 30}ms both` }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.06)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(200,149,46,0.06)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <span className="col-span-2 text-xs" style={{ color: C.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>{timeAgo}</span>
@@ -523,7 +523,7 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-2">
                 {kycRequests.map((kyc: any) => (
-                  <div key={kyc.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(139,92,246,0.04)", border: `1px solid ${C.border}` }}>
+                  <div key={kyc.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(200,149,46,0.04)", border: `1px solid ${C.border}` }}>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold" style={{ background: `${C.warning}15`, color: C.warning }}>
                         {kyc.aadhaar_name?.charAt(0) || "?"}
@@ -562,7 +562,7 @@ const AdminDashboard = () => {
                 { label: "Edge Functions", status: "Running", icon: Server, ok: true },
                 { label: "Realtime", status: "Connected", icon: Activity, ok: true },
               ].map((h) => (
-                <div key={h.label} className="flex items-center gap-3 p-3 rounded-[10px]" style={{ background: "rgba(139,92,246,0.04)", border: `1px solid ${C.border}` }}>
+                <div key={h.label} className="flex items-center gap-3 p-3 rounded-[10px]" style={{ background: "rgba(200,149,46,0.04)", border: `1px solid ${C.border}` }}>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: h.ok ? `${C.success}10` : `${C.warning}10` }}>
                     <h.icon className="w-3.5 h-3.5" style={{ color: h.ok ? C.success : C.warning }} />
                   </div>
