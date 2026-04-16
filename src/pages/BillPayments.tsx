@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -7,8 +7,19 @@ import { toast } from "sonner";
 import electricityImg from "@/assets/bill-electricity.png";
 import waterImg from "@/assets/bill-water.png";
 import broadbandImg from "@/assets/bill-broadband.png";
+import mobileImg from "@/assets/bill-mobile.png";
 
 const providers: Record<string, { name: string; icon: string }[]> = {
+  mobile: [
+    { name: "Jio Prepaid", icon: "📱" },
+    { name: "Airtel Prepaid", icon: "📡" },
+    { name: "Vi Prepaid", icon: "📶" },
+    { name: "BSNL Prepaid", icon: "🔗" },
+    { name: "Jio Postpaid", icon: "📱" },
+    { name: "Airtel Postpaid", icon: "📡" },
+    { name: "Vi Postpaid", icon: "📶" },
+    { name: "BSNL Postpaid", icon: "🔗" },
+  ],
   electricity: [
     { name: "Tata Power", icon: "⚡" },
     { name: "Adani Electricity", icon: "🔌" },
@@ -33,6 +44,14 @@ const providers: Record<string, { name: string; icon: string }[]> = {
 };
 
 const categories = [
+  {
+    key: "mobile",
+    label: "Mobile Recharge",
+    desc: "Prepaid & Postpaid plans",
+    image: mobileImg,
+    gradient: "from-primary/20 to-amber-600/10",
+    borderColor: "border-primary/15",
+  },
   {
     key: "electricity",
     label: "Electricity",
@@ -59,43 +78,79 @@ const categories = [
   },
 ];
 
-type Step = "category" | "provider" | "details" | "confirm" | "success";
+const mobilePlans = [
+  { data: "1.5 GB/day", validity: "28 days", price: 199, tag: "Popular" },
+  { data: "2 GB/day", validity: "28 days", price: 299, tag: "Best Value" },
+  { data: "2.5 GB/day", validity: "56 days", price: 499, tag: "" },
+  { data: "3 GB/day", validity: "84 days", price: 799, tag: "Save 20%" },
+  { data: "Unlimited", validity: "365 days", price: 2999, tag: "Annual" },
+];
+
+type Step = "category" | "provider" | "mobile-type" | "plans" | "details" | "confirm" | "success";
 
 const BillPayments = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [mobileType, setMobileType] = useState<"prepaid" | "postpaid">("prepaid");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [consumerNumber, setConsumerNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [searchProvider, setSearchProvider] = useState("");
   const [paying, setPaying] = useState(false);
 
   const currentProviders = selectedCategory ? providers[selectedCategory] || [] : [];
-  const filteredProviders = currentProviders.filter(p =>
-    p.name.toLowerCase().includes(searchProvider.toLowerCase())
-  );
+  const filteredProviders = selectedCategory === "mobile"
+    ? currentProviders.filter(p => p.name.toLowerCase().includes(mobileType) && p.name.toLowerCase().includes(searchProvider.toLowerCase()))
+    : currentProviders.filter(p => p.name.toLowerCase().includes(searchProvider.toLowerCase()));
 
   const handleSelectCategory = (key: string) => {
     haptic.light();
     setSelectedCategory(key);
+    if (key === "mobile") {
+      setStep("mobile-type");
+    } else {
+      setStep("provider");
+    }
+  };
+
+  const handleSelectMobileType = (type: "prepaid" | "postpaid") => {
+    haptic.light();
+    setMobileType(type);
     setStep("provider");
   };
 
   const handleSelectProvider = (name: string) => {
     haptic.light();
     setSelectedProvider(name);
-    setStep("details");
+    if (selectedCategory === "mobile" && mobileType === "prepaid") {
+      setStep("plans");
+    } else {
+      setStep("details");
+    }
+  };
+
+  const handleSelectPlan = (price: number) => {
+    haptic.medium();
+    setAmount(price.toString());
+    setStep("confirm");
   };
 
   const handleFetchBill = () => {
-    if (!consumerNumber.trim() || consumerNumber.length < 6) {
-      toast.error("Enter a valid consumer number");
+    const num = selectedCategory === "mobile" ? mobileNumber : consumerNumber;
+    if (!num.trim() || num.length < 6) {
+      toast.error(selectedCategory === "mobile" ? "Enter a valid mobile number" : "Enter a valid consumer number");
       return;
     }
     haptic.medium();
-    const randomAmt = (Math.floor(Math.random() * 3000) + 200).toString();
-    setAmount(randomAmt);
+    if (selectedCategory === "mobile" && mobileType === "postpaid") {
+      const randomAmt = (Math.floor(Math.random() * 800) + 200).toString();
+      setAmount(randomAmt);
+    } else if (selectedCategory !== "mobile") {
+      const randomAmt = (Math.floor(Math.random() * 3000) + 200).toString();
+      setAmount(randomAmt);
+    }
     setStep("confirm");
   };
 
@@ -105,7 +160,7 @@ const BillPayments = () => {
     await new Promise(r => setTimeout(r, 2000));
     setPaying(false);
     setStep("success");
-    toast.success("Bill paid successfully!");
+    toast.success("Payment successful!");
   };
 
   const reset = () => {
@@ -113,11 +168,24 @@ const BillPayments = () => {
     setSelectedCategory(null);
     setSelectedProvider(null);
     setConsumerNumber("");
+    setMobileNumber("");
     setAmount("");
     setSearchProvider("");
+    setMobileType("prepaid");
+  };
+
+  const goBack = () => {
+    if (step === "success") reset();
+    else if (step === "confirm") setStep(selectedCategory === "mobile" && mobileType === "prepaid" ? "plans" : "details");
+    else if (step === "plans") setStep("provider");
+    else if (step === "details") setStep("provider");
+    else if (step === "provider") setStep(selectedCategory === "mobile" ? "mobile-type" : "category");
+    else if (step === "mobile-type") setStep("category");
+    else navigate(-1);
   };
 
   const catInfo = categories.find(c => c.key === selectedCategory);
+  const displayNumber = selectedCategory === "mobile" ? mobileNumber : consumerNumber;
 
   return (
     <div className="min-h-screen bg-background pb-28 relative">
@@ -129,14 +197,14 @@ const BillPayments = () => {
       <div className="relative z-10">
         {/* Header */}
         <div className="px-5 pt-6 pb-4 flex items-center gap-3">
-          <button onClick={() => { haptic.light(); step === "category" ? navigate(-1) : step === "success" ? reset() : setStep(step === "confirm" ? "details" : step === "details" ? "provider" : "category"); }}
+          <button onClick={goBack}
             className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
             <ArrowLeft className="w-[18px] h-[18px] text-muted-foreground/60" />
           </button>
           <div className="flex-1">
             <h1 className="text-[18px] font-bold tracking-[-0.4px]">Recharge & Bills</h1>
             <p className="text-[10px] text-muted-foreground/40">
-              {step === "category" ? "Select a category" : step === "provider" ? catInfo?.label : step === "details" ? selectedProvider : step === "confirm" ? "Confirm payment" : "Payment complete"}
+              {step === "category" ? "Select a category" : step === "mobile-type" ? "Choose plan type" : step === "provider" ? catInfo?.label : step === "plans" ? "Select a plan" : step === "details" ? selectedProvider : step === "confirm" ? "Confirm payment" : "Payment complete"}
             </p>
           </div>
         </div>
@@ -157,7 +225,7 @@ const BillPayments = () => {
                       <p className="text-[17px] font-bold mb-1">{cat.label}</p>
                       <p className="text-[12px] text-muted-foreground/50 leading-relaxed">{cat.desc}</p>
                       <div className="mt-3 flex items-center gap-1.5 text-primary text-[11px] font-semibold">
-                        Pay now <ChevronRight className="w-3.5 h-3.5" />
+                        {cat.key === "mobile" ? "Recharge now" : "Pay now"} <ChevronRight className="w-3.5 h-3.5" />
                       </div>
                     </div>
                     <img
@@ -184,15 +252,68 @@ const BillPayments = () => {
           </div>
         )}
 
+        {/* Step: Mobile Type */}
+        {step === "mobile-type" && (
+          <div className="px-5 mt-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className={`rounded-[20px] bg-gradient-to-br ${catInfo?.gradient} border ${catInfo?.borderColor} p-4 mb-5 flex items-center gap-3`}>
+              <img src={catInfo?.image} alt="" className="w-14 h-14 object-contain rounded-[12px]" loading="lazy" width={56} height={56} />
+              <div>
+                <p className="text-[15px] font-bold">Mobile Recharge</p>
+                <p className="text-[11px] text-muted-foreground/40">Choose your plan type</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { type: "prepaid" as const, emoji: "📱", title: "Prepaid", desc: "Recharge with data packs", color: "from-emerald-500/15 to-teal-500/5", border: "border-emerald-500/15" },
+                { type: "postpaid" as const, emoji: "📋", title: "Postpaid", desc: "Pay monthly bill", color: "from-sky-500/15 to-blue-500/5", border: "border-sky-500/15" },
+              ]).map((opt, i) => (
+                <button
+                  key={opt.type}
+                  onClick={() => handleSelectMobileType(opt.type)}
+                  className={`rounded-[20px] bg-gradient-to-br ${opt.color} border ${opt.border} p-5 text-left active:scale-[0.97] transition-all`}
+                  style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.1}s both` }}
+                >
+                  <span className="text-3xl mb-3 block">{opt.emoji}</span>
+                  <p className="text-[15px] font-bold mb-1">{opt.title}</p>
+                  <p className="text-[11px] text-muted-foreground/40">{opt.desc}</p>
+                  <div className="mt-3 flex items-center gap-1 text-primary text-[11px] font-semibold">
+                    Select <ChevronRight className="w-3 h-3" />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Number Input */}
+            <div className="mt-5">
+              <label className="text-[11px] text-muted-foreground/40 font-semibold tracking-wide uppercase block mb-2">Mobile Number</label>
+              <div className="relative">
+                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30" />
+                <input
+                  value={mobileNumber}
+                  onChange={e => setMobileNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="Enter 10-digit mobile number"
+                  className="w-full h-[52px] rounded-[16px] bg-white/[0.03] border border-white/[0.04] pl-11 pr-4 text-[14px] text-foreground placeholder:text-muted-foreground/20 focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all outline-none"
+                  inputMode="numeric"
+                />
+              </div>
+              {mobileNumber.length === 10 && (
+                <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Valid number</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Step: Provider */}
         {step === "provider" && (
           <div className="px-5 mt-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            {/* Category header with image */}
             <div className={`rounded-[20px] bg-gradient-to-br ${catInfo?.gradient} border ${catInfo?.borderColor} p-4 mb-4 flex items-center gap-3`}>
               <img src={catInfo?.image} alt="" className="w-14 h-14 object-contain rounded-[12px]" loading="lazy" width={56} height={56} />
               <div>
                 <p className="text-[15px] font-bold">{catInfo?.label}</p>
-                <p className="text-[11px] text-muted-foreground/40">Select your provider</p>
+                <p className="text-[11px] text-muted-foreground/40">
+                  {selectedCategory === "mobile" ? `${mobileType === "prepaid" ? "Prepaid" : "Postpaid"} • Select operator` : "Select your provider"}
+                </p>
               </div>
             </div>
 
@@ -226,7 +347,67 @@ const BillPayments = () => {
           </div>
         )}
 
-        {/* Step: Details */}
+        {/* Step: Plans (Prepaid only) */}
+        {step === "plans" && (
+          <div className="px-5 mt-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className={`rounded-[20px] bg-gradient-to-br ${catInfo?.gradient} border ${catInfo?.borderColor} p-4 mb-4 flex items-center gap-3`}>
+              <img src={catInfo?.image} alt="" className="w-12 h-12 object-contain rounded-[12px]" loading="lazy" width={48} height={48} />
+              <div>
+                <p className="text-[14px] font-bold">{selectedProvider}</p>
+                <p className="text-[11px] text-muted-foreground/30">Prepaid Plans{mobileNumber ? ` • ${mobileNumber}` : ""}</p>
+              </div>
+            </div>
+
+            <h3 className="text-[12px] font-semibold text-muted-foreground/40 tracking-[0.1em] uppercase mb-3">Popular Plans</h3>
+            <div className="space-y-2.5">
+              {mobilePlans.map((plan, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelectPlan(plan.price)}
+                  className="w-full rounded-[20px] bg-white/[0.02] border border-white/[0.03] p-4 flex items-center gap-4 active:scale-[0.97] transition-all text-left relative overflow-hidden"
+                  style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.06}s both` }}
+                >
+                  {plan.tag && (
+                    <span className="absolute top-2 right-2 text-[8px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/15">
+                      {plan.tag}
+                    </span>
+                  )}
+                  <div className="w-[48px] h-[48px] rounded-[14px] bg-primary/[0.06] border border-primary/[0.08] flex items-center justify-center shrink-0">
+                    <span className="text-lg font-bold text-primary">₹</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-bold">₹{plan.price}</p>
+                    <p className="text-[11px] text-muted-foreground/40 mt-0.5">{plan.data} • {plan.validity}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/20 shrink-0" />
+                </button>
+              ))}
+            </div>
+
+            {/* Custom amount */}
+            <div className="mt-5">
+              <p className="text-[11px] font-semibold text-muted-foreground/40 tracking-wide uppercase mb-2">Custom Amount</p>
+              <div className="flex gap-2">
+                <input
+                  value={amount}
+                  onChange={e => setAmount(e.target.value.replace(/\D/g, ""))}
+                  placeholder="₹ Enter amount"
+                  className="flex-1 h-[48px] rounded-[16px] bg-white/[0.03] border border-white/[0.04] px-4 text-[14px] text-foreground placeholder:text-muted-foreground/20 focus:border-primary/30 transition-all outline-none"
+                  inputMode="numeric"
+                />
+                <button
+                  onClick={() => { if (amount) { haptic.medium(); setStep("confirm"); } }}
+                  disabled={!amount}
+                  className="px-5 h-[48px] rounded-[16px] gradient-primary text-primary-foreground font-bold text-[13px] active:scale-[0.97] transition-all disabled:opacity-40"
+                >
+                  Recharge
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step: Details (non-mobile or postpaid) */}
         {step === "details" && (
           <div className="px-5 mt-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
             <div className="rounded-[24px] bg-white/[0.02] border border-white/[0.03] p-6">
@@ -234,24 +415,26 @@ const BillPayments = () => {
                 <img src={catInfo?.image} alt="" className="w-12 h-12 object-contain rounded-[14px]" loading="lazy" width={48} height={48} />
                 <div>
                   <p className="text-[14px] font-bold">{selectedProvider}</p>
-                  <p className="text-[11px] text-muted-foreground/30">{catInfo?.label}</p>
+                  <p className="text-[11px] text-muted-foreground/30">{catInfo?.label}{selectedCategory === "mobile" ? " • Postpaid" : ""}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] text-muted-foreground/40 font-semibold tracking-wide uppercase block mb-2">Consumer / Account Number</label>
+                  <label className="text-[11px] text-muted-foreground/40 font-semibold tracking-wide uppercase block mb-2">
+                    {selectedCategory === "mobile" ? "Mobile Number" : "Consumer / Account Number"}
+                  </label>
                   <input
-                    value={consumerNumber}
-                    onChange={e => setConsumerNumber(e.target.value)}
-                    placeholder="Enter your consumer number"
+                    value={selectedCategory === "mobile" ? mobileNumber : consumerNumber}
+                    onChange={e => selectedCategory === "mobile" ? setMobileNumber(e.target.value) : setConsumerNumber(e.target.value)}
+                    placeholder={selectedCategory === "mobile" ? "Enter 10-digit number" : "Enter your consumer number"}
                     className="w-full h-[52px] rounded-[16px] bg-white/[0.03] border border-white/[0.04] px-4 text-[14px] text-foreground placeholder:text-muted-foreground/20 focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all outline-none"
                   />
                 </div>
 
-                <button onClick={handleFetchBill} disabled={!consumerNumber.trim()}
+                <button onClick={handleFetchBill} disabled={!(selectedCategory === "mobile" ? mobileNumber.trim() : consumerNumber.trim())}
                   className="w-full h-[52px] rounded-[16px] gradient-primary text-primary-foreground font-bold text-[14px] active:scale-[0.97] transition-all shadow-[0_8px_32px_hsl(42_78%_55%/0.3)] disabled:opacity-40 disabled:cursor-not-allowed">
-                  Fetch Bill
+                  {selectedCategory === "mobile" ? "Fetch Bill" : "Fetch Bill"}
                 </button>
               </div>
             </div>
@@ -265,12 +448,16 @@ const BillPayments = () => {
               <div className="text-center mb-6">
                 <img src={catInfo?.image} alt="" className="w-20 h-20 object-contain mx-auto mb-3 rounded-[18px]" loading="lazy" width={80} height={80} />
                 <p className="text-[14px] font-bold">{selectedProvider}</p>
-                <p className="text-[11px] text-muted-foreground/30 mt-0.5">Consumer: {consumerNumber}</p>
+                <p className="text-[11px] text-muted-foreground/30 mt-0.5">
+                  {selectedCategory === "mobile" ? `Mobile: ${mobileNumber}` : `Consumer: ${consumerNumber}`}
+                </p>
               </div>
 
               <div className="rounded-[16px] bg-white/[0.02] border border-white/[0.03] p-4 mb-6 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[12px] text-muted-foreground/40">Bill Amount</span>
+                  <span className="text-[12px] text-muted-foreground/40">
+                    {selectedCategory === "mobile" && mobileType === "prepaid" ? "Recharge Amount" : "Bill Amount"}
+                  </span>
                   <span className="text-[18px] font-bold">₹{amount}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -308,14 +495,18 @@ const BillPayments = () => {
               style={{ animation: "glow-pulse 2s ease-in-out infinite" }}>
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />
             </div>
-            <h2 className="text-[22px] font-bold mb-2">Payment Successful!</h2>
+            <h2 className="text-[22px] font-bold mb-2">
+              {selectedCategory === "mobile" && mobileType === "prepaid" ? "Recharge Successful!" : "Payment Successful!"}
+            </h2>
             <p className="text-[13px] text-muted-foreground/40 mb-1">₹{amount} paid to {selectedProvider}</p>
-            <p className="text-[11px] text-muted-foreground/30 mb-8">Consumer: {consumerNumber}</p>
+            <p className="text-[11px] text-muted-foreground/30 mb-8">
+              {selectedCategory === "mobile" ? `Mobile: ${mobileNumber}` : `Consumer: ${consumerNumber}`}
+            </p>
 
             <div className="space-y-3">
               <button onClick={reset}
                 className="w-full h-[48px] rounded-[16px] gradient-primary text-primary-foreground font-bold text-[13px] active:scale-[0.97] transition-all shadow-[0_8px_32px_hsl(42_78%_55%/0.3)]">
-                Pay Another Bill
+                {selectedCategory === "mobile" ? "Recharge Again" : "Pay Another Bill"}
               </button>
               <button onClick={() => navigate("/home")}
                 className="w-full h-[48px] rounded-[16px] bg-white/[0.03] border border-white/[0.04] font-semibold text-[13px] text-muted-foreground/50 active:scale-[0.97] transition-all">
