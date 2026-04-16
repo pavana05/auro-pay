@@ -19,6 +19,7 @@ import AboutApp from "./pages/AboutApp.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
+import PaymentConfirm from "./pages/PaymentConfirm.tsx";
 import AddMoney from "./pages/AddMoney.tsx";
 import ParentHome from "./pages/ParentHome.tsx";
 import ParentTeenDetail from "./pages/ParentTeenDetail.tsx";
