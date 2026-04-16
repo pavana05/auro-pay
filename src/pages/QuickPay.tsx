@@ -660,257 +660,381 @@ const QuickPay = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-28 relative overflow-hidden">
+    <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
       <FloatingParticles />
 
       {/* Ambient glows */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.04), transparent 70%)" }} />
-      <div className="absolute bottom-1/3 left-0 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(42 78% 45% / 0.03), transparent 70%)" }} />
-
-      {/* Header */}
-      <div className="px-5 pt-6 pb-4 relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center active:scale-90 transition-all hover:bg-white/[0.08]">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-[20px] font-bold tracking-tight">Quick Pay</h1>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">{favorites.length} contacts · {formatBal(balance)} <span className="inline-flex items-center gap-0.5 text-success/60"><Shield className="w-2.5 h-2.5" /> Secure</span></p>
-          </div>
-          <button onClick={() => { haptic.light(); setShowAdd(true); }}
-            className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center active:scale-90 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.3)] hover:shadow-[0_6px_24px_hsl(42_78%_55%/0.4)]">
-            <Plus className="w-5 h-5 text-primary-foreground" />
-          </button>
-        </div>
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-32 -right-32 w-[350px] h-[350px] rounded-full opacity-[0.035] blur-[100px]" style={{ background: "hsl(var(--primary))" }} />
+        <div className="absolute bottom-[30%] -left-20 w-[200px] h-[200px] rounded-full opacity-[0.02] blur-[70px]" style={{ background: "hsl(210 80% 55%)" }} />
       </div>
 
-      {/* Search with animation */}
-      <div className="px-5 mb-5 relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary/60 transition-colors" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts..."
-            className="w-full h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.1)] outline-none transition-all focus:bg-white/[0.04]" />
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <div className="px-5 mb-5 relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s both" }}>
-        <div className="flex gap-2.5 overflow-x-auto no-scrollbar">
-          {[
-            { icon: Send, label: "Request", color: "hsl(210 80% 60%)" },
-            { icon: RefreshCw, label: "Recurring", color: "hsl(42 78% 55%)", onClick: () => recurringPayments.length > 0 ? document.getElementById('recurring-section')?.scrollIntoView({ behavior: 'smooth' }) : toast("No recurring payments yet") },
-            { icon: TrendingUp, label: "History", color: "hsl(152 60% 45%)", onClick: () => navigate('/activity') },
-          ].map((action, i) => (
-            <button key={action.label} onClick={() => { haptic.light(); action.onClick?.(); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] shrink-0 active:scale-95 transition-all hover:bg-white/[0.05] hover:border-white/[0.1]"
-              style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.04}s both` }}>
-              <action.icon className="w-3.5 h-3.5" style={{ color: action.color }} />
-              <span className="text-[11px] font-medium text-white/50">{action.label}</span>
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="px-5 pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => { haptic.light(); navigate(-1); }}
+                className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
+                style={{ background: "hsl(220 15% 8%)" }}>
+                <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
+              </button>
+              <div>
+                <h1 className="text-[19px] font-bold tracking-[-0.5px]">Quick Pay</h1>
+                <p className="text-[10px] text-white/30 font-medium">{favorites.length} contacts · {formatBal(balance)}</p>
+              </div>
+            </div>
+            <button onClick={() => { haptic.light(); setShowAdd(true); }}
+              className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                boxShadow: "0 4px 16px hsl(var(--primary) / 0.25)",
+              }}>
+              <Plus className="w-[18px] h-[18px]" style={{ color: "hsl(220 20% 6%)" }} />
             </button>
-          ))}
+          </div>
         </div>
-      </div>
 
-      {/* Add Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowAdd(false)}>
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-md" style={{ animation: "fade-in 0.2s ease-out" }} />
-          <div className="relative w-full max-w-lg rounded-t-3xl border-t border-white/[0.08] p-6 overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }} onClick={e => e.stopPropagation()}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.2), transparent)" }} />
-            <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mb-5" />
-            <h2 className="text-[16px] font-bold mb-1 flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Add Contact</h2>
-            <p className="text-[11px] text-muted-foreground mb-4">Save for quick one-tap payments</p>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Avatar</label>
-                <div className="flex gap-2 flex-wrap">
-                  {emojiOptions.map(e => (
-                    <button key={e} onClick={() => setEmoji(e)}
-                      className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center border transition-all duration-300 active:scale-90 ${
-                        emoji === e ? "border-primary bg-primary/10 shadow-[0_0_12px_hsl(42_78%_55%/0.2)] scale-110" : "border-white/[0.06] bg-white/[0.03] hover:border-white/[0.1]"
-                      }`}>{e}</button>
-                  ))}
+        {/* Search */}
+        <div className="px-5 mb-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.04s both" }}>
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary/60 transition-colors" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts..."
+              className="w-full h-[44px] rounded-[14px] pl-11 pr-4 text-[13px] outline-none transition-all"
+              style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} />
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both" }}>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {[
+              { icon: Send, label: "Request", accent: "210 80% 55%" },
+              { icon: RefreshCw, label: "Recurring", accent: "var(--primary)", onClick: () => recurringPayments.length > 0 ? document.getElementById('recurring-section')?.scrollIntoView({ behavior: 'smooth' }) : toast("No recurring payments yet") },
+              { icon: TrendingUp, label: "History", accent: "152 60% 45%", onClick: () => navigate('/activity') },
+            ].map((action, i) => (
+              <button key={action.label} onClick={() => { haptic.light(); action.onClick?.(); }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-[14px] shrink-0 active:scale-95 transition-all border border-white/[0.04] relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+                  animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.08 + i * 0.03}s both`,
+                }}>
+                <div className="absolute top-0 left-2 right-2 h-[1px]" style={{ background: `linear-gradient(90deg, transparent, hsl(${action.accent} / 0.12), transparent)` }} />
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: `hsl(${action.accent} / 0.1)` }}>
+                  <action.icon className="w-3.5 h-3.5" style={{ color: `hsl(${action.accent})` }} />
                 </div>
+                <span className="text-[11px] font-medium text-white/40">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Add Modal */}
+        {showAdd && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setShowAdd(false)}>
+            <div className="w-full max-w-lg rounded-t-[28px] p-6 border-t border-white/[0.06]"
+              style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
+              onClick={e => e.stopPropagation()}>
+              <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--primary) / 0.1)" }}>
+                    <UserPlus className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Add Contact</h2>
+                    <p className="text-[10px] text-white/25">Save for quick payments</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center">
+                  <X className="w-3.5 h-3.5 text-white/30" />
+                </button>
               </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">Name *</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Contact name" className="w-full h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:border-primary/30 focus:bg-white/[0.04] outline-none transition-all" />
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-2">Avatar</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {emojiOptions.map(e => (
+                      <button key={e} onClick={() => setEmoji(e)}
+                        className="w-10 h-10 rounded-xl text-lg flex items-center justify-center transition-all active:scale-90"
+                        style={{
+                          background: emoji === e ? "hsl(var(--primary) / 0.12)" : "hsl(220 15% 10%)",
+                          border: `1px solid ${emoji === e ? "hsl(var(--primary) / 0.3)" : "hsl(220 15% 13%)"}`,
+                          boxShadow: emoji === e ? "0 2px 8px hsl(var(--primary) / 0.1)" : "none",
+                        }}>{e}</button>
+                    ))}
+                  </div>
+                </div>
+                {[
+                  { label: "Name *", val: name, set: setName, placeholder: "Contact name" },
+                  { label: "UPI ID", val: upiId, set: setUpiId, placeholder: "name@upi" },
+                  { label: "Phone", val: phone, set: setPhone, placeholder: "+91 XXXXX XXXXX" },
+                ].map(field => (
+                  <div key={field.label}>
+                    <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">{field.label}</p>
+                    <input value={field.val} onChange={e => field.set(e.target.value)} placeholder={field.placeholder}
+                      className="w-full h-[48px] rounded-[14px] px-4 text-[13px] outline-none transition-all"
+                      style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} />
+                  </div>
+                ))}
+                <button onClick={addFavorite} disabled={saving || !name}
+                  className="w-full h-[52px] rounded-2xl font-semibold text-[14px] active:scale-[0.97] transition-all disabled:opacity-40 relative overflow-hidden flex items-center justify-center gap-2"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                    color: "hsl(220 20% 6%)",
+                    boxShadow: "0 4px 20px hsl(var(--primary) / 0.3)",
+                  }}>
+                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Add Contact"}
+                </button>
               </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">UPI ID</label>
-                <input value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="name@upi" className="w-full h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:border-primary/30 focus:bg-white/[0.04] outline-none transition-all" />
+            </div>
+          </div>
+        )}
+
+        {/* Favorites Grid */}
+        <div className="px-5">
+          <div className="flex items-center justify-between mb-3" style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
+            <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase flex items-center gap-1.5">
+              <Star className="w-3 h-3" style={{ color: "hsl(var(--primary) / 0.4)" }} /> Favorites
+            </p>
+            <p className="text-[10px] text-white/15">{filtered.length} contacts</p>
+          </div>
+          {loading ? (
+            <div className="grid grid-cols-3 gap-2.5">{[1,2,3,4,5,6].map(i => (
+              <div key={i} className="h-[140px] rounded-[18px] overflow-hidden relative">
+                <div className="absolute inset-0" style={{ background: "hsl(220 15% 8%)" }} />
+                <div className="absolute inset-0" style={{
+                  background: "linear-gradient(110deg, transparent 30%, hsl(220 15% 12%) 50%, transparent 70%)",
+                  backgroundSize: "200% 100%",
+                  animation: "skeleton-shimmer 1.8s ease-in-out infinite",
+                }} />
               </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">Phone</label>
-                <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" className="w-full h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:border-primary/30 focus:bg-white/[0.04] outline-none transition-all" />
+            ))}</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+              <div className="w-[72px] h-[72px] rounded-[22px] flex items-center justify-center mx-auto mb-4 border border-white/[0.04]"
+                style={{ background: "linear-gradient(135deg, hsl(220 15% 9%), hsl(220 18% 6%))" }}>
+                <Star className="w-8 h-8 text-white/8" />
               </div>
-              <button onClick={addFavorite} disabled={saving || !name}
-                className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_4px_16px_hsl(42_78%_55%/0.3)] flex items-center justify-center gap-2 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.05] transition-colors rounded-xl" />
-                {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Add Contact"}
+              <p className="text-[14px] font-semibold text-white/20 mb-1">No favorites yet</p>
+              <p className="text-[11px] text-white/10">Add contacts for quick payments</p>
+              <button onClick={() => setShowAdd(true)} className="mt-5 px-5 py-2.5 rounded-[14px] text-[12px] font-semibold active:scale-95 transition-all flex items-center gap-1.5 mx-auto"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                  color: "hsl(220 20% 6%)",
+                  boxShadow: "0 4px 16px hsl(var(--primary) / 0.25)",
+                }}>
+                <Plus className="w-3.5 h-3.5" /> Add First Contact
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <div className="grid grid-cols-3 gap-2.5">
+              {filtered.map((fav, i) => (
+                <div key={fav.id}
+                  className="relative rounded-[18px] p-3.5 border border-white/[0.04] flex flex-col items-center text-center transition-all active:scale-[0.96] group overflow-hidden"
+                  style={{
+                    background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+                    animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.12 + i * 0.03}s both`,
+                  }}>
+                  {/* Accent line */}
+                  <div className="absolute top-0 left-3 right-3 h-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.2), transparent)" }} />
+                  <button onClick={() => deleteFav(fav.id)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full flex items-center justify-center transition-all"
+                    style={{ background: "hsl(0 72% 51% / 0.15)" }}>
+                    <X className="w-3 h-3" style={{ color: "hsl(0 72% 55%)" }} />
+                  </button>
 
-      {/* Favorites Grid */}
-      <div className="px-5 relative z-10">
-        <div className="flex items-center justify-between mb-3" style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-          <p className="text-[10px] font-semibold text-white/25 tracking-[0.2em] uppercase flex items-center gap-1.5">
-            <Star className="w-3 h-3 text-primary/40" /> Favorites
-          </p>
-          <p className="text-[10px] text-white/15">{filtered.length} contacts</p>
-        </div>
-        {loading ? (
-          <div className="grid grid-cols-3 gap-3">{[1,2,3,4,5,6].map(i => (
-            <div key={i} className="h-32 rounded-2xl bg-white/[0.02] border border-white/[0.04] relative overflow-hidden">
-              <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55% / 0.02) 50%, transparent 70%)", backgroundSize: "200% 100%", animation: "ref-shimmer-sweep 1.5s ease-in-out infinite" }} />
-            </div>
-          ))}</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4 relative">
-              <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(135deg, hsl(42 78% 55% / 0.05), transparent)" }} />
-              <Star className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">No favorites yet</p>
-            <p className="text-[11px] text-muted-foreground/60 mt-1">Add contacts for quick one-tap payments</p>
-            <button onClick={() => setShowAdd(true)} className="mt-4 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-[12px] font-semibold active:scale-95 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.25)]">
-              <Plus className="w-3.5 h-3.5 inline mr-1.5" /> Add First Contact
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {filtered.map((fav, i) => (
-              <div key={fav.id}
-                className="relative rounded-2xl p-4 border border-white/[0.06] flex flex-col items-center text-center transition-all active:scale-[0.96] group hover:border-primary/15 hover:shadow-[0_4px_20px_hsl(42_78%_55%/0.06)] overflow-hidden"
-                style={{ background: "linear-gradient(145deg, hsl(220 15% 9%), hsl(220 18% 6%))", animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.12 + i * 0.04}s both` }}>
-                {/* Card top accent line */}
-                <div className="absolute top-0 inset-x-0 h-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
-                <button onClick={() => deleteFav(fav.id)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-active:opacity-100 w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center transition-all duration-200 hover:bg-destructive/30">
-                  <X className="w-3 h-3 text-destructive" />
-                </button>
-                <div className="w-12 h-12 rounded-2xl bg-primary/8 border border-primary/10 flex items-center justify-center text-2xl mb-2 shadow-[0_2px_8px_hsl(42_78%_55%/0.1)] group-hover:shadow-[0_4px_16px_hsl(42_78%_55%/0.15)] transition-all duration-300 group-hover:scale-105">
-                  {fav.avatar_emoji}
-                </div>
-                <p className="text-[11px] font-semibold truncate w-full">{fav.contact_name}</p>
-                <div className="flex items-center gap-1 w-full justify-center">
-                  <p className="text-[9px] text-muted-foreground truncate">{fav.contact_upi_id || fav.contact_phone || "—"}</p>
-                  {fav.contact_upi_id && (
-                    <button onClick={(e) => { e.stopPropagation(); copyUpiId(fav.contact_upi_id!); }} className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity">
-                      <Copy className="w-2.5 h-2.5 text-white/40" />
-                    </button>
+                  <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center text-xl mb-2 group-hover:scale-105 transition-transform"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))",
+                      boxShadow: "0 2px 8px hsl(var(--primary) / 0.08)",
+                    }}>
+                    {fav.avatar_emoji}
+                  </div>
+                  <p className="text-[11px] font-semibold truncate w-full">{fav.contact_name}</p>
+                  <div className="flex items-center gap-1 w-full justify-center">
+                    <p className="text-[9px] text-white/20 truncate">{fav.contact_upi_id || fav.contact_phone || "—"}</p>
+                    {fav.contact_upi_id && (
+                      <button onClick={(e) => { e.stopPropagation(); copyUpiId(fav.contact_upi_id!); }} className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity">
+                        <Copy className="w-2.5 h-2.5 text-white/30" />
+                      </button>
+                    )}
+                  </div>
+                  {fav.last_paid_at && (
+                    <p className="text-[8px] text-white/15 mt-0.5 flex items-center gap-0.5">
+                      <Clock className="w-2 h-2" /> {new Date(fav.last_paid_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </p>
                   )}
+                  <div className="mt-2 flex gap-1.5 w-full">
+                    <button onClick={() => openPay(fav)} className="flex-1 py-1.5 rounded-xl text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.06))",
+                        color: "hsl(var(--primary))",
+                        border: "1px solid hsl(var(--primary) / 0.15)",
+                      }}>
+                      <Send className="w-3 h-3" /> Pay
+                    </button>
+                    <button onClick={() => { haptic.light(); setRecurringFav(fav); setShowRecurring(true); }}
+                      className="py-1.5 px-2 rounded-xl text-[10px] flex items-center justify-center active:scale-95 transition-all border border-white/[0.04]"
+                      style={{ background: "hsl(220 15% 10%)" }}>
+                      <RefreshCw className="w-3 h-3 text-white/25" />
+                    </button>
+                  </div>
                 </div>
-                {fav.last_paid_at && (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5 flex items-center gap-0.5">
-                    <Clock className="w-2 h-2" /> {new Date(fav.last_paid_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                  </p>
-                )}
-                <div className="mt-2 flex gap-1.5 w-full">
-                  <button onClick={() => openPay(fav)} className="flex-1 py-1.5 rounded-xl bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all border border-primary/10 hover:bg-primary/15 hover:border-primary/20">
-                    <Send className="w-3 h-3" /> Pay
-                  </button>
-                  <button onClick={() => { haptic.light(); setRecurringFav(fav); setShowRecurring(true); }} className="py-1.5 px-2 rounded-xl bg-white/[0.03] text-muted-foreground text-[10px] flex items-center justify-center active:scale-95 transition-all border border-white/[0.06] hover:bg-white/[0.06]">
-                    <RefreshCw className="w-3 h-3" />
-                  </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recurring Payments */}
+        {recurringPayments.length > 0 && (
+          <div id="recurring-section" className="px-5 mt-6 mb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3" style={{ color: "hsl(var(--primary) / 0.4)" }} /> Recurring
+              </p>
+              <p className="text-[10px] text-white/15">{recurringPayments.length} active</p>
+            </div>
+            <div className="space-y-2.5">
+              {recurringPayments.map((rp, i) => {
+                const fav = favorites.find(f => f.id === rp.favorite_id);
+                return (
+                  <div key={rp.id} className="rounded-[18px] p-4 border border-white/[0.04] flex items-center gap-3 relative overflow-hidden group"
+                    style={{
+                      background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+                      animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.22 + i * 0.04}s both`,
+                    }}>
+                    <div className="absolute top-0 left-4 right-4 h-[1px]"
+                      style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent)" }} />
+                    <div className="w-[42px] h-[42px] rounded-[14px] flex items-center justify-center text-lg shrink-0"
+                      style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))" }}>
+                      {fav?.avatar_emoji || "👤"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold truncate">{fav?.contact_name || "Contact"}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-white/25 capitalize flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {rp.frequency}</span>
+                        <span className="text-[10px] text-white/20">Next: {new Date(rp.next_run_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex items-center gap-2">
+                      <p className="text-[12px] font-bold tabular-nums" style={{
+                        background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}>₹{(rp.amount / 100).toLocaleString("en-IN")}</p>
+                      <button onClick={() => toggleRecurring(rp.id, rp.is_active)}
+                        className="w-9 h-5 rounded-full flex items-center transition-all duration-300"
+                        style={{
+                          background: rp.is_active ? "hsl(152 60% 45%)" : "hsl(220 15% 15%)",
+                          justifyContent: rp.is_active ? "flex-end" : "flex-start",
+                        }}>
+                        <div className="w-4 h-4 rounded-full mx-0.5 transition-all" style={{ background: "white" }} />
+                      </button>
+                      <button onClick={() => deleteRecurring(rp.id)} className="w-6 h-6 rounded-lg flex items-center justify-center active:scale-90 transition-all"
+                        style={{ background: "hsl(0 72% 51% / 0.1)" }}>
+                        <X className="w-3 h-3" style={{ color: "hsl(0 72% 55%)" }} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recurring Payment Modal */}
+        {showRecurring && recurringFav && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setShowRecurring(false)}>
+            <div className="w-full max-w-lg rounded-t-[28px] p-6 border-t border-white/[0.06]"
+              style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
+              onClick={e => e.stopPropagation()}>
+              <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--primary) / 0.1)" }}>
+                    <RefreshCw className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Recurring Payment</h2>
+                    <p className="text-[10px] text-white/25">Auto-pay to {recurringFav.contact_name}</p>
+                  </div>
                 </div>
+                <button onClick={() => setShowRecurring(false)} className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center">
+                  <X className="w-3.5 h-3.5 text-white/30" />
+                </button>
               </div>
-            ))}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-[14px] border border-white/[0.04]"
+                  style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+                  <div className="w-10 h-10 rounded-[14px] flex items-center justify-center text-xl"
+                    style={{ background: "hsl(var(--primary) / 0.1)" }}>{recurringFav.avatar_emoji}</div>
+                  <div>
+                    <p className="text-[12px] font-semibold">{recurringFav.contact_name}</p>
+                    <p className="text-[10px] text-white/20">{recurringFav.contact_upi_id || recurringFav.contact_phone || "—"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">Amount (₹) *</p>
+                  <input value={recurringAmount} onChange={e => setRecurringAmount(e.target.value.replace(/[^0-9]/g, ""))} placeholder="Enter amount"
+                    className="w-full h-[48px] rounded-[14px] px-4 text-[13px] outline-none transition-all tabular-nums"
+                    style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} inputMode="numeric" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">Frequency</p>
+                  <div className="flex gap-2">
+                    {(["weekly", "monthly"] as const).map(freq => {
+                      const active = recurringFreq === freq;
+                      const accent = "var(--primary)";
+                      return (
+                        <button key={freq} onClick={() => setRecurringFreq(freq)}
+                          className="flex-1 py-3 rounded-[14px] text-[12px] font-semibold capitalize flex items-center justify-center gap-2 transition-all active:scale-95"
+                          style={{
+                            background: active ? `hsl(${accent} / 0.08)` : "hsl(220 15% 8%)",
+                            border: `1px solid ${active ? `hsl(${accent} / 0.25)` : "hsl(220 15% 12%)"}`,
+                            color: active ? `hsl(${accent})` : "hsl(220 10% 40%)",
+                          }}>
+                          {freq === "weekly" ? <Clock className="w-3.5 h-3.5" /> : <CalendarDays className="w-3.5 h-3.5" />} {freq}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">Note (optional)</p>
+                  <input value={recurringNote} onChange={e => setRecurringNote(e.target.value)} placeholder="e.g. Pocket money, Rent"
+                    className="w-full h-[48px] rounded-[14px] px-4 text-[13px] outline-none transition-all"
+                    style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} />
+                </div>
+                <button onClick={createRecurring} disabled={savingRecurring || !recurringAmount}
+                  className="w-full h-[52px] rounded-2xl font-semibold text-[14px] active:scale-[0.97] transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                    color: "hsl(220 20% 6%)",
+                    boxShadow: "0 4px 20px hsl(var(--primary) / 0.3)",
+                  }}>
+                  {savingRecurring ? <><Loader2 className="w-4 h-4 animate-spin" /> Setting up...</> : <><RefreshCw className="w-4 h-4" /> Schedule Payment</>}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Recurring Payments */}
-      {recurringPayments.length > 0 && (
-        <div id="recurring-section" className="px-5 mt-6 mb-5 relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both" }}>
-          <h3 className="text-[10px] font-bold mb-3 flex items-center gap-2 tracking-[0.2em] uppercase text-white/25">
-            <RefreshCw className="w-3 h-3 text-primary/40" /> Recurring Payments
-            <span className="ml-auto text-[9px] text-white/15 normal-case tracking-normal font-normal">{recurringPayments.length} active</span>
-          </h3>
-          <div className="space-y-2.5">
-            {recurringPayments.map((rp, i) => {
-              const fav = favorites.find(f => f.id === rp.favorite_id);
-              return (
-                <div key={rp.id} className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm flex items-center gap-3 hover:border-white/[0.1] transition-all group"
-                  style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.22 + i * 0.04}s both` }}>
-                  <div className="w-10 h-10 rounded-xl bg-primary/8 border border-primary/10 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">{fav?.avatar_emoji || "👤"}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold truncate">{fav?.contact_name || "Contact"}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-muted-foreground capitalize flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {rp.frequency}</span>
-                      <span className="text-[10px] text-muted-foreground">Next: {new Date(rp.next_run_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                    </div>
-                  </div>
-                  <div className="text-right flex items-center gap-2">
-                    <p className="text-[12px] font-bold tabular-nums">₹{(rp.amount / 100).toLocaleString("en-IN")}</p>
-                    <button onClick={() => toggleRecurring(rp.id, rp.is_active)}
-                      className={`w-9 h-5 rounded-full flex items-center transition-all duration-300 ${rp.is_active ? "bg-success justify-end" : "bg-white/[0.08] justify-start"}`}>
-                      <div className="w-4 h-4 rounded-full bg-foreground mx-0.5 transition-all" />
-                    </button>
-                    <button onClick={() => deleteRecurring(rp.id)} className="w-6 h-6 rounded-lg bg-destructive/10 flex items-center justify-center active:scale-90 transition-all hover:bg-destructive/15">
-                      <X className="w-3 h-3 text-destructive" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Recurring Payment Modal */}
-      {showRecurring && recurringFav && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowRecurring(false)}>
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-md" style={{ animation: "fade-in 0.2s ease-out" }} />
-          <div className="relative w-full max-w-lg rounded-t-3xl border-t border-white/[0.08] p-6 overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }} onClick={e => e.stopPropagation()}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.2), transparent)" }} />
-            <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mb-5" />
-            <h2 className="text-[16px] font-bold mb-1 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-primary" /> Recurring Payment</h2>
-            <p className="text-[11px] text-muted-foreground mb-5">Auto-pay to {recurringFav.contact_name}</p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-xl">{recurringFav.avatar_emoji}</div>
-                <div>
-                  <p className="text-[12px] font-semibold">{recurringFav.contact_name}</p>
-                  <p className="text-[10px] text-muted-foreground">{recurringFav.contact_upi_id || recurringFav.contact_phone || "—"}</p>
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">Amount (₹) *</label>
-                <input value={recurringAmount} onChange={e => setRecurringAmount(e.target.value.replace(/[^0-9]/g, ""))} placeholder="Enter amount"
-                  className="w-full h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:border-primary/30 focus:bg-white/[0.04] outline-none transition-all tabular-nums" inputMode="numeric" />
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">Frequency</label>
-                <div className="flex gap-2">
-                  {(["weekly", "monthly"] as const).map(freq => (
-                    <button key={freq} onClick={() => setRecurringFreq(freq)}
-                      className={`flex-1 py-3 rounded-xl text-[12px] font-semibold capitalize flex items-center justify-center gap-2 border transition-all duration-300 active:scale-95 ${
-                        recurringFreq === freq ? "border-primary bg-primary/10 text-primary shadow-[0_0_12px_hsl(42_78%_55%/0.1)]" : "border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:border-white/[0.1]"
-                      }`}>
-                      {freq === "weekly" ? <Clock className="w-3.5 h-3.5" /> : <CalendarDays className="w-3.5 h-3.5" />} {freq}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">Note (optional)</label>
-                <input value={recurringNote} onChange={e => setRecurringNote(e.target.value)} placeholder="e.g. Pocket money, Rent"
-                  className="w-full h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm focus:border-primary/30 focus:bg-white/[0.04] outline-none transition-all" />
-              </div>
-              <button onClick={createRecurring} disabled={savingRecurring || !recurringAmount}
-                className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_4px_16px_hsl(42_78%_55%/0.3)] flex items-center justify-center gap-2 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.05] transition-colors rounded-xl" />
-                {savingRecurring ? <><Loader2 className="w-4 h-4 animate-spin" /> Setting up...</> : <><RefreshCw className="w-4 h-4" /> Schedule Payment</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <BottomNav />
+
+      <style>{`
+        @keyframes slide-up-spring {
+          0% { opacity: 0; transform: translateY(20px) scale(0.97); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 };
