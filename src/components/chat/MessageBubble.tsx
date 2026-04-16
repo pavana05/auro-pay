@@ -15,7 +15,7 @@ interface MessageBubbleProps {
 
 const MessageBubble = ({
   content, messageType, voiceUrl, paymentAmount, paymentStatus,
-  isMine, timestamp, senderName,
+  isMine, timestamp, senderName, isRead,
 }: MessageBubbleProps) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
