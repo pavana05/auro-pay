@@ -95,6 +95,7 @@ const QuickPay = () => {
   const [contactHistory, setContactHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => { setMounted(true); }, []);
