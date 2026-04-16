@@ -438,20 +438,50 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile Drawer */}
       <aside
         className={`fixed top-0 left-0 bottom-0 w-[260px] flex flex-col z-50 lg:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ background: G.sidebar, backdropFilter: "blur(20px)" }}
+        style={{
+          background: "rgba(12,14,19,0.75)",
+          backdropFilter: "blur(24px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+          borderRight: `1px solid rgba(200,149,46,0.1)`,
+          boxShadow: "inset 0 0 80px rgba(200,149,46,0.03), 4px 0 40px rgba(0,0,0,0.5)",
+        }}
       >
         <SidebarContent isMobile />
       </aside>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — Glassmorphism */}
       <aside
-        className={`${collapsed ? "w-[72px]" : "w-[260px]"} shrink-0 flex-col transition-all duration-400 relative hidden lg:flex`}
-        style={{ background: G.sidebar, borderRight: `1px solid ${G.borderSubtle}` }}
+        className={`${collapsed ? "w-[72px]" : "w-[260px]"} shrink-0 flex-col transition-all duration-400 relative hidden lg:flex overflow-hidden`}
+        style={{
+          background: "rgba(12,14,19,0.6)",
+          backdropFilter: "blur(28px) saturate(1.5)",
+          WebkitBackdropFilter: "blur(28px) saturate(1.5)",
+          borderRight: `1px solid rgba(200,149,46,0.1)`,
+          boxShadow: "inset 0 1px 0 rgba(200,149,46,0.08), inset 0 0 120px rgba(200,149,46,0.02)",
+        }}
       >
-        <div className="absolute top-0 left-0 w-[2px] h-full" style={{
-          background: `linear-gradient(180deg, transparent, rgba(200,149,46,0.4) 30%, rgba(200,149,46,0.6) 50%, rgba(200,149,46,0.4) 70%, transparent)`,
+        {/* Gold edge glow */}
+        <div className="absolute top-0 left-0 w-[2px] h-full z-10" style={{
+          background: `linear-gradient(180deg, transparent 5%, rgba(200,149,46,0.5) 30%, rgba(232,192,96,0.7) 50%, rgba(200,149,46,0.5) 70%, transparent 95%)`,
           animation: "admin-glow-pulse 4s ease-in-out infinite",
+          filter: "blur(0.5px)",
         }} />
+
+        {/* Floating gold reflection orbs */}
+        <div className="absolute top-[15%] right-[-20px] w-40 h-40 rounded-full pointer-events-none" style={{
+          background: "radial-gradient(circle, rgba(200,149,46,0.06) 0%, transparent 70%)",
+          animation: "admin-orb-drift 20s ease-in-out infinite",
+        }} />
+        <div className="absolute bottom-[20%] left-[-30px] w-48 h-48 rounded-full pointer-events-none" style={{
+          background: "radial-gradient(circle, rgba(232,192,96,0.04) 0%, transparent 70%)",
+          animation: "admin-orb-drift 25s ease-in-out infinite reverse",
+        }} />
+
+        {/* Top highlight reflection */}
+        <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none" style={{
+          background: "linear-gradient(180deg, rgba(200,149,46,0.05) 0%, transparent 100%)",
+        }} />
+
         <SidebarContent />
       </aside>
 
