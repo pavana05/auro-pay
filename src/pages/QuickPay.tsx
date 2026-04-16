@@ -316,81 +316,150 @@ const QuickPay = () => {
 
         {paySuccess ? (
           <div className="flex-1 flex flex-col relative overflow-y-auto">
+            {/* Ambient glow orbs */}
+            <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(152 60% 45% / 0.08), transparent 70%)", animation: "gentle-pulse 3s ease-in-out infinite" }} />
+            <div className="absolute top-[20%] right-[-60px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.05), transparent 70%)" }} />
+            <div className="absolute bottom-[30%] left-[-40px] w-[150px] h-[150px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, hsl(210 80% 55% / 0.04), transparent 70%)" }} />
+
             {/* Success view */}
-            <div className="flex flex-col items-center justify-center px-5 pt-8 pb-6" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-              {/* Confetti particles */}
+            <div className="flex flex-col items-center justify-center px-5 pt-10 pb-6 relative" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+              {/* Confetti particles — more + varied shapes */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="absolute rounded-full" style={{
-                    width: 2 + Math.random() * 4,
-                    height: 2 + Math.random() * 4,
-                    left: `${5 + Math.random() * 90}%`,
-                    top: `${10 + Math.random() * 50}%`,
-                    background: i % 4 === 0 ? "hsl(42 78% 55%)" : i % 4 === 1 ? "hsl(152 60% 45%)" : i % 4 === 2 ? "hsl(210 80% 60%)" : "hsl(330 70% 55%)",
-                    animation: `confetti-fall ${1.5 + Math.random() * 2}s ease-out ${Math.random() * 0.8}s both`,
-                    opacity: 0.7,
+                {Array.from({ length: 36 }).map((_, i) => (
+                  <div key={i} className="absolute" style={{
+                    width: i % 3 === 0 ? 3 : 2 + Math.random() * 3,
+                    height: i % 3 === 0 ? 8 : 2 + Math.random() * 3,
+                    borderRadius: i % 3 === 0 ? "1px" : "50%",
+                    left: `${3 + Math.random() * 94}%`,
+                    top: `${5 + Math.random() * 45}%`,
+                    background: ["hsl(42 78% 55%)", "hsl(152 60% 45%)", "hsl(210 80% 60%)", "hsl(330 70% 55%)", "hsl(280 60% 55%)", "hsl(45 90% 65%)"][i % 6],
+                    animation: `confetti-fall ${1.5 + Math.random() * 2.5}s ease-out ${Math.random() * 1}s both`,
+                    opacity: 0.6 + Math.random() * 0.3,
+                    transform: `rotate(${Math.random() * 360}deg)`,
                   }} />
                 ))}
               </div>
 
-              <div className="relative w-24 h-24 mb-5">
-                <div className="absolute inset-[-16px] rounded-full border-2 border-success/15" style={{ animation: "scanner-ring 2.5s ease-in-out infinite" }} />
-                <div className="absolute inset-[-8px] rounded-full border border-success/8" style={{ animation: "scanner-ring 2.5s ease-in-out 0.4s infinite" }} />
-                <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center" style={{ boxShadow: "0 0 60px hsl(152 60% 45% / 0.2), 0 0 100px hsl(152 60% 45% / 0.08)", animation: "success-glow 2s ease-in-out infinite" }}>
-                  <CheckCircle2 className="w-14 h-14 text-success" style={{ animation: "scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }} />
+              {/* Premium check icon with layered rings */}
+              <div className="relative w-28 h-28 mb-6">
+                {/* Outer rotating ring */}
+                <div className="absolute inset-[-24px] rounded-full" style={{
+                  border: "1px solid transparent",
+                  borderTopColor: "hsl(152 60% 45% / 0.15)",
+                  borderRightColor: "hsl(152 60% 45% / 0.08)",
+                  animation: "spin 8s linear infinite",
+                }} />
+                {/* LED dots ring */}
+                <div className="absolute inset-[-18px]">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="absolute w-1 h-1 rounded-full" style={{
+                      background: `hsl(152 60% 45% / ${0.15 + (i % 3) * 0.1})`,
+                      left: "50%",
+                      top: "50%",
+                      transform: `rotate(${i * 30}deg) translateY(-${52}px)`,
+                      animation: `gentle-pulse 2s ease-in-out ${i * 0.15}s infinite`,
+                    }} />
+                  ))}
+                </div>
+                {/* Pulsing glow ring */}
+                <div className="absolute inset-[-10px] rounded-full border border-success/10" style={{ animation: "scanner-ring 2.5s ease-in-out infinite" }} />
+                <div className="absolute inset-[-4px] rounded-full border border-success/5" style={{ animation: "scanner-ring 2.5s ease-in-out 0.5s infinite" }} />
+                {/* Main circle */}
+                <div className="w-28 h-28 rounded-full flex items-center justify-center relative" style={{
+                  background: "radial-gradient(circle at 30% 30%, hsl(152 60% 45% / 0.18), hsl(152 60% 45% / 0.06))",
+                  boxShadow: "0 0 60px hsl(152 60% 45% / 0.2), 0 0 120px hsl(152 60% 45% / 0.06), inset 0 1px 0 hsl(152 60% 90% / 0.08)",
+                  animation: "success-glow 2.5s ease-in-out infinite",
+                }}>
+                  <div className="absolute inset-[1px] rounded-full" style={{ background: "linear-gradient(135deg, hsl(152 60% 90% / 0.04), transparent)" }} />
+                  <CheckCircle2 className="w-14 h-14 text-success relative z-10" style={{ animation: "scale-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both", filter: "drop-shadow(0 0 12px hsl(152 60% 45% / 0.3))" }} />
                 </div>
               </div>
-              <p className="text-[22px] font-bold" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both" }}>Payment Successful!</p>
-              <p className="text-[28px] font-bold text-primary mt-1 tabular-nums" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both", textShadow: "0 0 30px hsl(42 78% 55% / 0.15)" }}>{successAmount}</p>
-              <p className="text-[12px] text-muted-foreground mt-1" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both" }}>sent to {payTarget.contact_name}</p>
 
-              {/* Action buttons */}
-              <div className="flex gap-2 mt-6 w-full px-4" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
+              {/* Text with premium styling */}
+              <p className="text-[13px] font-semibold uppercase tracking-[0.2em] text-success/70 mb-1" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both" }}>
+                Payment Successful
+              </p>
+              <p className="text-[36px] font-bold tabular-nums tracking-tight" style={{
+                animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s both",
+                background: "linear-gradient(135deg, hsl(42 78% 65%), hsl(42 78% 50%), hsl(42 78% 65%))",
+                backgroundSize: "200% 100%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 20px hsl(42 78% 55% / 0.15))",
+              }}>{successAmount}</p>
+              <div className="flex items-center gap-2 mt-2" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.24s both" }}>
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px]">{payTarget.avatar_emoji}</div>
+                <p className="text-[12px] text-muted-foreground">sent to <span className="font-semibold text-foreground">{payTarget.contact_name}</span></p>
+              </div>
+
+              {/* Timestamp badge */}
+              <div className="mt-3 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center gap-1.5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s both" }}>
+                <Clock className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground tabular-nums">{successTimestamp}</span>
+              </div>
+
+              {/* Action buttons — premium glass style */}
+              <div className="flex gap-2.5 mt-7 w-full px-2" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both" }}>
                 <button onClick={() => { haptic.medium(); setShowPaymentDetails(prev => { if (!prev) fetchContactHistory(payTarget.id); return !prev; }); }}
-                  className="flex-1 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all text-primary hover:bg-primary/15">
-                  <Receipt className="w-4 h-4" /> {showPaymentDetails ? "Hide" : "Details"}
+                  className="flex-1 h-[52px] rounded-2xl bg-white/[0.03] border border-white/[0.06] text-[12px] font-semibold flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all text-foreground hover:bg-white/[0.06] hover:border-white/[0.1] backdrop-blur-sm">
+                  <Receipt className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] text-muted-foreground">{showPaymentDetails ? "Hide" : "Details"}</span>
                 </button>
                 <button onClick={shareReceipt}
-                  className="h-12 px-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all text-foreground hover:bg-white/[0.08]">
-                  <Share2 className="w-4 h-4" /> Share
+                  className="flex-1 h-[52px] rounded-2xl bg-white/[0.03] border border-white/[0.06] text-[12px] font-semibold flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all text-foreground hover:bg-white/[0.06] hover:border-white/[0.1] backdrop-blur-sm">
+                  <Share2 className="w-4 h-4 text-accent" />
+                  <span className="text-[10px] text-muted-foreground">Share</span>
                 </button>
                 <button onClick={() => { haptic.light(); setPaySuccess(false); setPayAmount("0"); setPayNote(""); }}
-                  className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground text-[12px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.25)]">
-                  <Send className="w-4 h-4" /> Again
+                  className="flex-1 h-[52px] rounded-2xl text-[12px] font-semibold flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all relative overflow-hidden group" style={{
+                    background: "linear-gradient(135deg, hsl(42 78% 45%), hsl(42 78% 38%))",
+                    boxShadow: "0 4px 20px hsl(42 78% 55% / 0.25), inset 0 1px 0 hsl(42 78% 75% / 0.15)",
+                  }}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/[0.08] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Send className="w-4 h-4 text-primary-foreground relative z-10" />
+                  <span className="text-[10px] text-primary-foreground/80 relative z-10">Pay Again</span>
                 </button>
               </div>
 
               <button onClick={() => { haptic.light(); setPayTarget(null); setPaySuccess(false); setPayAmount("0"); }}
-                className="mt-3 text-[11px] text-white/30 hover:text-white/50 transition-colors"
+                className="mt-4 text-[11px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
                 style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both" }}>
-                ← Back to Contacts
+                <ArrowLeft className="w-3 h-3" /> Back to Contacts
               </button>
             </div>
 
-            {/* Payment Details Panel */}
+            {/* Payment Details Panel — Premium glassmorphism */}
             {showPaymentDetails && (
               <div className="px-5 pb-8" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-                <div className="rounded-[22px] border border-white/[0.06] overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
-                  {/* Top accent */}
-                  <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
+                <div className="rounded-[22px] border border-white/[0.06] overflow-hidden backdrop-blur-xl relative" style={{ background: "linear-gradient(145deg, hsl(220 18% 10% / 0.95), hsl(225 22% 5.5%))" }}>
+                  {/* Inner glow overlay */}
+                  <div className="absolute inset-0 rounded-[22px] pointer-events-none" style={{ background: "radial-gradient(ellipse at top center, hsl(42 78% 55% / 0.03), transparent 60%)" }} />
+
+                  {/* Top accent line */}
+                  <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), hsl(152 60% 45% / 0.2), transparent)" }} />
 
                   {/* Recipient info */}
-                  <div className="p-5 border-b border-white/[0.04]" style={{ animation: "fade-in 0.3s ease-out 0.1s both" }}>
+                  <div className="p-5 border-b border-white/[0.04] relative" style={{ animation: "fade-in 0.3s ease-out 0.1s both" }}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-2xl">{payTarget.avatar_emoji}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold">{payTarget.contact_name}</p>
-                        <p className="text-[10px] text-muted-foreground">{payTarget.contact_upi_id || payTarget.contact_phone || "—"}</p>
+                      <div className="w-13 h-13 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-2xl relative" style={{ boxShadow: "0 0 20px hsl(42 78% 55% / 0.08)" }}>
+                        {payTarget.avatar_emoji}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-success/20 border border-success/30 flex items-center justify-center">
+                          <CheckCircle2 className="w-2.5 h-2.5 text-success" />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/8 border border-success/10">
-                        <CheckCircle2 className="w-2.5 h-2.5 text-success/70" />
-                        <span className="text-[9px] font-medium text-success/70">Completed</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold">{payTarget.contact_name}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{payTarget.contact_upi_id || payTarget.contact_phone || "—"}</p>
+                      </div>
+                      <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-success/8 border border-success/15" style={{ boxShadow: "0 0 12px hsl(152 60% 45% / 0.06)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                        <span className="text-[9px] font-semibold text-success/80 uppercase tracking-wider">Completed</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Details grid */}
-                  <div className="p-5 space-y-4">
+                  <div className="p-5 space-y-0 relative">
                     {[
                       { label: "Amount", value: successAmount, highlight: true },
                       { label: "Date & Time", value: successTimestamp },
@@ -399,15 +468,15 @@ const QuickPay = () => {
                       { label: "Status", value: "Completed", status: true },
                       ...(payNote ? [{ label: "Note", value: payNote }] : []),
                     ].map((item, i) => (
-                      <div key={item.label} className="flex items-center justify-between" style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.05}s both` }}>
-                        <span className="text-[11px] text-white/30">{item.label}</span>
+                      <div key={item.label} className="flex items-center justify-between py-3 border-b border-white/[0.03] last:border-0" style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.05}s both` }}>
+                        <span className="text-[11px] text-white/30 font-medium">{item.label}</span>
                         <span className={`text-[12px] font-semibold tabular-nums flex items-center gap-1.5 ${
                           (item as any).highlight ? "text-primary" : (item as any).status ? "text-success" : "text-foreground"
                         }`}>
                           {(item as any).status && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />}
                           {item.value}
                           {item.label === "Transaction ID" && (
-                            <button onClick={() => { navigator.clipboard.writeText(item.value); haptic.light(); toast.success("Copied!"); }} className="text-white/20 hover:text-white/40 transition-colors">
+                            <button onClick={() => { navigator.clipboard.writeText(item.value); haptic.light(); toast.success("Copied!"); }} className="text-white/20 hover:text-primary transition-colors ml-1">
                               <Copy className="w-3 h-3" />
                             </button>
                           )}
@@ -433,7 +502,7 @@ const QuickPay = () => {
                     ) : (
                       <div className="space-y-2">
                         {contactHistory.slice(0, 5).map((tx, i) => (
-                          <div key={tx.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]"
+                          <div key={tx.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-all duration-200"
                             style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.05 + i * 0.06}s both` }}>
                             <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center text-sm">
                               {tx.type === "credit" ? "💰" : "💸"}
@@ -458,7 +527,6 @@ const QuickPay = () => {
                 </div>
               </div>
             )}
-          </div>
         ) : !sending && (
           <>
             {/* Paying To */}
