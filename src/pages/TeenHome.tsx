@@ -5,6 +5,7 @@ import {
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, ChevronRight, Wallet, Zap, Gift,
   Search, Shield, Sparkles, Activity, BarChart3,
+  MessageCircle, Flame, Trophy, Star,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +20,8 @@ interface Transaction { id: string; type: string; amount: number; merchant_name:
 interface SavingsGoal { id: string; title: string; target_amount: number; current_amount: number; icon: string | null; }
 interface Reward { id: string; title: string; description: string | null; discount_value: number; discount_type: string; image_url: string | null; category: string | null; }
 interface QuickPayFav { id: string; contact_name: string; avatar_emoji: string; }
+interface StreakData { current_streak: number; longest_streak: number; streak_coins: number; }
+interface AchievementData { id: string; title: string; icon: string; }
 
 const catEmoji: Record<string, string> = { food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸" };
 
@@ -40,10 +43,12 @@ const TeenHome = () => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
+  const [streak, setStreak] = useState<StreakData | null>(null);
+  const [recentAchievements, setRecentAchievements] = useState<AchievementData[]>([]);
+  const [unreadChats, setUnreadChats] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // 3D tilt via device orientation
   useEffect(() => {
     let active = true;
     const handle = (e: DeviceOrientationEvent) => {
@@ -71,23 +76,40 @@ const TeenHome = () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes] = await Promise.all([
+    const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
       supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", user.id).single(),
       supabase.from("wallets").select("*").eq("user_id", user.id).single(),
       supabase.from("savings_goals").select("id, title, target_amount, current_amount, icon").eq("teen_id", user.id).eq("is_completed", false).limit(3),
       supabase.from("notifications").select("id").eq("user_id", user.id).eq("is_read", false),
       supabase.from("rewards").select("id, title, description, discount_value, discount_type, image_url, category").eq("is_active", true).limit(4),
       supabase.from("quick_pay_favorites").select("id, contact_name, avatar_emoji").eq("user_id", user.id).order("last_paid_at", { ascending: false, nullsFirst: false }).limit(5),
+      supabase.from("user_streaks").select("current_streak, longest_streak, streak_coins").eq("user_id", user.id).single(),
+      supabase.from("user_achievements").select("achievement_id, achievements(id, title, icon)").eq("user_id", user.id).order("earned_at", { ascending: false }).limit(4),
     ]);
     if (profileRes.data) setProfile(profileRes.data as Profile);
     if (goalsRes.data) setGoals(goalsRes.data as SavingsGoal[]);
     if (rewardsRes.data) setRewards(rewardsRes.data as Reward[]);
     if (favsRes.data) setFavorites(favsRes.data as QuickPayFav[]);
     setUnreadCount(notifRes.data?.length || 0);
+    if (streakRes.data) setStreak(streakRes.data as StreakData);
+    if (achieveRes.data) {
+      const badges = (achieveRes.data as any[]).map(a => a.achievements).filter(Boolean);
+      setRecentAchievements(badges as AchievementData[]);
+    }
     if (walletRes.data) {
       setWallet(walletRes.data as WalletData);
       const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(5);
       if (txns) setTransactions(txns as Transaction[]);
+    }
+    // Check unread chats
+    const { data: convMembers } = await supabase.from("conversation_members").select("conversation_id, last_read_at").eq("user_id", user.id);
+    if (convMembers && convMembers.length > 0) {
+      let unread = 0;
+      for (const cm of convMembers) {
+        const { count } = await supabase.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", cm.conversation_id).gt("created_at", cm.last_read_at || "2000-01-01");
+        if (count && count > 0) unread++;
+      }
+      setUnreadChats(unread);
     }
     setLoading(false);
   };
@@ -112,7 +134,6 @@ const TeenHome = () => {
   const healthColor = healthScore >= 70 ? "hsl(152 60% 45%)" : healthScore >= 40 ? "hsl(38 92% 50%)" : "hsl(0 72% 51%)";
   const healthLabel = healthScore >= 70 ? "Excellent" : healthScore >= 40 ? "Good" : "Needs Attention";
 
-  // Skeleton loading
   if (loading) {
     return (
       <div className="min-h-screen bg-background px-5 pt-14 pb-24">
@@ -162,7 +183,7 @@ const TeenHome = () => {
     { label: "Friends", path: "/friends", emoji: "🤝", desc: "Social hub" },
     { label: "Learn", path: "/learn", emoji: "📚", desc: "Earn coins" },
     { label: "Bills", path: "/bill-payments", emoji: "⚡", desc: "Pay bills" },
-    { label: "Support", path: "/support", emoji: "💬", desc: "Get help" },
+    { label: "Refer", path: "/referrals", emoji: "🎁", desc: "Earn ₹20" },
   ];
 
   return (
@@ -208,23 +229,77 @@ const TeenHome = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center border border-border/30">
-                <Search className="w-[17px] h-[17px] text-muted-foreground/50" />
+              {/* Family Chat Button */}
+              <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/chats"); }}
+                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
+                <MessageCircle className="w-[17px] h-[17px] text-muted-foreground/50" />
+                {unreadChats > 0 && (
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-success flex items-center justify-center text-[7px] font-bold text-primary-foreground" />
+                )}
               </motion.button>
-              <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/notifications"); }} className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
+              <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/notifications"); }}
+                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
                 <Bell className="w-[17px] h-[17px] text-muted-foreground/50" />
                 {unreadCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full gradient-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground shadow-[0_2px_12px_hsl(42_78%_55%/0.5)]"
-                  >
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full gradient-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground shadow-[0_2px_12px_hsl(42_78%_55%/0.5)]">
                     {unreadCount}
                   </motion.span>
                 )}
               </motion.button>
             </div>
           </div>
+        </motion.div>
+
+        {/* Streak + Daily Spin Strip */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 22 }}
+          className="px-5 mb-4 flex gap-2.5"
+        >
+          {/* Streak Card */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { haptic.light(); navigate("/achievements"); }}
+            className="flex-1 flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] border border-border/20 relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, hsl(220 18% 9%), hsl(220 20% 6%))" }}
+          >
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.1), transparent)" }} />
+            <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, hsl(25 100% 50% / 0.12), hsl(42 78% 55% / 0.06))" }}>
+              <Flame className="w-[18px] h-[18px] text-warning" style={{ filter: "drop-shadow(0 0 6px hsl(38 92% 50% / 0.5))" }} />
+            </div>
+            <div className="text-left">
+              <p className="text-[18px] font-bold tabular-nums font-mono leading-none text-warning">{streak?.current_streak || 0}</p>
+              <p className="text-[8px] text-muted-foreground/40 font-semibold tracking-[0.08em] uppercase font-sora mt-0.5">Day Streak</p>
+            </div>
+            {(streak?.current_streak || 0) >= 7 && (
+              <div className="ml-auto px-2 py-0.5 rounded-full bg-warning/[0.08] border border-warning/10">
+                <span className="text-[7px] font-bold text-warning font-sora">🔥 ON FIRE</span>
+              </div>
+            )}
+          </motion.button>
+
+          {/* Daily Spin */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { haptic.medium(); navigate("/spin-wheel"); }}
+            className="flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] border border-primary/[0.1] relative overflow-hidden"
+            style={{ background: "radial-gradient(ellipse at 80% 20%, hsl(42 78% 55% / 0.06) 0%, transparent 60%), linear-gradient(135deg, hsl(220 18% 9%), hsl(220 20% 6%))" }}
+          >
+            <motion.span
+              className="text-[24px]"
+              animate={{ rotate: [0, 15, -15, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              🎡
+            </motion.span>
+            <div className="text-left">
+              <p className="text-[10px] font-bold text-primary font-sora leading-tight">Daily Spin</p>
+              <p className="text-[8px] text-muted-foreground/30 font-sora">Win rewards</p>
+            </div>
+          </motion.button>
         </motion.div>
 
         {/* Balance Card */}
@@ -252,9 +327,7 @@ const TeenHome = () => {
                 radial-gradient(ellipse 50% 40% at 10% 100%, hsl(36 60% 48% / 0.05) 0%, transparent 45%),
                 linear-gradient(170deg, hsl(220 25% 11%), hsl(225 30% 4%))`
             }} />
-            {/* Gold shimmer top */}
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.35) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.35) 70%, transparent 95%)" }} />
-            {/* Traveling shimmer */}
             <div className="absolute inset-0 opacity-[0.04]" style={{
               background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55%) 50%, transparent 70%)",
               backgroundSize: "300% 100%",
@@ -357,7 +430,7 @@ const TeenHome = () => {
           </div>
         </motion.div>
 
-        {/* Quick Actions — staggered gold buttons */}
+        {/* Quick Actions */}
         <motion.div
           variants={stagger.container}
           initial="hidden"
@@ -424,6 +497,50 @@ const TeenHome = () => {
           </motion.button>
         </motion.div>
 
+        {/* Achievement Badges Preview */}
+        {recentAchievements.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.34, type: "spring", stiffness: 200, damping: 22 }}
+            className="px-5 mb-5"
+          >
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { haptic.light(); navigate("/achievements"); }}
+              className="w-full rounded-[20px] p-4 relative overflow-hidden border border-border/20 text-left"
+              style={{ background: "radial-gradient(ellipse 50% 70% at 90% 20%, hsl(42 78% 55% / 0.04) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
+            >
+              <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.08), transparent)" }} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-primary/70" />
+                  <span className="text-[11px] font-semibold text-muted-foreground/60 font-sora">Recent Badges</span>
+                </div>
+                <span className="text-[9px] text-primary/50 font-semibold flex items-center gap-0.5 font-sora">View All <ChevronRight className="w-3 h-3" /></span>
+              </div>
+              <div className="flex items-center gap-2">
+                {recentAchievements.map((a, i) => (
+                  <motion.div
+                    key={a.id}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.4 + i * 0.08, type: "spring", stiffness: 400, damping: 20 }}
+                    className="w-[44px] h-[44px] rounded-[14px] bg-muted/20 border border-border/15 flex items-center justify-center text-[20px]"
+                    style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+                  >
+                    {a.icon || "🏆"}
+                  </motion.div>
+                ))}
+                <div className="flex-1 min-w-0 ml-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground/50 font-sora">{recentAchievements[0]?.title}</p>
+                  <p className="text-[8px] text-muted-foreground/25 font-sora mt-0.5">{recentAchievements.length} earned</p>
+                </div>
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* Financial Health Score */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -466,7 +583,7 @@ const TeenHome = () => {
           </motion.button>
         </motion.div>
 
-        {/* Send Again — People */}
+        {/* Send Again */}
         {favorites.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -716,10 +833,7 @@ const TeenHome = () => {
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               haptic.medium();
-              const code = profile ? `AURO${profile.full_name?.replace(/\s/g, "").substring(0, 4).toUpperCase() || "USER"}${Math.random().toString(36).substring(2, 5).toUpperCase()}` : "AUROPAY";
-              const deepLink = `https://auro-pay.lovable.app?ref=${code}`;
-              const txt = `Hey! Join AuroPay and we both get ₹20! Use my link: ${deepLink} 🎁`;
-              navigator.share?.({ title: "Join AuroPay", text: txt, url: deepLink }).catch(() => { navigator.clipboard.writeText(deepLink); toast.success("Referral link copied!"); });
+              navigate("/referrals");
             }}
             className="w-full relative overflow-hidden rounded-[20px] p-4 text-left border border-border/20"
             style={{ background: "radial-gradient(ellipse 50% 70% at 90% 30%, hsl(42 78% 55% / 0.05) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
@@ -759,18 +873,29 @@ const TeenHome = () => {
               <p className="text-[11px] font-semibold mb-0.5 font-sora">Save & Invest</p>
               <p className="text-[9px] text-muted-foreground/30 font-sora">Set savings goals</p>
             </motion.button>
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => { haptic.light(); navigate("/rewards"); }}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => { haptic.light(); navigate("/learn"); }}
               className="rounded-[18px] p-3.5 overflow-hidden relative bg-muted/10 border border-border/15 text-left">
               <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.03] blur-[25px]" style={{ background: "hsl(42 78% 55%)" }} />
-              <span className="text-[26px] mb-2 block">🎟️</span>
-              <p className="text-[11px] font-semibold mb-0.5 font-sora">Earn Rewards</p>
-              <p className="text-[9px] text-muted-foreground/30 font-sora">Exclusive deals</p>
+              <span className="text-[26px] mb-2 block">📚</span>
+              <p className="text-[11px] font-semibold mb-0.5 font-sora">Learn & Earn</p>
+              <p className="text-[9px] text-muted-foreground/30 font-sora">Financial quizzes</p>
             </motion.button>
           </div>
         </motion.div>
       </div>
 
       <BottomNav />
+
+      <style>{`
+        @keyframes shimmer-card {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes glow-pulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 10px hsl(42 78% 55% / 0.8); }
+          50% { opacity: 0.6; box-shadow: 0 0 4px hsl(42 78% 55% / 0.4); }
+        }
+      `}</style>
     </div>
   );
 };
