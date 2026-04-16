@@ -56,110 +56,196 @@ const BillSplitPage = () => {
     setCreating(false);
   };
 
-  const formatCompact = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+  const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
 
   return (
-    <div className="min-h-screen bg-background noise-overlay pb-28">
-      <div className="px-5 pt-6 pb-4 animate-slide-up">
-        <div className="flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-[18px] font-bold">Bill Split</h1>
-            <p className="text-[10px] text-muted-foreground">Split expenses with friends</p>
-          </div>
-          <button onClick={() => { haptic.light(); setShowCreate(true); }} className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center active:scale-90 transition-all shadow-[0_4px_12px_hsl(42_78%_55%/0.3)]">
-            <Plus className="w-5 h-5 text-primary-foreground" />
-          </button>
-        </div>
+    <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-32 -right-32 w-[350px] h-[350px] rounded-full opacity-[0.035] blur-[100px]" style={{ background: "hsl(var(--primary))" }} />
+        <div className="absolute bottom-[35%] -left-20 w-[200px] h-[200px] rounded-full opacity-[0.02] blur-[70px]" style={{ background: "hsl(210 80% 55%)" }} />
       </div>
 
-      {/* How It Works */}
-      <div className="px-5 mb-5 animate-slide-up-delay-1">
-        <div className="rounded-2xl p-4 border border-primary/20" style={{ background: "linear-gradient(145deg, hsl(42 78% 55% / 0.04), hsl(220 15% 8%))" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-primary" />
-            <p className="text-[12px] font-semibold text-primary">How Bill Split Works</p>
+      <div className="relative z-10 px-5">
+        {/* Header */}
+        <div className="pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => { haptic.light(); navigate(-1); }}
+                className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
+                style={{ background: "hsl(220 15% 8%)" }}>
+                <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
+              </button>
+              <div>
+                <h1 className="text-[19px] font-bold tracking-[-0.5px]">Bill Split</h1>
+                <p className="text-[10px] text-white/30 font-medium">Split expenses with friends</p>
+              </div>
+            </div>
+            <button onClick={() => { haptic.light(); setShowCreate(true); }}
+              className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                boxShadow: "0 4px 16px hsl(var(--primary) / 0.25)",
+              }}>
+              <Plus className="w-[18px] h-[18px]" style={{ color: "hsl(220 20% 6%)" }} />
+            </button>
           </div>
-          <div className="space-y-2">
+        </div>
+
+        {/* How It Works */}
+        <div className="rounded-[18px] p-4 mb-5 border border-white/[0.04] relative overflow-hidden"
+          style={{
+            background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+            animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both",
+          }}>
+          <div className="absolute top-0 left-4 right-4 h-[1px]"
+            style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.15), transparent)" }} />
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--primary) / 0.1)" }}>
+              <Users className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
+            </div>
+            <p className="text-[11px] font-semibold" style={{ color: "hsl(var(--primary))" }}>How It Works</p>
+          </div>
+          <div className="space-y-2.5">
             {["Create a split with the total amount", "Add friends to split with", "Everyone pays their share via AuroPay"].map((step, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary">{i + 1}</div>
-                <p className="text-[11px] text-muted-foreground">{step}</p>
+              <div key={i} className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold shrink-0"
+                  style={{ background: "hsl(var(--primary) / 0.08)", color: "hsl(var(--primary))" }}>{i + 1}</div>
+                <p className="text-[11px] text-white/35">{step}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowCreate(false)}>
-          <div className="w-full max-w-lg rounded-t-3xl border-t border-border p-6 animate-slide-up" style={{ background: "linear-gradient(180deg, hsl(220 15% 12%), hsl(220 18% 7%))" }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-muted/30 rounded-full mx-auto mb-5" />
-            <h2 className="text-[16px] font-bold mb-4">Create New Split</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Title</label>
-                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Movie night, Dinner..." className="w-full h-12 rounded-xl bg-card border border-border px-4 text-sm focus:border-primary/40 outline-none transition-all" />
+        {/* Create Modal */}
+        {showCreate && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setShowCreate(false)}>
+            <div className="w-full max-w-lg rounded-t-[28px] p-6 border-t border-white/[0.06]"
+              style={{ background: "linear-gradient(180deg, hsl(220 15% 10%), hsl(220 18% 6%))", animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
+              onClick={e => e.stopPropagation()}>
+              <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-[16px] font-bold">Create New Split</h2>
+                <button onClick={() => setShowCreate(false)} className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center">
+                  <X className="w-3.5 h-3.5 text-white/30" />
+                </button>
               </div>
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Total Amount (₹)</label>
-                <input value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0.00" type="text" inputMode="decimal" className="w-full h-12 rounded-xl bg-card border border-border px-4 text-sm focus:border-primary/40 outline-none transition-all" />
+              <div className="space-y-3 mb-5">
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">Title</p>
+                  <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Movie night, Dinner..."
+                    className="w-full h-[48px] rounded-[14px] px-4 text-[13px] outline-none transition-all"
+                    style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase mb-1.5">Total Amount (₹)</p>
+                  <input value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0.00"
+                    inputMode="decimal"
+                    className="w-full h-[48px] rounded-[14px] px-4 text-[13px] outline-none transition-all"
+                    style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(220 15% 12%)", color: "white" }} />
+                </div>
               </div>
               <button onClick={createSplit} disabled={creating || !title || !amount}
-                className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_4px_16px_hsl(42_78%_55%/0.3)]">
+                className="w-full h-[52px] rounded-2xl font-semibold text-[14px] active:scale-[0.97] transition-all disabled:opacity-40 relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                  color: "hsl(220 20% 6%)",
+                  boxShadow: "0 4px 20px hsl(var(--primary) / 0.3)",
+                }}>
                 {creating ? "Creating..." : "Create Split"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Splits List */}
-      <div className="px-5">
+        {/* Splits List */}
         {loading ? (
-          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-muted animate-pulse" />)}</div>
-        ) : splits.length === 0 ? (
-          <div className="text-center py-16 animate-scale-in">
-            <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-3">
-              <Users className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">No bill splits yet</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Tap + to create your first split</p>
-          </div>
-        ) : (
           <div className="space-y-3">
-            {splits.map((split) => (
-              <div key={split.id} className="rounded-2xl p-4 border border-border transition-all active:scale-[0.98]" style={{ background: "linear-gradient(145deg, hsl(220 15% 10%), hsl(220 18% 7%))" }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold truncate">{split.title}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                        split.status === "settled" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                      }`}>
-                        {split.status === "settled" ? <Check className="w-2.5 h-2.5 inline mr-0.5" /> : <Clock className="w-2.5 h-2.5 inline mr-0.5" />}
-                        {split.status}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(split.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[14px] font-bold">{formatCompact(split.total_amount)}</p>
-                </div>
+            {[1,2,3].map(i => (
+              <div key={i} className="h-[80px] rounded-[18px] overflow-hidden relative">
+                <div className="absolute inset-0" style={{ background: "hsl(220 15% 8%)" }} />
+                <div className="absolute inset-0" style={{
+                  background: "linear-gradient(110deg, transparent 30%, hsl(220 15% 12%) 50%, transparent 70%)",
+                  backgroundSize: "200% 100%",
+                  animation: "skeleton-shimmer 1.8s ease-in-out infinite",
+                }} />
               </div>
             ))}
+          </div>
+        ) : splits.length === 0 ? (
+          <div className="text-center py-20" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className="w-[72px] h-[72px] rounded-[22px] flex items-center justify-center mx-auto mb-4 border border-white/[0.04]"
+              style={{ background: "linear-gradient(135deg, hsl(220 15% 9%), hsl(220 18% 6%))" }}>
+              <Users className="w-8 h-8 text-white/8" />
+            </div>
+            <p className="text-[14px] font-semibold text-white/20 mb-1">No bill splits yet</p>
+            <p className="text-[11px] text-white/10">Tap + to create your first split</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {splits.map((split, idx) => {
+              const isSettled = split.status === "settled";
+              const accent = isSettled ? "152 60% 45%" : "var(--primary)";
+              return (
+                <div key={split.id} className="rounded-[18px] p-4 border border-white/[0.04] relative overflow-hidden active:scale-[0.98] transition-all"
+                  style={{
+                    background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+                    animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.08 + idx * 0.04}s both`,
+                  }}>
+                  <div className="absolute top-0 left-4 right-4 h-[1px]"
+                    style={{ background: `linear-gradient(90deg, transparent, hsl(${accent} / 0.12), transparent)` }} />
+
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, hsl(${accent} / 0.12), hsl(${accent} / 0.04))`,
+                      }}>
+                      <Users className="w-5 h-5" style={{ color: `hsl(${accent})` }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold truncate">{split.title}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1`}
+                          style={{
+                            background: isSettled ? "hsl(152 60% 45% / 0.1)" : "hsl(38 92% 50% / 0.1)",
+                            color: isSettled ? "hsl(152 60% 50%)" : "hsl(38 92% 55%)",
+                          }}>
+                          {isSettled ? <Check className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
+                          {split.status}
+                        </span>
+                        <span className="text-[9px] text-white/15">
+                          {new Date(split.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[14px] font-bold tracking-[-0.3px]"
+                      style={{
+                        background: `linear-gradient(135deg, hsl(${accent}), hsl(${accent} / 0.7))`,
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}>
+                      {fmt(split.total_amount)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       <BottomNav />
+
+      <style>{`
+        @keyframes slide-up-spring {
+          0% { opacity: 0; transform: translateY(20px) scale(0.97); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 };
