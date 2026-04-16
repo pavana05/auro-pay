@@ -128,17 +128,16 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchBadges = async () => {
-      const [kycRes, walletRes, notifRes, flaggedRes] = await Promise.all([
+      const [kycRes, walletRes, notifRes] = await Promise.all([
         supabase.from("kyc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("wallets").select("id", { count: "exact", head: true }).eq("is_frozen", true),
         supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("account_status" as any, "flagged"),
       ]);
       setBadges({
         kyc: kycRes.count || 0,
         frozen: walletRes.count || 0,
         notif: notifRes.count || 0,
-        flagged: flaggedRes.count || 0,
+        flagged: 0,
       });
     };
     fetchBadges();
