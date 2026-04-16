@@ -147,10 +147,13 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   return (
     <div
+      ref={containerRef}
       className="flex flex-col min-h-[100dvh] bg-background relative overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Ambient glow per slide */}
       <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: slide.bg }} />
