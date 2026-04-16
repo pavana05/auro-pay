@@ -1086,6 +1086,7 @@ const AdminDashboard = () => {
           )}
         </AnimatePresence>
       </div>
+      <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </AdminLayout>
   );
 };
