@@ -54,8 +54,7 @@ const AddMoney = () => {
   }, [phase]);
 
   const handleAddMoney = async () => {
-    const amt = parseFloat(amount);
-    if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
+    if (!canPay) { toast.error(`Enter an amount between ₹${MIN} and ₹${MAX.toLocaleString("en-IN")}`); return; }
 
     haptic.medium();
     setPhase("processing");
