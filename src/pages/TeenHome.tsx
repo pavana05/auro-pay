@@ -5,7 +5,7 @@ import {
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, ChevronRight, Wallet, Zap, Gift,
   Search, Shield, Sparkles, Activity, BarChart3,
-  MessageCircle, Flame, Trophy, Star,
+  MessageCircle, Flame, Trophy, Star, X, ArrowRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -46,7 +46,11 @@ const TeenHome = () => {
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [recentAchievements, setRecentAchievements] = useState<AchievementData[]>([]);
   const [unreadChats, setUnreadChats] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const cardRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const rewardsScrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -124,7 +128,37 @@ const TeenHome = () => {
   const initials = profile?.full_name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const firstName = profile?.full_name?.split(" ")[0] || "";
   const animBal = useCountUp(wallet?.balance || 0, 1200, showBalance);
-  const greet = () => { const h = new Date().getHours(); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening"; };
+  // IST-based greeting (UTC+5:30) regardless of device timezone
+  const greet = () => {
+    const istHour = (new Date().getUTCHours() * 60 + new Date().getUTCMinutes() + 330) % 1440 / 60;
+    return istHour < 12 ? "Good Morning" : istHour < 17 ? "Good Afternoon" : istHour < 21 ? "Good Evening" : "Good Night";
+  };
+
+  // Auto-scroll the rewards strip slowly, pause on touch
+  useEffect(() => {
+    const el = rewardsScrollRef.current;
+    if (!el || rewards.length < 2) return;
+    let paused = false;
+    const onTouch = () => { paused = true; setTimeout(() => { paused = false; }, 4000); };
+    el.addEventListener("touchstart", onTouch, { passive: true });
+    el.addEventListener("mouseenter", onTouch);
+    const id = setInterval(() => {
+      if (paused) return;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: 1, behavior: "auto" });
+      }
+    }, 30);
+    return () => {
+      clearInterval(id);
+      el.removeEventListener("touchstart", onTouch);
+      el.removeEventListener("mouseenter", onTouch);
+    };
+  }, [rewards.length]);
+
+  // Focus search when opened
+  useEffect(() => { if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 100); }, [searchOpen]);
 
   const moneyIn = transactions.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
   const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
