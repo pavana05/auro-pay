@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import AdminCommandPalette from "@/components/admin/AdminCommandPalette";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, TrendingUp,
   Clock, RefreshCw, Zap, Download,
@@ -12,6 +13,7 @@ import {
   Signal, Wifi, MonitorSmartphone,
   Calendar, Layers, Rocket, Timer,
   CheckCircle2, XCircle, Gauge,
+  Trophy, Search, Command,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell,
@@ -20,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCountUp } from "@/hooks/useCountUp";
+import { toast } from "sonner";
 
 /* ── Semantic color refs (gold theme) ── */
 const C = {
@@ -179,6 +182,20 @@ const AdminDashboard = () => {
   const [greeting, setGreeting] = useState("");
   const [uptime, setUptime] = useState(0);
   const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "operations">("overview");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [hourlyTraffic, setHourlyTraffic] = useState<{ hour: number; count: number }[]>([]);
+
+  // ⌘K / Ctrl+K opens palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(p => !p);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -273,6 +290,20 @@ const AdminDashboard = () => {
       growth.push({ day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), users: allUsers.filter((u: any) => u.created_at?.startsWith(dateStr)).length });
     }
     setUserGrowth(growth);
+
+    // Hourly traffic for last 24h
+    const hours: { hour: number; count: number }[] = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+    const dayAgo = Date.now() - 24 * 3600000;
+    allTxns.forEach((t: any) => {
+      if (!t.created_at) return;
+      const ts = new Date(t.created_at).getTime();
+      if (ts >= dayAgo) {
+        const h = new Date(t.created_at).getHours();
+        hours[h].count += 1;
+      }
+    });
+    setHourlyTraffic(hours);
+
     setLoading(false);
     setLastRefresh(new Date());
   }, []);
@@ -297,6 +328,25 @@ const AdminDashboard = () => {
     fetchStats();
   };
   const getUptime = () => { if (!uptime) return "0m"; const mins = Math.floor((Date.now() - uptime) / 60000); return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`; };
+
+  const exportCsv = () => {
+    if (!liveTxns.length) { toast.error("Nothing to export yet"); return; }
+    const header = ["id", "type", "amount_paise", "amount_inr", "merchant", "category", "status", "created_at"];
+    const rows = liveTxns.map(t => [
+      t.id, t.type, t.amount, (t.amount / 100).toFixed(2),
+      `"${(t.merchant_name || "").replace(/"/g, '""')}"`,
+      t.category || "", t.status || "", t.created_at || "",
+    ]);
+    const csv = [header.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `auropay-transactions-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exported to CSV");
+  };
 
   const tooltipStyle = { background: "rgba(18,20,24,0.95)", border: "1px solid rgba(200,149,46,0.1)", borderRadius: 14, color: "#fff", fontSize: 11, boxShadow: "0 16px 48px rgba(0,0,0,0.6)" };
 
@@ -364,10 +414,22 @@ const AdminDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <motion.button whileTap={{ scale: 0.92 }} onClick={handleRefresh} className="p-2.5 rounded-[14px] border border-border/30 text-muted-foreground bg-muted/20">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPaletteOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-[14px] border border-border/30 text-[11px] text-muted-foreground bg-muted/20 font-sora"
+                title="Quick search (⌘K)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Search…</span>
+                <kbd className="ml-1 text-[9px] font-mono px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground/60 flex items-center gap-0.5">
+                  <Command className="w-2.5 h-2.5" />K
+                </kbd>
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.92 }} onClick={handleRefresh} className="p-2.5 rounded-[14px] border border-border/30 text-muted-foreground bg-muted/20" title="Refresh">
                 <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.96 }} className="flex items-center gap-2 px-5 py-2.5 rounded-[14px] text-xs font-semibold gradient-primary text-primary-foreground shadow-[0_4px_20px_rgba(200,149,46,0.3)] font-sora">
+              <motion.button whileTap={{ scale: 0.96 }} onClick={exportCsv} className="flex items-center gap-2 px-5 py-2.5 rounded-[14px] text-xs font-semibold gradient-primary text-primary-foreground shadow-[0_4px_20px_rgba(200,149,46,0.3)] font-sora">
                 <Download className="w-3.5 h-3.5" /> Export
               </motion.button>
             </div>
@@ -709,6 +771,119 @@ const AdminDashboard = () => {
                   </div>
                 </Widget>
               </motion.div>
+
+              {/* Top Wallets Leaderboard + Hourly Traffic Heatmap */}
+              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Top Wallets */}
+                <Widget glow>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
+                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.primary}12`, border: `1px solid ${C.primary}20` }}>
+                        <Trophy className="w-4 h-4" style={{ color: C.primary }} />
+                      </div>
+                      Top Wallets by Balance
+                    </h3>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate("/admin/wallets")} className="text-[11px] font-medium text-primary px-3 py-1.5 rounded-[10px] bg-primary/[0.06] font-sora">
+                      View All <ArrowUpRight className="w-3 h-3 inline" />
+                    </motion.button>
+                  </div>
+                  {stats.topUsers.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/40 text-center py-8 font-sora">No wallet data yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stats.topUsers.map((u, i) => {
+                        const rankColors = [C.primary, C.secondary, "#cd7f32", "#94a3b8", "#94a3b8"];
+                        const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+                        const maxBal = Math.max(...stats.topUsers.map(t => t.volume), 1);
+                        return (
+                          <motion.div
+                            key={`${u.name}-${i}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 + i * 0.06 }}
+                            className="relative flex items-center gap-3 p-3 rounded-[12px] bg-muted/10 border border-border/20 overflow-hidden"
+                          >
+                            <div className="absolute inset-y-0 left-0 rounded-[12px]" style={{
+                              width: `${(u.volume / maxBal) * 100}%`,
+                              background: `linear-gradient(90deg, ${rankColors[i]}10, transparent)`,
+                            }} />
+                            <div className="relative w-8 h-8 rounded-[10px] flex items-center justify-center text-sm font-bold shrink-0" style={{ background: `${rankColors[i]}18`, color: rankColors[i] }}>
+                              {rankIcon}
+                            </div>
+                            <div className="relative flex-1 min-w-0">
+                              <p className="text-[12px] font-medium text-foreground truncate font-sora">{u.name}</p>
+                              <p className="text-[9px] text-muted-foreground/40 font-sora">Wallet balance</p>
+                            </div>
+                            <p className="relative text-[13px] font-bold font-mono" style={{ color: rankColors[i] }}>{fmtAmt(u.volume)}</p>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Widget>
+
+                {/* Hourly Traffic Heatmap */}
+                <Widget glow>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
+                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}20` }}>
+                        <Activity className="w-4 h-4" style={{ color: C.cyan }} />
+                      </div>
+                      Hourly Traffic
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/10 font-mono" style={{ color: C.cyan }}>24H</span>
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground/40 font-mono">{hourlyTraffic.reduce((s, h) => s + h.count, 0)} txns</span>
+                  </div>
+                  {(() => {
+                    const max = Math.max(...hourlyTraffic.map(h => h.count), 1);
+                    const peakHour = hourlyTraffic.reduce((a, b) => b.count > a.count ? b : a, hourlyTraffic[0] || { hour: 0, count: 0 });
+                    return (
+                      <>
+                        <div className="grid grid-cols-12 gap-1 mb-3">
+                          {hourlyTraffic.map((h) => {
+                            const intensity = h.count / max;
+                            const isPeak = h.count > 0 && h.count === peakHour.count;
+                            return (
+                              <motion.div
+                                key={h.hour}
+                                initial={{ scale: 0.6, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: h.hour * 0.015, type: "spring" as const, stiffness: 280, damping: 20 }}
+                                className="aspect-square rounded-[6px] flex items-center justify-center text-[8px] font-mono font-bold relative group cursor-pointer"
+                                style={{
+                                  background: h.count === 0
+                                    ? "rgba(255,255,255,0.03)"
+                                    : `rgba(200,149,46,${0.15 + intensity * 0.55})`,
+                                  border: isPeak ? `1px solid ${C.primary}` : "1px solid rgba(200,149,46,0.05)",
+                                  color: intensity > 0.5 ? "#fff" : "rgba(255,255,255,0.4)",
+                                  boxShadow: isPeak ? `0 0 12px ${C.primary}50` : undefined,
+                                }}
+                                title={`${h.hour}:00 — ${h.count} txns`}
+                              >
+                                {h.hour}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-sora">
+                          <span className="text-muted-foreground/40">00h</span>
+                          <span className="text-primary font-semibold">Peak: {peakHour.hour}:00 ({peakHour.count})</span>
+                          <span className="text-muted-foreground/40">23h</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 text-[9px] text-muted-foreground/40 font-sora">
+                          <span>Less</span>
+                          <div className="flex gap-0.5">
+                            {[0.05, 0.2, 0.4, 0.6, 0.75].map((o, i) => (
+                              <div key={i} className="w-3 h-3 rounded-[3px]" style={{ background: `rgba(200,149,46,${o})` }} />
+                            ))}
+                          </div>
+                          <span>More</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </Widget>
+              </motion.div>
             </motion.div>
           )}
 
@@ -911,6 +1086,7 @@ const AdminDashboard = () => {
           )}
         </AnimatePresence>
       </div>
+      <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </AdminLayout>
   );
 };
