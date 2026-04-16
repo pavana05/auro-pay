@@ -526,6 +526,7 @@ const QuickPay = () => {
                   <div className="h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.15), transparent)" }} />
                 </div>
               </div>
+            )}
           </div>
         ) : !sending && (
           <>
