@@ -414,10 +414,22 @@ const AdminDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <motion.button whileTap={{ scale: 0.92 }} onClick={handleRefresh} className="p-2.5 rounded-[14px] border border-border/30 text-muted-foreground bg-muted/20">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPaletteOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-[14px] border border-border/30 text-[11px] text-muted-foreground bg-muted/20 font-sora"
+                title="Quick search (⌘K)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Search…</span>
+                <kbd className="ml-1 text-[9px] font-mono px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground/60 flex items-center gap-0.5">
+                  <Command className="w-2.5 h-2.5" />K
+                </kbd>
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.92 }} onClick={handleRefresh} className="p-2.5 rounded-[14px] border border-border/30 text-muted-foreground bg-muted/20" title="Refresh">
                 <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.96 }} className="flex items-center gap-2 px-5 py-2.5 rounded-[14px] text-xs font-semibold gradient-primary text-primary-foreground shadow-[0_4px_20px_rgba(200,149,46,0.3)] font-sora">
+              <motion.button whileTap={{ scale: 0.96 }} onClick={exportCsv} className="flex items-center gap-2 px-5 py-2.5 rounded-[14px] text-xs font-semibold gradient-primary text-primary-foreground shadow-[0_4px_20px_rgba(200,149,46,0.3)] font-sora">
                 <Download className="w-3.5 h-3.5" /> Export
               </motion.button>
             </div>
