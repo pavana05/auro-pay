@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone, Star, RotateCcw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone, Star, RotateCcw, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
