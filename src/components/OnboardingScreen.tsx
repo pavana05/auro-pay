@@ -72,6 +72,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   const goTo = useCallback((idx: number) => {
     if (animating || idx === current) return;
+    haptic.selection();
     setAnimating(true);
     setProgress(0);
     setTimeout(() => {
@@ -81,6 +82,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   }, [animating, current]);
 
   const next = useCallback(() => {
+    haptic.light();
     if (current < slides.length - 1) goTo(current + 1);
     else onComplete();
   }, [current, goTo, onComplete]);
