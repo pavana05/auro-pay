@@ -1,190 +1,168 @@
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+
+const TAGLINE = ["Money", "freedom", "for", "teens"];
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [visible, setVisible] = useState(true);
-  const [phase, setPhase] = useState<"enter" | "glow" | "shine" | "exit">("enter");
+  const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("glow"), 400);
-    const t2 = setTimeout(() => setPhase("shine"), 1600);
-    const t3 = setTimeout(() => setPhase("exit"), 2800);
-    const t4 = setTimeout(() => {
+    // Logo finishes drawing at ~1.2s → trigger glow pulse
+    const t1 = setTimeout(() => setPulse(true), 1200);
+    // Auto navigate at 2.5s
+    const t2 = setTimeout(() => {
       setVisible(false);
       onComplete();
-    }, 3300);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    }, 2500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onComplete]);
 
   if (!visible) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background overflow-hidden transition-all duration-500 ${
-        phase === "exit" ? "opacity-0 scale-110" : "opacity-100 scale-100"
-      }`}
-      style={{ minHeight: "100dvh" }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: "#0a0c0f", minHeight: "100dvh" }}
     >
-      {/* Subtle noise */}
-      <div className="absolute inset-0 pointer-events-none noise-overlay opacity-50" />
-
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at center, transparent 30%, hsl(var(--background)) 90%)" }}
-      />
-
-      {/* Multi-layer ambient glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Drifting ambient gold lights — northern-lights style, very subtle */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full blur-3xl transition-all duration-[2s] ease-out ${
-            phase !== "enter" ? "opacity-100 scale-100" : "opacity-0 scale-50"
-          }`}
-          style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.25) 0%, hsl(42 78% 55% / 0.06) 40%, transparent 70%)" }}
-        />
-        <div
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl transition-all duration-[2.5s] delay-300 ease-out ${
-            phase !== "enter" ? "opacity-100 scale-100" : "opacity-0 scale-50"
-          }`}
-          style={{ background: "radial-gradient(circle, hsl(36 80% 42% / 0.1) 0%, transparent 60%)" }}
-        />
-      </div>
-
-      {/* Floating sparkle particles */}
-      {[...Array(8)].map((_, i) => {
-        const angle = (i / 8) * Math.PI * 2;
-        const radius = 110 + (i % 3) * 20;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        return (
-          <div
-            key={i}
-            className={`absolute left-1/2 top-1/2 w-1 h-1 rounded-full transition-all duration-[1.5s] ${
-              phase !== "enter" ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              background: "hsl(42 90% 70%)",
-              boxShadow: "0 0 8px hsl(42 78% 55% / 0.8), 0 0 16px hsl(42 78% 55% / 0.4)",
-              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-              animation: `sparkle-twinkle ${2 + (i % 3) * 0.5}s ease-in-out ${i * 0.15}s infinite`,
-              transitionDelay: `${0.4 + i * 0.08}s`,
-            }}
-          />
-        );
-      })}
-
-      {/* Logo + rings */}
-      <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
-        {/* Rotating conic gold ring */}
-        <div
-          className={`absolute inset-0 rounded-full transition-opacity duration-1000 ${
-            phase !== "enter" ? "opacity-100" : "opacity-0"
-          }`}
+          className="absolute rounded-full blur-[120px]"
           style={{
-            background: "conic-gradient(from 0deg, transparent 0%, hsl(42 78% 55% / 0.7) 25%, transparent 50%, hsl(42 78% 55% / 0.5) 75%, transparent 100%)",
-            animation: "spin 8s linear infinite",
-            mask: "radial-gradient(circle, transparent 62%, black 64%, black 66%, transparent 68%)",
-            WebkitMask: "radial-gradient(circle, transparent 62%, black 64%, black 66%, transparent 68%)",
+            width: 520, height: 520, top: "10%", left: "15%",
+            background: "radial-gradient(circle, hsl(42 78% 55% / 0.18), transparent 70%)",
+            animation: "splash-drift-1 14s ease-in-out infinite",
           }}
         />
-
-        {/* Pulsing rings */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-44 h-44 rounded-full border border-primary/20 animate-pulse-ring" />
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-44 h-44 rounded-full border border-primary/10 animate-pulse-ring [animation-delay:0.5s]" />
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-44 h-44 rounded-full border border-primary/[0.05] animate-pulse-ring [animation-delay:1s]" />
-        </div>
-
-        {/* Brand mark badge */}
         <div
-          className={`absolute -top-2 left-1/2 -translate-x-1/2 w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-[0_8px_24px_hsl(42_78%_55%/0.5)] transition-all duration-700 ${
-            phase !== "enter" ? "opacity-100 scale-100 -translate-y-0" : "opacity-0 scale-75 -translate-y-4"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-primary-foreground" />
-        </div>
-
-        {/* Logo text with shine sweep */}
-        <div
-          className={`relative z-10 transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            phase === "enter" ? "opacity-0 scale-90 translate-y-3 blur-sm" : "opacity-100 scale-100 translate-y-0 blur-0"
-          }`}
-        >
-          <h1 className="relative text-[56px] font-black tracking-tight overflow-hidden">
-            <span
-              className="bg-clip-text text-transparent"
-              style={{
-                backgroundImage: "linear-gradient(135deg, hsl(42 95% 75%) 0%, hsl(42 78% 55%) 45%, hsl(38 80% 45%) 100%)",
-                filter: "drop-shadow(0 4px 16px hsl(42 78% 55% / 0.4))",
-              }}
-            >
-              Auro
-            </span>
-            <span
-              className="text-foreground"
-              style={{ filter: "drop-shadow(0 2px 8px hsl(0 0% 100% / 0.1))" }}
-            >
-              Pay
-            </span>
-            {/* Shine sweep */}
-            <div
-              className={`absolute inset-0 pointer-events-none transition-transform ease-out ${
-                phase === "shine" || phase === "exit" ? "translate-x-full duration-[1200ms]" : "-translate-x-full duration-0"
-              }`}
-              style={{
-                background: "linear-gradient(110deg, transparent 35%, hsl(45 100% 90% / 0.6) 50%, transparent 65%)",
-                mixBlendMode: "overlay",
-              }}
-            />
-          </h1>
-        </div>
-      </div>
-
-      {/* Tagline */}
-      <p
-        className={`mt-6 text-[10px] tracking-[0.4em] uppercase font-bold transition-all duration-1000 delay-300 ${
-          phase === "enter" ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-        }`}
-        style={{ color: "hsl(42 50% 60% / 0.7)" }}
-      >
-        Premium · Banking · Reimagined
-      </p>
-
-      {/* Animated bottom hairline */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-3">
-        <div
-          className={`h-px overflow-hidden transition-all duration-[1200ms] delay-500 ease-out ${
-            phase !== "enter" ? "w-20 opacity-100" : "w-0 opacity-0"
-          }`}
-          style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), transparent)" }}
+          className="absolute rounded-full blur-[140px]"
+          style={{
+            width: 600, height: 600, bottom: "5%", right: "10%",
+            background: "radial-gradient(circle, hsl(38 80% 45% / 0.14), transparent 70%)",
+            animation: "splash-drift-2 18s ease-in-out infinite",
+          }}
         />
         <div
-          className={`w-1 h-1 rounded-full transition-all duration-700 delay-700 ${
-            phase !== "enter" ? "opacity-100 scale-100" : "opacity-0 scale-0"
-          }`}
-          style={{ background: "hsl(42 78% 55%)", boxShadow: "0 0 8px hsl(42 78% 55% / 0.8)" }}
-        />
-        <div
-          className={`h-px overflow-hidden transition-all duration-[1200ms] delay-500 ease-out ${
-            phase !== "enter" ? "w-20 opacity-100" : "w-0 opacity-0"
-          }`}
-          style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.6), transparent)" }}
+          className="absolute rounded-full blur-[100px]"
+          style={{
+            width: 380, height: 380, top: "45%", left: "55%",
+            background: "radial-gradient(circle, hsl(42 95% 70% / 0.1), transparent 70%)",
+            animation: "splash-drift-3 22s ease-in-out infinite",
+          }}
         />
       </div>
 
-      {/* Loading text */}
-      <p
-        className={`absolute bottom-12 left-1/2 -translate-x-1/2 text-[9px] tracking-[0.3em] uppercase font-medium transition-opacity duration-700 delay-1000 ${
-          phase !== "enter" ? "opacity-50" : "opacity-0"
-        }`}
-        style={{ color: "hsl(42 30% 55% / 0.4)" }}
-      >
-        Loading your wallet
-      </p>
+      {/* Subtle vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at center, transparent 35%, #0a0c0f 90%)" }}
+      />
+
+      {/* Logo container */}
+      <div className="relative flex items-center justify-center">
+        {/* Glow pulse ring (fires once after draw completes) */}
+        {pulse && (
+          <div
+            className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
+            style={{
+              width: 320, height: 320,
+              transform: "translate(-50%, -50%)",
+              background: "radial-gradient(circle, hsl(42 78% 55% / 0.5) 0%, hsl(42 78% 55% / 0.15) 35%, transparent 65%)",
+              animation: "splash-glow-pulse 1.3s ease-out forwards",
+            }}
+          />
+        )}
+
+        {/* SVG stroke-draw logo */}
+        <svg
+          width="280"
+          height="64"
+          viewBox="0 0 280 64"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="relative z-10"
+          style={{ filter: "drop-shadow(0 4px 24px hsl(42 78% 55% / 0.4))" }}
+        >
+          <defs>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="hsl(42 95% 75%)" />
+              <stop offset="50%" stopColor="hsl(42 78% 55%)" />
+              <stop offset="100%" stopColor="hsl(38 80% 45%)" />
+            </linearGradient>
+          </defs>
+          {/* AuroPay wordmark — outlined letters that stroke in */}
+          <text
+            x="50%"
+            y="50%"
+            dominantBaseline="middle"
+            textAnchor="middle"
+            fontFamily="'Sora', system-ui, sans-serif"
+            fontSize="48"
+            fontWeight="900"
+            letterSpacing="-1.5"
+            fill="url(#goldGrad)"
+            stroke="hsl(42 95% 70%)"
+            strokeWidth="0.6"
+            style={{
+              strokeDasharray: 800,
+              strokeDashoffset: 800,
+              animation: "splash-stroke-draw 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards, splash-fill-in 0.5s ease-out 0.9s forwards",
+              fillOpacity: 0,
+            }}
+          >
+            AuroPay
+          </text>
+        </svg>
+      </div>
+
+      {/* Tagline — staggered word fade-in (after logo draws) */}
+      <div className="mt-8 flex items-center gap-1.5 relative z-10">
+        {TAGLINE.map((word, i) => (
+          <span
+            key={word}
+            className="text-[13px] tracking-[0.05em] font-medium font-sora"
+            style={{
+              color: "hsl(42 50% 70% / 0.85)",
+              opacity: 0,
+              animation: `splash-word-in 0.5s ease-out forwards`,
+              animationDelay: `${1300 + i * 100}ms`,
+            }}
+          >
+            {word}
+          </span>
+        ))}
+      </div>
+
+      {/* Inline keyframes scoped to this splash */}
+      <style>{`
+        @keyframes splash-stroke-draw {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes splash-fill-in {
+          to { fill-opacity: 1; }
+        }
+        @keyframes splash-glow-pulse {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+          40% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+        }
+        @keyframes splash-word-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes splash-drift-1 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(60px, 40px); }
+        }
+        @keyframes splash-drift-2 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(-50px, -30px); }
+        }
+        @keyframes splash-drift-3 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(-40px, 50px); }
+        }
+      `}</style>
     </div>
   );
 };
