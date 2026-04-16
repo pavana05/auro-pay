@@ -261,8 +261,19 @@ const TeenHome = () => {
         </div>
 
         {/* ─── Balance Card — Ultra Luxury ─── */}
-        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both" }}>
-          <div className="relative rounded-[26px] overflow-hidden" style={{ boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)" }}>
+        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both", perspective: "800px" }}>
+          <div
+            ref={cardRef}
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
+            className="relative rounded-[26px] overflow-hidden"
+            style={{
+              boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)",
+              transform: `rotateY(${cardTilt.x}deg) rotateX(${cardTilt.y}deg)`,
+              transition: cardTilt.x === 0 && cardTilt.y === 0 ? "transform 0.5s ease-out" : "transform 0.1s ease-out",
+              transformStyle: "preserve-3d",
+            }}
+          >
             {/* Layered gradient background */}
             <div className="absolute inset-0" style={{
               background: `
