@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { useNavigate, useLocation } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
+import KycGate from "@/components/KycGate";
 
 interface Favorite {
   id: string;
@@ -1039,4 +1040,10 @@ const QuickPay = () => {
   );
 };
 
-export default QuickPay;
+const QuickPayGated = () => (
+  <KycGate feature="Send Money">
+    <QuickPay />
+  </KycGate>
+);
+
+export default QuickPayGated;

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import { startRazorpayPayment } from "@/lib/razorpay";
+import KycGate from "@/components/KycGate";
 
 const quickAmounts = [100, 200, 500, 1000, 2000];
 
@@ -491,4 +492,10 @@ const AddMoney = () => {
   );
 };
 
-export default AddMoney;
+const AddMoneyGated = () => (
+  <KycGate feature="Add Money">
+    <AddMoney />
+  </KycGate>
+);
+
+export default AddMoneyGated;
