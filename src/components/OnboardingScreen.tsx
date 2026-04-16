@@ -7,7 +7,7 @@ import scanImg from "@/assets/onboarding-scan.png";
 import parentImg from "@/assets/onboarding-parent.png";
 import saveImg from "@/assets/onboarding-save.png";
 
-const AUTOPLAY_DURATION = 5000; // ms per slide
+const AUTOPLAY_DURATION = 8000; // ms per slide — slower, more premium pacing
 
 const slides = [
   {
