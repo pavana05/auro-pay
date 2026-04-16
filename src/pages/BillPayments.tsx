@@ -276,7 +276,7 @@ const BillPayments = () => {
             {/* Quick Category Grid - matching reference */}
             <div className="rounded-[20px] p-5 border border-white/[0.04] mb-6" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               <h3 className="text-[14px] font-bold mb-4">Recharge & Bill Payments</h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 {quickCategories.map((cat, i) => (
                   <button
                     key={cat.key}
