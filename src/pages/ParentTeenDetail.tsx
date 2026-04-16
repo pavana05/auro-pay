@@ -272,15 +272,25 @@ const ParentTeenDetail = () => {
           ) : (
             transactions.map(tx => (
               <div key={tx.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border card-glow">
-                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-lg">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
+                  tx.type === "credit" ? "bg-[hsl(152_60%_45%/0.08)]" : "bg-muted"
+                }`}>
                   {categoryIcons[tx.category || "other"] || "💸"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{tx.merchant_name || tx.description || "Transaction"}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{tx.category}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-muted-foreground capitalize">{tx.category}</span>
+                    <span className="text-[10px] text-white/10">·</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                      tx.status === "success" ? "bg-[hsl(152_60%_45%/0.08)] text-[hsl(152_60%_45%)]" :
+                      tx.status === "failed" ? "bg-destructive/[0.08] text-destructive" :
+                      "bg-[hsl(38_92%_50%/0.08)] text-[hsl(38_92%_50%)]"
+                    }`}>{tx.status}</span>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-semibold ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
+                  <p className={`text-sm font-bold tabular-nums ${tx.type === "credit" ? "text-[hsl(152_60%_45%)]" : "text-foreground"}`}>
                     {tx.type === "credit" ? "+" : "-"}{formatAmount(tx.amount)}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
