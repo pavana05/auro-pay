@@ -4,7 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { TrendingUp, DollarSign, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", secondary: "#a855f7", success: "#22c55e", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", textPrimary: "#ffffff", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminRevenue = () => {
   const [dailyData, setDailyData] = useState<any[]>([]);

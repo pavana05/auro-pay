@@ -4,7 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Calendar, Play, Pause, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-const C = { cardBg: "#0f0720", border: "rgba(139,92,246,0.12)", primary: "#7c3aed", success: "#22c55e", warning: "#f59e0b", danger: "#ef4444", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
+const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", success: "#22c55e", warning: "#f59e0b", danger: "#ef4444", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminPocketMoney = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
