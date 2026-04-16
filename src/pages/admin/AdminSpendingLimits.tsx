@@ -59,7 +59,7 @@ const AdminSpendingLimits = () => {
           ) : (
             <div className="space-y-2">
               {limits.map((l: any) => (
-                <div key={l.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(139,92,246,0.04)" }}>
+                <div key={l.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(200,149,46,0.04)" }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{l.category || "All"}</p>
                     <p className="text-[10px]" style={{ color: C.textMuted }}>Set by {l.parent?.full_name || "System"}</p>

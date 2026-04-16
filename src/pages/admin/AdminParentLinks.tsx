@@ -45,7 +45,7 @@ const AdminParentLinks = () => {
         </div>
 
         <div className="rounded-[16px] overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
-          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(139,92,246,0.08)" }}>
+          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(200,149,46,0.06)" }}>
             {["Parent", "Teen", "Pocket Money", "Frequency", "Created", "Status", "Actions"].map(h => (
               <span key={h} className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textMuted }}>{h}</span>
             ))}
@@ -57,7 +57,7 @@ const AdminParentLinks = () => {
           ) : (
             links.map((l: any) => (
               <div key={l.id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center transition-all duration-200" style={{ borderTop: `1px solid ${C.border}` }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.04)")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(200,149,46,0.04)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <div>

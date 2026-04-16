@@ -44,7 +44,7 @@ const AdminPocketMoney = () => {
         </div>
 
         <div className="rounded-[16px] overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
-          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(139,92,246,0.08)" }}>
+          <div className="grid grid-cols-7 gap-2 px-4 py-3" style={{ background: "rgba(200,149,46,0.06)" }}>
             {["Parent", "Teen", "Amount", "Frequency", "Day", "Status", "Actions"].map(h => (
               <span key={h} className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textMuted }}>{h}</span>
             ))}
