@@ -302,10 +302,8 @@ const TeenHome = () => {
                     className="flex items-center gap-2.5 active:opacity-60 transition-opacity"
                   >
                     {showBalance ? (
-                      <h2 className="text-[38px] font-extrabold tracking-[-2px] tabular-nums leading-none" style={{
-                        background: "linear-gradient(135deg, hsl(42 78% 65%), hsl(42 78% 50%), hsl(42 78% 40%))",
-                        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                        filter: "drop-shadow(0 2px 8px hsl(42 78% 55% / 0.15))"
+                      <h2 className="text-[38px] font-extrabold tracking-[-2px] tabular-nums leading-none text-primary" style={{
+                        textShadow: "0 2px 8px hsl(42 78% 55% / 0.15)"
                       }}>{fmt(animBal)}</h2>
                     ) : (
                       <h2 className="text-[34px] font-extrabold tracking-[4px] leading-none select-none" style={{
