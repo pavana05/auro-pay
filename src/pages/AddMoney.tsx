@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
+import { startRazorpayPayment } from "@/lib/razorpay";
 
 const quickAmounts = [100, 200, 500, 1000, 2000];
 
@@ -50,35 +51,31 @@ const AddMoney = () => {
 
     haptic.medium();
     setPhase("processing");
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
+      const { data: profile } = user ? await supabase.from("profiles").select("full_name, phone").eq("id", user.id).maybeSingle() : { data: null };
 
-      const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
-      if (!wallet) throw new Error("Wallet not found");
-
-      const amountPaise = Math.round(amt * 100);
-
-      const { error: txError } = await supabase.from("transactions").insert({
-        wallet_id: wallet.id,
-        type: "credit",
-        amount: amountPaise,
-        merchant_name: `Add Money (${method.toUpperCase()})`,
-        category: "other",
-        status: "success",
-        description: `Added ₹${amt} via ${method}`,
+      await startRazorpayPayment({
+        amount: amt,
+        description: `Add ₹${amt} via ${method.toUpperCase()}`,
+        prefill: {
+          name: profile?.full_name || undefined,
+          email: user?.email,
+          contact: profile?.phone || undefined,
+        },
+        onSuccess: async () => {
+          // Min animation time
+          await new Promise(r => setTimeout(r, 1200));
+          setPhase("success");
+          haptic.heavy();
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        },
+        onFailure: (err) => {
+          toast.error(err?.message || err?.description || "Payment failed");
+          setPhase("idle");
+        },
       });
-      if (txError) throw txError;
-
-      const updated = (wallet.balance || 0) + amountPaise;
-      await supabase.from("wallets").update({ balance: updated }).eq("id", wallet.id);
-
-      // Ensure minimum processing animation time
-      await new Promise(r => setTimeout(r, 3200));
-
-      setPhase("success");
-      haptic.heavy();
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } catch (err: any) {
       toast.error(err.message || "Failed to add money");
       setPhase("idle");
