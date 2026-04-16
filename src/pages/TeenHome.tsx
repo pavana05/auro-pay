@@ -773,12 +773,24 @@ const TeenHome = () => {
                   transition={{ delay: 0.45 + i * 0.06, type: "spring", stiffness: 300, damping: 22 }}
                   whileTap={{ scale: 0.88 }}
                   onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
-                  className="flex flex-col items-center gap-2 min-w-[58px] group"
+                  className={`flex flex-col items-center gap-2 group ${i === 0 ? "min-w-[66px]" : "min-w-[58px]"}`}
                 >
-                  <div className={`${i === 0 ? "w-[56px] h-[56px]" : "w-[50px] h-[50px]"} rounded-[16px] bg-muted/20 border border-border/20 flex items-center justify-center text-[22px] group-active:border-primary/30 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.15)]`}>
+                  <div
+                    className={`${i === 0 ? "w-[66px] h-[66px] text-[26px]" : "w-[50px] h-[50px] text-[22px]"} rounded-full flex items-center justify-center transition-all relative`}
+                    style={{
+                      background: "linear-gradient(135deg, hsl(220 18% 11%), hsl(220 20% 7%))",
+                      border: i === 0 ? "1.5px solid hsl(42 78% 55% / 0.55)" : "1px solid hsl(0 0% 100% / 0.06)",
+                      boxShadow: i === 0
+                        ? "0 6px 20px hsl(42 78% 55% / 0.25), 0 0 0 3px hsl(42 78% 55% / 0.08)"
+                        : "0 2px 8px rgba(0,0,0,0.25)",
+                    }}
+                  >
                     {fav.avatar_emoji}
+                    {i === 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-[1px] rounded-full text-[7px] font-bold tracking-wider gradient-primary text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.4)]">NEW</span>
+                    )}
                   </div>
-                  <span className="text-[9px] text-muted-foreground/50 font-medium truncate w-full text-center font-sora">{fav.contact_name.split(" ")[0]}</span>
+                  <span className={`${i === 0 ? "text-[10px] font-bold text-foreground/85" : "text-[9px] font-medium text-muted-foreground/55"} truncate w-full text-center font-sora`}>{fav.contact_name.split(" ")[0]}</span>
                 </motion.button>
               ))}
               <motion.button
