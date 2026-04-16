@@ -132,7 +132,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         supabase.from("kyc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("wallets").select("id", { count: "exact", head: true }).eq("is_frozen", true),
         supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("account_status", "flagged"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("account_status" as any, "flagged"),
       ]);
       setBadges({
         kyc: kycRes.count || 0,
