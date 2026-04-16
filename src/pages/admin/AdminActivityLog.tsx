@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Clock, User, Wallet, ShieldCheck, ArrowLeftRight, Filter, RefreshCw } from "lucide-react";
+import { Clock, User, Wallet, ShieldCheck, ArrowLeftRight, RefreshCw } from "lucide-react";
 
 interface ActivityItem {
   id: string;
@@ -70,7 +70,8 @@ const AdminActivityLog = () => {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
 
         <div className="flex items-center justify-between relative z-10">
           <div>
@@ -78,7 +79,7 @@ const AdminActivityLog = () => {
             <p className="text-xs text-muted-foreground mt-1">Real-time platform activity feed</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={fetchActivity} className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground transition-all active:scale-90">
+            <button onClick={fetchActivity} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground hover:border-white/[0.1] transition-all active:scale-90">
               <RefreshCw className="w-4 h-4" />
             </button>
             <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
@@ -89,7 +90,9 @@ const AdminActivityLog = () => {
                 { value: "kyc_submitted", label: "KYC" },
               ].map(f => (
                 <button key={f.value} onClick={() => setFilter(f.value)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${filter === f.value ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`px-3.5 py-2 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                    filter === f.value ? "bg-primary/15 text-primary shadow-[0_0_12px_hsl(42_78%_55%/0.1)]" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+                  }`}>
                   {f.label}
                 </button>
               ))}
@@ -97,20 +100,32 @@ const AdminActivityLog = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden">
+        {/* Live indicator */}
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Live Feed • {filtered.length} events</span>
+        </div>
+
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden backdrop-blur-sm">
           {loading ? (
             <div className="p-6 space-y-3">
               {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white/[0.02] rounded-xl animate-pulse" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground text-sm">No activity found</div>
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground">No activity found</p>
+            </div>
           ) : (
             <div className="divide-y divide-white/[0.03]">
-              {filtered.slice(0, 50).map((a) => {
+              {filtered.slice(0, 50).map((a, i) => {
                 const { icon: Icon, color, bg } = iconMap[a.type];
                 return (
-                  <div key={a.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
-                    <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                  <div key={a.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-all duration-200 group"
+                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.3)}s both` }}>
+                    <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
                       <Icon className={`w-4 h-4 ${color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
