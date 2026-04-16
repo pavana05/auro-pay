@@ -76,6 +76,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <RealtimeWrapper>
+        <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
         <PageTransition>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -130,6 +131,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
+        </div>
         </RealtimeWrapper>
       </BrowserRouter>
     </TooltipProvider>
