@@ -7,7 +7,7 @@ import {
   ArrowUpRight, ArrowDownRight, Crown,
   DollarSign, UserPlus, BarChart3, Server,
   Activity, Globe, Shield, Database, Cpu,
-  CheckCircle2, XCircle, AlertCircle, Eye, Sparkles,
+  CheckCircle2, Sparkles,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell,
@@ -75,15 +75,12 @@ const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: number; p
   return <span>{prefix}{display.toLocaleString("en-IN")}{suffix}</span>;
 };
 
-/* Premium glassmorphism card wrapper */
 const GlassCard = ({ children, className = "", delay = 0, hover = true }: { children: React.ReactNode; className?: string; delay?: number; hover?: boolean }) => (
   <div
     className={`relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm overflow-hidden group transition-all duration-400 ${hover ? "hover:border-primary/15 hover:shadow-[0_8px_40px_hsl(42_78%_55%/0.06)]" : ""} ${className}`}
     style={{ animation: `admin-slide-up 0.5s ease-out ${delay}ms both` }}
   >
-    {/* Top gradient border */}
     <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    {/* Shimmer sweep on hover */}
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
     {children}
   </div>
@@ -239,10 +236,10 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="p-3 sm:p-4 lg:p-6 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="h-36 rounded-2xl bg-white/[0.02] border border-white/[0.04] relative overflow-hidden">
+              <div key={i} className="h-28 sm:h-36 rounded-2xl bg-white/[0.02] border border-white/[0.04] relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent" style={{ animation: "admin-shimmer 1.5s linear infinite", backgroundSize: "200% 100%" }} />
               </div>
             ))}
@@ -254,94 +251,92 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6 relative">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6 relative">
         {/* Ambient background orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-primary/[0.015] blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] rounded-full bg-primary/[0.01] blur-[120px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full bg-primary/[0.015] blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full bg-primary/[0.01] blur-[120px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between relative z-10" style={{ animation: "admin-slide-up 0.4s ease-out" }}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10" style={{ animation: "admin-slide-up 0.4s ease-out" }}>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 text-primary" />
               Command Center
             </h1>
-            <p className="text-xs text-muted-foreground/60 flex items-center gap-1.5 mt-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground/60 flex items-center gap-1.5 mt-1">
               <Clock className="w-3 h-3" />
               Last synced: {lastRefresh.toLocaleTimeString("en-IN")}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={handleRefresh}
-              className={`p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/20 hover:shadow-[0_0_20px_hsl(42_78%_55%/0.08)] transition-all duration-300 active:scale-90 ${refreshing ? "animate-spin" : ""}`}
+              className={`p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/20 hover:shadow-[0_0_20px_hsl(42_78%_55%/0.08)] transition-all duration-300 active:scale-90 ${refreshing ? "animate-spin" : ""}`}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate("/admin/users")}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/15 transition-all duration-300 active:scale-95"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs sm:text-sm font-medium hover:bg-white/[0.06] hover:border-primary/15 transition-all duration-300 active:scale-95"
             >
-              <Download className="w-3.5 h-3.5" /> Export
+              <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Export</span>
             </button>
           </div>
         </div>
 
-        {/* Stats Grid — Premium glassmorphism cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {statCards.map((s, i) => (
-            <GlassCard key={s.label} delay={i * 60} className="p-4">
-              <div className="flex items-center justify-between mb-3">
+            <GlassCard key={s.label} delay={i * 60} className="p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center relative"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center relative"
                   style={{ background: `${s.glow.replace(')', ' / 0.1)')}` }}
                 >
-                  <s.icon className="w-4.5 h-4.5" style={{ color: s.glow, filter: `drop-shadow(0 0 6px ${s.glow.replace(')', ' / 0.4)')})` }} />
-                  {/* Icon halo */}
-                  <div className="absolute inset-0 rounded-xl" style={{ boxShadow: `inset 0 0 12px ${s.glow.replace(')', ' / 0.08)')}` }} />
+                  <s.icon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" style={{ color: s.glow, filter: `drop-shadow(0 0 6px ${s.glow.replace(')', ' / 0.4)')})` }} />
+                  <div className="absolute inset-0 rounded-lg sm:rounded-xl" style={{ boxShadow: `inset 0 0 12px ${s.glow.replace(')', ' / 0.08)')}` }} />
                 </div>
                 {s.trend && (
-                  <span className={`text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${s.trendUp ? "text-success bg-success/10" : "text-destructive bg-destructive/10"}`}>
-                    {s.trendUp ? <TrendingUp className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  <span className={`text-[9px] sm:text-[10px] font-semibold flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded-full ${s.trendUp ? "text-success bg-success/10" : "text-destructive bg-destructive/10"}`}>
+                    {s.trendUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
                     {s.trend}
                   </span>
                 )}
               </div>
-              <p className="text-xl font-bold tracking-tight">{typeof s.value === "number" ? <AnimatedCounter value={s.value} /> : s.value}</p>
-              <p className="text-[10px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">{s.label}</p>
-              <p className="text-[10px] text-muted-foreground/50 mt-0.5">{s.sub}</p>
+              <p className="text-base sm:text-xl font-bold tracking-tight">{typeof s.value === "number" ? <AnimatedCounter value={s.value} /> : s.value}</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1 font-semibold uppercase tracking-wider">{s.label}</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground/50 mt-0.5">{s.sub}</p>
             </GlassCard>
           ))}
         </div>
 
         {/* Quick Actions */}
         <div style={{ animation: "admin-slide-up 0.5s ease-out 200ms both" }}>
-          <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+          <h3 className="text-[10px] sm:text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2 sm:mb-3 flex items-center gap-2">
             <Zap className="w-3 h-3 text-primary" /> Quick Actions
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {quickActions.map((a, i) => (
               <button
                 key={a.label}
                 onClick={() => navigate(a.path)}
-                className="group p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-primary/20 text-left transition-all duration-300 hover:shadow-[0_8px_30px_hsl(42_78%_55%/0.06)] active:scale-[0.96] relative overflow-hidden"
+                className="group p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-primary/20 text-left transition-all duration-300 hover:shadow-[0_8px_30px_hsl(42_78%_55%/0.06)] active:scale-[0.96] relative overflow-hidden"
                 style={{ animation: `admin-slide-up 0.5s ease-out ${250 + i * 40}ms both` }}
               >
-                {/* Hover gradient underline */}
                 <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2.5">
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
                     style={{ background: `${a.glow.replace(')', ' / 0.1)')}` }}
                   >
-                    <a.icon className="w-4 h-4" style={{ color: a.glow }} />
+                    <a.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: a.glow }} />
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
+                  <ArrowUpRight className="w-3 h-3 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 hidden sm:block" />
                 </div>
-                <p className="text-xs font-semibold mt-1">{a.label}</p>
-                <p className="text-[10px] text-muted-foreground/60">{a.desc}</p>
+                <p className="text-[10px] sm:text-xs font-semibold mt-1 truncate">{a.label}</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 hidden sm:block">{a.desc}</p>
                 {a.count !== undefined && a.count > 0 && (
-                  <div className="mt-2 text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5 w-fit border border-primary/10">
+                  <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2 sm:px-2.5 py-0.5 w-fit border border-primary/10">
                     {a.count}
                   </div>
                 )}
@@ -351,15 +346,15 @@ const AdminDashboard = () => {
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <GlassCard delay={350} className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" /> Daily Volume
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <GlassCard delay={350} className="p-3 sm:p-5">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <BarChart3 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Daily Volume
               </h3>
-              <span className="text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart data={dailyVolume}>
                 <defs>
                   <linearGradient id="barGradAdmin" x1="0" y1="0" x2="0" y2="1">
@@ -367,22 +362,22 @@ const AdminDashboard = () => {
                     <stop offset="100%" stopColor="#c8952e" stopOpacity={0.4} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="volume" fill="url(#barGradAdmin)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="volume" fill="url(#barGradAdmin)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </GlassCard>
 
-          <GlassCard delay={400} className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-primary" /> User Growth
+          <GlassCard delay={400} className="p-3 sm:p-5">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <UserPlus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> User Growth
               </h3>
-              <span className="text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">7 days</span>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={160}>
               <AreaChart data={userGrowth}>
                 <defs>
                   <linearGradient id="userGradAdmin2" x1="0" y1="0" x2="0" y2="1">
@@ -390,34 +385,34 @@ const AdminDashboard = () => {
                     <stop offset="100%" stopColor="#c8952e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis dataKey="day" tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(40,10%,40%)", fontSize: 9 }} axisLine={false} tickLine={false} allowDecimals={false} width={25} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Area type="monotone" dataKey="users" stroke="#c8952e" fill="url(#userGradAdmin2)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </GlassCard>
 
-          <GlassCard delay={450} className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" /> Distribution
+          <GlassCard delay={450} className="p-3 sm:p-5 md:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Distribution
               </h3>
-              <span className="text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">By role</span>
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04]">By role</span>
             </div>
-            <ResponsiveContainer width="100%" height={140}>
+            <ResponsiveContainer width="100%" height={130}>
               <PieChart>
-                <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" paddingAngle={3}>
                   {roleDistribution.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-3 mt-2">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-2">
               {roleDistribution.map((d, i) => (
                 <div key={d.name} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ background: CHART_COLORS[i % CHART_COLORS.length], color: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  <span className="text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
                 </div>
               ))}
             </div>
@@ -426,26 +421,25 @@ const AdminDashboard = () => {
 
         {/* System Health */}
         <div style={{ animation: "admin-slide-up 0.5s ease-out 500ms both" }}>
-          <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+          <h3 className="text-[10px] sm:text-xs font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2 sm:mb-3 flex items-center gap-2">
             <Shield className="w-3 h-3 text-success" /> System Health
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {systemHealth.map((h, i) => (
               <div
                 key={h.label}
-                className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.08] transition-all duration-300"
+                className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.08] transition-all duration-300"
                 style={{ animation: `admin-slide-up 0.4s ease-out ${550 + i * 40}ms both` }}
               >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center relative ${h.ok ? "bg-success/10" : "bg-warning/10"}`}>
-                  <h.icon className={`w-4 h-4 ${h.ok ? "text-success" : "text-warning"}`} />
-                  {/* Status ripple */}
-                  <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${h.ok ? "bg-success" : "bg-warning"}`}>
+                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center relative shrink-0 ${h.ok ? "bg-success/10" : "bg-warning/10"}`}>
+                  <h.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${h.ok ? "text-success" : "text-warning"}`} />
+                  <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${h.ok ? "bg-success" : "bg-warning"}`}>
                     <div className={`absolute inset-0 rounded-full ${h.ok ? "bg-success" : "bg-warning"}`} style={{ animation: "admin-ripple 2.5s ease-out infinite" }} />
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium truncate">{h.label}</p>
-                  <p className={`text-[10px] font-semibold ${h.ok ? "text-success" : "text-warning"}`}>{h.status}</p>
+                  <p className="text-[10px] sm:text-xs font-medium truncate">{h.label}</p>
+                  <p className={`text-[9px] sm:text-[10px] font-semibold ${h.ok ? "text-success" : "text-warning"}`}>{h.status}</p>
                 </div>
               </div>
             ))}
@@ -453,12 +447,12 @@ const AdminDashboard = () => {
         </div>
 
         {/* Key Metrics + Transaction Mix */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <GlassCard delay={600} className="p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" /> Key Metrics
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <GlassCard delay={600} className="p-3 sm:p-5">
+            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+              <BarChart3 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Key Metrics
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
               {[
                 { label: "Teens", value: stats.teens, icon: Users, glow: "hsl(42 78% 55%)" },
                 { label: "Parents", value: stats.parents, icon: Users, glow: "hsl(36 60% 48%)" },
@@ -467,34 +461,34 @@ const AdminDashboard = () => {
                 { label: "Verified KYC", value: stats.verifiedKyc, icon: ShieldCheck, glow: "hsl(152 60% 45%)" },
                 { label: "Avg Balance", value: formatAmount(stats.avgBalance), icon: DollarSign, glow: "hsl(42 78% 55%)" },
               ].map(m => (
-                <div key={m.label} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <m.icon className="w-3.5 h-3.5" style={{ color: m.glow }} />
-                    <p className="text-[10px] text-muted-foreground/60 font-medium">{m.label}</p>
+                <div key={m.label} className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5">
+                    <m.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: m.glow }} />
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 font-medium truncate">{m.label}</p>
                   </div>
-                  <p className="text-lg font-bold" style={{ color: m.glow }}>{m.value}</p>
+                  <p className="text-sm sm:text-lg font-bold" style={{ color: m.glow }}>{m.value}</p>
                 </div>
               ))}
             </div>
           </GlassCard>
 
-          <GlassCard delay={650} className="p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Transaction Mix
+          <GlassCard delay={650} className="p-3 sm:p-5">
+            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+              <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Transaction Mix
             </h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={180}>
               <PieChart>
-                <Pie data={txTypeData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                <Pie data={txTypeData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={2}>
                   {txTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-3 mt-1">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-1">
               {txTypeData.map((d, i) => (
                 <div key={d.name} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  <span className="text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{d.name} ({d.value})</span>
                 </div>
               ))}
             </div>
@@ -502,39 +496,38 @@ const AdminDashboard = () => {
         </div>
 
         {/* Recent Signups & Top Merchants */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <GlassCard delay={700} className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-primary" /> Recent Signups
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <GlassCard delay={700} className="p-3 sm:p-5">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <UserPlus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Recent Signups
               </h3>
-              <button onClick={() => navigate("/admin/users")} className="text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
+              <button onClick={() => navigate("/admin/users")} className="text-[9px] sm:text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
                 View All <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
             {recentSignups.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No signups yet</p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">No signups yet</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5 sm:space-y-1">
                 {recentSignups.map((u, i) => (
                   <div
                     key={u.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-all duration-300 group"
+                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/[0.02] transition-all duration-300 group"
                     style={{ animation: `admin-slide-up 0.4s ease-out ${750 + i * 60}ms both` }}
                   >
-                    <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.25)] relative">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.25)] relative shrink-0">
                       {u.full_name?.charAt(0)?.toUpperCase() || "?"}
-                      {/* New badge for today */}
                       {u.created_at && new Date(u.created_at).toDateString() === new Date().toDateString() && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-success text-[7px] font-bold text-white flex items-center justify-center border border-card">N</div>
+                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-success text-[6px] sm:text-[7px] font-bold text-white flex items-center justify-center border border-card">N</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
-                      <p className="text-[10px] text-muted-foreground/60 capitalize">{u.role || "user"}</p>
+                      <p className="text-xs sm:text-sm font-medium truncate">{u.full_name || "Unknown"}</p>
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 capitalize">{u.role || "user"}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground/50">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground/50 hidden sm:inline">
                         {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
                       </span>
                       <ArrowUpRight className="w-3 h-3 text-muted-foreground/20 group-hover:text-primary transition-colors" />
@@ -545,32 +538,31 @@ const AdminDashboard = () => {
             )}
           </GlassCard>
 
-          <GlassCard delay={750} className="p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-              <Crown className="w-4 h-4 text-primary" /> Top Merchants
+          <GlassCard delay={750} className="p-3 sm:p-5">
+            <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+              <Crown className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Top Merchants
             </h3>
             {topMerchants.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No merchant data yet</p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">No merchant data yet</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {topMerchants.map((m, i) => {
                   const maxCount = topMerchants[0]?.count || 1;
                   const pct = Math.round((m.count / maxCount) * 100);
                   return (
-                    <div key={m.name} className="p-3 rounded-xl hover:bg-white/[0.02] transition-all duration-300 relative overflow-hidden" style={{ animation: `admin-slide-up 0.4s ease-out ${800 + i * 60}ms both` }}>
-                      {/* Volume progress bar background */}
-                      <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                    <div key={m.name} className="p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/[0.02] transition-all duration-300 relative overflow-hidden" style={{ animation: `admin-slide-up 0.4s ease-out ${800 + i * 60}ms both` }}>
+                      <div className="absolute inset-0 rounded-lg sm:rounded-xl overflow-hidden pointer-events-none">
                         <div className="absolute top-0 left-0 bottom-0 bg-primary/[0.04] transition-all duration-700" style={{ width: `${pct}%` }} />
                       </div>
-                      <div className="flex items-center gap-3 relative z-10">
-                        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.2)]">
+                      <div className="flex items-center gap-2 sm:gap-3 relative z-10">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg gradient-primary flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.2)] shrink-0">
                           #{i + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{m.name}</p>
-                          <p className="text-[10px] text-muted-foreground/50">{m.count} transactions</p>
+                          <p className="text-xs sm:text-sm font-medium truncate">{m.name}</p>
+                          <p className="text-[9px] sm:text-[10px] text-muted-foreground/50">{m.count} txns</p>
                         </div>
-                        <span className="text-xs font-bold text-primary">{formatAmount(m.volume)}</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-primary shrink-0">{formatAmount(m.volume)}</span>
                       </div>
                     </div>
                   );
@@ -581,35 +573,72 @@ const AdminDashboard = () => {
         </div>
 
         {/* Live Transaction Feed */}
-        <GlassCard delay={800} className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" /> Live Transaction Feed
+        <GlassCard delay={800} className="p-3 sm:p-5">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" /> Live Feed
               </h3>
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/[0.08] border border-success/10">
+              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-success/[0.08] border border-success/10">
                 <div className="w-1.5 h-1.5 rounded-full bg-success relative">
                   <div className="absolute inset-0 rounded-full bg-success" style={{ animation: "admin-ripple 2s ease-out infinite" }} />
                 </div>
-                <span className="text-[9px] text-success font-bold tracking-wider">LIVE</span>
+                <span className="text-[8px] sm:text-[9px] text-success font-bold tracking-wider">LIVE</span>
               </div>
             </div>
-            <button onClick={() => navigate("/admin/transactions")} className="text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
+            <button onClick={() => navigate("/admin/transactions")} className="text-[9px] sm:text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1">
               View All <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Mobile card view */}
+          <div className="sm:hidden space-y-2">
+            {liveTxns.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground/50 text-xs">No transactions yet</p>
+            ) : (
+              liveTxns.slice(0, 10).map((tx, i) => (
+                <div
+                  key={tx.id}
+                  className="p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] flex items-center gap-3"
+                  style={{ animation: `admin-slide-up 0.3s ease-out ${850 + i * 30}ms both` }}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
+                    {tx.type === "credit" ? <ArrowDownRight className="w-3.5 h-3.5 text-success" /> : <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold">{formatAmount(tx.amount)}</p>
+                    <p className="text-[9px] text-muted-foreground/50 truncate">{tx.merchant_name || tx.type}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full ${
+                      tx.status === "success" ? "bg-success/10 text-success" :
+                      tx.status === "failed" ? "bg-destructive/10 text-destructive" :
+                      "bg-warning/10 text-warning"
+                    }`}>
+                      {tx.status}
+                    </span>
+                    <span className="text-[8px] text-muted-foreground/40">
+                      {tx.created_at ? new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop table view */}
+          <div className="overflow-x-auto hidden sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.04]">
                   {["Time", "Type", "Amount", "Merchant", "Status"].map(h => (
-                    <th key={h} className="text-left py-3 px-3 text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="text-left py-2.5 sm:py-3 px-2 sm:px-3 text-[9px] sm:text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {liveTxns.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center py-12 text-muted-foreground/50 text-sm">No transactions yet</td></tr>
+                  <tr><td colSpan={5} className="text-center py-8 sm:py-12 text-muted-foreground/50 text-xs sm:text-sm">No transactions yet</td></tr>
                 ) : (
                   liveTxns.slice(0, 15).map((tx, i) => (
                     <tr
@@ -617,21 +646,21 @@ const AdminDashboard = () => {
                       className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-all duration-300"
                       style={{ animation: `admin-slide-up 0.3s ease-out ${850 + i * 30}ms both` }}
                     >
-                      <td className="py-3 px-3 text-xs text-muted-foreground/60 tabular-nums">
+                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 text-[10px] sm:text-xs text-muted-foreground/60 tabular-nums">
                         {tx.created_at ? new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
                       </td>
-                      <td className="py-3 px-3">
-                        <span className={`text-xs font-semibold capitalize flex items-center gap-1.5 ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
-                          <div className={`w-5 h-5 rounded-md flex items-center justify-center ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                            {tx.type === "credit" ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                      <td className="py-2.5 sm:py-3 px-2 sm:px-3">
+                        <span className={`text-[10px] sm:text-xs font-semibold capitalize flex items-center gap-1 sm:gap-1.5 ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
+                          <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
+                            {tx.type === "credit" ? <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
                           </div>
                           {tx.type}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-bold text-sm">{formatAmount(tx.amount)}</td>
-                      <td className="py-3 px-3 text-muted-foreground/60 text-xs">{tx.merchant_name || "—"}</td>
-                      <td className="py-3 px-3">
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${
+                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 font-bold text-xs sm:text-sm">{formatAmount(tx.amount)}</td>
+                      <td className="py-2.5 sm:py-3 px-2 sm:px-3 text-muted-foreground/60 text-[10px] sm:text-xs truncate max-w-[100px] sm:max-w-none">{tx.merchant_name || "—"}</td>
+                      <td className="py-2.5 sm:py-3 px-2 sm:px-3">
+                        <span className={`text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${
                           tx.status === "success" ? "bg-success/10 text-success shadow-[0_0_8px_hsl(152_60%_45%/0.15)]" :
                           tx.status === "failed" ? "bg-destructive/10 text-destructive shadow-[0_0_8px_hsl(0_72%_51%/0.15)]" :
                           "bg-warning/10 text-warning shadow-[0_0_8px_hsl(38_92%_50%/0.15)]"

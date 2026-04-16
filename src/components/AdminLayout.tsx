@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Wallet, Bell, Settings, LogOut, Activity, Search,
   ChevronLeft, ChevronRight, Crown, Gift, Lock, Eye, EyeOff,
-  KeyRound, FileText, Sparkles, Calendar,
+  KeyRound, FileText, Sparkles, Calendar, Menu, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +39,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [profile, setProfile] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -88,6 +89,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -113,11 +119,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/");
   };
 
-  // Password gate screen — ultra premium
+  // Password gate screen
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-        {/* Ambient floating orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {[...Array(6)].map((_, i) => (
             <div
@@ -139,9 +144,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         <div className="w-full max-w-md mx-4 relative z-10" style={{ animation: "admin-slide-up 0.6s ease-out" }}>
-          {/* Frosted glass card */}
           <div className="rounded-3xl border border-white/[0.06] bg-card/60 backdrop-blur-2xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.4)] relative overflow-hidden">
-            {/* Top shimmer line */}
             <div className="absolute top-0 left-0 right-0 h-[1px]" style={{
               background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.5), transparent)",
               backgroundSize: "200% 100%",
@@ -154,7 +157,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 style={{ animation: "admin-glow-pulse 3s ease-in-out infinite" }}
               >
                 <KeyRound className="w-9 h-9 text-primary drop-shadow-[0_0_12px_hsl(42_78%_55%/0.5)]" style={{ animation: "admin-lock-float 4s ease-in-out infinite" }} />
-                {/* Corner accents */}
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-primary/40 rounded-tl-lg" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-primary/40 rounded-tr-lg" />
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-primary/40 rounded-bl-lg" />
@@ -199,7 +201,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 disabled={authLoading || !password}
                 className="w-full h-13 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm transition-all duration-300 hover:shadow-[0_0_40px_hsl(42_78%_55%/0.35)] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
               >
-                {/* Button shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
                 {authLoading ? (
                   <div className="flex items-center justify-center gap-2 relative z-10">
@@ -226,138 +227,176 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const currentPage = navItems.find(i => i.path === location.pathname)?.label || "Dashboard";
   const totalBadges = badges.kyc + badges.frozen + badges.notif;
 
+  /* Shared sidebar content */
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Logo section */}
+      <div className="p-4 border-b border-white/[0.04] flex items-center justify-between">
+        {(!collapsed || isMobile) && (
+          <div style={{ animation: "admin-slide-up 0.4s ease-out" }}>
+            <h1 className="text-lg font-bold gradient-text flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              AuroPay
+            </h1>
+            <p className="text-[10px] text-muted-foreground/60 mt-0.5 tracking-[0.2em] uppercase">Admin Console</p>
+          </div>
+        )}
+        {collapsed && !isMobile && <Sparkles className="w-5 h-5 text-primary mx-auto" />}
+        {isMobile ? (
+          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-xl hover:bg-white/[0.04] transition-all duration-200 text-muted-foreground active:scale-90">
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={() => { haptic.light(); setCollapsed(!collapsed); }}
+            className="p-1.5 rounded-xl hover:bg-white/[0.04] transition-all duration-200 text-muted-foreground active:scale-90 hidden lg:block"
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex-1 p-2 space-y-0.5 mt-1 overflow-y-auto scrollbar-none">
+        {navItems.map((item, idx) => {
+          const active = location.pathname === item.path;
+          const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey as keyof BadgeCounts] : 0;
+          const showLabel = isMobile || !collapsed;
+          return (
+            <button
+              key={item.path}
+              onClick={() => { haptic.light(); navigate(item.path); if (isMobile) setMobileOpen(false); }}
+              style={{ animationDelay: `${idx * 30}ms` }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 group relative ${
+                active
+                  ? "bg-primary/[0.08] text-primary font-medium"
+                  : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
+              } ${!showLabel ? "justify-center px-0" : ""}`}
+              title={!showLabel ? item.label : undefined}
+            >
+              {active && (
+                <>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary shadow-[0_0_12px_hsl(42_78%_55%/0.6),0_0_4px_hsl(42_78%_55%/0.8)]" />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/[0.06] to-transparent pointer-events-none" />
+                </>
+              )}
+              <div className="relative">
+                <item.icon className={`w-[18px] h-[18px] shrink-0 transition-all duration-300 ${active ? "drop-shadow-[0_0_8px_hsl(42_78%_55%/0.5)]" : "group-hover:scale-110"}`} />
+                {badgeCount > 0 && !showLabel && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center" style={{ animation: "admin-count-pop 0.4s ease-out" }}>
+                    {badgeCount > 9 ? "9+" : badgeCount}
+                  </span>
+                )}
+              </div>
+              {showLabel && <span className="truncate">{item.label}</span>}
+              {showLabel && badgeCount > 0 && (
+                <span className="ml-auto shrink-0 min-w-[20px] h-5 rounded-full bg-destructive/90 text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1.5 shadow-[0_0_8px_hsl(0_72%_51%/0.3)]" style={{ animation: "admin-count-pop 0.4s ease-out" }}>
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User section */}
+      <div className="p-3 border-t border-white/[0.04]">
+        <div className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] transition-all duration-300 hover:border-primary/10 ${!showLabel ? "justify-center px-2" : ""}`}>
+          <div className="relative shrink-0">
+            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.3)]">
+              {initials}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-card shadow-[0_0_6px_hsl(152_60%_45%/0.5)]" />
+          </div>
+          {(isMobile || !collapsed) && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{profile?.full_name}</p>
+              <p className="text-[10px] text-primary/80 flex items-center gap-1 font-medium">
+                <Crown className="w-3 h-3" /> Administrator
+              </p>
+            </div>
+          )}
+          <button onClick={handleLogout} className="text-muted-foreground hover:text-destructive transition-all duration-200 active:scale-90" title="Logout">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  const showLabel = true; // for mobile sidebar
+
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Premium Sidebar */}
-      <aside className={`${collapsed ? "w-[72px]" : "w-64"} shrink-0 bg-card/40 backdrop-blur-2xl border-r border-white/[0.04] flex flex-col transition-all duration-400 relative`}>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          style={{ animation: "fade-in 0.2s ease-out" }}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside
+        className={`fixed top-0 left-0 bottom-0 w-72 bg-card/95 backdrop-blur-2xl border-r border-white/[0.04] flex flex-col z-50 lg:hidden transition-transform duration-300 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <SidebarContent isMobile />
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <aside className={`${collapsed ? "w-[72px]" : "w-64"} shrink-0 bg-card/40 backdrop-blur-2xl border-r border-white/[0.04] flex-col transition-all duration-400 relative hidden lg:flex`}>
         {/* Animated gradient left edge */}
         <div className="absolute top-0 left-0 w-[2px] h-full" style={{
           background: "linear-gradient(180deg, transparent, hsl(42 78% 55% / 0.4) 30%, hsl(42 78% 55% / 0.6) 50%, hsl(42 78% 55% / 0.4) 70%, transparent)",
           animation: "admin-glow-pulse 4s ease-in-out infinite",
         }} />
-        {/* Top shimmer */}
         <div className="absolute top-0 left-0 right-0 h-[1px]" style={{
           background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.5), transparent)",
           backgroundSize: "200% 100%",
           animation: "admin-shimmer 4s linear infinite",
         }} />
-
-        {/* Logo section */}
-        <div className="p-4 border-b border-white/[0.04] flex items-center justify-between">
-          {!collapsed && (
-            <div style={{ animation: "admin-slide-up 0.4s ease-out" }}>
-              <h1 className="text-lg font-bold gradient-text flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                AuroPay
-              </h1>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5 tracking-[0.2em] uppercase">Admin Console</p>
-            </div>
-          )}
-          {collapsed && <Sparkles className="w-5 h-5 text-primary mx-auto" />}
-          <button
-            onClick={() => { haptic.light(); setCollapsed(!collapsed); }}
-            className="p-1.5 rounded-xl hover:bg-white/[0.04] transition-all duration-200 text-muted-foreground active:scale-90"
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {/* Nav items with stagger animation */}
-        <nav className="flex-1 p-2 space-y-0.5 mt-1 overflow-y-auto scrollbar-none">
-          {navItems.map((item, idx) => {
-            const active = location.pathname === item.path;
-            const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey as keyof BadgeCounts] : 0;
-            return (
-              <button
-                key={item.path}
-                onClick={() => { haptic.light(); navigate(item.path); }}
-                style={{ animationDelay: `${idx * 30}ms` }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 group relative ${
-                  active
-                    ? "bg-primary/[0.08] text-primary font-medium"
-                    : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
-                } ${collapsed ? "justify-center px-0" : ""}`}
-                title={collapsed ? item.label : undefined}
-              >
-                {/* Active glow indicator */}
-                {active && (
-                  <>
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary shadow-[0_0_12px_hsl(42_78%_55%/0.6),0_0_4px_hsl(42_78%_55%/0.8)]" />
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/[0.06] to-transparent pointer-events-none" />
-                  </>
-                )}
-                <div className="relative">
-                  <item.icon className={`w-[18px] h-[18px] shrink-0 transition-all duration-300 ${active ? "drop-shadow-[0_0_8px_hsl(42_78%_55%/0.5)]" : "group-hover:scale-110"}`} />
-                  {badgeCount > 0 && collapsed && (
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center" style={{ animation: "admin-count-pop 0.4s ease-out" }}>
-                      {badgeCount > 9 ? "9+" : badgeCount}
-                    </span>
-                  )}
-                </div>
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {!collapsed && badgeCount > 0 && (
-                  <span className="ml-auto shrink-0 min-w-[20px] h-5 rounded-full bg-destructive/90 text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1.5 shadow-[0_0_8px_hsl(0_72%_51%/0.3)]" style={{ animation: "admin-count-pop 0.4s ease-out" }}>
-                    {badgeCount > 99 ? "99+" : badgeCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User section */}
-        <div className="p-3 border-t border-white/[0.04]">
-          <div className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] transition-all duration-300 hover:border-primary/10 ${collapsed ? "justify-center px-2" : ""}`}>
-            <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground shadow-[0_4px_12px_hsl(42_78%_55%/0.3)]">
-                {initials}
-              </div>
-              {/* Online ring */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-card shadow-[0_0_6px_hsl(152_60%_45%/0.5)]" />
-            </div>
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{profile?.full_name}</p>
-                <p className="text-[10px] text-primary/80 flex items-center gap-1 font-medium">
-                  <Crown className="w-3 h-3" /> Administrator
-                </p>
-              </div>
-            )}
-            <button onClick={handleLogout} className="text-muted-foreground hover:text-destructive transition-all duration-200 active:scale-90" title="Logout">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        <SidebarContent />
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Premium Header */}
-        <header className="h-16 border-b border-white/[0.04] bg-card/20 backdrop-blur-2xl flex items-center justify-between px-6 shrink-0 relative">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header */}
+        <header className="h-14 lg:h-16 border-b border-white/[0.04] bg-card/20 backdrop-blur-2xl flex items-center justify-between px-3 sm:px-4 lg:px-6 shrink-0 relative">
           <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{
             background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.1) 50%, transparent 90%)"
           }} />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => { haptic.light(); setMobileOpen(true); }}
+              className="p-2 rounded-xl hover:bg-white/[0.04] transition-all duration-200 lg:hidden"
+            >
+              <Menu className="w-5 h-5 text-muted-foreground" />
+            </button>
+
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold">{currentPage}</h2>
-              <span className="text-muted-foreground/30">•</span>
-              <span className="text-[11px] text-muted-foreground/60">AuroPay Admin</span>
+              <h2 className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-none">{currentPage}</h2>
+              <span className="text-muted-foreground/30 hidden sm:inline">•</span>
+              <span className="text-[11px] text-muted-foreground/60 hidden sm:inline">AuroPay Admin</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Search */}
-            <div className="relative group">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Search - hidden on small mobile */}
+            <div className="relative group hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
               <input
                 placeholder="Quick search..."
-                className="h-9 w-52 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-9 pr-3 text-xs focus:outline-none focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] focus:w-64 transition-all duration-300"
+                className="h-9 w-32 sm:w-40 lg:w-52 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-9 pr-3 text-xs focus:outline-none focus:border-primary/30 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] focus:w-48 lg:focus:w-64 transition-all duration-300"
               />
             </div>
 
             {/* Date/Time */}
-            <div className="hidden lg:flex items-center gap-2 text-[11px] text-muted-foreground/60">
+            <div className="hidden xl:flex items-center gap-2 text-[11px] text-muted-foreground/60">
               <Calendar className="w-3.5 h-3.5" />
               <span>{currentTime.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</span>
               <span className="text-primary/50">|</span>
@@ -373,7 +412,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             </button>
 
             {/* Live badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/[0.08] border border-success/10 relative">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/[0.08] border border-success/10 relative">
               <div className="absolute inset-0 rounded-full" style={{ animation: "admin-border-glow 3s ease-in-out infinite", borderWidth: "1px", borderStyle: "solid", borderColor: "hsl(152 60% 45% / 0.1)" }} />
               <div className="w-1.5 h-1.5 rounded-full bg-success relative">
                 <div className="absolute inset-0 rounded-full bg-success" style={{ animation: "admin-ripple 2s ease-out infinite" }} />
