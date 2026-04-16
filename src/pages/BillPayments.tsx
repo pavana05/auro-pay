@@ -12,6 +12,11 @@ import electricityImg from "@/assets/bill-electricity.png";
 import waterImg from "@/assets/bill-water.png";
 import broadbandImg from "@/assets/bill-broadband.png";
 import mobileImg from "@/assets/bill-mobile.png";
+import gasImg from "@/assets/bill-gas.png";
+import insuranceImg from "@/assets/bill-insurance.png";
+import educationImg from "@/assets/bill-education.png";
+import creditcardImg from "@/assets/bill-creditcard.png";
+import taxImg from "@/assets/bill-tax.png";
 
 const providers: Record<string, { name: string; icon: string }[]> = {
   mobile: [
