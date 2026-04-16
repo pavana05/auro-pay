@@ -504,18 +504,34 @@ const TeenHome = () => {
               {goals.map(goal => {
                 const pct = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
                 return (
-                  <button key={goal.id} onClick={() => { haptic.light(); navigate("/savings"); }}
-                    className="min-w-[140px] p-3.5 rounded-[18px] active:scale-95 transition-all bg-white/[0.015] border border-white/[0.03] hover:border-white/[0.06]">
-                    <div className="text-[24px] mb-2">{goal.icon || "🎯"}</div>
-                    <p className="text-[11px] font-semibold truncate mb-2">{goal.title}</p>
-                    <div className="w-full h-[4px] rounded-full bg-white/[0.04] overflow-hidden mb-1.5">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))", boxShadow: "0 0 8px hsl(42 78% 55% / 0.25)" }} />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] text-white/15 font-medium">{Math.round(pct)}%</span>
-                      <span className="text-[9px] text-primary font-bold">{fmt(goal.current_amount)}</span>
-                    </div>
-                  </button>
+                  <div key={goal.id} className="min-w-[140px]" style={{ perspective: "600px" }}>
+                    <button
+                      onClick={() => { haptic.light(); navigate("/savings"); }}
+                      onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const rx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+                        const ry = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+                        e.currentTarget.style.transform = `rotateY(${rx * 6}deg) rotateX(${-ry * 5}deg) scale(1.02)`;
+                      }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)"; }}
+                      className="w-full p-3.5 rounded-[18px] active:scale-95 transition-all bg-white/[0.015] border border-white/[0.03] hover:border-white/[0.06]"
+                      style={{
+                        transformStyle: "preserve-3d",
+                        transition: "transform 0.15s ease-out",
+                        transform: `rotateY(${cardTilt.x * 0.6}deg) rotateX(${cardTilt.y * 0.6}deg)`,
+                      }}
+                    >
+                      <div className="text-[24px] mb-2">{goal.icon || "🎯"}</div>
+                      <p className="text-[11px] font-semibold truncate mb-2">{goal.title}</p>
+                      <div className="w-full h-[4px] rounded-full bg-white/[0.04] overflow-hidden mb-1.5">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))", boxShadow: "0 0 8px hsl(42 78% 55% / 0.25)" }} />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] text-white/15 font-medium">{Math.round(pct)}%</span>
+                        <span className="text-[9px] text-primary font-bold">{fmt(goal.current_amount)}</span>
+                      </div>
+                    </button>
+                  </div>
                 );
               })}
             </div>
