@@ -24,7 +24,7 @@ const catEmoji: Record<string, string> = { food: "🍔", transport: "🚗", educ
 
 const stagger = {
   container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
-  item: { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } } },
+  item: { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } } },
 };
 
 const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
