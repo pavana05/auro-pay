@@ -396,7 +396,7 @@ const ProfileScreen = () => {
         <div className="rounded-[20px] p-4 border border-white/[0.03] flex items-center justify-between" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-[12px] bg-primary/[0.06] flex items-center justify-center">
-              {document.documentElement.classList.contains("dark") ? (
+              {isDarkMode ? (
                 <Moon className="w-[18px] h-[18px] text-primary" />
               ) : (
                 <Sun className="w-[18px] h-[18px] text-primary" />
@@ -410,23 +410,24 @@ const ProfileScreen = () => {
           <button
             onClick={() => {
               haptic.light();
-              const isDark = document.documentElement.classList.contains("dark");
-              if (isDark) {
+              if (isDarkMode) {
                 document.documentElement.classList.remove("dark");
                 localStorage.setItem("theme", "light");
+                setIsDarkMode(false);
               } else {
                 document.documentElement.classList.add("dark");
                 localStorage.setItem("theme", "dark");
+                setIsDarkMode(true);
               }
             }}
             className="relative w-12 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] transition-all duration-300 active:scale-90"
           >
             <div className={`absolute top-0.5 w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center ${
-              document.documentElement.classList.contains("dark")
+              isDarkMode
                 ? "left-[calc(100%-1.625rem)] bg-primary shadow-[0_0_12px_hsl(42_78%_55%/0.4)]"
                 : "left-0.5 bg-muted-foreground/60"
             }`}>
-              {document.documentElement.classList.contains("dark") ? (
+              {isDarkMode ? (
                 <Moon className="w-3 h-3 text-primary-foreground" />
               ) : (
                 <Sun className="w-3 h-3 text-white" />
