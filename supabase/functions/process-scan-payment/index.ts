@@ -16,10 +16,25 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { upi_id, payee_name, amount, category, note } = await req.json();
+    const { upi_id, payee_name, amount, category, note, pin } = await req.json();
 
     if (!upi_id || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Invalid payment details" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!pin || !/^\d{4}$/.test(String(pin))) {
+      return new Response(JSON.stringify({ error: "PIN required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Verify PIN against stored hash
+    const { data: profile } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).single();
+    if (!profile?.pin_hash) {
+      return new Response(JSON.stringify({ error: "Payment PIN not set" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const pinData = new TextEncoder().encode(`${user.id}:${pin}`);
+    const pinHashBuf = await crypto.subtle.digest("SHA-256", pinData);
+    const pinHash = Array.from(new Uint8Array(pinHashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (pinHash !== profile.pin_hash) {
+      return new Response(JSON.stringify({ error: "Incorrect PIN" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const amountPaise = Math.round(amount * 100);
