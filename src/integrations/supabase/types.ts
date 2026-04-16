@@ -575,6 +575,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           full_name: string | null
+          haptics_enabled: boolean
           id: string
           kyc_status: string | null
           phone: string | null
@@ -585,6 +586,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           full_name?: string | null
+          haptics_enabled?: boolean
           id: string
           kyc_status?: string | null
           phone?: string | null
@@ -595,6 +597,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           full_name?: string | null
+          haptics_enabled?: boolean
           id?: string
           kyc_status?: string | null
           phone?: string | null
