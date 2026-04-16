@@ -771,6 +771,119 @@ const AdminDashboard = () => {
                   </div>
                 </Widget>
               </motion.div>
+
+              {/* Top Wallets Leaderboard + Hourly Traffic Heatmap */}
+              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Top Wallets */}
+                <Widget glow>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
+                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.primary}12`, border: `1px solid ${C.primary}20` }}>
+                        <Trophy className="w-4 h-4" style={{ color: C.primary }} />
+                      </div>
+                      Top Wallets by Balance
+                    </h3>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate("/admin/wallets")} className="text-[11px] font-medium text-primary px-3 py-1.5 rounded-[10px] bg-primary/[0.06] font-sora">
+                      View All <ArrowUpRight className="w-3 h-3 inline" />
+                    </motion.button>
+                  </div>
+                  {stats.topUsers.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/40 text-center py-8 font-sora">No wallet data yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stats.topUsers.map((u, i) => {
+                        const rankColors = [C.primary, C.secondary, "#cd7f32", "#94a3b8", "#94a3b8"];
+                        const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+                        const maxBal = Math.max(...stats.topUsers.map(t => t.volume), 1);
+                        return (
+                          <motion.div
+                            key={`${u.name}-${i}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 + i * 0.06 }}
+                            className="relative flex items-center gap-3 p-3 rounded-[12px] bg-muted/10 border border-border/20 overflow-hidden"
+                          >
+                            <div className="absolute inset-y-0 left-0 rounded-[12px]" style={{
+                              width: `${(u.volume / maxBal) * 100}%`,
+                              background: `linear-gradient(90deg, ${rankColors[i]}10, transparent)`,
+                            }} />
+                            <div className="relative w-8 h-8 rounded-[10px] flex items-center justify-center text-sm font-bold shrink-0" style={{ background: `${rankColors[i]}18`, color: rankColors[i] }}>
+                              {rankIcon}
+                            </div>
+                            <div className="relative flex-1 min-w-0">
+                              <p className="text-[12px] font-medium text-foreground truncate font-sora">{u.name}</p>
+                              <p className="text-[9px] text-muted-foreground/40 font-sora">Wallet balance</p>
+                            </div>
+                            <p className="relative text-[13px] font-bold font-mono" style={{ color: rankColors[i] }}>{fmtAmt(u.volume)}</p>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Widget>
+
+                {/* Hourly Traffic Heatmap */}
+                <Widget glow>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
+                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}20` }}>
+                        <Activity className="w-4 h-4" style={{ color: C.cyan }} />
+                      </div>
+                      Hourly Traffic
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/10 font-mono" style={{ color: C.cyan }}>24H</span>
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground/40 font-mono">{hourlyTraffic.reduce((s, h) => s + h.count, 0)} txns</span>
+                  </div>
+                  {(() => {
+                    const max = Math.max(...hourlyTraffic.map(h => h.count), 1);
+                    const peakHour = hourlyTraffic.reduce((a, b) => b.count > a.count ? b : a, hourlyTraffic[0] || { hour: 0, count: 0 });
+                    return (
+                      <>
+                        <div className="grid grid-cols-12 gap-1 mb-3">
+                          {hourlyTraffic.map((h) => {
+                            const intensity = h.count / max;
+                            const isPeak = h.count > 0 && h.count === peakHour.count;
+                            return (
+                              <motion.div
+                                key={h.hour}
+                                initial={{ scale: 0.6, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: h.hour * 0.015, type: "spring" as const, stiffness: 280, damping: 20 }}
+                                className="aspect-square rounded-[6px] flex items-center justify-center text-[8px] font-mono font-bold relative group cursor-pointer"
+                                style={{
+                                  background: h.count === 0
+                                    ? "rgba(255,255,255,0.03)"
+                                    : `rgba(200,149,46,${0.15 + intensity * 0.55})`,
+                                  border: isPeak ? `1px solid ${C.primary}` : "1px solid rgba(200,149,46,0.05)",
+                                  color: intensity > 0.5 ? "#fff" : "rgba(255,255,255,0.4)",
+                                  boxShadow: isPeak ? `0 0 12px ${C.primary}50` : undefined,
+                                }}
+                                title={`${h.hour}:00 — ${h.count} txns`}
+                              >
+                                {h.hour}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-sora">
+                          <span className="text-muted-foreground/40">00h</span>
+                          <span className="text-primary font-semibold">Peak: {peakHour.hour}:00 ({peakHour.count})</span>
+                          <span className="text-muted-foreground/40">23h</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 text-[9px] text-muted-foreground/40 font-sora">
+                          <span>Less</span>
+                          <div className="flex gap-0.5">
+                            {[0.05, 0.2, 0.4, 0.6, 0.75].map((o, i) => (
+                              <div key={i} className="w-3 h-3 rounded-[3px]" style={{ background: `rgba(200,149,46,${o})` }} />
+                            ))}
+                          </div>
+                          <span>More</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </Widget>
+              </motion.div>
             </motion.div>
           )}
 
