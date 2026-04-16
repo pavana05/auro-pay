@@ -196,6 +196,8 @@ const AdminDashboard = () => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
     const h = new Date().getHours();
     setGreeting(h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening");
     setUptime(Date.now());
