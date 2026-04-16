@@ -105,7 +105,7 @@ const AdminKyc = () => {
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `-5%`,
-                  background: ['#c8952e', '#5a9e6f', '#e8c56d', '#e06060', '#60a5fa', '#a78bfa'][i % 6],
+                  background: ['#c8952e', '#5a9e6f', '#e8c56d', '#e06060', '#60a5fa', '#d4a84b'][i % 6],
                   animation: `confetti-fall ${1.5 + Math.random() * 1.5}s ease-out forwards`,
                   animationDelay: `${Math.random() * 0.5}s`,
                 }} />
