@@ -64,6 +64,7 @@ import FinancialEducation from "./pages/FinancialEducation.tsx";
 import ChatList from "./pages/ChatList.tsx";
 import ChatRoom from "./pages/ChatRoom.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
+import DeepLinkHandler from "./components/DeepLinkHandler";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +86,7 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
+        <DeepLinkHandler />
         <RealtimeWrapper>
         <Routes>
             {/* Admin routes */}
