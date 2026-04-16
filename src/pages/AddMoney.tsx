@@ -337,16 +337,19 @@ const AddMoney = () => {
           <p className="text-[10px] text-white/30 font-medium tracking-widest uppercase mb-4">Enter Amount</p>
 
           <div className="flex items-baseline gap-1 justify-center py-2">
-            <span className="text-[24px] font-bold text-white/30">₹</span>
+            <span className="text-[28px] font-mono font-semibold" style={{ color: "hsl(var(--primary))" }}>₹</span>
             <span
-              className="text-[48px] font-bold tracking-[-2px] transition-transform duration-150"
+              className="text-[48px] font-mono font-semibold tracking-[-1px] transition-transform duration-150"
               style={{
                 transform: `scale(${amountScale})`,
-                background: displayAmount !== "0"
+                background: outOfRange
+                  ? "linear-gradient(135deg, hsl(0 70% 60%), hsl(0 70% 50%))"
+                  : displayAmount !== "0"
                   ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
                   : "linear-gradient(135deg, hsl(220 10% 25%), hsl(220 10% 18%))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                animation: displayAmount !== "0" ? "cursor-blink 1.1s steps(1) infinite" : undefined,
               }}>
               {displayAmount}
             </span>
@@ -364,31 +367,46 @@ const AddMoney = () => {
 
           <div className="w-16 h-[2px] mx-auto mt-2 rounded-full transition-all duration-300"
             style={{
-              background: amount
+              background: outOfRange
+                ? "hsl(0 70% 55% / 0.6)"
+                : amount
                 ? "linear-gradient(90deg, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.2))"
                 : "hsl(220 15% 15%)",
             }} />
+
+          <p className="text-center mt-3 text-[11px] font-medium tracking-wide transition-colors"
+            style={{ color: outOfRange ? "hsl(0 70% 60%)" : "hsl(220 10% 40%)" }}>
+            {outOfRange
+              ? (amt < MIN ? `Minimum ₹${MIN}` : `Maximum ₹${MAX.toLocaleString("en-IN")}`)
+              : `Min ₹${MIN} · Max ₹${MAX.toLocaleString("en-IN")}`}
+          </p>
         </div>
 
-        {/* Quick Amounts */}
-        <div className="flex gap-2 mb-6" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-          {quickAmounts.map((a) => (
-            <button
-              key={a}
-              onClick={() => { haptic.light(); setAmount(String(a)); }}
-              className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-300 active:scale-[0.93]"
-              style={{
-                background: amount === String(a)
-                  ? "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.08))"
-                  : "hsl(220 15% 8%)",
-                border: `1px solid ${amount === String(a) ? "hsl(var(--primary) / 0.3)" : "hsl(220 15% 12%)"}`,
-                color: amount === String(a) ? "hsl(var(--primary))" : "hsl(220 10% 45%)",
-                boxShadow: amount === String(a) ? "0 2px 12px hsl(var(--primary) / 0.1)" : "none",
-              }}
-            >
-              ₹{a >= 1000 ? `${a / 1000}K` : a}
-            </button>
-          ))}
+        {/* Quick Amounts — horizontal scroll, bounce on tap */}
+        <div className="-mx-5 px-5 mb-6 overflow-x-auto scrollbar-hide" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
+          <div className="flex gap-2 w-max">
+            {quickAmounts.map((a) => {
+              const active = amount === String(a);
+              return (
+                <button
+                  key={a}
+                  onClick={() => { haptic.light(); setAmount(String(a)); setAmountScale(1.18); setTimeout(() => setAmountScale(1), 220); }}
+                  className="px-5 py-2.5 rounded-full text-[12px] font-mono font-semibold transition-all duration-300 active:scale-[0.92] whitespace-nowrap"
+                  style={{
+                    background: active
+                      ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))"
+                      : "hsl(220 15% 8%)",
+                    border: `1px solid ${active ? "hsl(var(--primary) / 0.5)" : "hsl(220 15% 12%)"}`,
+                    color: active ? "hsl(220 20% 6%)" : "hsl(220 10% 50%)",
+                    boxShadow: active ? "0 4px 16px hsl(var(--primary) / 0.25)" : "none",
+                    animation: active ? "chip-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined,
+                  }}
+                >
+                  ₹{a.toLocaleString("en-IN")}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Payment Methods */}
