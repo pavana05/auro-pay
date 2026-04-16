@@ -223,29 +223,58 @@ const BillPayments = () => {
         {/* Step: Category */}
         {step === "category" && (
           <div className="px-5 mt-2">
-            <div className="space-y-4">
+            {/* Quick Category Grid - matching reference */}
+            <div className="rounded-[20px] p-5 border border-white/[0.04] mb-6" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
+              <h3 className="text-[14px] font-bold mb-4">Recharge & Bill Payments</h3>
+              <div className="grid grid-cols-4 gap-4">
+                {quickCategories.map((cat, i) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => handleSelectCategory(cat.key)}
+                    className="flex flex-col items-center gap-2.5 active:scale-90 transition-all"
+                    style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s both` }}
+                  >
+                    <div className="w-[60px] h-[60px] rounded-[16px] bg-white/[0.04] border border-white/[0.06] flex items-center justify-center overflow-hidden">
+                      <img
+                        src={cat.image}
+                        alt={cat.label}
+                        className="w-10 h-10 object-contain"
+                        loading="lazy"
+                        width={40}
+                        height={40}
+                      />
+                    </div>
+                    <p className="text-[11px] font-medium text-muted-foreground/60">{cat.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Detailed Category Cards */}
+            <h3 className="text-[12px] font-semibold text-muted-foreground/40 tracking-[0.1em] uppercase mb-3">All Services</h3>
+            <div className="space-y-3">
               {categories.map((cat, i) => (
                 <button
                   key={cat.key}
                   onClick={() => handleSelectCategory(cat.key)}
-                  className={`w-full relative rounded-[24px] bg-gradient-to-br ${cat.gradient} border ${cat.borderColor} overflow-hidden active:scale-[0.97] transition-all text-left group`}
-                  style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s both` }}
+                  className={`w-full relative rounded-[20px] bg-gradient-to-br ${cat.gradient} border ${cat.borderColor} overflow-hidden active:scale-[0.97] transition-all text-left group`}
+                  style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.2 + i * 0.08}s both` }}
                 >
-                  <div className="flex items-center p-5">
+                  <div className="flex items-center p-4">
                     <div className="flex-1 pr-4">
-                      <p className="text-[17px] font-bold mb-1">{cat.label}</p>
-                      <p className="text-[12px] text-muted-foreground/50 leading-relaxed">{cat.desc}</p>
-                      <div className="mt-3 flex items-center gap-1.5 text-primary text-[11px] font-semibold">
-                        {cat.key === "mobile" ? "Recharge now" : "Pay now"} <ChevronRight className="w-3.5 h-3.5" />
+                      <p className="text-[15px] font-bold mb-0.5">{cat.label}</p>
+                      <p className="text-[11px] text-muted-foreground/50 leading-relaxed">{cat.desc}</p>
+                      <div className="mt-2 flex items-center gap-1.5 text-primary text-[10px] font-semibold">
+                        {cat.key === "mobile" ? "Recharge now" : "Pay now"} <ChevronRight className="w-3 h-3" />
                       </div>
                     </div>
                     <img
                       src={cat.image}
                       alt={cat.label}
-                      className="w-24 h-24 object-contain rounded-[16px] shrink-0 drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
+                      className="w-16 h-16 object-contain rounded-[14px] shrink-0 drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      width={96}
-                      height={96}
+                      width={64}
+                      height={64}
                     />
                   </div>
                 </button>
