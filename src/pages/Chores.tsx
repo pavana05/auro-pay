@@ -104,6 +104,7 @@ const Chores = () => {
 
     const { error } = await supabase.from("chores").update(updates).eq("id", choreId);
     if (!error) {
+      if (newStatus === "approved") haptic.success();
       toast.success(newStatus === "approved" ? "Chore approved! Reward sent 🎉" : `Status updated to ${newStatus}`);
       fetchData();
     }
