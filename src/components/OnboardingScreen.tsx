@@ -122,6 +122,40 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     setParallax({ x: 0, y: 0 });
   };
 
+  // Gyroscope / Device Orientation effect
+  useEffect(() => {
+    let active = true;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (!active) return;
+      const gamma = Math.max(-30, Math.min(30, e.gamma || 0)); // left-right tilt
+      const beta = Math.max(-30, Math.min(30, (e.beta || 0) - 45)); // front-back tilt (offset for holding angle)
+      setParallax({
+        x: (gamma / 30) * 14,
+        y: (beta / 30) * 10,
+      });
+    };
+
+    // Request permission on iOS 13+
+    const requestPermission = async () => {
+      if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+        try {
+          const perm = await (DeviceOrientationEvent as any).requestPermission();
+          if (perm === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation, true);
+          }
+        } catch {}
+      } else {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+      }
+    };
+    requestPermission();
+
+    return () => {
+      active = false;
+      window.removeEventListener("deviceorientation", handleOrientation, true);
+    };
+  }, []);
+
   // Auto-play timer
   useEffect(() => {
     if (paused) return;
