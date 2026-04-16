@@ -45,14 +45,6 @@ const useCountUp = (target: number, duration = 1200, enabled = true) => {
   return value;
 };
 
-const SpringIn = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
-  <div className={className} style={{ animation: `slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s both` }}>
-    {children}
-  </div>
-);
-
-const BALANCE_EMOJIS = ["💰", "💎", "✨", "🪙", "💳", "🏆", "⚡", "🔥"];
-
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -63,16 +55,7 @@ const TeenHome = () => {
   const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [balanceEmoji, setBalanceEmoji] = useState(0);
   const navigate = useNavigate();
-
-  // Rotate emoji every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBalanceEmoji(prev => (prev + 1) % BALANCE_EMOJIS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -116,7 +99,6 @@ const TeenHome = () => {
   const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
   const spendPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
 
-  // Financial health score (simple heuristic)
   const healthScore = Math.min(100, Math.max(0,
     100 - spendPct * 0.4
     + (goals.length > 0 ? 15 : 0)
@@ -125,30 +107,53 @@ const TeenHome = () => {
   const healthColor = healthScore >= 70 ? "hsl(152 60% 45%)" : healthScore >= 40 ? "hsl(38 92% 50%)" : "hsl(0 72% 51%)";
   const healthLabel = healthScore >= 70 ? "Excellent" : healthScore >= 40 ? "Good" : "Needs Attention";
 
+  // Skeleton shimmer loading
   if (loading) {
     return (
       <div className="min-h-screen bg-background px-5 pt-14 pb-24">
-        <div className="flex items-center gap-3 mb-8"><div className="w-12 h-12 rounded-2xl bg-white/[0.04] animate-pulse" /><div className="space-y-2"><div className="w-24 h-3 rounded-full bg-white/[0.04] animate-pulse" /><div className="w-36 h-4 rounded-full bg-white/[0.04] animate-pulse" /></div></div>
-        <div className="w-full h-52 rounded-[32px] bg-white/[0.03] animate-pulse mb-6" />
-        <div className="grid grid-cols-4 gap-3 mb-6">{[1,2,3,4].map(i => <div key={i} className="h-[76px] rounded-2xl bg-white/[0.03] animate-pulse" />)}</div>
-        {[1,2,3].map(i => <div key={i} className="w-full h-16 rounded-2xl bg-white/[0.03] animate-pulse mb-3" />)}
+        {/* Header skeleton */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 rounded-2xl skeleton-shimmer" />
+          <div className="space-y-2 flex-1">
+            <div className="w-20 h-3 rounded-full skeleton-shimmer" />
+            <div className="w-32 h-4 rounded-full skeleton-shimmer" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-10 h-10 rounded-xl skeleton-shimmer" />
+            <div className="w-10 h-10 rounded-xl skeleton-shimmer" />
+          </div>
+        </div>
+        {/* Balance card skeleton */}
+        <div className="w-full h-56 rounded-[28px] skeleton-shimmer mb-6" />
+        {/* Quick actions skeleton */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[1,2,3,4].map(i => <div key={i} className="h-[88px] rounded-[22px] skeleton-shimmer" />)}
+        </div>
+        {/* Transactions skeleton */}
+        <div className="space-y-3">
+          {[1,2,3].map(i => <div key={i} className="w-full h-[72px] rounded-2xl skeleton-shimmer" />)}
+        </div>
         <BottomNav />
+        <style>{`
+          .skeleton-shimmer {
+            background: linear-gradient(110deg, hsl(220 15% 8%) 0%, hsl(220 15% 8%) 40%, hsl(220 15% 12%) 50%, hsl(220 15% 8%) 60%, hsl(220 15% 8%) 100%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.8s ease-in-out infinite;
+          }
+          @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
       </div>
     );
   }
 
   const quickActions = [
-    { icon: Plus, label: "Add Money", path: "/add-money", glow: "hsl(152 60% 45%)", ring: "hsl(152 60% 45% / 0.25)", emoji: "💎" },
-    { icon: Send, label: "Send", path: "/quick-pay", glow: "hsl(42 78% 55%)", ring: "hsl(42 78% 55% / 0.25)", emoji: "⚡" },
-    { icon: BarChart3, label: "Analytics", path: "/analytics", glow: "hsl(210 80% 55%)", ring: "hsl(210 80% 55% / 0.25)", emoji: "📊" },
-    { icon: Target, label: "Savings", path: "/savings", glow: "hsl(270 60% 55%)", ring: "hsl(270 60% 55% / 0.25)", emoji: "🎯" },
-  ];
-
-  const billPayments = [
-    { label: "Electricity", emoji: "⚡", color: "hsl(48 90% 55%)" },
-    { label: "Water", emoji: "💧", color: "hsl(200 80% 55%)" },
-    { label: "Broadband", emoji: "📡", color: "hsl(160 60% 50%)" },
-    { label: "More", emoji: "📋", color: "hsl(42 78% 55%)" },
+    { icon: Plus, label: "Add", path: "/add-money", color: "152 60% 45%" },
+    { icon: Send, label: "Send", path: "/quick-pay", color: "42 78% 55%" },
+    { icon: BarChart3, label: "Analytics", path: "/analytics", color: "210 80% 55%" },
+    { icon: Target, label: "Goals", path: "/savings", color: "270 60% 55%" },
   ];
 
   const allFeatures = [
@@ -157,7 +162,6 @@ const TeenHome = () => {
     { label: "Split Bill", path: "/bill-split", emoji: "👥", desc: "Share costs" },
     { label: "Budget", path: "/budget", emoji: "📈", desc: "Plan ahead" },
     { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
-    { label: "Recurring", path: "/quick-pay", emoji: "🔄", desc: "Auto-pay" },
     { label: "Scratch & Win", path: "/scratch-cards", emoji: "🎰", desc: "Win rewards" },
     { label: "Spin Wheel", path: "/spin-wheel", emoji: "🎡", desc: "Spin to win" },
     { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn rewards" },
@@ -171,506 +175,301 @@ const TeenHome = () => {
     <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
       {/* ─── Ultra-Premium Ambient Background ─── */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "hsl(42 78% 55%)" }} />
-        <div className="absolute top-1/4 -left-40 w-[350px] h-[350px] rounded-full opacity-[0.025] blur-[100px]" style={{ background: "hsl(210 80% 55%)" }} />
-        <div className="absolute bottom-1/3 right-0 w-[300px] h-[300px] rounded-full opacity-[0.02] blur-[90px]" style={{ background: "hsl(152 60% 45%)" }} />
-        <div className="absolute top-1/2 left-1/3 w-[200px] h-[200px] rounded-full opacity-[0.015] blur-[80px]" style={{ background: "hsl(270 60% 55%)", animation: "glow-pulse 6s ease-in-out infinite" }} />
-        {/* Mesh grid overlay */}
-        <div className="absolute inset-0 opacity-[0.008]" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(42 78% 55%) 0.5px, transparent 0)`,
-          backgroundSize: "48px 48px"
+        <div className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full opacity-[0.045] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
+        <div className="absolute top-[40%] -left-32 w-[280px] h-[280px] rounded-full opacity-[0.025] blur-[80px]" style={{ background: "hsl(210 80% 55%)" }} />
+        <div className="absolute bottom-[20%] right-0 w-[220px] h-[220px] rounded-full opacity-[0.02] blur-[70px]" style={{ background: "hsl(152 60% 45%)" }} />
+        {/* Micro-dot grid */}
+        <div className="absolute inset-0 opacity-[0.006]" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(42 78% 55%) 0.4px, transparent 0)`,
+          backgroundSize: "40px 40px"
         }} />
       </div>
 
       <div className="relative z-10">
-        {/* ─── Status Bar Safe Area ─── */}
         <div className="h-2" />
 
         {/* ─── Header ─── */}
-        <SpringIn delay={0} className="px-5 pt-4 pb-4">
+        <div className="px-5 pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0s both" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <button onClick={() => { haptic.light(); navigate("/profile"); }} className="shrink-0 group">
                 <div className="relative">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-[48px] h-[48px] rounded-[18px] object-cover ring-[1.5px] ring-white/[0.08] group-active:scale-90 transition-transform" />
+                    <img src={profile.avatar_url} alt="" className="w-[50px] h-[50px] rounded-[17px] object-cover ring-[1.5px] ring-primary/20 group-active:scale-90 transition-transform shadow-[0_4px_20px_rgba(0,0,0,0.3)]" />
                   ) : (
-                    <div className="w-[48px] h-[48px] rounded-[18px] gradient-primary flex items-center justify-center text-[14px] font-bold text-primary-foreground shadow-[0_8px_28px_hsl(42_78%_55%/0.3)] group-active:scale-90 transition-transform">
+                    <div className="w-[50px] h-[50px] rounded-[17px] gradient-primary flex items-center justify-center text-[15px] font-bold text-primary-foreground shadow-[0_8px_32px_hsl(42_78%_55%/0.35)] group-active:scale-90 transition-transform ring-[1.5px] ring-primary/20">
                       {initials}
                     </div>
                   )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-[14px] h-[14px] rounded-full bg-[hsl(152_60%_45%)] border-[2.5px] border-background" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.5)" }} />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-[13px] h-[13px] rounded-full bg-[hsl(152_60%_45%)] border-[2px] border-background" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.6)" }} />
                 </div>
               </button>
               <div>
-                <p className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">{greet()} 👋</p>
-                <h1 className="text-[18px] font-bold tracking-[-0.4px] text-foreground">{firstName || "User"}</h1>
+                <p className="text-[11px] text-muted-foreground/50 font-medium tracking-wide">{greet()}</p>
+                <h1 className="text-[19px] font-bold tracking-[-0.5px] text-foreground leading-tight">{firstName || "User"} ✨</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]">
-                <Search className="w-[18px] h-[18px] text-muted-foreground/60" />
+            <div className="flex items-center gap-2">
+              <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all border border-white/[0.04] hover:border-white/[0.08]">
+                <Search className="w-[17px] h-[17px] text-muted-foreground/50" />
               </button>
-              <button onClick={() => { haptic.light(); navigate("/notifications"); }} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all relative border border-white/[0.04]">
-                <Bell className="w-[18px] h-[18px] text-muted-foreground/60" />
+              <button onClick={() => { haptic.light(); navigate("/notifications"); }} className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all relative border border-white/[0.04] hover:border-white/[0.08]">
+                <Bell className="w-[17px] h-[17px] text-muted-foreground/50" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] rounded-full gradient-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shadow-[0_2px_16px_hsl(42_78%_55%/0.6)]" style={{ animation: "glow-pulse 2s ease-in-out infinite" }}>
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full gradient-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground shadow-[0_2px_12px_hsl(42_78%_55%/0.5)]">
                     {unreadCount}
                   </span>
                 )}
               </button>
             </div>
           </div>
-        </SpringIn>
+        </div>
 
-        {/* ─── Balance Card — Ultra Premium ─── */}
-        <SpringIn delay={0.05} className="px-5 mb-5">
-          <div className="relative rounded-[28px] overflow-hidden" style={{ boxShadow: "0 25px 80px -15px hsl(42 78% 55% / 0.1), 0 0 0 1px hsl(42 30% 30% / 0.1), 0 4px 20px -5px rgba(0,0,0,0.4)" }}>
-            {/* Card background with ultra-premium mesh gradient */}
+        {/* ─── Balance Card — Ultra Luxury ─── */}
+        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both" }}>
+          <div className="relative rounded-[26px] overflow-hidden" style={{ boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)" }}>
+            {/* Layered gradient background */}
             <div className="absolute inset-0" style={{
               background: `
-                radial-gradient(ellipse 90% 70% at 85% 5%, hsl(42 78% 55% / 0.12) 0%, transparent 55%),
-                radial-gradient(ellipse 60% 50% at 10% 90%, hsl(210 80% 55% / 0.06) 0%, transparent 45%),
-                radial-gradient(ellipse 50% 40% at 50% 40%, hsl(42 78% 55% / 0.03) 0%, transparent 50%),
-                radial-gradient(ellipse 30% 25% at 90% 80%, hsl(280 60% 50% / 0.03) 0%, transparent 40%),
-                linear-gradient(165deg, hsl(220 22% 12%), hsl(225 28% 4%))
+                radial-gradient(ellipse 80% 60% at 90% 0%, hsl(42 78% 55% / 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 40% at 10% 100%, hsl(210 80% 55% / 0.05) 0%, transparent 45%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, hsl(42 78% 55% / 0.02) 0%, transparent 40%),
+                linear-gradient(170deg, hsl(220 25% 11%), hsl(225 30% 4%))
               `
             }} />
-            {/* Noise texture */}
-            <div className="absolute inset-0 opacity-[0.012] noise-overlay" />
-            {/* Top edge highlight */}
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.3) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.3) 70%, transparent 95%)" }} />
-            {/* Left edge subtle glow */}
-            <div className="absolute top-0 left-0 bottom-0 w-[1px]" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.15) 20%, transparent 80%)" }} />
-            {/* Bottom subtle border */}
-            <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 15%, hsl(42 78% 55% / 0.08) 50%, transparent 85%)" }} />
-            {/* Inner glow orb */}
-            <div className="absolute top-6 right-6 w-32 h-32 rounded-full blur-3xl opacity-[0.04]" style={{ background: "hsl(42 78% 55%)" }} />
+            {/* Top gold shimmer edge */}
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.35) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.35) 70%, transparent 95%)" }} />
+            <div className="absolute top-0 left-0 bottom-0 w-[1px]" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.2) 10%, transparent 70%)" }} />
 
-            <div className="relative z-10 p-6 pb-5">
-              <div className="flex items-start justify-between mb-7">
+            <div className="relative z-10 p-5 pb-4">
+              {/* Balance row */}
+              <div className="flex items-start justify-between mb-5">
                 <div>
-                  <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex items-center gap-2 mb-2.5">
                     <div className="relative">
-                      <div className="w-[7px] h-[7px] rounded-full bg-primary" style={{ boxShadow: "0 0 12px hsl(42 78% 55% / 0.8), 0 0 24px hsl(42 78% 55% / 0.4)", animation: "glow-pulse 2.5s ease-in-out infinite" }} />
-                      <div className="absolute inset-0 w-[7px] h-[7px] rounded-full bg-primary/50 animate-ping" />
+                      <div className="w-[6px] h-[6px] rounded-full bg-primary" style={{ boxShadow: "0 0 10px hsl(42 78% 55% / 0.8)", animation: "glow-pulse 2.5s ease-in-out infinite" }} />
                     </div>
-                    <p className="text-[10px] text-white/30 font-semibold tracking-[0.25em] uppercase">Available Balance</p>
+                    <p className="text-[9px] text-white/25 font-bold tracking-[0.3em] uppercase">Balance</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); haptic.selection(); setShowBalance(!showBalance); }}
-                    className="flex items-center gap-3 active:opacity-60 transition-opacity"
+                    className="flex items-center gap-2.5 active:opacity-60 transition-opacity"
                   >
                     {showBalance ? (
-                      <h2 className="text-[42px] font-bold tracking-[-2.5px] tabular-nums leading-none" style={{ textShadow: "0 0 60px hsl(42 78% 55% / 0.1), 0 2px 4px rgba(0,0,0,0.3)" }}>{fmt(animBal)}</h2>
+                      <h2 className="text-[38px] font-extrabold tracking-[-2px] tabular-nums leading-none" style={{
+                        background: "linear-gradient(135deg, hsl(42 78% 65%), hsl(42 78% 50%), hsl(42 78% 40%))",
+                        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                        filter: "drop-shadow(0 2px 8px hsl(42 78% 55% / 0.15))"
+                      }}>{fmt(animBal)}</h2>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <span
-                          key={balanceEmoji}
-                          className="text-[32px] inline-block"
-                          style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both", filter: "drop-shadow(0 4px 12px hsl(42 78% 55% / 0.3))" }}
-                        >
-                          {BALANCE_EMOJIS[balanceEmoji]}
-                        </span>
-                        <h2 className="text-[36px] font-bold tracking-[6px] leading-none select-none" style={{
-                          background: "linear-gradient(90deg, hsl(42 78% 55% / 0.25), hsl(42 78% 55% / 0.08), hsl(42 78% 55% / 0.25))",
-                          backgroundSize: "200% 100%",
-                          animation: "shimmer-card 2.5s linear infinite",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          backgroundClip: "text",
-                        }}>•••••</h2>
-                      </div>
+                      <h2 className="text-[34px] font-extrabold tracking-[4px] leading-none select-none" style={{
+                        background: "linear-gradient(90deg, hsl(42 78% 55% / 0.2), hsl(42 78% 55% / 0.06), hsl(42 78% 55% / 0.2))",
+                        backgroundSize: "200% 100%", animation: "shimmer-card 2s linear infinite",
+                        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                      }}>•••••</h2>
                     )}
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center mt-1 backdrop-blur-sm border border-white/[0.06] hover:bg-white/[0.08] transition-all duration-300 hover:border-primary/20 hover:shadow-[0_0_12px_hsl(42_78%_55%/0.1)]">
-                      {showBalance ? <EyeOff className="w-[15px] h-[15px] text-white/30" /> : <Eye className="w-[15px] h-[15px] text-white/30" />}
+                    <div className="w-8 h-8 rounded-[10px] bg-white/[0.03] flex items-center justify-center backdrop-blur-sm border border-white/[0.05]">
+                      {showBalance ? <EyeOff className="w-[14px] h-[14px] text-white/25" /> : <Eye className="w-[14px] h-[14px] text-white/25" />}
                     </div>
                   </button>
                 </div>
                 <button
                   onClick={() => { haptic.medium(); navigate("/scan"); }}
-                  className="w-[56px] h-[56px] rounded-[20px] gradient-primary flex items-center justify-center active:scale-90 transition-transform"
-                  style={{ boxShadow: "0 8px 32px hsl(42 78% 55% / 0.35), 0 2px 8px hsl(42 78% 55% / 0.2), inset 0 1px 0 hsl(48 90% 70% / 0.3)", animation: "float-up 3s ease-in-out infinite" }}
+                  className="w-[52px] h-[52px] rounded-[18px] gradient-primary flex items-center justify-center active:scale-90 transition-transform"
+                  style={{ boxShadow: "0 8px 28px hsl(42 78% 55% / 0.3), inset 0 1px 0 hsl(48 90% 70% / 0.25)" }}
                 >
-                  <QrCode className="w-[26px] h-[26px] text-primary-foreground" strokeWidth={1.8} />
+                  <QrCode className="w-[24px] h-[24px] text-primary-foreground" strokeWidth={1.8} />
                 </button>
               </div>
 
               {wallet?.is_frozen && (
-                <div className="mb-4 px-3.5 py-2 bg-destructive/[0.06] rounded-xl inline-flex items-center gap-2 border border-destructive/10">
-                  <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                  <span className="text-[11px] font-semibold text-destructive/80">Wallet Frozen</span>
+                <div className="mb-3.5 px-3 py-1.5 bg-destructive/[0.06] rounded-xl inline-flex items-center gap-2 border border-destructive/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-[10px] font-semibold text-destructive/80">Wallet Frozen</span>
                 </div>
               )}
 
-              {/* Income / Expense Pills — Glassmorphism */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative rounded-[18px] px-4 py-3.5 overflow-hidden border border-[hsl(152_60%_45%/0.08)] hover:border-[hsl(152_60%_45%/0.15)] transition-all duration-300 group/pill">
-                  <div className="absolute inset-0 bg-[hsl(152_60%_45%/0.03)] backdrop-blur-sm" />
-                  <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-[hsl(152_60%_45%/0.06)] blur-2xl opacity-0 group-hover/pill:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-[24px] h-[24px] rounded-[8px] bg-[hsl(152_60%_45%/0.12)] flex items-center justify-center shadow-[0_0_12px_hsl(152_60%_45%/0.1)]">
-                        <ArrowDownLeft className="w-3 h-3 text-[hsl(152_60%_45%)]" />
-                      </div>
-                      <span className="text-[10px] text-white/30 font-semibold tracking-wider uppercase">Income</span>
+              {/* Income / Expense */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden border border-[hsl(152_60%_45%/0.06)]">
+                  <div className="absolute inset-0 bg-[hsl(152_60%_45%/0.02)]" />
+                  <div className="relative z-10 flex items-center gap-2.5">
+                    <div className="w-[22px] h-[22px] rounded-[7px] bg-[hsl(152_60%_45%/0.1)] flex items-center justify-center">
+                      <ArrowDownLeft className="w-2.5 h-2.5 text-[hsl(152_60%_45%)]" />
                     </div>
-                    <p className="text-[16px] font-bold text-[hsl(152_60%_45%)] tabular-nums" style={{ textShadow: "0 0 20px hsl(152 60% 45% / 0.15)" }}>{fmt(moneyIn)}</p>
+                    <div>
+                      <span className="text-[8px] text-white/20 font-bold tracking-[0.15em] uppercase block">Income</span>
+                      <p className="text-[14px] font-bold text-[hsl(152_60%_45%)] tabular-nums">{fmt(moneyIn)}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="relative rounded-[18px] px-4 py-3.5 overflow-hidden border border-destructive/[0.08] hover:border-destructive/[0.15] transition-all duration-300 group/pill">
-                  <div className="absolute inset-0 bg-destructive/[0.03] backdrop-blur-sm" />
-                  <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-destructive/[0.06] blur-2xl opacity-0 group-hover/pill:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-[24px] h-[24px] rounded-[8px] bg-destructive/[0.12] flex items-center justify-center shadow-[0_0_12px_hsl(0_84%_60%/0.1)]">
-                        <ArrowUpRight className="w-3 h-3 text-destructive" />
-                      </div>
-                      <span className="text-[10px] text-white/30 font-semibold tracking-wider uppercase">Expense</span>
+                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden border border-destructive/[0.06]">
+                  <div className="absolute inset-0 bg-destructive/[0.02]" />
+                  <div className="relative z-10 flex items-center gap-2.5">
+                    <div className="w-[22px] h-[22px] rounded-[7px] bg-destructive/[0.1] flex items-center justify-center">
+                      <ArrowUpRight className="w-2.5 h-2.5 text-destructive" />
                     </div>
-                    <p className="text-[16px] font-bold text-destructive tabular-nums" style={{ textShadow: "0 0 20px hsl(0 84% 60% / 0.15)" }}>{fmt(moneyOut)}</p>
+                    <div>
+                      <span className="text-[8px] text-white/20 font-bold tracking-[0.15em] uppercase block">Spent</span>
+                      <p className="text-[14px] font-bold text-destructive tabular-nums">{fmt(moneyOut)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </SpringIn>
+        </div>
 
-        {/* ─── Quick Actions — Ultra Premium ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <div className="relative rounded-[28px] overflow-hidden p-[1px]" style={{
-            background: `linear-gradient(160deg, hsl(42 78% 55% / 0.15), transparent 40%, hsl(210 80% 55% / 0.08), transparent 80%, hsl(270 60% 55% / 0.1))`,
-          }}>
-            <div className="relative rounded-[27px] overflow-hidden" style={{
-              background: `
-                radial-gradient(ellipse 50% 60% at 15% 10%, hsl(42 78% 55% / 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse 40% 50% at 85% 85%, hsl(210 80% 55% / 0.04) 0%, transparent 60%),
-                radial-gradient(ellipse 30% 40% at 50% 50%, hsl(270 60% 55% / 0.03) 0%, transparent 50%),
-                linear-gradient(160deg, hsl(220 20% 8%), hsl(220 22% 5%))
-              `,
-              boxShadow: "0 20px 60px -15px hsl(220 20% 3% / 0.7), inset 0 1px 0 hsl(40 20% 95% / 0.04)"
-            }}>
-              {/* Shimmer line */}
-              <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.2) 30%, hsl(210 80% 55% / 0.15) 60%, hsl(270 60% 55% / 0.1) 80%, transparent 95%)" }} />
-              {/* Noise texture */}
-              <div className="absolute inset-0 noise-overlay pointer-events-none opacity-30" />
-              {/* Floating particles */}
-              <div className="absolute top-3 right-8 w-1 h-1 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: "0.5s" }} />
-              <div className="absolute bottom-4 left-12 w-0.5 h-0.5 rounded-full bg-[hsl(210_80%_55%)]/20 animate-pulse" style={{ animationDelay: "1.2s" }} />
-              <div className="absolute top-1/2 right-1/3 w-0.5 h-0.5 rounded-full bg-[hsl(270_60%_55%)]/15 animate-pulse" style={{ animationDelay: "2s" }} />
-              
-              <div className="relative z-10 p-5">
-                <div className="grid grid-cols-4 gap-3">
-                  {quickActions.map((a, i) => (
-                    <button
-                      key={a.label}
-                      onClick={() => { haptic.light(); navigate(a.path); }}
-                      className="flex flex-col items-center gap-3 py-4 rounded-[22px] bg-white/[0.015] active:scale-[0.85] transition-all duration-300 group relative overflow-hidden border border-white/[0.03] hover:border-white/[0.1]"
-                      style={{ animationDelay: `${i * 60}ms` }}
-                    >
-                      {/* Hover glow background */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[22px]"
-                        style={{ background: `radial-gradient(circle at 50% 30%, ${a.glow.replace(')', ' / 0.08)')}, transparent 70%)` }}
-                      />
-                      {/* Icon container with triple-ring effect */}
-                      <div className="relative">
-                        {/* Outer pulse ring */}
-                        <div className="absolute inset-[-8px] rounded-[18px] opacity-0 group-hover:opacity-100 transition-all duration-500 group-active:opacity-100"
-                          style={{ border: `1px solid ${a.ring}`, animation: "glow-pulse 3s ease-in-out infinite" }}
-                        />
-                        {/* Middle glow ring */}
-                        <div className="absolute inset-[-4px] rounded-[16px] opacity-0 group-hover:opacity-40 transition-all duration-500"
-                          style={{ background: `${a.glow.replace(')', ' / 0.08)')}` }}
-                        />
-                        {/* Main icon box */}
-                        <div
-                          className="w-[48px] h-[48px] rounded-[16px] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-active:shadow-[0_0_30px_var(--glow)] relative"
-                          style={{
-                            background: `linear-gradient(135deg, ${a.glow.replace(')', ' / 0.12)')}, ${a.glow.replace(')', ' / 0.04)')})`,
-                            "--glow": `${a.glow.replace(')', ' / 0.5)')}`,
-                            boxShadow: `0 4px 16px ${a.glow.replace(')', ' / 0.1)')}, inset 0 1px 0 ${a.glow.replace(')', ' / 0.1)')}`,
-                          } as React.CSSProperties}
-                        >
-                          <a.icon className="w-[22px] h-[22px] drop-shadow-sm" style={{ color: a.glow, filter: `drop-shadow(0 0 6px ${a.glow.replace(')', ' / 0.3)')})` }} strokeWidth={1.8} />
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/70 transition-all duration-300 tracking-wide">{a.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Spending Insights (AI-powered) ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <div className="relative rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
-            background: `
-              radial-gradient(ellipse 60% 50% at 85% 15%, hsl(270 60% 55% / 0.05) 0%, transparent 60%),
-              linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-            `
-          }}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(270 60% 55% / 0.2), transparent)" }} />
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: "hsl(270 60% 55% / 0.1)" }}>
-                  <Sparkles className="w-4 h-4" style={{ color: "hsl(270 60% 55%)" }} />
-                </div>
-                <div>
-                  <span className="text-[12px] font-bold block">Spending Insights</span>
-                  <span className="text-[9px] text-white/20">AI-powered analysis</span>
-                </div>
-              </div>
-              <div className="space-y-2.5">
-                {(() => {
-                  const insights: { text: string; emoji: string; type: "up" | "down" | "info" }[] = [];
-                  const foodTxns = transactions.filter(t => t.category === "food" && t.type === "debit");
-                  const totalSpent = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
-                  if (foodTxns.length > 0) {
-                    const foodTotal = foodTxns.reduce((s, t) => s + t.amount, 0);
-                    const foodPct = totalSpent > 0 ? Math.round((foodTotal / totalSpent) * 100) : 0;
-                    insights.push({ text: `Food takes ${foodPct}% of your spending`, emoji: "🍔", type: foodPct > 40 ? "up" : "info" });
-                  }
-                  if (moneyOut > moneyIn) {
-                    insights.push({ text: `You spent ${fmt(moneyOut - moneyIn)} more than you earned`, emoji: "📉", type: "up" });
-                  } else if (moneyIn > 0) {
-                    insights.push({ text: `Great! You saved ${fmt(moneyIn - moneyOut)} this period`, emoji: "🎉", type: "down" });
-                  }
-                  if (spendPct > 70) {
-                    insights.push({ text: `${Math.round(spendPct)}% of monthly budget used — slow down!`, emoji: "⚠️", type: "up" });
-                  } else if (spendPct < 30) {
-                    insights.push({ text: `Only ${Math.round(spendPct)}% budget used — you're on track!`, emoji: "✅", type: "down" });
-                  }
-                  if (goals.length > 0) {
-                    const avgProgress = goals.reduce((s, g) => s + (g.target_amount > 0 ? (g.current_amount / g.target_amount) * 100 : 0), 0) / goals.length;
-                    insights.push({ text: `Savings goals are ${Math.round(avgProgress)}% complete on average`, emoji: "🎯", type: avgProgress > 50 ? "down" : "info" });
-                  }
-                  if (insights.length === 0) {
-                    insights.push({ text: "Start spending to get personalized insights", emoji: "💡", type: "info" });
-                  }
-                  return insights.slice(0, 3).map((insight, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-[14px] bg-white/[0.02] border border-white/[0.03]"
-                      style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.1 + i * 0.08}s both` }}>
-                      <span className="text-[18px]">{insight.emoji}</span>
-                      <p className="text-[11px] text-white/45 font-medium flex-1">{insight.text}</p>
-                      <div className={`w-2 h-2 rounded-full ${insight.type === "up" ? "bg-destructive" : insight.type === "down" ? "bg-[hsl(152_60%_45%)]" : "bg-primary/50"}`} />
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Financial Health Score ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <button
-            onClick={() => { haptic.light(); navigate("/analytics"); }}
-            className="w-full relative overflow-hidden rounded-[24px] p-5 text-left active:scale-[0.98] transition-all border border-white/[0.03]"
-            style={{
-              background: `
-                radial-gradient(ellipse 50% 80% at 85% 20%, ${healthColor}08 0%, transparent 60%),
-                linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-              `
-            }}
-          >
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${healthColor}20, transparent)` }} />
-
-            <div className="flex items-center gap-4">
-              {/* Circular score */}
-              <div className="relative w-[64px] h-[64px] shrink-0">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="hsl(220 15% 15%)" strokeWidth="5" />
-                  <circle
-                    cx="32" cy="32" r="26" fill="none"
-                    stroke={healthColor}
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(healthScore / 100) * 163.36} 163.36`}
-                    style={{ transition: "stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)", filter: `drop-shadow(0 0 6px ${healthColor}60)` }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[16px] font-bold tabular-nums" style={{ color: healthColor }}>{Math.round(healthScore)}</span>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-3.5 h-3.5 text-primary/70" />
-                  <span className="text-[10px] font-semibold text-white/25 tracking-[0.1em] uppercase">Financial Health</span>
-                </div>
-                <p className="text-[15px] font-bold mb-0.5" style={{ color: healthColor }}>{healthLabel}</p>
-                <p className="text-[11px] text-white/25">Based on spending habits & savings</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/15 shrink-0" />
-            </div>
-          </button>
-        </ScrollReveal>
-
-        {/* ─── Bill Payments ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <div className="flex items-center justify-between mb-3.5">
-            <h3 className="text-[14px] font-bold tracking-[-0.3px]">Bill Payments</h3>
-            <button className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {/* ─── Quick Actions ─── */}
+        <ScrollReveal className="px-5 mb-5">
           <div className="grid grid-cols-4 gap-2.5">
-            {billPayments.map((bp) => (
+            {quickActions.map((a, i) => (
               <button
-                key={bp.label}
-                onClick={() => { haptic.light(); navigate("/bill-payments"); }}
-                className="flex flex-col items-center gap-2.5 py-3.5 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 border border-white/[0.03]"
+                key={a.label}
+                onClick={() => { haptic.light(); navigate(a.path); }}
+                className="flex flex-col items-center gap-2 py-3.5 rounded-[20px] bg-white/[0.015] active:scale-[0.88] transition-all duration-300 group relative overflow-hidden border border-white/[0.03] hover:border-white/[0.08]"
+                style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.12 + i * 0.05}s both` }}
               >
-                <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center" style={{ background: `${bp.color}10` }}>
-                  <span className="text-[22px]">{bp.emoji}</span>
+                <div className="absolute inset-0 opacity-0 group-active:opacity-100 transition-opacity duration-300"
+                  style={{ background: `radial-gradient(circle at 50% 40%, hsl(${a.color} / 0.08), transparent 70%)` }} />
+                <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center transition-transform duration-300 group-active:scale-110 relative"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(${a.color} / 0.12), hsl(${a.color} / 0.04))`,
+                    boxShadow: `0 4px 14px hsl(${a.color} / 0.08), inset 0 1px 0 hsl(${a.color} / 0.08)`,
+                  }}>
+                  <a.icon className="w-[20px] h-[20px]" style={{ color: `hsl(${a.color})`, filter: `drop-shadow(0 0 4px hsl(${a.color} / 0.25))` }} strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/45">{bp.label}</span>
+                <span className="text-[10px] font-semibold text-white/35 group-active:text-white/60 transition-colors">{a.label}</span>
               </button>
             ))}
           </div>
         </ScrollReveal>
 
-        {/* ─── Quick Pay Contacts ─── */}
+        {/* ─── Monthly Spending Bar ─── */}
+        <ScrollReveal className="px-5 mb-5">
+          <button
+            onClick={() => { haptic.light(); navigate("/analytics"); }}
+            className="w-full rounded-[20px] p-4 active:scale-[0.98] transition-all relative overflow-hidden border border-white/[0.03] text-left"
+            style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
+          >
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.1), transparent)" }} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-primary/70" />
+                <span className="text-[11px] font-semibold text-white/40">Monthly Budget</span>
+              </div>
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                spendPct > 80 ? "bg-destructive/[0.08] text-destructive border border-destructive/10"
+                : spendPct > 50 ? "bg-[hsl(38_92%_50%/0.08)] text-[hsl(38_92%_50%)] border border-[hsl(38_92%_50%/0.1)]"
+                : "bg-[hsl(152_60%_45%/0.08)] text-[hsl(152_60%_45%)] border border-[hsl(152_60%_45%/0.1)]"
+              }`}>{Math.round(spendPct)}% used</span>
+            </div>
+            <div className="flex items-end justify-between mb-2.5">
+              <p className="text-[22px] font-bold tabular-nums tracking-[-1px]">{fmt(wallet?.spent_this_month || 0)}</p>
+              <p className="text-[10px] text-white/15 mb-1">of {fmt(wallet?.monthly_limit || 0)}</p>
+            </div>
+            <div className="h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{
+                width: `${spendPct}%`,
+                background: spendPct > 80
+                  ? "linear-gradient(90deg, hsl(0 72% 51%), hsl(0 72% 41%))"
+                  : spendPct > 50
+                    ? "linear-gradient(90deg, hsl(38 92% 50%), hsl(28 92% 45%))"
+                    : "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))",
+                boxShadow: spendPct > 80 ? "0 0 12px hsl(0 72% 51% / 0.4)" : "0 0 12px hsl(42 78% 55% / 0.25)",
+              }} />
+            </div>
+          </button>
+        </ScrollReveal>
+
+        {/* ─── Financial Health Score ─── */}
+        <ScrollReveal className="px-5 mb-5">
+          <button
+            onClick={() => { haptic.light(); navigate("/analytics"); }}
+            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left active:scale-[0.98] transition-all border border-white/[0.03]"
+            style={{ background: `radial-gradient(ellipse 50% 80% at 85% 20%, ${healthColor}06 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))` }}
+          >
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${healthColor}15, transparent)` }} />
+            <div className="flex items-center gap-3.5">
+              <div className="relative w-[56px] h-[56px] shrink-0">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="hsl(220 15% 12%)" strokeWidth="4.5" />
+                  <circle cx="28" cy="28" r="22" fill="none" stroke={healthColor} strokeWidth="4.5" strokeLinecap="round"
+                    strokeDasharray={`${(healthScore / 100) * 138.2} 138.2`}
+                    style={{ transition: "stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)", filter: `drop-shadow(0 0 4px ${healthColor}50)` }} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[14px] font-bold tabular-nums" style={{ color: healthColor }}>{Math.round(healthScore)}</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Shield className="w-3 h-3 text-primary/50" />
+                  <span className="text-[9px] font-bold text-white/20 tracking-[0.08em] uppercase">Health Score</span>
+                </div>
+                <p className="text-[14px] font-bold" style={{ color: healthColor }}>{healthLabel}</p>
+                <p className="text-[10px] text-white/20">Spending habits & savings</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white/10 shrink-0" />
+            </div>
+          </button>
+        </ScrollReveal>
+
+        {/* ─── Quick Pay People ─── */}
         {favorites.length > 0 && (
-          <ScrollReveal className="mb-6">
-            <div className="flex items-center justify-between mb-3.5 px-5">
-              <h3 className="text-[14px] font-bold tracking-[-0.3px]">People</h3>
-              <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
-                See All <ChevronRight className="w-3.5 h-3.5" />
+          <ScrollReveal className="mb-5">
+            <div className="flex items-center justify-between mb-3 px-5">
+              <h3 className="text-[13px] font-bold tracking-[-0.3px]">People</h3>
+              <button onClick={() => { haptic.light(); navigate("/quick-pay"); }} className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
+                See All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex gap-4 overflow-x-auto px-5 pb-1 scrollbar-hide">
+            <div className="flex gap-3.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
               {favorites.map(fav => (
                 <button key={fav.id} onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
-                  className="flex flex-col items-center gap-2.5 min-w-[62px] active:scale-90 transition-all group">
-                  <div className="w-[54px] h-[54px] rounded-[18px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center text-[24px] group-active:border-primary/20 transition-colors">
+                  className="flex flex-col items-center gap-2 min-w-[58px] active:scale-90 transition-all group">
+                  <div className="w-[50px] h-[50px] rounded-[16px] bg-white/[0.025] border border-white/[0.04] flex items-center justify-center text-[22px] group-active:border-primary/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
                     {fav.avatar_emoji}
                   </div>
-                  <span className="text-[10px] text-white/35 font-medium truncate w-full text-center">{fav.contact_name.split(" ")[0]}</span>
+                  <span className="text-[9px] text-white/30 font-medium truncate w-full text-center">{fav.contact_name.split(" ")[0]}</span>
                 </button>
               ))}
               <button onClick={() => { haptic.light(); navigate("/quick-pay"); }}
-                className="flex flex-col items-center gap-2.5 min-w-[62px] active:scale-90 transition-all">
-                <div className="w-[54px] h-[54px] rounded-[18px] bg-primary/[0.04] border border-primary/[0.08] flex items-center justify-center transition-colors">
-                  <Plus className="w-5 h-5 text-primary/50" />
+                className="flex flex-col items-center gap-2 min-w-[58px] active:scale-90 transition-all">
+                <div className="w-[50px] h-[50px] rounded-[16px] bg-primary/[0.03] border border-primary/[0.08] flex items-center justify-center transition-colors">
+                  <Plus className="w-4.5 h-4.5 text-primary/40" />
                 </div>
-                <span className="text-[10px] text-primary/50 font-semibold">Add</span>
+                <span className="text-[9px] text-primary/40 font-semibold">Add</span>
               </button>
             </div>
           </ScrollReveal>
         )}
 
-        {/* ─── Services — Premium Grid ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <h3 className="text-[14px] font-bold tracking-[-0.3px] mb-3.5">Services</h3>
-          <div className="grid grid-cols-3 gap-2.5">
-            {allFeatures.map((f, i) => (
-              <button
-                key={f.label}
-                onClick={() => { haptic.light(); navigate(f.path); }}
-                className="flex flex-col items-center gap-1.5 py-4 rounded-[20px] bg-white/[0.02] active:scale-[0.88] transition-all duration-300 border border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.04] group"
-                style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + i * 0.04}s both` }}
-              >
-                <span className="text-[26px] group-active:scale-125 group-hover:scale-110 transition-transform duration-300">{f.emoji}</span>
-                <span className="text-[11px] font-semibold text-white/50 group-hover:text-white/70 transition-colors">{f.label}</span>
-                <span className="text-[9px] text-white/20">{f.desc}</span>
-              </button>
-            ))}
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Monthly Spending Dashboard ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <div className="relative rounded-[24px] overflow-hidden border border-white/[0.03]" style={{
-            background: `
-              radial-gradient(ellipse 60% 50% at 80% 20%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
-              linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-            `
-          }}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.12), transparent)" }} />
-            
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-[12px] gradient-primary flex items-center justify-center shadow-[0_4px_16px_hsl(42_78%_55%/0.25)]">
-                    <Wallet className="w-[18px] h-[18px] text-primary-foreground" />
-                  </div>
-                  <div>
-                    <span className="text-[13px] font-bold block">Monthly Spending</span>
-                    <span className="text-[10px] text-white/20">{new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>
-                  </div>
-                </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full backdrop-blur-sm ${
-                  spendPct > 80 ? "bg-destructive/[0.08] text-destructive border border-destructive/10" 
-                  : spendPct > 50 ? "bg-[hsl(38_92%_50%/0.08)] text-[hsl(38_92%_50%)] border border-[hsl(38_92%_50%/0.1)]" 
-                  : "bg-[hsl(152_60%_45%/0.08)] text-[hsl(152_60%_45%)] border border-[hsl(152_60%_45%/0.1)]"
-                }`}>
-                  {Math.round(spendPct)}%
-                </span>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex justify-between items-end mb-3">
-                  <div>
-                    <p className="text-[26px] font-bold tabular-nums tracking-[-1px]">{fmt(wallet?.spent_this_month || 0)}</p>
-                    <p className="text-[10px] text-white/20 mt-0.5">of {fmt(wallet?.monthly_limit || 0)} limit</p>
-                  </div>
-                </div>
-                <div className="h-[8px] rounded-full bg-white/[0.04] overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-1500 ease-out" style={{
-                    width: `${spendPct}%`,
-                    background: spendPct > 80
-                      ? "linear-gradient(90deg, hsl(0 72% 51%), hsl(0 72% 41%))"
-                      : spendPct > 50
-                        ? "linear-gradient(90deg, hsl(38 92% 50%), hsl(28 92% 45%))"
-                        : "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 42%))",
-                    boxShadow: spendPct > 80
-                      ? "0 0 16px hsl(0 72% 51% / 0.4)"
-                      : "0 0 16px hsl(42 78% 55% / 0.3)",
-                  }} />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 rounded-[14px] bg-white/[0.02] border border-white/[0.03]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-primary/[0.08] flex items-center justify-center">
-                    <Zap className="w-3 h-3 text-primary/60" />
-                  </div>
-                  <span className="text-[11px] text-white/30 font-medium">Today's spending</span>
-                </div>
-                <span className="text-[12px] font-bold tabular-nums text-white/50">{fmt(wallet?.spent_today || 0)}<span className="text-white/20"> / {fmt(wallet?.daily_limit || 0)}</span></span>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
         {/* ─── Savings Goals ─── */}
         {goals.length > 0 && (
-          <ScrollReveal className="mb-6">
-            <div className="flex items-center justify-between mb-3.5 px-5">
-              <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" /> Savings Goals
+          <ScrollReveal className="mb-5">
+            <div className="flex items-center justify-between mb-3 px-5">
+              <h3 className="text-[13px] font-bold tracking-[-0.3px] flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-primary/70" /> Goals
               </h3>
-              <button onClick={() => { haptic.light(); navigate("/savings"); }} className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60">
-                View All <ChevronRight className="w-3.5 h-3.5" />
+              <button onClick={() => { haptic.light(); navigate("/savings"); }} className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 active:opacity-60">
+                View All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-5 pb-1 scrollbar-hide">
+            <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
               {goals.map(goal => {
                 const pct = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
                 return (
                   <button key={goal.id} onClick={() => { haptic.light(); navigate("/savings"); }}
-                    className="min-w-[155px] p-4 rounded-[20px] active:scale-95 transition-all bg-white/[0.02] border border-white/[0.03]">
-                    <div className="text-[26px] mb-2.5">{goal.icon || "🎯"}</div>
-                    <p className="text-[12px] font-semibold truncate mb-2.5">{goal.title}</p>
-                    <div className="w-full h-[5px] rounded-full bg-white/[0.04] overflow-hidden mb-2">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))", boxShadow: "0 0 10px hsl(42 78% 55% / 0.3)" }} />
+                    className="min-w-[140px] p-3.5 rounded-[18px] active:scale-95 transition-all bg-white/[0.015] border border-white/[0.03] hover:border-white/[0.06]">
+                    <div className="text-[24px] mb-2">{goal.icon || "🎯"}</div>
+                    <p className="text-[11px] font-semibold truncate mb-2">{goal.title}</p>
+                    <div className="w-full h-[4px] rounded-full bg-white/[0.04] overflow-hidden mb-1.5">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg, hsl(42 78% 55%), hsl(36 80% 48%))", boxShadow: "0 0 8px hsl(42 78% 55% / 0.25)" }} />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-white/20 font-medium">{Math.round(pct)}%</span>
-                      <span className="text-[10px] text-primary font-bold">{fmt(goal.current_amount)}</span>
+                      <span className="text-[9px] text-white/15 font-medium">{Math.round(pct)}%</span>
+                      <span className="text-[9px] text-primary font-bold">{fmt(goal.current_amount)}</span>
                     </div>
                   </button>
                 );
@@ -679,32 +478,118 @@ const TeenHome = () => {
           </ScrollReveal>
         )}
 
+        {/* ─── Bill Payments ─── */}
+        <ScrollReveal className="px-5 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-bold tracking-[-0.3px]">Bill Payments</h3>
+            <button onClick={() => { haptic.light(); navigate("/bill-payments"); }} className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 active:opacity-60 transition-opacity">
+              View All <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Electricity", emoji: "⚡", color: "48 90% 55%" },
+              { label: "Water", emoji: "💧", color: "200 80% 55%" },
+              { label: "Broadband", emoji: "📡", color: "160 60% 50%" },
+              { label: "More", emoji: "📋", color: "42 78% 55%" },
+            ].map((bp) => (
+              <button
+                key={bp.label}
+                onClick={() => { haptic.light(); navigate("/bill-payments"); }}
+                className="flex flex-col items-center gap-2 py-3 rounded-[16px] bg-white/[0.015] active:scale-[0.88] transition-all duration-300 border border-white/[0.03]"
+              >
+                <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center" style={{ background: `hsl(${bp.color} / 0.08)` }}>
+                  <span className="text-[20px]">{bp.emoji}</span>
+                </div>
+                <span className="text-[9px] font-semibold text-white/35">{bp.label}</span>
+              </button>
+            ))}
+          </div>
+        </ScrollReveal>
+
+        {/* ─── Recent Activity ─── */}
+        <ScrollReveal className="px-5 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-bold tracking-[-0.3px] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-primary/70" /> Recent Activity
+            </h3>
+            <button onClick={() => { haptic.light(); navigate("/activity"); }} className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 active:opacity-60">
+              View All <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          {transactions.length === 0 ? (
+            <div className="text-center py-14 rounded-[20px] bg-white/[0.01] border border-white/[0.03]">
+              <div className="w-[56px] h-[56px] rounded-[18px] bg-white/[0.02] flex items-center justify-center mx-auto mb-3">
+                <Activity className="w-7 h-7 text-white/8" />
+              </div>
+              <p className="text-[13px] font-semibold text-white/20 mb-0.5">No transactions yet</p>
+              <p className="text-[10px] text-white/10">Your activity will appear here</p>
+            </div>
+          ) : (
+            <div className="relative rounded-[20px] overflow-hidden border border-white/[0.035]" style={{
+              background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))",
+              boxShadow: "0 8px 32px -8px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.02)"
+            }}>
+              <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.1) 50%, transparent 90%)" }} />
+              {transactions.map((tx, idx) => (
+                <button
+                  key={tx.id}
+                  onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
+                  className={`w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200 active:bg-white/[0.025] ${idx < transactions.length - 1 ? "border-b border-white/[0.02]" : ""}`}
+                  style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + idx * 0.04}s both` }}
+                >
+                  <div className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] flex items-center justify-center text-[18px] shrink-0 border border-white/[0.025]">
+                    {catEmoji[tx.category || "other"] || "💸"}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-[11px] font-semibold truncate">{tx.merchant_name || tx.category || "Transaction"}</p>
+                    <p className="text-[9px] text-white/15 capitalize mt-0.5">
+                      {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-[12px] font-bold tabular-nums ${tx.type === "credit" ? "text-[hsl(152_60%_45%)]" : "text-foreground"}`}>
+                      {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
+                    </p>
+                    <p className={`text-[8px] font-medium mt-0.5 ${
+                      tx.status === "success" ? "text-[hsl(152_60%_45%/0.4)]" : tx.status === "pending" ? "text-[hsl(38_92%_50%/0.5)]" : "text-destructive/40"
+                    }`}>
+                      {tx.status === "success" ? "Completed" : tx.status === "pending" ? "Pending" : tx.status}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </ScrollReveal>
+
         {/* ─── Rewards ─── */}
         {rewards.length > 0 && (
-          <ScrollReveal className="mb-6">
-            <div className="flex items-center justify-between mb-3.5 px-5">
-              <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
-                <Gift className="w-4 h-4 text-primary" /> Rewards
+          <ScrollReveal className="mb-5">
+            <div className="flex items-center justify-between mb-3 px-5">
+              <h3 className="text-[13px] font-bold tracking-[-0.3px] flex items-center gap-1.5">
+                <Gift className="w-3.5 h-3.5 text-primary/70" /> Rewards
               </h3>
-              <button onClick={() => { haptic.light(); navigate("/rewards"); }} className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60">
-                View All <ChevronRight className="w-3.5 h-3.5" />
+              <button onClick={() => { haptic.light(); navigate("/rewards"); }} className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 active:opacity-60">
+                View All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-5 pb-1 scrollbar-hide">
+            <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
               {rewards.map(r => (
                 <button key={r.id} onClick={() => { haptic.light(); navigate(`/rewards/${r.id}`); }}
-                  className="min-w-[180px] rounded-[20px] overflow-hidden active:scale-[0.97] transition-all bg-white/[0.02] border border-white/[0.03]">
+                  className="min-w-[160px] rounded-[18px] overflow-hidden active:scale-[0.97] transition-all bg-white/[0.015] border border-white/[0.03]">
                   {r.image_url ? (
-                    <div className="w-full h-[100px] overflow-hidden"><img src={r.image_url} alt={r.title} className="w-full h-full object-cover" /></div>
+                    <div className="w-full h-[88px] overflow-hidden"><img src={r.image_url} alt={r.title} className="w-full h-full object-cover" /></div>
                   ) : (
-                    <div className="w-full h-[100px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, hsl(42 78% 55% / 0.06), transparent)" }}>
-                      <Sparkles className="w-8 h-8 text-primary/15" />
+                    <div className="w-full h-[88px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, hsl(42 78% 55% / 0.05), transparent)" }}>
+                      <Sparkles className="w-7 h-7 text-primary/12" />
                     </div>
                   )}
-                  <div className="p-3.5">
-                    <p className="text-[11px] font-semibold truncate">{r.title}</p>
-                    <p className="text-[9px] text-white/20 mt-0.5 truncate">{r.description || "Limited time offer"}</p>
-                    <div className="mt-2.5 inline-flex px-3 py-1.5 rounded-[10px] bg-primary/[0.06] text-primary text-[10px] font-bold border border-primary/[0.08]">
+                  <div className="p-3">
+                    <p className="text-[10px] font-semibold truncate">{r.title}</p>
+                    <p className="text-[8px] text-white/15 mt-0.5 truncate">{r.description || "Limited time"}</p>
+                    <div className="mt-2 inline-flex px-2.5 py-1 rounded-[8px] bg-primary/[0.05] text-primary text-[9px] font-bold border border-primary/[0.06]">
                       {r.discount_type === "percentage" ? `${r.discount_value}% OFF` : `₹${r.discount_value} OFF`}
                     </div>
                   </div>
@@ -714,67 +599,26 @@ const TeenHome = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Recent Activity ─── */}
-        <ScrollReveal className="px-5 mb-6">
-          <div className="flex items-center justify-between mb-3.5">
-            <h3 className="text-[14px] font-bold tracking-[-0.3px] flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Recent Activity
-            </h3>
-            <button onClick={() => { haptic.light(); navigate("/activity"); }} className="text-[11px] text-primary/80 font-semibold flex items-center gap-0.5 active:opacity-60">
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        {/* ─── Services Grid ─── */}
+        <ScrollReveal className="px-5 mb-5">
+          <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3">Services</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {allFeatures.map((f, i) => (
+              <button
+                key={f.label}
+                onClick={() => { haptic.light(); navigate(f.path); }}
+                className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-white/[0.012] active:scale-[0.88] transition-all duration-300 border border-white/[0.025] hover:border-white/[0.06] group"
+                style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.2 + i * 0.03}s both` }}
+              >
+                <span className="text-[22px] group-active:scale-115 transition-transform duration-200">{f.emoji}</span>
+                <span className="text-[9px] font-semibold text-white/35 group-active:text-white/55 transition-colors">{f.label}</span>
+              </button>
+            ))}
           </div>
-
-          {transactions.length === 0 ? (
-            <div className="text-center py-16 rounded-[24px] bg-white/[0.015] border border-white/[0.03]">
-              <div className="w-[64px] h-[64px] rounded-[20px] bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
-                <Activity className="w-8 h-8 text-white/10" />
-              </div>
-              <p className="text-[14px] font-semibold text-white/25 mb-1">No transactions yet</p>
-              <p className="text-[11px] text-white/15">Your activity will appear here</p>
-            </div>
-          ) : (
-             <div className="relative rounded-[24px] overflow-hidden border border-white/[0.04]" style={{
-              background: `
-                radial-gradient(ellipse 50% 50% at 90% 10%, hsl(42 78% 55% / 0.04) 0%, transparent 60%),
-                linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-              `,
-              boxShadow: "0 10px 40px -10px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.03)"
-            }}>
-              <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.12) 50%, transparent 90%)" }} />
-              <div className="absolute inset-0 noise-overlay pointer-events-none" />
-              {transactions.map((tx, idx) => (
-                <button
-                  key={tx.id}
-                  onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                  className={`w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 active:bg-white/[0.03] hover:bg-white/[0.015] ${idx < transactions.length - 1 ? "border-b border-white/[0.025]" : ""}`}
-                  style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.45 + idx * 0.05}s both` }}
-                >
-                  <div className="w-[44px] h-[44px] rounded-[14px] bg-white/[0.03] flex items-center justify-center text-[20px] shrink-0 border border-white/[0.03] group-hover:scale-105 transition-transform">
-                    {catEmoji[tx.category || "other"] || "💸"}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[12px] font-semibold truncate">{tx.merchant_name || tx.category || "Transaction"}</p>
-                    <p className="text-[10px] text-white/20 capitalize mt-0.5">
-                      {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-[13px] font-bold tabular-nums ${tx.type === "credit" ? "text-[hsl(152_60%_45%)]" : "text-foreground"}`}>
-                      {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
-                    </p>
-                    <p className={`text-[9px] font-medium mt-0.5 ${tx.status === "success" ? "text-[hsl(152_60%_45%/0.4)]" : "text-[hsl(38_92%_50%/0.4)]"}`}>
-                      {tx.status === "success" ? "Completed" : tx.status}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </ScrollReveal>
 
         {/* ─── Refer & Earn ─── */}
-        <ScrollReveal className="px-5 mb-6">
+        <ScrollReveal className="px-5 mb-8">
           <button
             onClick={() => {
               haptic.medium();
@@ -783,55 +627,45 @@ const TeenHome = () => {
               const txt = `Hey! Join AuroPay and we both get ₹20! Use my link: ${deepLink} 🎁`;
               navigator.share?.({ title: "Join AuroPay", text: txt, url: deepLink }).catch(() => { navigator.clipboard.writeText(deepLink); toast.success("Referral link copied!"); });
             }}
-            className="w-full relative overflow-hidden rounded-[24px] p-5 text-left active:scale-[0.98] transition-transform border border-white/[0.03]"
-            style={{
-              background: `
-                radial-gradient(ellipse 50% 70% at 90% 30%, hsl(42 78% 55% / 0.06) 0%, transparent 60%),
-                linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))
-              `
-            }}
+            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left active:scale-[0.98] transition-transform border border-white/[0.03]"
+            style={{ background: "radial-gradient(ellipse 50% 70% at 90% 30%, hsl(42 78% 55% / 0.05) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
           >
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.15), transparent)" }} />
-
-            <div className="relative z-10 flex items-center gap-4">
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.12), transparent)" }} />
+            <div className="relative z-10 flex items-center gap-3.5">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-3.5 h-3.5 text-primary/70" />
-                  <span className="text-[10px] font-semibold text-white/25 tracking-[0.08em] uppercase">Referral Bonus</span>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3 h-3 text-primary/60" />
+                  <span className="text-[9px] font-bold text-white/20 tracking-[0.08em] uppercase">Referral</span>
                 </div>
-                <h3 className="text-[16px] font-bold leading-snug mb-1">Invite & Earn ₹20</h3>
-                <p className="text-[11px] text-white/25 mb-3.5">Your friend gets ₹20 too after first spend</p>
-                <div className="inline-flex items-center gap-2 gradient-primary text-primary-foreground px-4 py-2.5 rounded-[12px] shadow-[0_4px_24px_hsl(42_78%_55%/0.3)]">
-                  <Send className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold">Invite Now</span>
-                </div>
-              </div>
-              <div className="relative w-[60px] h-[60px] shrink-0">
-                <div className="absolute inset-0 rounded-[18px] bg-primary/[0.04] border border-primary/[0.06] flex items-center justify-center">
-                  <span className="text-[32px]" style={{ animation: "float-up 2.5s ease-in-out infinite" }}>🎁</span>
+                <h3 className="text-[14px] font-bold leading-snug mb-0.5">Invite & Earn ₹20</h3>
+                <p className="text-[10px] text-white/20 mb-3">Friend gets ₹20 too</p>
+                <div className="inline-flex items-center gap-1.5 gradient-primary text-primary-foreground px-3.5 py-2 rounded-[10px] shadow-[0_4px_20px_hsl(42_78%_55%/0.25)]">
+                  <Send className="w-3 h-3" />
+                  <span className="text-[10px] font-bold">Invite Now</span>
                 </div>
               </div>
+              <span className="text-[36px] shrink-0" style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}>🎁</span>
             </div>
           </button>
         </ScrollReveal>
 
         {/* ─── Explore ─── */}
         <ScrollReveal className="px-5 mb-8">
-          <h3 className="text-[14px] font-bold tracking-[-0.3px] mb-3.5">Explore</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3">Explore</h3>
+          <div className="grid grid-cols-2 gap-2.5">
             <button onClick={() => { haptic.light(); navigate("/savings"); }}
-              className="rounded-[20px] p-4 overflow-hidden relative active:scale-[0.97] transition-all bg-white/[0.02] border border-white/[0.03] text-left">
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-[0.04] blur-[30px]" style={{ background: "hsl(152 60% 45%)" }} />
-              <span className="text-[28px] mb-3 block" style={{ animation: "float-up 3s ease-in-out infinite 0.5s" }}>🏦</span>
-              <p className="text-[12px] font-semibold mb-0.5">Save & Invest</p>
-              <p className="text-[10px] text-white/20">Set savings goals</p>
+              className="rounded-[18px] p-3.5 overflow-hidden relative active:scale-[0.97] transition-all bg-white/[0.015] border border-white/[0.03] text-left">
+              <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.03] blur-[25px]" style={{ background: "hsl(152 60% 45%)" }} />
+              <span className="text-[26px] mb-2 block">🏦</span>
+              <p className="text-[11px] font-semibold mb-0.5">Save & Invest</p>
+              <p className="text-[9px] text-white/15">Set savings goals</p>
             </button>
             <button onClick={() => { haptic.light(); navigate("/rewards"); }}
-              className="rounded-[20px] p-4 overflow-hidden relative active:scale-[0.97] transition-all bg-white/[0.02] border border-white/[0.03] text-left">
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-[0.04] blur-[30px]" style={{ background: "hsl(42 78% 55%)" }} />
-              <span className="text-[28px] mb-3 block" style={{ animation: "float-up 3s ease-in-out infinite 1s" }}>🎟️</span>
-              <p className="text-[12px] font-semibold mb-0.5">Earn Rewards</p>
-              <p className="text-[10px] text-white/20">Exclusive deals</p>
+              className="rounded-[18px] p-3.5 overflow-hidden relative active:scale-[0.97] transition-all bg-white/[0.015] border border-white/[0.03] text-left">
+              <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.03] blur-[25px]" style={{ background: "hsl(42 78% 55%)" }} />
+              <span className="text-[26px] mb-2 block">🎟️</span>
+              <p className="text-[11px] font-semibold mb-0.5">Earn Rewards</p>
+              <p className="text-[9px] text-white/15">Exclusive deals</p>
             </button>
           </div>
         </ScrollReveal>
