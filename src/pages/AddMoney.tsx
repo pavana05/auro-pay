@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { ArrowLeft, Zap, CreditCard, Building2, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Zap, CreditCard, Building2, Check, Sparkles, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
