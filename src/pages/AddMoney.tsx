@@ -68,8 +68,7 @@ const AddMoney = () => {
           // Min animation time
           await new Promise(r => setTimeout(r, 1200));
           setPhase("success");
-          haptic.heavy();
-          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          haptic.success();
         },
         onFailure: (err) => {
           toast.error(err?.message || err?.description || "Payment failed");
