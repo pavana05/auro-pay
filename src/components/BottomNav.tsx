@@ -24,14 +24,14 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40">
       {/* Frosted glass background */}
-      <div className="absolute inset-0 bg-secondary/80 backdrop-blur-2xl border-t border-border" />
+      <div className="absolute inset-0 bg-secondary/95 backdrop-blur-2xl border-t border-border rounded-t-2xl" />
       
       {/* Top gold accent line */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), transparent)" }} />
 
-      <div className="relative flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
+      <div className="relative flex items-end justify-around px-2 pb-[max(env(safe-area-inset-bottom),8px)]">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const isPressed = pressedTab === tab.path;
