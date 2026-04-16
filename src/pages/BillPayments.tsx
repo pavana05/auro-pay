@@ -47,6 +47,13 @@ const providers: Record<string, { name: string; icon: string }[]> = {
   ],
 };
 
+const quickCategories = [
+  { key: "mobile", label: "Recharge", image: rechargeImg },
+  { key: "electricity", label: "Pay Bill", image: paybillImg },
+  { key: "broadband", label: "DTH", image: dthImg },
+  { key: "water", label: "Metro", image: metroImg },
+];
+
 const categories = [
   {
     key: "mobile",
