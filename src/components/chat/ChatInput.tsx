@@ -21,41 +21,44 @@ const ChatInput = ({ onSendText, onSendVoice, onPaymentToggle }: ChatInputProps)
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   if (showVoice) {
     return (
-      <div className="flex items-center gap-2 p-3 bg-[#0d1017] border-t border-border/30">
+      <div className="flex items-center gap-2 p-3 border-t border-white/[0.04]" style={{ background: "hsl(220 18% 7%)" }}>
         <VoiceRecorder onSend={(url) => { onSendVoice(url); setShowVoice(false); }} onCancel={() => setShowVoice(false)} />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-[#0d1017] border-t border-border/30">
-      <button onClick={onPaymentToggle} className="w-9 h-9 rounded-full bg-emerald-600/20 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform">
+    <div className="flex items-center gap-2.5 p-3 border-t border-white/[0.04]" style={{ background: "hsl(220 18% 7%)" }}>
+      <button
+        onClick={onPaymentToggle}
+        className="w-[40px] h-[40px] rounded-[14px] bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center flex-shrink-0 active:scale-90 transition-all"
+      >
         <IndianRupee className="w-4 h-4 text-emerald-400" />
       </button>
 
-      <div className="flex-1 flex items-center bg-[#141820] rounded-full border border-border/30 px-3">
+      <div className="flex-1 flex items-center bg-white/[0.03] rounded-[14px] border border-white/[0.04] px-3.5">
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1 bg-transparent py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          className="flex-1 bg-transparent py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground/25 focus:outline-none"
         />
-        <Smile className="w-5 h-5 text-muted-foreground/50 ml-1" />
+        <Smile className="w-5 h-5 text-muted-foreground/20 ml-1" />
       </div>
 
       {text.trim() ? (
-        <button onClick={handleSend} className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform">
-          <Send className="w-4 h-4 text-white ml-0.5" />
+        <button
+          onClick={handleSend}
+          className="w-[40px] h-[40px] rounded-[14px] gradient-primary flex items-center justify-center flex-shrink-0 active:scale-90 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.3)]"
+        >
+          <Send className="w-4 h-4 text-primary-foreground ml-0.5" />
         </button>
       ) : (
         <VoiceRecorder onSend={onSendVoice} onCancel={() => {}} />

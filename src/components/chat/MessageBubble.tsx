@@ -1,4 +1,4 @@
-import { Play, Pause, IndianRupee, Check, CheckCheck } from "lucide-react";
+import { Play, Pause, IndianRupee, CheckCheck } from "lucide-react";
 import { useState, useRef } from "react";
 
 interface MessageBubbleProps {
@@ -26,87 +26,93 @@ const MessageBubble = ({
       audioRef.current = new Audio(voiceUrl);
       audioRef.current.onended = () => setPlaying(false);
     }
-    if (playing) {
-      audioRef.current?.pause();
-      setPlaying(false);
-    } else {
-      audioRef.current?.play();
-      setPlaying(true);
-    }
+    if (playing) { audioRef.current?.pause(); setPlaying(false); }
+    else { audioRef.current?.play(); setPlaying(true); }
   };
 
+  /* ── Payment bubble ── */
   if (messageType === "payment") {
     return (
-      <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3 animate-fade-in`}>
-        <div className={`max-w-[75%] rounded-2xl p-3 ${
+      <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3`} style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+        <div className={`max-w-[78%] rounded-[20px] p-4 ${
           isMine
-            ? "bg-gradient-to-br from-emerald-600/90 to-emerald-800/90 text-white"
-            : "bg-[#1a1d25] text-white border border-border/30"
+            ? "bg-gradient-to-br from-emerald-500/90 to-emerald-700/90 text-white rounded-br-[6px]"
+            : "bg-[hsl(220_18%_11%)] border border-white/[0.06] text-foreground rounded-bl-[6px]"
         }`}>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <IndianRupee className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-[14px] bg-white/10 flex items-center justify-center">
+              <IndianRupee className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-white/60">{isMine ? "You sent" : `${senderName || "Received"}`}</p>
-              <p className="text-lg font-bold">₹{((paymentAmount || 0) / 100).toLocaleString()}</p>
+              <p className="text-[11px] opacity-60">{isMine ? "You sent" : senderName || "Received"}</p>
+              <p className="text-xl font-bold">₹{((paymentAmount || 0) / 100).toLocaleString()}</p>
             </div>
           </div>
-          {content && <p className="text-xs text-white/70 mt-1">{content}</p>}
-          <div className="flex items-center justify-between mt-2">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-              paymentStatus === "success" ? "bg-emerald-400/20 text-emerald-300" :
-              paymentStatus === "failed" ? "bg-red-400/20 text-red-300" :
-              "bg-yellow-400/20 text-yellow-300"
+          {content && <p className="text-[12px] opacity-60 mt-1">{content}</p>}
+          <div className="flex items-center justify-between mt-2.5">
+            <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full ${
+              paymentStatus === "success" ? "bg-white/15 text-emerald-200" :
+              paymentStatus === "failed" ? "bg-white/15 text-rose-300" :
+              "bg-white/15 text-amber-200"
             }`}>
               {paymentStatus === "success" ? "✓ Sent" : paymentStatus === "failed" ? "✗ Failed" : "⏳ Pending"}
             </span>
-            <span className="text-[10px] text-white/40">{time}</span>
+            <span className="text-[9px] opacity-40">{time}</span>
           </div>
         </div>
       </div>
     );
   }
 
+  /* ── Voice bubble ── */
   if (messageType === "voice") {
     return (
-      <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3 animate-fade-in`}>
-        <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${
-          isMine ? "bg-blue-600 text-white" : "bg-[#1a1d25] text-white border border-border/30"
+      <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3`} style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+        <div className={`max-w-[78%] rounded-[20px] px-4 py-3 ${
+          isMine
+            ? "bg-gradient-to-r from-primary/90 to-primary/70 text-primary-foreground rounded-br-[6px]"
+            : "bg-[hsl(152_60%_45%/0.12)] border border-[hsl(152_60%_45%/0.1)] text-foreground rounded-bl-[6px]"
         }`}>
           <div className="flex items-center gap-3">
-            <button onClick={toggleAudio} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <button onClick={toggleAudio} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
               {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
-            <div className="flex gap-[2px] items-center h-6">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className={`w-[2px] rounded-full ${playing ? "animate-pulse" : ""}`}
+            <div className="flex gap-[2px] items-center h-6 flex-1">
+              {Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className={`w-[2px] rounded-full transition-all ${playing ? "animate-pulse" : ""}`}
                   style={{
-                    height: `${Math.random() * 16 + 6}px`,
-                    backgroundColor: isMine ? "rgba(255,255,255,0.6)" : "rgba(59,130,246,0.6)",
+                    height: `${Math.random() * 16 + 4}px`,
+                    backgroundColor: isMine ? "rgba(255,255,255,0.5)" : "hsl(152 60% 45% / 0.5)",
                     animationDelay: `${i * 50}ms`
                   }}
                 />
               ))}
             </div>
           </div>
-          <span className="text-[10px] text-white/40 block text-right mt-1">{time}</span>
+          <div className="flex items-center justify-end gap-1 mt-1.5">
+            <span className="text-[9px] opacity-40">{time}</span>
+            {isMine && <CheckCheck className="w-3 h-3 opacity-40" />}
+          </div>
         </div>
       </div>
     );
   }
 
+  /* ── Text bubble ── */
   return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3 animate-fade-in`}>
-      <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+    <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-2.5`} style={{ animation: "slide-up-spring 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+      <div className={`max-w-[78%] rounded-[20px] px-4 py-2.5 ${
         isMine
-          ? "bg-blue-600 text-white rounded-br-md"
-          : "bg-[#1a1d25] text-white border border-border/30 rounded-bl-md"
+          ? "bg-gradient-to-r from-primary/90 to-primary/75 text-primary-foreground rounded-br-[6px]"
+          : "bg-[hsl(152_60%_45%/0.10)] border border-[hsl(152_60%_45%/0.08)] text-foreground rounded-bl-[6px]"
       }`}>
-        <p className="text-sm leading-relaxed">{content}</p>
+        {!isMine && senderName && (
+          <p className="text-[10px] font-semibold text-emerald-400 mb-0.5">{senderName}</p>
+        )}
+        <p className="text-[14px] leading-relaxed">{content}</p>
         <div className="flex items-center justify-end gap-1 mt-1">
-          <span className="text-[10px] text-white/40">{time}</span>
-          {isMine && <CheckCheck className="w-3 h-3 text-white/40" />}
+          <span className="text-[9px] opacity-40">{time}</span>
+          {isMine && <CheckCheck className="w-3 h-3 opacity-50" />}
         </div>
       </div>
     </div>
