@@ -94,6 +94,10 @@ const quickCategories = [
   { key: "electricity", label: "Pay Bill", image: paybillImg },
   { key: "broadband", label: "DTH", image: dthImg },
   { key: "water", label: "Metro", image: metroImg },
+  { key: "gas", label: "Gas", image: gasImg },
+  { key: "insurance", label: "Insurance", image: insuranceImg },
+  { key: "education", label: "Education", image: educationImg },
+  { key: "creditcard", label: "Card Bill", image: creditcardImg },
 ];
 
 const categories = [
