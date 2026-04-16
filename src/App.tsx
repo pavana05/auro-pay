@@ -133,6 +133,7 @@ const App = () => (
                     <Route path="/savings" element={<SavingsGoals />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/scan" element={<ScanPay />} />
+                    <Route path="/pay" element={<PaymentConfirm />} />
                     <Route path="/add-money" element={<AddMoney />} />
                     <Route path="/parent" element={<ParentHome />} />
                     <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
