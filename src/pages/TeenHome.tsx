@@ -55,7 +55,42 @@ const TeenHome = () => {
   const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // 3D tilt via device orientation (gyroscope)
+  useEffect(() => {
+    let active = true;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (!active) return;
+      const gamma = Math.max(-20, Math.min(20, e.gamma || 0));
+      const beta = Math.max(-20, Math.min(20, (e.beta || 0) - 45));
+      setCardTilt({ x: (gamma / 20) * 8, y: -(beta / 20) * 6 });
+    };
+    const init = async () => {
+      if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+        try {
+          const p = await (DeviceOrientationEvent as any).requestPermission();
+          if (p === "granted") window.addEventListener("deviceorientation", handleOrientation, true);
+        } catch {}
+      } else {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+      }
+    };
+    init();
+    return () => { active = false; window.removeEventListener("deviceorientation", handleOrientation, true); };
+  }, []);
+
+  // 3D tilt via mouse hover (desktop fallback)
+  const handleCardMouseMove = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    setCardTilt({ x: x * 8, y: -y * 6 });
+  };
+  const handleCardMouseLeave = () => setCardTilt({ x: 0, y: 0 });
 
   const fetchData = async () => {
     setLoading(true);
