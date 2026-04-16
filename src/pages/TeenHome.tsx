@@ -543,7 +543,7 @@ const TeenHome = () => {
             </div>
             <div className="flex gap-4 overflow-x-auto px-5 pb-1 scrollbar-hide">
               {favorites.map(fav => (
-                <button key={fav.id} onClick={() => { haptic.light(); navigate("/quick-pay"); }}
+                <button key={fav.id} onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
                   className="flex flex-col items-center gap-2.5 min-w-[62px] active:scale-90 transition-all group">
                   <div className="w-[54px] h-[54px] rounded-[18px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center text-[24px] group-active:border-primary/20 transition-colors">
                     {fav.avatar_emoji}

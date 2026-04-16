@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, Star, Send, X, Search, Loader2, CheckCircle2, Delete, ChevronLeft, RefreshCw, Clock, CalendarDays, Sparkles, Zap, UserPlus, Shield, TrendingUp, Heart, Copy, Share2, FileText, ArrowRight, Receipt } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 
@@ -96,8 +96,24 @@ const QuickPay = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Auto-open payment for a contact passed via navigation state
+  useEffect(() => {
+    const state = location.state as { selectedContact?: Favorite } | null;
+    if (state?.selectedContact && !payTarget) {
+      const contact = state.selectedContact;
+      // Find matching favorite or use the passed one directly
+      setPayTarget({ ...contact, last_paid_at: contact.last_paid_at || null });
+      setPayAmount("0");
+      setPayNote("");
+      setPaySuccess(false);
+      // Clear the state so back navigation doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, favorites]);
 
   const fetchFavs = async () => {
     setLoading(true);
