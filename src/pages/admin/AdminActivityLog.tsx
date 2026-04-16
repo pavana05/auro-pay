@@ -71,7 +71,7 @@ const AdminActivityLog = () => {
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
         <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-primary/[0.02] blur-[80px] pointer-events-none" />
 
         <div className="flex items-center justify-between relative z-10">
           <div>
