@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Sparkles, ChevronRight, ArrowRight } from "lucide-react";
+import { Sparkles, ChevronRight } from "lucide-react";
 import welcomeImg from "@/assets/onboarding-welcome.png";
 import heroImg from "@/assets/onboarding-hero.png";
 import rewardsImg from "@/assets/onboarding-rewards.png";
