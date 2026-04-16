@@ -89,6 +89,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
   const navigate = useNavigate();
 
   useEffect(() => {
