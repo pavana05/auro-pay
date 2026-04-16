@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { QrCode, Shield, Target, Sparkles, ChevronRight, Gift } from "lucide-react";
+import { QrCode, Shield, Target, Sparkles, ChevronRight, Gift, ArrowRight } from "lucide-react";
 import rewardsImg from "@/assets/onboarding-rewards.png";
+import heroImg from "@/assets/onboarding-hero.png";
 
 const slides = [
   {
@@ -10,6 +11,14 @@ const slides = [
     accent: "from-primary to-accent",
     emoji: "✨",
     type: "standard" as const,
+  },
+  {
+    icon: Gift,
+    title: "Super Money\nApp & Card for\nYoungsters",
+    subtitle: "Simplify Teen Finances, One Tap at a Time",
+    accent: "from-indigo-500 to-violet-600",
+    emoji: "",
+    type: "hero" as const,
   },
   {
     icon: Gift,
