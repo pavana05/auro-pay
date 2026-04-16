@@ -55,7 +55,42 @@ const TeenHome = () => {
   const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // 3D tilt via device orientation (gyroscope)
+  useEffect(() => {
+    let active = true;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (!active) return;
+      const gamma = Math.max(-20, Math.min(20, e.gamma || 0));
+      const beta = Math.max(-20, Math.min(20, (e.beta || 0) - 45));
+      setCardTilt({ x: (gamma / 20) * 8, y: -(beta / 20) * 6 });
+    };
+    const init = async () => {
+      if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+        try {
+          const p = await (DeviceOrientationEvent as any).requestPermission();
+          if (p === "granted") window.addEventListener("deviceorientation", handleOrientation, true);
+        } catch {}
+      } else {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+      }
+    };
+    init();
+    return () => { active = false; window.removeEventListener("deviceorientation", handleOrientation, true); };
+  }, []);
+
+  // 3D tilt via mouse hover (desktop fallback)
+  const handleCardMouseMove = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    setCardTilt({ x: x * 8, y: -y * 6 });
+  };
+  const handleCardMouseLeave = () => setCardTilt({ x: 0, y: 0 });
 
   const fetchData = async () => {
     setLoading(true);
@@ -226,8 +261,19 @@ const TeenHome = () => {
         </div>
 
         {/* ─── Balance Card — Ultra Luxury ─── */}
-        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both" }}>
-          <div className="relative rounded-[26px] overflow-hidden" style={{ boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)" }}>
+        <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both", perspective: "800px" }}>
+          <div
+            ref={cardRef}
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
+            className="relative rounded-[26px] overflow-hidden"
+            style={{
+              boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)",
+              transform: `rotateY(${cardTilt.x}deg) rotateX(${cardTilt.y}deg)`,
+              transition: cardTilt.x === 0 && cardTilt.y === 0 ? "transform 0.5s ease-out" : "transform 0.1s ease-out",
+              transformStyle: "preserve-3d",
+            }}
+          >
             {/* Layered gradient background */}
             <div className="absolute inset-0" style={{
               background: `
