@@ -149,6 +149,13 @@ const mobilePlans = [
 
 type Step = "category" | "provider" | "mobile-type" | "plans" | "details" | "confirm" | "success";
 
+interface FavoriteBill {
+  category: string;
+  provider: string;
+  lastAmount: string;
+  lastPaidDate: string;
+}
+
 const BillPayments = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("category");
@@ -160,6 +167,23 @@ const BillPayments = () => {
   const [amount, setAmount] = useState("");
   const [searchProvider, setSearchProvider] = useState("");
   const [paying, setPaying] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteBill[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("bill_favorites");
+    if (saved) {
+      try { setFavorites(JSON.parse(saved)); } catch {}
+    } else {
+      // Seed with demo favorites for first-time users
+      const demo: FavoriteBill[] = [
+        { category: "electricity", provider: "Tata Power", lastAmount: "1,240", lastPaidDate: "2 days ago" },
+        { category: "mobile", provider: "Jio Prepaid", lastAmount: "299", lastPaidDate: "5 days ago" },
+        { category: "broadband", provider: "Jio Fiber", lastAmount: "999", lastPaidDate: "12 days ago" },
+      ];
+      setFavorites(demo);
+      localStorage.setItem("bill_favorites", JSON.stringify(demo));
+    }
+  }, []);
 
   const currentProviders = selectedCategory ? providers[selectedCategory] || [] : [];
   const filteredProviders = selectedCategory === "mobile"
