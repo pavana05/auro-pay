@@ -34,6 +34,16 @@ import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
 import AdminRoles from "./pages/admin/AdminRoles.tsx";
 import AdminRewards from "./pages/admin/AdminRewards.tsx";
 import AdminAnalytics from "./pages/admin/AdminAnalytics.tsx";
+import AdminSupport from "./pages/admin/AdminSupport.tsx";
+import AdminParentLinks from "./pages/admin/AdminParentLinks.tsx";
+import AdminFlagged from "./pages/admin/AdminFlagged.tsx";
+import AdminPayouts from "./pages/admin/AdminPayouts.tsx";
+import AdminRefunds from "./pages/admin/AdminRefunds.tsx";
+import AdminSpendingLimits from "./pages/admin/AdminSpendingLimits.tsx";
+import AdminSavingsOversight from "./pages/admin/AdminSavingsOversight.tsx";
+import AdminPocketMoney from "./pages/admin/AdminPocketMoney.tsx";
+import AdminRevenue from "./pages/admin/AdminRevenue.tsx";
+import AdminHealth from "./pages/admin/AdminHealth.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
@@ -48,7 +58,6 @@ import Achievements from "./pages/Achievements.tsx";
 import Friends from "./pages/Friends.tsx";
 import SupportTickets from "./pages/SupportTickets.tsx";
 import SpinWheel from "./pages/SpinWheel.tsx";
-import AdminSupport from "./pages/admin/AdminSupport.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import FinancialEducation from "./pages/FinancialEducation.tsx";
 import ChatList from "./pages/ChatList.tsx";
@@ -58,8 +67,8 @@ import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 min - pages won't refetch if data is fresh
-      gcTime: 30 * 60 * 1000, // 30 min cache
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
     },
   },
@@ -77,7 +86,7 @@ const App = () => (
       <BrowserRouter>
         <RealtimeWrapper>
         <Routes>
-            {/* Admin routes - no max-w constraint */}
+            {/* Admin routes */}
             <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
             <Route path="/admin/users" element={<PageTransition><AdminUsers /></PageTransition>} />
             <Route path="/admin/roles" element={<PageTransition><AdminRoles /></PageTransition>} />
@@ -91,6 +100,15 @@ const App = () => (
             <Route path="/admin/analytics" element={<PageTransition><AdminAnalytics /></PageTransition>} />
             <Route path="/admin/settings" element={<PageTransition><AdminSettings /></PageTransition>} />
             <Route path="/admin/support" element={<PageTransition><AdminSupport /></PageTransition>} />
+            <Route path="/admin/parent-links" element={<PageTransition><AdminParentLinks /></PageTransition>} />
+            <Route path="/admin/flagged" element={<PageTransition><AdminFlagged /></PageTransition>} />
+            <Route path="/admin/payouts" element={<PageTransition><AdminPayouts /></PageTransition>} />
+            <Route path="/admin/refunds" element={<PageTransition><AdminRefunds /></PageTransition>} />
+            <Route path="/admin/spending-limits" element={<PageTransition><AdminSpendingLimits /></PageTransition>} />
+            <Route path="/admin/savings-oversight" element={<PageTransition><AdminSavingsOversight /></PageTransition>} />
+            <Route path="/admin/pocket-money" element={<PageTransition><AdminPocketMoney /></PageTransition>} />
+            <Route path="/admin/revenue" element={<PageTransition><AdminRevenue /></PageTransition>} />
+            <Route path="/admin/health" element={<PageTransition><AdminHealth /></PageTransition>} />
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
