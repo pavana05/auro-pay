@@ -299,14 +299,50 @@ const Notifications = () => {
                 { key: "system" as const, label: "System", icon: "🔔" },
               ].map(item => (
                 <button key={item.key} onClick={() => togglePref(item.key)}
-                  className="w-full flex items-center justify-between py-3 border-b border-white/[0.03] last:border-0 group">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[16px]">{item.icon}</span>
-                    <span className="text-[12px] font-medium text-white/50 group-active:text-white/70 transition-colors">{item.label}</span>
+                  className="w-full flex items-center justify-between py-3.5 px-3 -mx-3 rounded-2xl border-b border-white/[0.02] last:border-0 group transition-all duration-300 active:scale-[0.98]"
+                  style={{
+                    background: prefs[item.key] ? "linear-gradient(135deg, hsl(var(--primary) / 0.06), hsl(var(--primary) / 0.02))" : "transparent",
+                  }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300"
+                      style={{
+                        background: prefs[item.key]
+                          ? "linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))"
+                          : "hsl(220 15% 10%)",
+                        boxShadow: prefs[item.key] ? "0 2px 8px hsl(var(--primary) / 0.1)" : "none",
+                      }}>
+                      <span className="text-[15px]">{item.icon}</span>
+                    </div>
+                    <div>
+                      <span className={`text-[12px] font-semibold tracking-wide transition-colors duration-300 ${prefs[item.key] ? "text-white/80" : "text-white/40"}`}>{item.label}</span>
+                      <p className={`text-[9px] mt-0.5 transition-colors duration-300 ${prefs[item.key] ? "text-primary/50" : "text-white/15"}`}>
+                        {prefs[item.key] ? "Enabled" : "Disabled"}
+                      </p>
+                    </div>
                   </div>
-                  <div className={`w-[42px] h-[24px] rounded-full transition-all duration-300 flex items-center px-[2px] ${prefs[item.key] ? "bg-primary/80" : "bg-white/[0.06]"}`}
-                    style={{ boxShadow: prefs[item.key] ? "0 0 12px hsl(42 78% 55% / 0.2)" : "none" }}>
-                    <div className={`w-[20px] h-[20px] rounded-full bg-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${prefs[item.key] ? "translate-x-[18px]" : "translate-x-0"}`} />
+                  {/* Premium toggle */}
+                  <div className={`w-[46px] h-[26px] rounded-full transition-all duration-500 flex items-center px-[3px] relative overflow-hidden ${prefs[item.key] ? "" : ""}`}
+                    style={{
+                      background: prefs[item.key]
+                        ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
+                        : "hsl(220 12% 12%)",
+                      boxShadow: prefs[item.key]
+                        ? "0 0 16px hsl(var(--primary) / 0.3), inset 0 1px 1px hsl(var(--primary) / 0.2)"
+                        : "inset 0 1px 3px rgba(0,0,0,0.3)",
+                    }}>
+                    {prefs[item.key] && (
+                      <div className="absolute inset-0 opacity-30"
+                        style={{ background: "linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.15), transparent)", animation: "skeleton-shimmer 3s ease-in-out infinite" }} />
+                    )}
+                    <div className={`w-[20px] h-[20px] rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative ${prefs[item.key] ? "translate-x-[20px]" : "translate-x-0"}`}
+                      style={{
+                        background: prefs[item.key]
+                          ? "linear-gradient(135deg, #fff, #f0e6d0)"
+                          : "linear-gradient(135deg, hsl(220 10% 30%), hsl(220 10% 22%))",
+                        boxShadow: prefs[item.key]
+                          ? "0 2px 6px rgba(0,0,0,0.2)"
+                          : "0 1px 3px rgba(0,0,0,0.3)",
+                      }} />
                   </div>
                 </button>
               ))}
