@@ -357,7 +357,7 @@ const BillPayments = () => {
                     <Star className="w-3.5 h-3.5 text-primary" />
                     <h3 className="text-[12px] font-semibold text-muted-foreground/50 tracking-[0.1em] uppercase">Favorites</h3>
                   </div>
-                  <span className="text-[10px] text-muted-foreground/30">Quick repeat</span>
+                  <span className="text-[10px] text-muted-foreground/30">Swipe up to remove</span>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                   {favorites.map((fav, i) => {
