@@ -59,10 +59,12 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [animating, setAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goTo = useCallback((idx: number) => {
     if (animating || idx === current) return;
