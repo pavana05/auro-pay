@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { ArrowLeft, Zap, CreditCard, Building2, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Zap, CreditCard, Building2, Check, Sparkles, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +24,16 @@ const AddMoney = () => {
   const navigate = useNavigate();
 
   const methods = [
-    { id: "upi", label: "UPI", desc: "Instant transfer", icon: Zap, fee: "Free", accent: "152 60% 45%" },
-    { id: "card", label: "Debit Card", desc: "Visa, Mastercard", icon: CreditCard, fee: "0.9%", accent: "210 80% 55%" },
-    { id: "netbanking", label: "Net Banking", desc: "All major banks", icon: Building2, fee: "₹15", accent: "270 60% 55%" },
+    { id: "upi", label: "UPI", desc: "Instant transfer", icon: Zap, fee: "Free", feeLabel: "Free", badge: "Recommended", time: "Instant", accent: "152 60% 45%" },
+    { id: "card", label: "Debit Card", desc: "Visa, Mastercard, Rupay", icon: CreditCard, fee: "0.9%", feeLabel: "0.9% fee", tooltip: "A 0.9% convenience fee is charged by your card issuer for instant top-ups.", time: "Instant", accent: "210 80% 55%" },
+    { id: "netbanking", label: "Net Banking", desc: "Redirects to your bank", icon: Building2, fee: "₹15", feeLabel: "₹15 fee", time: "1–2 min", accent: "270 60% 55%" },
   ];
+
+  const amt = parseFloat(amount) || 0;
+  const MIN = 10, MAX = 10000;
+  const outOfRange = amt > 0 && (amt < MIN || amt > MAX);
+  const canPay = amt >= MIN && amt <= MAX;
+  const selectedMethod = methods.find(m => m.id === method)!;
 
   const processingSteps = ["Connecting...", "Verifying payment...", "Crediting wallet..."];
 
@@ -47,8 +54,7 @@ const AddMoney = () => {
   }, [phase]);
 
   const handleAddMoney = async () => {
-    const amt = parseFloat(amount);
-    if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
+    if (!canPay) { toast.error(`Enter an amount between ₹${MIN} and ₹${MAX.toLocaleString("en-IN")}`); return; }
 
     haptic.medium();
     setPhase("processing");
@@ -331,16 +337,19 @@ const AddMoney = () => {
           <p className="text-[10px] text-white/30 font-medium tracking-widest uppercase mb-4">Enter Amount</p>
 
           <div className="flex items-baseline gap-1 justify-center py-2">
-            <span className="text-[24px] font-bold text-white/30">₹</span>
+            <span className="text-[28px] font-mono font-semibold" style={{ color: "hsl(var(--primary))" }}>₹</span>
             <span
-              className="text-[48px] font-bold tracking-[-2px] transition-transform duration-150"
+              className="text-[48px] font-mono font-semibold tracking-[-1px] transition-transform duration-150"
               style={{
                 transform: `scale(${amountScale})`,
-                background: displayAmount !== "0"
+                background: outOfRange
+                  ? "linear-gradient(135deg, hsl(0 70% 60%), hsl(0 70% 50%))"
+                  : displayAmount !== "0"
                   ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
                   : "linear-gradient(135deg, hsl(220 10% 25%), hsl(220 10% 18%))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                animation: displayAmount !== "0" ? "cursor-blink 1.1s steps(1) infinite" : undefined,
               }}>
               {displayAmount}
             </span>
@@ -358,31 +367,46 @@ const AddMoney = () => {
 
           <div className="w-16 h-[2px] mx-auto mt-2 rounded-full transition-all duration-300"
             style={{
-              background: amount
+              background: outOfRange
+                ? "hsl(0 70% 55% / 0.6)"
+                : amount
                 ? "linear-gradient(90deg, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.2))"
                 : "hsl(220 15% 15%)",
             }} />
+
+          <p className="text-center mt-3 text-[11px] font-medium tracking-wide transition-colors"
+            style={{ color: outOfRange ? "hsl(0 70% 60%)" : "hsl(220 10% 40%)" }}>
+            {outOfRange
+              ? (amt < MIN ? `Minimum ₹${MIN}` : `Maximum ₹${MAX.toLocaleString("en-IN")}`)
+              : `Min ₹${MIN} · Max ₹${MAX.toLocaleString("en-IN")}`}
+          </p>
         </div>
 
-        {/* Quick Amounts */}
-        <div className="flex gap-2 mb-6" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-          {quickAmounts.map((a) => (
-            <button
-              key={a}
-              onClick={() => { haptic.light(); setAmount(String(a)); }}
-              className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-300 active:scale-[0.93]"
-              style={{
-                background: amount === String(a)
-                  ? "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.08))"
-                  : "hsl(220 15% 8%)",
-                border: `1px solid ${amount === String(a) ? "hsl(var(--primary) / 0.3)" : "hsl(220 15% 12%)"}`,
-                color: amount === String(a) ? "hsl(var(--primary))" : "hsl(220 10% 45%)",
-                boxShadow: amount === String(a) ? "0 2px 12px hsl(var(--primary) / 0.1)" : "none",
-              }}
-            >
-              ₹{a >= 1000 ? `${a / 1000}K` : a}
-            </button>
-          ))}
+        {/* Quick Amounts — horizontal scroll, bounce on tap */}
+        <div className="-mx-5 px-5 mb-6 overflow-x-auto scrollbar-hide" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
+          <div className="flex gap-2 w-max">
+            {quickAmounts.map((a) => {
+              const active = amount === String(a);
+              return (
+                <button
+                  key={a}
+                  onClick={() => { haptic.light(); setAmount(String(a)); setAmountScale(1.18); setTimeout(() => setAmountScale(1), 220); }}
+                  className="px-5 py-2.5 rounded-full text-[12px] font-mono font-semibold transition-all duration-300 active:scale-[0.92] whitespace-nowrap"
+                  style={{
+                    background: active
+                      ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))"
+                      : "hsl(220 15% 8%)",
+                    border: `1px solid ${active ? "hsl(var(--primary) / 0.5)" : "hsl(220 15% 12%)"}`,
+                    color: active ? "hsl(220 20% 6%)" : "hsl(220 10% 50%)",
+                    boxShadow: active ? "0 4px 16px hsl(var(--primary) / 0.25)" : "none",
+                    animation: active ? "chip-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined,
+                  }}
+                >
+                  ₹{a.toLocaleString("en-IN")}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Payment Methods */}
@@ -421,16 +445,41 @@ const AddMoney = () => {
                   style={{ color: method === m.id ? `hsl(${m.accent})` : "hsl(220 10% 35%)" }} />
               </div>
 
-              <div className="flex-1 text-left">
-                <p className={`text-[13px] font-semibold transition-colors duration-300 ${method === m.id ? "text-white/80" : "text-white/40"}`}>{m.label}</p>
-                <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${method === m.id ? "text-white/30" : "text-white/15"}`}>{m.desc}</p>
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`text-[13px] font-semibold transition-colors duration-300 ${method === m.id ? "text-white/85" : "text-white/45"}`}>{m.label}</p>
+                  {m.id === "upi" && (
+                    <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-md"
+                      style={{ background: "hsl(152 60% 45% / 0.15)", color: "hsl(152 60% 55%)", border: "1px solid hsl(152 60% 45% / 0.25)" }}>
+                      Recommended
+                    </span>
+                  )}
+                </div>
+                <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${method === m.id ? "text-white/35" : "text-white/20"}`}>{m.desc}</p>
               </div>
 
-              <div className="text-right">
-                <span className={`text-[11px] font-semibold ${m.id === "upi" ? "" : "text-white/30"}`}
-                  style={{ color: m.id === "upi" ? "hsl(152 60% 50%)" : undefined }}>
-                  {m.fee}
-                </span>
+              <div className="text-right shrink-0">
+                <div className="flex items-center justify-end gap-1">
+                  <span className="text-[11px] font-mono font-semibold"
+                    style={{ color: m.id === "upi" ? "hsl(152 60% 55%)" : "hsl(220 10% 50%)" }}>
+                    {m.feeLabel}
+                  </span>
+                  {m.tooltip && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                            <Info className="w-3 h-3 text-white/30" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[200px] text-[11px]">
+                          {m.tooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                <p className="text-[9px] text-white/25 font-medium mt-0.5">{m.time}</p>
               </div>
 
               <div className="w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0"
@@ -447,20 +496,21 @@ const AddMoney = () => {
           ))}
         </div>
 
-        {/* CTA Button */}
+        {/* CTA Button — dynamic label */}
         <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>
           <button
             onClick={handleAddMoney}
-            disabled={!amount || parseFloat(amount) <= 0}
-            className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all duration-300 disabled:opacity-30 disabled:scale-100 relative overflow-hidden"
+            disabled={!canPay}
+            className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all duration-300 disabled:scale-100 relative overflow-hidden"
             style={{
-              background: (!amount || parseFloat(amount) <= 0)
+              background: !canPay
                 ? "hsl(220 15% 12%)"
                 : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
-              color: (!amount || parseFloat(amount) <= 0) ? "hsl(220 10% 30%)" : "hsl(220 20% 6%)",
-              boxShadow: (amount && parseFloat(amount) > 0) ? "0 4px 24px hsl(var(--primary) / 0.3)" : "none",
+              color: !canPay ? "hsl(220 10% 35%)" : "hsl(220 20% 6%)",
+              boxShadow: canPay ? "0 4px 24px hsl(var(--primary) / 0.3)" : "none",
+              opacity: !canPay ? 0.55 : 1,
             }}>
-            {amount && parseFloat(amount) > 0 && (
+            {canPay && (
               <div className="absolute inset-0"
                 style={{
                   background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.1) 50%, transparent 70%)",
@@ -470,7 +520,7 @@ const AddMoney = () => {
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4" />
-              Add ₹{amount || "0"}
+              {amt > 0 ? `Pay ₹${amt.toLocaleString("en-IN")} via ${selectedMethod.label}` : "Enter an amount"}
             </span>
           </button>
         </div>
@@ -487,6 +537,16 @@ const AddMoney = () => {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
+        @keyframes chip-bounce {
+          0% { transform: scale(0.92); }
+          60% { transform: scale(1.06); }
+          100% { transform: scale(1); }
+        }
+        @keyframes cursor-blink {
+          50% { opacity: 0.85; }
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
