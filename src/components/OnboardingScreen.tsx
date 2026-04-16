@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { QrCode, Shield, Target, Sparkles, ChevronRight, Gift } from "lucide-react";
+import { QrCode, Shield, Target, Sparkles, ChevronRight, Gift, ArrowRight } from "lucide-react";
 import rewardsImg from "@/assets/onboarding-rewards.png";
+import heroImg from "@/assets/onboarding-hero.png";
 
 const slides = [
   {
@@ -10,6 +11,14 @@ const slides = [
     accent: "from-primary to-accent",
     emoji: "✨",
     type: "standard" as const,
+  },
+  {
+    icon: Gift,
+    title: "Super Money\nApp & Card for\nYoungsters",
+    subtitle: "Simplify Teen Finances, One Tap at a Time",
+    accent: "from-indigo-500 to-violet-600",
+    emoji: "",
+    type: "hero" as const,
   },
   {
     icon: Gift,
@@ -86,7 +95,53 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
       <div className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
         <div key={current} className={`flex flex-col items-center text-center w-full ${animating ? "opacity-0 scale-95" : "opacity-100 scale-100"} transition-all duration-300`}>
           
-          {slide.type === "rewards" ? (
+          {slide.type === "hero" ? (
+            /* ── Hero "Super Money App" slide ── */
+            <div className="flex flex-col items-center w-full">
+              {/* Title section */}
+              <h2 className="text-[30px] font-black leading-[1.1] tracking-tight mb-3 whitespace-pre-line text-center">
+                Super Money{"\n"}App & Card for{"\n"}
+                <span className="bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent">Youngsters</span>
+              </h2>
+              <p className="text-[13px] text-muted-foreground/60 mb-6 text-center max-w-[260px] leading-relaxed">
+                Simplify Teen Finances, One Tap at a Time
+              </p>
+
+              {/* Arrow CTA circle */}
+              <div className="w-14 h-14 rounded-full border-2 border-white/20 flex items-center justify-center mb-8 animate-float">
+                <ArrowRight className="w-5 h-5 text-foreground" />
+              </div>
+
+              {/* Hero illustration */}
+              <div className="relative w-72 h-56">
+                {/* Gradient background glow */}
+                <div className="absolute inset-0 rounded-[32px] opacity-30" style={{ background: "radial-gradient(ellipse at center, hsl(42 78% 55% / 0.3), transparent 70%)" }} />
+                
+                {/* Floating clouds */}
+                <div className="absolute top-2 left-4 w-16 h-6 rounded-full bg-white/[0.04] blur-sm animate-float [animation-delay:0.3s]" />
+                <div className="absolute top-8 right-6 w-12 h-5 rounded-full bg-white/[0.03] blur-sm animate-float [animation-delay:0.8s]" />
+
+                {/* Hero image */}
+                <img
+                  src={heroImg}
+                  alt="Teen with card"
+                  className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
+                  width={768}
+                  height={1024}
+                />
+
+                {/* Floating shield badge */}
+                <div className="absolute bottom-2 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-primary/80 to-amber-600/80 shadow-lg shadow-primary/30 flex items-center justify-center animate-float [animation-delay:0.5s]">
+                  <Shield className="w-5 h-5 text-primary-foreground" />
+                </div>
+
+                {/* Floating card element */}
+                <div className="absolute top-12 left-0 w-16 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/20 flex items-center justify-center animate-float [animation-delay:1s] rotate-[-12deg]">
+                  <div className="w-4 h-3 rounded-sm bg-yellow-400/80" />
+                </div>
+              </div>
+            </div>
+          ) : slide.type === "rewards" ? (
             /* ── Rewards slide (reference-inspired) ── */
             <div className="flex flex-col items-center w-full">
               {/* Floating cards & coins */}
