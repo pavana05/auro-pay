@@ -206,14 +206,44 @@ const AddMoney = () => {
                 background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.75))",
                 color: "hsl(220 20% 6%)",
                 boxShadow: "0 4px 24px hsl(var(--primary) / 0.3), 0 1px 0 hsl(var(--primary) / 0.4) inset",
-            }}>
-            Done
-          </button>
+              }}>
+              {/* Button shimmer */}
+              <div className="absolute inset-0 opacity-30"
+                style={{
+                  background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.12) 50%, transparent 70%)",
+                  backgroundSize: "200% 100%",
+                  animation: "skeleton-shimmer 3s ease-in-out infinite",
+                }} />
+              <span className="relative z-10">Done</span>
+            </button>
+          </div>
         </div>
+
+        <style>{`
+          @keyframes success-bounce {
+            0% { opacity: 0; transform: scale(0.3); }
+            60% { transform: scale(1.08); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes circle-draw {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes checkmark-pop {
+            0% { opacity: 0; transform: scale(0); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes success-glow-expand {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
+          }
+          @keyframes float-particle {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+            50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+          }
+        `}</style>
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
       {/* Ambient orbs */}
