@@ -132,14 +132,19 @@ const ScanPay = () => {
     haptic.success();
     setWhiteFlash(true);
     setTimeout(() => setWhiteFlash(false), 200);
-    // Pause video
     if (videoRef.current) videoRef.current.pause();
-    // After focus animation, slide up details
+    // After focus animation, navigate to cinematic /pay flow
     setTimeout(() => {
-      setParsedUPI(parsed);
-      if (parsed.am) { setAmount(parsed.am); setAmountLocked(true); } else { setAmountLocked(false); }
-      setScanning(false);
-    }, 550);
+      navigate("/pay", {
+        state: {
+          upi_id: parsed.pa,
+          payee_name: parsed.pn,
+          amount: parsed.am ? parseFloat(parsed.am) : undefined,
+          amount_locked: !!parsed.am,
+          note: parsed.tn,
+        },
+      });
+    }, 600);
   };
 
   const enableTorch = async (on: boolean) => {
