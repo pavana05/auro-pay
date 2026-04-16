@@ -6,6 +6,10 @@ import rewardsImg from "@/assets/onboarding-rewards.png";
 import scanImg from "@/assets/onboarding-scan.png";
 import parentImg from "@/assets/onboarding-parent.png";
 import saveImg from "@/assets/onboarding-save.png";
+import introVideoAsset from "@/assets/onboarding-intro.mp4.asset.json";
+import { haptic } from "@/lib/haptics";
+
+const introVideoUrl = (introVideoAsset as { url: string }).url;
 
 const AUTOPLAY_DURATION = 8000; // ms per slide — slower, more premium pacing
 
@@ -68,6 +72,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   const goTo = useCallback((idx: number) => {
     if (animating || idx === current) return;
+    haptic.selection();
     setAnimating(true);
     setProgress(0);
     setTimeout(() => {
@@ -77,6 +82,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   }, [animating, current]);
 
   const next = useCallback(() => {
+    haptic.light();
     if (current < slides.length - 1) goTo(current + 1);
     else onComplete();
   }, [current, goTo, onComplete]);
@@ -258,15 +264,34 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
                 transform: `translate(${-parallax.x * 0.4}px, ${-parallax.y * 0.4}px)`,
               }}
             />
-            {/* Main image with parallax */}
-            <img
-              src={slide.image}
-              alt={slide.highlight}
-              className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_20px_40px_hsl(42_78%_55%/0.25)] z-10 transition-transform duration-300 ease-out"
-              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)` }}
-              width={768}
-              height={768}
-            />
+            {/* Main media — video for slide 0 (branded intro), image for others */}
+            {current === 0 ? (
+              <video
+                key="intro-video"
+                src={introVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className="absolute inset-[8%] w-[84%] h-[84%] object-cover rounded-full z-10 transition-transform duration-300 ease-out"
+                style={{
+                  transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)`,
+                  filter: "drop-shadow(0 20px 40px hsl(42 78% 55% / 0.35))",
+                  maskImage: "radial-gradient(circle, black 70%, transparent 95%)",
+                  WebkitMaskImage: "radial-gradient(circle, black 70%, transparent 95%)",
+                }}
+              />
+            ) : (
+              <img
+                src={slide.image}
+                alt={slide.highlight}
+                className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_20px_40px_hsl(42_78%_55%/0.25)] z-10 transition-transform duration-300 ease-out"
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.05)` }}
+                width={768}
+                height={768}
+              />
+            )}
             {/* Floating sparkle accents */}
             <div
               className="absolute top-[12%] right-[14%] w-2 h-2 rounded-full z-20 transition-transform duration-500 ease-out"
