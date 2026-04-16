@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Sparkles, ChevronRight, ArrowRight } from "lucide-react";
 import welcomeImg from "@/assets/onboarding-welcome.png";
 import heroImg from "@/assets/onboarding-hero.png";
@@ -6,6 +6,8 @@ import rewardsImg from "@/assets/onboarding-rewards.png";
 import scanImg from "@/assets/onboarding-scan.png";
 import parentImg from "@/assets/onboarding-parent.png";
 import saveImg from "@/assets/onboarding-save.png";
+
+const AUTOPLAY_DURATION = 5000; // ms per slide
 
 const slides = [
   {
@@ -55,33 +57,96 @@ const slides = [
 const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const goTo = (idx: number) => {
+  const goTo = useCallback((idx: number) => {
     if (animating || idx === current) return;
     setAnimating(true);
+    setProgress(0);
     setTimeout(() => {
       setCurrent(idx);
       setAnimating(false);
     }, 250);
-  };
+  }, [animating, current]);
 
-  const next = () => {
+  const next = useCallback(() => {
     if (current < slides.length - 1) goTo(current + 1);
     else onComplete();
+  }, [current, goTo, onComplete]);
+
+  const prev = useCallback(() => {
+    if (current > 0) goTo(current - 1);
+  }, [current, goTo]);
+
+  // Swipe handling
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setPaused(true);
   };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+    if (diff > threshold) next();
+    else if (diff < -threshold) prev();
+    setPaused(false);
+  };
+
+  // Auto-play timer
+  useEffect(() => {
+    if (paused) return;
+
+    const startTime = Date.now();
+    progressRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min((elapsed / AUTOPLAY_DURATION) * 100, 100);
+      setProgress(pct);
+    }, 30);
+
+    autoplayRef.current = setTimeout(() => {
+      next();
+    }, AUTOPLAY_DURATION);
+
+    return () => {
+      if (autoplayRef.current) clearTimeout(autoplayRef.current);
+      if (progressRef.current) clearInterval(progressRef.current);
+    };
+  }, [current, paused, next]);
 
   const slide = slides[current];
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background relative overflow-hidden">
+    <div
+      className="flex flex-col min-h-[100dvh] bg-background relative overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Ambient glow per slide */}
       <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: slide.bg }} />
       
       {/* Subtle noise texture */}
       <div className="absolute inset-0 pointer-events-none noise-overlay" />
 
+      {/* Auto-play progress bar */}
+      <div className="absolute top-0 left-0 right-0 z-30 h-[3px] bg-white/[0.06]">
+        <div
+          className="h-full bg-gradient-to-r from-primary to-amber-400 transition-[width] duration-75 ease-linear"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
       {/* Skip button */}
-      <div className="flex justify-end px-6 pt-6 relative z-20">
+      <div className="flex justify-end px-6 pt-5 relative z-20">
         {current < slides.length - 1 && (
           <button
             onClick={onComplete}
@@ -94,7 +159,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Text section — top */}
+        {/* Text section */}
         <div
           key={`text-${current}`}
           className={`px-8 pt-6 pb-4 ${animating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"} transition-all duration-300`}
@@ -109,7 +174,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
             {slide.subtitle}
           </p>
 
-          {/* Arrow CTA on hero slide */}
           {current === 1 && (
             <div className="mt-5 w-12 h-12 rounded-full border-2 border-white/15 flex items-center justify-center animate-float">
               <ArrowRight className="w-4 h-4 text-foreground/60" />
@@ -117,15 +181,13 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
           )}
         </div>
 
-        {/* Illustration section — bottom, fills remaining space */}
+        {/* Illustration section */}
         <div className="flex-1 flex items-end justify-center px-4 pb-0 relative">
           <div
             key={`img-${current}`}
             className={`relative w-full max-w-[320px] ${animating ? "opacity-0 scale-95 translate-y-6" : "opacity-100 scale-100 translate-y-0"} transition-all duration-400`}
           >
-            {/* Glow behind image */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20" style={{ background: "hsl(42 78% 55%)" }} />
-
             <img
               src={slide.image}
               alt={slide.highlight}
