@@ -309,7 +309,54 @@ const BillPayments = () => {
         {/* Step: Category */}
         {step === "category" && (
           <div className="px-5 mt-2">
-            {/* Quick Category Grid - matching reference */}
+            {/* Favorites Section */}
+            {favorites.length > 0 && (
+              <div className="mb-6" style={{ animation: "slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-3.5 h-3.5 text-primary" />
+                    <h3 className="text-[12px] font-semibold text-muted-foreground/50 tracking-[0.1em] uppercase">Favorites</h3>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground/30">Quick repeat</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+                  {favorites.map((fav, i) => {
+                    const catData = categories.find(c => c.key === fav.category);
+                    return (
+                      <button
+                        key={`${fav.category}-${fav.provider}-${i}`}
+                        onClick={() => {
+                          haptic.light();
+                          setSelectedCategory(fav.category);
+                          setSelectedProvider(fav.provider);
+                          setStep("details");
+                        }}
+                        className="shrink-0 w-[140px] rounded-[18px] border border-white/[0.06] p-3.5 text-left active:scale-[0.95] transition-all group relative overflow-hidden"
+                        style={{
+                          background: "linear-gradient(145deg, rgba(200,149,46,0.04), rgba(13,14,18,0.8))",
+                          animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.08}s both`,
+                        }}
+                      >
+                        <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04] blur-[20px]" style={{ background: "hsl(42 78% 55%)" }} />
+                        <div className="flex items-center gap-2 mb-2.5">
+                          {catData?.image && (
+                            <img src={catData.image} alt="" className="w-8 h-8 object-contain rounded-[8px]" width={32} height={32} />
+                          )}
+                          <RotateCcw className="w-3 h-3 text-primary/40 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <p className="text-[12px] font-bold truncate">{fav.provider}</p>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-[11px] text-primary font-bold">₹{fav.lastAmount}</span>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground/30 mt-1">{fav.lastPaidDate}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Category Grid */}
             <div className="rounded-[20px] p-5 border border-white/[0.04] mb-6" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               <h3 className="text-[14px] font-bold mb-4">Recharge & Bill Payments</h3>
               <div className="grid grid-cols-4 gap-3">
@@ -321,14 +368,7 @@ const BillPayments = () => {
                     style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s both` }}
                   >
                     <div className="w-[60px] h-[60px] rounded-[16px] bg-white/[0.04] border border-white/[0.06] flex items-center justify-center overflow-hidden">
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        className="w-10 h-10 object-contain"
-                        loading="lazy"
-                        width={40}
-                        height={40}
-                      />
+                      <img src={cat.image} alt={cat.label} className="w-10 h-10 object-contain" loading="lazy" width={40} height={40} />
                     </div>
                     <p className="text-[11px] font-medium text-muted-foreground/60">{cat.label}</p>
                   </button>
@@ -354,26 +394,10 @@ const BillPayments = () => {
                         {cat.key === "mobile" ? "Recharge now" : "Pay now"} <ChevronRight className="w-3 h-3" />
                       </div>
                     </div>
-                    <img
-                      src={cat.image}
-                      alt={cat.label}
-                      className="w-16 h-16 object-contain rounded-[14px] shrink-0 drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      width={64}
-                      height={64}
-                    />
+                    <img src={cat.image} alt={cat.label} className="w-16 h-16 object-contain rounded-[14px] shrink-0 drop-shadow-lg group-hover:scale-105 transition-transform duration-300" loading="lazy" width={64} height={64} />
                   </div>
                 </button>
               ))}
-            </div>
-
-            {/* Recent Bills */}
-            <div className="mt-8">
-              <h3 className="text-[12px] font-semibold text-muted-foreground/40 tracking-[0.1em] uppercase mb-3">Recent Bills</h3>
-              <div className="rounded-[20px] bg-white/[0.015] border border-white/[0.03] p-8 text-center">
-                <p className="text-[12px] text-muted-foreground/30">No recent bills</p>
-                <p className="text-[10px] text-muted-foreground/20 mt-1">Your paid bills will appear here</p>
-              </div>
             </div>
           </div>
         )}
