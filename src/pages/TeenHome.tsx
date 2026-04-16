@@ -488,6 +488,38 @@ const TeenHome = () => {
                 </div>
               )}
 
+              {/* Spent Today / Daily Limit + horizontal progress */}
+              {(() => {
+                const todayPct = wallet ? Math.min(((wallet.spent_today || 0) / Math.max(wallet.daily_limit || 1, 1)) * 100, 100) : 0;
+                const todayColor = todayPct > 80 ? "hsl(0 72% 51%)" : todayPct > 50 ? "hsl(38 92% 50%)" : "hsl(42 78% 55%)";
+                return (
+                  <div className="mb-3 pt-3.5 border-t border-border/15">
+                    <div className="flex items-end justify-between mb-2">
+                      <div>
+                        <span className="text-[8px] text-foreground/25 font-bold tracking-[0.15em] uppercase font-sora block mb-0.5">Spent Today</span>
+                        <p className="text-[13px] font-bold tabular-nums font-mono text-foreground/85">{fmt(wallet?.spent_today || 0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] text-foreground/25 font-bold tracking-[0.15em] uppercase font-sora block mb-0.5">Daily Limit</span>
+                        <p className="text-[13px] font-bold tabular-nums font-mono text-foreground/55">{fmt(wallet?.daily_limit || 0)}</p>
+                      </div>
+                    </div>
+                    <div className="h-[4px] rounded-full bg-muted/25 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${todayPct}%` }}
+                        transition={{ duration: 1.1, delay: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, ${todayColor}, ${todayColor}cc)`,
+                          boxShadow: `0 0 10px ${todayColor}55`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Income / Expense */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden border border-success/[0.06]">
@@ -517,6 +549,52 @@ const TeenHome = () => {
               </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* FamPay-Style: Send Money Across India banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18, type: "spring", stiffness: 200, damping: 22 }}
+          className="px-5 mb-5"
+        >
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { haptic.medium(); navigate("/quick-pay"); }}
+            className="group w-full rounded-[20px] p-4 relative overflow-hidden border border-primary/15 text-left flex items-center gap-3.5"
+            style={{
+              background: "linear-gradient(135deg, hsl(220 22% 9%) 0%, hsl(220 18% 6%) 100%)",
+              boxShadow: "0 8px 28px -8px hsl(42 78% 55% / 0.12), inset 0 1px 0 hsl(42 78% 55% / 0.08)",
+            }}
+          >
+            <div className="absolute -right-10 -top-10 w-[180px] h-[180px] rounded-full opacity-[0.06] blur-[60px]" style={{ background: "hsl(42 78% 55%)" }} />
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
+
+            {/* Indian flag tile */}
+            <div className="relative w-[46px] h-[46px] rounded-[14px] overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.4)]" style={{ border: "1px solid hsl(42 30% 30% / 0.3)" }}>
+              <div className="absolute inset-x-0 top-0 h-1/3" style={{ background: "hsl(20 80% 50%)" }} />
+              <div className="absolute inset-x-0 top-1/3 h-1/3 bg-white flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full border-[1.5px]" style={{ borderColor: "hsl(220 80% 35%)" }} />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: "hsl(120 50% 35%)" }} />
+            </div>
+
+            <div className="flex-1 min-w-0 relative z-10">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[8px] font-bold text-primary tracking-[0.18em] uppercase font-sora">India · UPI</span>
+                <span className="w-1 h-1 rounded-full bg-success animate-pulse" />
+              </div>
+              <h3 className="text-[14px] font-bold leading-tight font-sora">Send Money Across India</h3>
+              <p className="text-[10px] text-muted-foreground/45 font-sora mt-0.5">Instant UPI transfers · Zero fees</p>
+            </div>
+
+            <div
+              className="w-[40px] h-[40px] rounded-full gradient-primary flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:rotate-45 group-active:rotate-45"
+              style={{ boxShadow: "0 6px 20px hsl(42 78% 55% / 0.35), inset 0 1px 0 hsl(48 90% 70% / 0.3)" }}
+            >
+              <ArrowRight className="w-[18px] h-[18px] text-primary-foreground" strokeWidth={2.2} />
+            </div>
+          </motion.button>
         </motion.div>
 
         {/* Quick Actions */}
