@@ -50,6 +50,43 @@ const providers: Record<string, { name: string; icon: string }[]> = {
     { name: "BSNL Bharat Fiber", icon: "📡" },
     { name: "Tata Play Fiber", icon: "🔗" },
   ],
+  gas: [
+    { name: "Indane Gas", icon: "🔥" },
+    { name: "HP Gas", icon: "⛽" },
+    { name: "Bharat Gas", icon: "🔥" },
+    { name: "Gujarat Gas", icon: "🏭" },
+    { name: "Mahanagar Gas", icon: "🔥" },
+    { name: "Adani Gas", icon: "⛽" },
+  ],
+  insurance: [
+    { name: "LIC Premium", icon: "🛡️" },
+    { name: "Star Health", icon: "⭐" },
+    { name: "HDFC Ergo", icon: "🏦" },
+    { name: "ICICI Lombard", icon: "🏛️" },
+    { name: "Bajaj Allianz", icon: "📋" },
+    { name: "Max Life", icon: "💚" },
+  ],
+  education: [
+    { name: "School Fees", icon: "🏫" },
+    { name: "College Tuition", icon: "🎓" },
+    { name: "Coaching Center", icon: "📚" },
+    { name: "University Fees", icon: "🏛️" },
+    { name: "Exam Fees", icon: "📝" },
+  ],
+  creditcard: [
+    { name: "HDFC Credit Card", icon: "💳" },
+    { name: "SBI Credit Card", icon: "💳" },
+    { name: "ICICI Credit Card", icon: "💳" },
+    { name: "Axis Credit Card", icon: "💳" },
+    { name: "Kotak Credit Card", icon: "💳" },
+    { name: "Amex Card", icon: "💳" },
+  ],
+  tax: [
+    { name: "Municipal Tax", icon: "🏛️" },
+    { name: "Property Tax", icon: "🏠" },
+    { name: "Water Tax", icon: "💧" },
+    { name: "Income Tax", icon: "📊" },
+  ],
 };
 
 const quickCategories = [
