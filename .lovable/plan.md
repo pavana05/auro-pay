@@ -1,38 +1,40 @@
 
 
-# Ultra-Premium Admin Dashboard UI Overhaul
+# Premium Scratch Cards UI Overhaul
 
-Inspired by the reference image (dealbox.com dashboard), transform the admin dashboard and layout into a world-class, luxury design with rich animations, refined cards, and a polished visual hierarchy.
+Redesign the Scratch Cards page to match the SpinWheel's ultra-premium aesthetic — ambient backgrounds, particle effects, glassmorphism cards, and rich scratch animations.
 
-## What Changes
+## Changes to `src/pages/ScratchCards.tsx`
 
-### 1. AdminLayout.tsx — Premium Sidebar & Header
-- **Sidebar**: Add animated gradient border on the left edge, glowing active indicator with smooth transitions, staggered nav item entrance animations
-- **Header**: Add user avatar with status ring, notification bell with animated badge, breadcrumb with separator dots, date/time display like reference
-- **Password gate**: Add particle-like floating orbs background, premium card with frosted glass effect, animated lock icon
+### 1. Ambient Background
+- Fixed radial gradient orbs (gold, teal, purple) like SpinWheel
+- Floating sparkle particles using `star-fall` animation
+- Confetti burst on card reveal
 
-### 2. AdminDashboard.tsx — Full Visual Overhaul
-- **Stat cards**: Multi-layered glassmorphism with inner glow borders, animated gradient shimmer sweep on hover, icon boxes with colored glow halos (like reference's Sales Revenue cards), micro-animated trend arrows
-- **Chart containers**: Premium frosted-glass cards with subtle gradient top borders, hover elevation effect with shadow scaling, "Week" dropdown-style filters (like reference)
-- **Quick Actions**: Card hover lifts with 3D perspective tilt, icon pulse animation on hover, gradient underline reveal
-- **System Health**: Animated status dots with ripple effect, progress-bar style health indicators
-- **Live Transaction Feed**: Row entrance animations (stagger fade-in), status badges with subtle glow, alternating row highlights
-- **Recent Signups**: Avatar with colored ring border, "New" badge like reference, hover slide-right arrow
-- **Top Merchants**: Progress bars behind merchant names showing relative volume, rank badges with gradient fills
+### 2. Premium Header
+- Sparkles icon in title, "Rewards" badge pill (like SpinWheel's "Daily" badge)
+- Entrance animation with `slide-up-spring`
 
-### 3. New CSS Animations (index.css)
-- `admin-shimmer`: Horizontal shimmer sweep for card borders
-- `admin-float`: Gentle floating animation for ambient orbs
-- `admin-glow-pulse`: Pulsing glow for active elements
-- `stagger-fade-in`: Staggered entrance for grid items
+### 3. Stats Banner Upgrade
+- Multi-layered glassmorphism with `bg-white/[0.03]` + `border-white/[0.06]`
+- Animated gold glow halo behind icon
+- Shimmer sweep effect on the card count
+
+### 4. Scratch Card Visual Overhaul
+- **Unscratched surface**: Conic gradient gold pattern with animated shimmer sweep overlay, premium border glow, floating "✨" particles on the card face
+- **Scratch animation**: Multi-phase reveal — particles scatter outward, surface dissolves with blur + scale, then reward bounces in with spring animation
+- **Revealed reward**: Pulsing glow halo behind emoji, animated coin counter, confetti burst
+- **LED-style dots** around each card border (like SpinWheel's ring dots)
+
+### 5. History Section
+- Glassmorphism rows with subtle hover glow
+- Staggered entrance animations
+- Gold accent line on left border
+
+### 6. Empty & Loading States
+- Premium floating card animation for empty state
+- Gold-accented spinner with pulsing glow
 
 ## Files to Edit
-- `src/components/AdminLayout.tsx` — Premium sidebar, header, password gate
-- `src/pages/admin/AdminDashboard.tsx` — All dashboard cards, charts, tables
-- `src/index.css` — New admin-specific keyframes
-
-## Technical Notes
-- All data fetching and logic remains unchanged — purely visual enhancement
-- Uses existing gold primary (#c8952e) theme throughout
-- No new dependencies needed
+- `src/pages/ScratchCards.tsx` — Full UI overhaul (logic unchanged)
 
