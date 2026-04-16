@@ -246,6 +246,18 @@ const BillPayments = () => {
     setPaying(false);
     setStep("success");
     toast.success("Payment successful!");
+    // Save to favorites
+    if (selectedCategory && selectedProvider && amount) {
+      const newFav: FavoriteBill = {
+        category: selectedCategory,
+        provider: selectedProvider,
+        lastAmount: Number(amount).toLocaleString("en-IN"),
+        lastPaidDate: "Just now",
+      };
+      const updated = [newFav, ...favorites.filter(f => !(f.category === selectedCategory && f.provider === selectedProvider))].slice(0, 5);
+      setFavorites(updated);
+      localStorage.setItem("bill_favorites", JSON.stringify(updated));
+    }
   };
 
   const reset = () => {
