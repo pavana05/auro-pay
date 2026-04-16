@@ -1,6 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, Check, Vibrate } from "lucide-react";
+import { ArrowLeft, Camera, Check, Vibrate, Shield, ArrowRight, Loader2 } from "lucide-react";
+import { startKyc } from "@/lib/kyc";
+import { Browser } from "@capacitor/browser";
+
+const isNative = () => typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+const openInAppBrowser = async (url: string) => {
+  if (isNative()) {
+    try { await Browser.open({ url, presentationStyle: "popover" }); return; } catch {}
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+};
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
@@ -16,6 +26,7 @@ const PersonalInfo = () => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [startingKyc, setStartingKyc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -150,8 +161,27 @@ const PersonalInfo = () => {
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">KYC Status</label>
-          <div className={`input-auro w-full flex items-center text-sm ${profile?.kyc_status === "verified" ? "text-success" : "text-warning"}`}>
-            {profile?.kyc_status === "verified" ? "✓ Verified" : "⏳ Pending"}
+          <div className={`input-auro w-full flex items-center justify-between text-sm ${profile?.kyc_status === "verified" ? "text-success" : "text-warning"}`}>
+            <span>{profile?.kyc_status === "verified" ? "✓ Verified" : "⏳ Pending verification"}</span>
+            {profile?.kyc_status !== "verified" && (
+              <button
+                onClick={async () => {
+                  haptic.medium();
+                  setStartingKyc(true);
+                  try {
+                    const res = await startKyc();
+                    if (res.redirect_url) await openInAppBrowser(res.redirect_url);
+                  } catch (err: any) {
+                    toast.error(err?.message || "Couldn't start verification");
+                  }
+                  setStartingKyc(false);
+                }}
+                disabled={startingKyc}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold gradient-primary text-primary-foreground active:scale-95 transition-all disabled:opacity-60"
+              >
+                {startingKyc ? <><Loader2 className="w-3 h-3 animate-spin" /> Starting</> : <><Shield className="w-3 h-3" /> Verify KYC <ArrowRight className="w-3 h-3" /></>}
+              </button>
+            )}
           </div>
         </div>
         <div>
