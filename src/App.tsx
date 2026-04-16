@@ -19,6 +19,7 @@ import AboutApp from "./pages/AboutApp.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
+import PaymentConfirm from "./pages/PaymentConfirm.tsx";
 import AddMoney from "./pages/AddMoney.tsx";
 import ParentHome from "./pages/ParentHome.tsx";
 import ParentTeenDetail from "./pages/ParentTeenDetail.tsx";
@@ -133,6 +134,7 @@ const App = () => (
                     <Route path="/savings" element={<SavingsGoals />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/scan" element={<ScanPay />} />
+                    <Route path="/pay" element={<PaymentConfirm />} />
                     <Route path="/add-money" element={<AddMoney />} />
                     <Route path="/parent" element={<ParentHome />} />
                     <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />

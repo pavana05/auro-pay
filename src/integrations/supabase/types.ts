@@ -579,6 +579,8 @@ export type Database = {
           id: string
           kyc_status: string | null
           phone: string | null
+          pin_hash: string | null
+          pin_set_at: string | null
           role: string | null
         }
         Insert: {
@@ -590,6 +592,8 @@ export type Database = {
           id: string
           kyc_status?: string | null
           phone?: string | null
+          pin_hash?: string | null
+          pin_set_at?: string | null
           role?: string | null
         }
         Update: {
@@ -601,6 +605,8 @@ export type Database = {
           id?: string
           kyc_status?: string | null
           phone?: string | null
+          pin_hash?: string | null
+          pin_set_at?: string | null
           role?: string | null
         }
         Relationships: []
