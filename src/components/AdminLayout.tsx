@@ -363,11 +363,29 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   <button
                     key={item.path}
                     onClick={() => { haptic.light(); navigate(item.path); if (isMobile) setMobileOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative ${!showLabel ? "justify-center px-0" : ""}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 group relative ${!showLabel ? "justify-center px-0" : ""}`}
                     style={{
                       background: active ? G.accent10 : "transparent",
                       color: active ? "#fff" : "rgba(255,255,255,0.45)",
                       fontWeight: active ? 500 : 400,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.background = G.accent04;
+                        e.currentTarget.style.boxShadow = `0 0 20px rgba(200,149,46,0.08), inset 0 0 20px rgba(200,149,46,0.03)`;
+                        e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                        const icon = e.currentTarget.querySelector('.nav-icon') as HTMLElement;
+                        if (icon) icon.style.color = G.secondary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.boxShadow = "none";
+                        e.currentTarget.style.color = "rgba(255,255,255,0.45)";
+                        const icon = e.currentTarget.querySelector('.nav-icon') as HTMLElement;
+                        if (icon) icon.style.color = "rgba(255,255,255,0.35)";
+                      }
                     }}
                     title={!showLabel ? item.label : undefined}
                   >
@@ -375,7 +393,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ background: G.primary, boxShadow: `0 0 12px rgba(200,149,46,0.6)` }} />
                     )}
                     <div className="relative">
-                      <item.icon className="w-[18px] h-[18px] shrink-0 transition-all duration-200" style={{ color: active ? G.secondary : "rgba(255,255,255,0.35)" }} />
+                      <item.icon className="nav-icon w-[18px] h-[18px] shrink-0 transition-all duration-300" style={{ color: active ? G.secondary : "rgba(255,255,255,0.35)" }} />
                       {badgeCount > 0 && !showLabel && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white" style={{ background: G.danger }}>
                           {badgeCount > 9 ? "9+" : badgeCount}
