@@ -1,15 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, Check } from "lucide-react";
+import { ArrowLeft, Camera, Check, Vibrate } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
+import { Switch } from "@/components/ui/switch";
+import { haptic, setHapticsEnabled } from "@/lib/haptics";
 
 const PersonalInfo = () => {
   const [profile, setProfile] = useState<any>(null);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [hapticsEnabled, setHapticsEnabledState] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,11 +29,28 @@ const PersonalInfo = () => {
         setFullName(data.full_name || "");
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url);
+        const enabled = (data as any).haptics_enabled ?? true;
+        setHapticsEnabledState(enabled);
+        setHapticsEnabled(enabled);
       }
       setLoading(false);
     };
     load();
   }, []);
+
+  const toggleHaptics = async (value: boolean) => {
+    setHapticsEnabledState(value);
+    setHapticsEnabled(value);
+    if (value) await haptic.success();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("profiles").update({ haptics_enabled: value } as any).eq("id", user.id);
+    if (error) {
+      toast.error("Couldn't save preference");
+    } else {
+      toast.success(value ? "Haptics enabled" : "Haptics disabled");
+    }
+  };
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -139,6 +159,20 @@ const PersonalInfo = () => {
           <div className="input-auro w-full flex items-center text-muted-foreground text-sm">
             {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "—"}
           </div>
+        </div>
+
+        {/* Haptic Feedback Toggle */}
+        <div className="input-auro w-full flex items-center justify-between !py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <Vibrate className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Haptic Feedback</p>
+              <p className="text-xs text-muted-foreground">Vibration on taps & actions</p>
+            </div>
+          </div>
+          <Switch checked={hapticsEnabled} onCheckedChange={toggleHaptics} />
         </div>
       </div>
 
