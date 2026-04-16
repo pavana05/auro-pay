@@ -290,6 +290,20 @@ const AdminDashboard = () => {
       growth.push({ day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), users: allUsers.filter((u: any) => u.created_at?.startsWith(dateStr)).length });
     }
     setUserGrowth(growth);
+
+    // Hourly traffic for last 24h
+    const hours: { hour: number; count: number }[] = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+    const dayAgo = Date.now() - 24 * 3600000;
+    allTxns.forEach((t: any) => {
+      if (!t.created_at) return;
+      const ts = new Date(t.created_at).getTime();
+      if (ts >= dayAgo) {
+        const h = new Date(t.created_at).getHours();
+        hours[h].count += 1;
+      }
+    });
+    setHourlyTraffic(hours);
+
     setLoading(false);
     setLastRefresh(new Date());
   }, []);
@@ -314,6 +328,25 @@ const AdminDashboard = () => {
     fetchStats();
   };
   const getUptime = () => { if (!uptime) return "0m"; const mins = Math.floor((Date.now() - uptime) / 60000); return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`; };
+
+  const exportCsv = () => {
+    if (!liveTxns.length) { toast.error("Nothing to export yet"); return; }
+    const header = ["id", "type", "amount_paise", "amount_inr", "merchant", "category", "status", "created_at"];
+    const rows = liveTxns.map(t => [
+      t.id, t.type, t.amount, (t.amount / 100).toFixed(2),
+      `"${(t.merchant_name || "").replace(/"/g, '""')}"`,
+      t.category || "", t.status || "", t.created_at || "",
+    ]);
+    const csv = [header.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `auropay-transactions-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exported to CSV");
+  };
 
   const tooltipStyle = { background: "rgba(18,20,24,0.95)", border: "1px solid rgba(200,149,46,0.1)", borderRadius: 14, color: "#fff", fontSize: 11, boxShadow: "0 16px 48px rgba(0,0,0,0.6)" };
 
