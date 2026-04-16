@@ -12,6 +12,11 @@ import electricityImg from "@/assets/bill-electricity.png";
 import waterImg from "@/assets/bill-water.png";
 import broadbandImg from "@/assets/bill-broadband.png";
 import mobileImg from "@/assets/bill-mobile.png";
+import gasImg from "@/assets/bill-gas.png";
+import insuranceImg from "@/assets/bill-insurance.png";
+import educationImg from "@/assets/bill-education.png";
+import creditcardImg from "@/assets/bill-creditcard.png";
+import taxImg from "@/assets/bill-tax.png";
 
 const providers: Record<string, { name: string; icon: string }[]> = {
   mobile: [
@@ -45,6 +50,43 @@ const providers: Record<string, { name: string; icon: string }[]> = {
     { name: "BSNL Bharat Fiber", icon: "📡" },
     { name: "Tata Play Fiber", icon: "🔗" },
   ],
+  gas: [
+    { name: "Indane Gas", icon: "🔥" },
+    { name: "HP Gas", icon: "⛽" },
+    { name: "Bharat Gas", icon: "🔥" },
+    { name: "Gujarat Gas", icon: "🏭" },
+    { name: "Mahanagar Gas", icon: "🔥" },
+    { name: "Adani Gas", icon: "⛽" },
+  ],
+  insurance: [
+    { name: "LIC Premium", icon: "🛡️" },
+    { name: "Star Health", icon: "⭐" },
+    { name: "HDFC Ergo", icon: "🏦" },
+    { name: "ICICI Lombard", icon: "🏛️" },
+    { name: "Bajaj Allianz", icon: "📋" },
+    { name: "Max Life", icon: "💚" },
+  ],
+  education: [
+    { name: "School Fees", icon: "🏫" },
+    { name: "College Tuition", icon: "🎓" },
+    { name: "Coaching Center", icon: "📚" },
+    { name: "University Fees", icon: "🏛️" },
+    { name: "Exam Fees", icon: "📝" },
+  ],
+  creditcard: [
+    { name: "HDFC Credit Card", icon: "💳" },
+    { name: "SBI Credit Card", icon: "💳" },
+    { name: "ICICI Credit Card", icon: "💳" },
+    { name: "Axis Credit Card", icon: "💳" },
+    { name: "Kotak Credit Card", icon: "💳" },
+    { name: "Amex Card", icon: "💳" },
+  ],
+  tax: [
+    { name: "Municipal Tax", icon: "🏛️" },
+    { name: "Property Tax", icon: "🏠" },
+    { name: "Water Tax", icon: "💧" },
+    { name: "Income Tax", icon: "📊" },
+  ],
 };
 
 const quickCategories = [
@@ -52,40 +94,48 @@ const quickCategories = [
   { key: "electricity", label: "Pay Bill", image: paybillImg },
   { key: "broadband", label: "DTH", image: dthImg },
   { key: "water", label: "Metro", image: metroImg },
+  { key: "gas", label: "Gas", image: gasImg },
+  { key: "insurance", label: "Insurance", image: insuranceImg },
+  { key: "education", label: "Education", image: educationImg },
+  { key: "creditcard", label: "Card Bill", image: creditcardImg },
 ];
 
 const categories = [
   {
-    key: "mobile",
-    label: "Mobile Recharge",
-    desc: "Prepaid & Postpaid plans",
-    image: mobileImg,
-    gradient: "from-primary/20 to-amber-600/10",
-    borderColor: "border-primary/15",
+    key: "mobile", label: "Mobile Recharge", desc: "Prepaid & Postpaid plans",
+    image: mobileImg, gradient: "from-primary/20 to-amber-600/10", borderColor: "border-primary/15",
   },
   {
-    key: "electricity",
-    label: "Electricity",
-    desc: "Pay your electricity bills instantly",
-    image: electricityImg,
-    gradient: "from-amber-500/20 to-yellow-600/10",
-    borderColor: "border-amber-500/15",
+    key: "electricity", label: "Electricity", desc: "Pay your electricity bills instantly",
+    image: electricityImg, gradient: "from-amber-500/20 to-yellow-600/10", borderColor: "border-amber-500/15",
   },
   {
-    key: "water",
-    label: "Water",
-    desc: "Water supply & sewage bills",
-    image: waterImg,
-    gradient: "from-sky-500/20 to-cyan-500/10",
-    borderColor: "border-sky-500/15",
+    key: "water", label: "Water", desc: "Water supply & sewage bills",
+    image: waterImg, gradient: "from-sky-500/20 to-cyan-500/10", borderColor: "border-sky-500/15",
   },
   {
-    key: "broadband",
-    label: "Broadband",
-    desc: "Internet & fiber connections",
-    image: broadbandImg,
-    gradient: "from-violet-500/20 to-purple-500/10",
-    borderColor: "border-violet-500/15",
+    key: "broadband", label: "Broadband", desc: "Internet & fiber connections",
+    image: broadbandImg, gradient: "from-emerald-500/20 to-teal-500/10", borderColor: "border-emerald-500/15",
+  },
+  {
+    key: "gas", label: "Gas Cylinder", desc: "LPG & piped gas payments",
+    image: gasImg, gradient: "from-orange-500/20 to-red-500/10", borderColor: "border-orange-500/15",
+  },
+  {
+    key: "insurance", label: "Insurance", desc: "Life, health & vehicle premiums",
+    image: insuranceImg, gradient: "from-emerald-500/20 to-green-600/10", borderColor: "border-emerald-500/15",
+  },
+  {
+    key: "education", label: "Education Fees", desc: "School, college & coaching fees",
+    image: educationImg, gradient: "from-blue-500/20 to-indigo-500/10", borderColor: "border-blue-500/15",
+  },
+  {
+    key: "creditcard", label: "Credit Card", desc: "Pay credit card bills instantly",
+    image: creditcardImg, gradient: "from-primary/20 to-yellow-500/10", borderColor: "border-primary/15",
+  },
+  {
+    key: "tax", label: "Municipal Tax", desc: "Property, water & municipal taxes",
+    image: taxImg, gradient: "from-fuchsia-500/20 to-pink-500/10", borderColor: "border-fuchsia-500/15",
   },
 ];
 
@@ -226,7 +276,7 @@ const BillPayments = () => {
             {/* Quick Category Grid - matching reference */}
             <div className="rounded-[20px] p-5 border border-white/[0.04] mb-6" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
               <h3 className="text-[14px] font-bold mb-4">Recharge & Bill Payments</h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 {quickCategories.map((cat, i) => (
                   <button
                     key={cat.key}
