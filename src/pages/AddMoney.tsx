@@ -76,56 +76,174 @@ const AddMoney = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        {/* Ambient */}
+        {/* Multi-layer ambient glow */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-[0.06] blur-[120px]" style={{ background: "hsl(152 60% 45%)" }} />
+          <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px]"
+            style={{ background: "hsl(152 60% 45%)", animation: "success-glow-expand 1.5s ease-out forwards" }} />
+          <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full opacity-[0.04] blur-[80px]"
+            style={{ background: "hsl(var(--primary))", animation: "success-glow-expand 2s ease-out 0.3s forwards" }} />
         </div>
 
-        <div className="relative z-10 text-center" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          {/* Success checkmark */}
-          <div className="w-[88px] h-[88px] rounded-[28px] flex items-center justify-center mx-auto mb-6 relative"
-            style={{
-              background: "linear-gradient(135deg, hsl(152 60% 45% / 0.15), hsl(152 60% 45% / 0.05))",
-              boxShadow: "0 8px 32px hsl(152 60% 45% / 0.15), inset 0 1px 0 hsl(152 60% 45% / 0.1)",
-              border: "1px solid hsl(152 60% 45% / 0.12)",
-            }}>
-            <Check className="w-10 h-10" style={{ color: "hsl(152 60% 45%)" }} strokeWidth={3} />
-            <div className="absolute inset-0 rounded-[28px]" style={{
-              background: "linear-gradient(135deg, transparent, hsl(152 60% 45% / 0.08))",
-              animation: "glow-pulse 2s ease-in-out infinite",
-            }} />
-          </div>
-
-          <h2 className="text-[22px] font-bold tracking-[-0.5px] mb-1" style={{ color: "hsl(152 60% 55%)" }}>Money Added!</h2>
-          <p className="text-[13px] text-white/40 mb-6">₹{amount} added via {method.toUpperCase()}</p>
-
-          <div className="rounded-[20px] p-5 mb-8 border border-white/[0.04]"
-            style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 6%))" }}>
-            <p className="text-[10px] text-white/30 font-medium tracking-widest uppercase mb-2">New Balance</p>
-            <p className="text-[32px] font-bold tracking-[-1px]"
+        {/* Floating particles */}
+        <div className="fixed inset-0 pointer-events-none z-[1]">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="absolute w-1 h-1 rounded-full"
               style={{
-                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}>
-              ₹{(newBalance / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </p>
+                left: `${15 + i * 10}%`,
+                top: `${20 + (i % 3) * 25}%`,
+                background: i % 2 === 0 ? "hsl(152 60% 50% / 0.3)" : "hsl(var(--primary) / 0.25)",
+                animation: `float-particle ${3 + i * 0.5}s ease-in-out ${i * 0.3}s infinite`,
+              }} />
+          ))}
+        </div>
+
+        <div className="relative z-10 text-center w-full max-w-sm">
+          {/* Animated checkmark ring */}
+          <div className="relative mx-auto mb-8 w-[100px] h-[100px]"
+            style={{ animation: "success-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            {/* Outer ring */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(152 60% 45% / 0.1)" strokeWidth="2" />
+              <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(152 60% 45% / 0.6)" strokeWidth="2"
+                strokeDasharray="289" strokeDashoffset="289" strokeLinecap="round"
+                style={{ animation: "circle-draw 1s ease-out 0.3s forwards" }} />
+            </svg>
+            {/* Inner glow */}
+            <div className="absolute inset-[8px] rounded-full"
+              style={{
+                background: "linear-gradient(135deg, hsl(152 60% 45% / 0.12), hsl(152 60% 45% / 0.03))",
+                boxShadow: "0 8px 40px hsl(152 60% 45% / 0.2), inset 0 1px 0 hsl(152 60% 45% / 0.08)",
+                border: "1px solid hsl(152 60% 45% / 0.08)",
+                animation: "glow-pulse 2.5s ease-in-out infinite",
+              }} />
+            <div className="absolute inset-0 flex items-center justify-center"
+              style={{ animation: "checkmark-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
+              <Check className="w-10 h-10" style={{ color: "hsl(152 60% 50%)" }} strokeWidth={2.5} />
+            </div>
           </div>
 
-          <button onClick={() => navigate("/home")}
-            className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all"
+          {/* Title with stagger */}
+          <h2 className="text-[26px] font-bold tracking-[-0.8px] mb-1"
             style={{
-              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
-              color: "hsl(220 20% 6%)",
-              boxShadow: "0 4px 20px hsl(var(--primary) / 0.3)",
+              background: "linear-gradient(135deg, hsl(152 60% 55%), hsl(152 60% 70%))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both",
             }}>
-            Done
-          </button>
+            Money Added!
+          </h2>
+          <p className="text-[13px] text-white/35 mb-8 font-medium"
+            style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both" }}>
+            ₹{amount} added via {method.toUpperCase()}
+          </p>
+
+          {/* Premium balance card */}
+          <div className="rounded-[24px] p-6 mb-5 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(160deg, hsl(220 18% 10%), hsl(220 20% 5.5%))",
+              border: "1px solid hsl(220 15% 13%)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 hsl(220 15% 14%)",
+              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both",
+            }}>
+            {/* Top accent line */}
+            <div className="absolute top-0 left-8 right-8 h-[1px]"
+              style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.25), transparent)" }} />
+            {/* Card shimmer */}
+            <div className="absolute inset-0 opacity-30"
+              style={{
+                background: "linear-gradient(110deg, transparent 30%, hsl(var(--primary) / 0.03) 50%, transparent 70%)",
+                backgroundSize: "200% 100%",
+                animation: "skeleton-shimmer 4s ease-in-out infinite",
+              }} />
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center"
+                  style={{ background: "hsl(var(--primary) / 0.1)" }}>
+                  <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--primary))" }} />
+                </div>
+                <p className="text-[10px] text-white/30 font-semibold tracking-[0.2em] uppercase">New Balance</p>
+              </div>
+              <p className="text-[40px] font-bold tracking-[-1.5px] leading-none"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.6))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 2px 8px hsl(var(--primary) / 0.2))",
+                }}>
+                ₹{(newBalance / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+
+          {/* Transaction receipt mini */}
+          <div className="rounded-[16px] p-4 mb-8 flex items-center justify-between"
+            style={{
+              background: "hsl(220 15% 8%)",
+              border: "1px solid hsl(220 15% 11%)",
+              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s both",
+            }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "hsl(152 60% 45% / 0.1)" }}>
+                <Zap className="w-4 h-4" style={{ color: "hsl(152 60% 50%)" }} />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-semibold text-white/50">Transaction</p>
+                <p className="text-[9px] text-white/20">Completed successfully</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[13px] font-bold" style={{ color: "hsl(152 60% 50%)" }}>+₹{amount}</p>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
+            <button onClick={() => navigate("/home")}
+              className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.75))",
+                color: "hsl(220 20% 6%)",
+                boxShadow: "0 4px 24px hsl(var(--primary) / 0.3), 0 1px 0 hsl(var(--primary) / 0.4) inset",
+              }}>
+              {/* Button shimmer */}
+              <div className="absolute inset-0 opacity-30"
+                style={{
+                  background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.12) 50%, transparent 70%)",
+                  backgroundSize: "200% 100%",
+                  animation: "skeleton-shimmer 3s ease-in-out infinite",
+                }} />
+              <span className="relative z-10">Done</span>
+            </button>
+          </div>
         </div>
+
+        <style>{`
+          @keyframes success-bounce {
+            0% { opacity: 0; transform: scale(0.3); }
+            60% { transform: scale(1.08); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes circle-draw {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes checkmark-pop {
+            0% { opacity: 0; transform: scale(0); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes success-glow-expand {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
+          }
+          @keyframes float-particle {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+            50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+          }
+        `}</style>
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
       {/* Ambient orbs */}
