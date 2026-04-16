@@ -59,10 +59,12 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [animating, setAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goTo = useCallback((idx: number) => {
     if (animating || idx === current) return;
@@ -83,6 +85,15 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     if (current > 0) goTo(current - 1);
   }, [current, goTo]);
 
+  // Parallax on touch/mouse move
+  const handleParallaxMove = useCallback((clientX: number, clientY: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width - 0.5) * 2; // -1 to 1
+    const y = ((clientY - rect.top) / rect.height - 0.5) * 2;
+    setParallax({ x: x * 12, y: y * 8 });
+  }, []);
+
   // Swipe handling
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -91,6 +102,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEndX.current = e.touches[0].clientX;
+    handleParallaxMove(e.touches[0].clientX, e.touches[0].clientY);
   };
 
   const handleTouchEnd = () => {
@@ -99,6 +111,15 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     if (diff > threshold) next();
     else if (diff < -threshold) prev();
     setPaused(false);
+    setParallax({ x: 0, y: 0 });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleParallaxMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseLeave = () => {
+    setParallax({ x: 0, y: 0 });
   };
 
   // Auto-play timer
@@ -126,10 +147,13 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   return (
     <div
+      ref={containerRef}
       className="flex flex-col min-h-[100dvh] bg-background relative overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Ambient glow per slide */}
       <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: slide.bg }} />
@@ -187,13 +211,41 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
             key={`img-${current}`}
             className={`relative w-full max-w-[320px] ${animating ? "opacity-0 scale-95 translate-y-6" : "opacity-100 scale-100 translate-y-0"} transition-all duration-400`}
           >
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20" style={{ background: "hsl(42 78% 55%)" }} />
+            {/* Parallax glow layer (moves opposite) */}
+            <div
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 55%)",
+                transform: `translate(${-parallax.x * 0.5}px, ${-parallax.y * 0.5}px)`,
+              }}
+            />
+            {/* Main image with parallax */}
             <img
               src={slide.image}
               alt={slide.highlight}
-              className="w-full h-auto object-contain drop-shadow-2xl relative z-10"
+              className="w-full h-auto object-contain drop-shadow-2xl relative z-10 transition-transform duration-200 ease-out"
+              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.02)` }}
               width={768}
               height={1024}
+            />
+            {/* Floating sparkle accents with deeper parallax */}
+            <div
+              className="absolute top-[15%] right-[10%] w-2 h-2 rounded-full z-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 55%)",
+                boxShadow: "0 0 8px hsl(42 78% 55% / 0.6)",
+                transform: `translate(${parallax.x * 2}px, ${parallax.y * 2}px)`,
+                animation: "sparkle-twinkle 2s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="absolute top-[25%] left-[8%] w-1.5 h-1.5 rounded-full z-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 65%)",
+                boxShadow: "0 0 6px hsl(42 78% 55% / 0.4)",
+                transform: `translate(${parallax.x * 1.5}px, ${parallax.y * 1.5}px)`,
+                animation: "sparkle-twinkle 2.5s ease-in-out 0.5s infinite",
+              }}
             />
           </div>
         </div>
