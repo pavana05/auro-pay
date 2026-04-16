@@ -10,11 +10,12 @@ interface MessageBubbleProps {
   isMine: boolean;
   timestamp: string;
   senderName?: string;
+  isRead?: boolean;
 }
 
 const MessageBubble = ({
   content, messageType, voiceUrl, paymentAmount, paymentStatus,
-  isMine, timestamp, senderName,
+  isMine, timestamp, senderName, isRead,
 }: MessageBubbleProps) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -91,7 +92,7 @@ const MessageBubble = ({
           </div>
           <div className="flex items-center justify-end gap-1 mt-1.5">
             <span className="text-[9px] opacity-40">{time}</span>
-            {isMine && <CheckCheck className="w-3 h-3 opacity-40" />}
+            {isMine && <CheckCheck className={`w-3 h-3 ${isRead ? "text-emerald-400 opacity-80" : "opacity-40"}`} />}
           </div>
         </div>
       </div>
@@ -112,7 +113,7 @@ const MessageBubble = ({
         <p className="text-[14px] leading-relaxed">{content}</p>
         <div className="flex items-center justify-end gap-1 mt-1">
           <span className="text-[9px] opacity-40">{time}</span>
-          {isMine && <CheckCheck className="w-3 h-3 opacity-50" />}
+          {isMine && <CheckCheck className={`w-3 h-3 ${isRead ? "text-emerald-400 opacity-80" : "opacity-50"}`} />}
         </div>
       </div>
     </div>
