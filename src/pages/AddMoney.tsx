@@ -8,14 +8,15 @@ import { haptic } from "@/lib/haptics";
 
 const quickAmounts = [100, 200, 500, 1000, 2000];
 
+type Phase = "idle" | "processing" | "success";
+
 const AddMoney = () => {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("upi");
-  const [processing, setProcessing] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [newBalance, setNewBalance] = useState(0);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [displayAmount, setDisplayAmount] = useState("0");
   const [amountScale, setAmountScale] = useState(1);
+  const [processingStep, setProcessingStep] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -25,7 +26,8 @@ const AddMoney = () => {
     { id: "netbanking", label: "Net Banking", desc: "All major banks", icon: Building2, fee: "₹15", accent: "270 60% 55%" },
   ];
 
-  // Animate amount display
+  const processingSteps = ["Connecting...", "Verifying payment...", "Crediting wallet..."];
+
   useEffect(() => {
     setAmountScale(1.08);
     const t = setTimeout(() => setAmountScale(1), 150);
@@ -33,12 +35,21 @@ const AddMoney = () => {
     return () => clearTimeout(t);
   }, [amount]);
 
+  // Animate processing steps
+  useEffect(() => {
+    if (phase !== "processing") return;
+    setProcessingStep(0);
+    const i1 = setTimeout(() => setProcessingStep(1), 1200);
+    const i2 = setTimeout(() => setProcessingStep(2), 2400);
+    return () => { clearTimeout(i1); clearTimeout(i2); };
+  }, [phase]);
+
   const handleAddMoney = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
 
     haptic.medium();
-    setProcessing(true);
+    setPhase("processing");
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not logged in");
@@ -62,191 +73,233 @@ const AddMoney = () => {
       const updated = (wallet.balance || 0) + amountPaise;
       await supabase.from("wallets").update({ balance: updated }).eq("id", wallet.id);
 
-      setNewBalance(updated);
-      setSuccess(true);
+      // Ensure minimum processing animation time
+      await new Promise(r => setTimeout(r, 3200));
+
+      setPhase("success");
       haptic.heavy();
-      if (navigator.vibrate) navigator.vibrate(200);
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } catch (err: any) {
       toast.error(err.message || "Failed to add money");
-    } finally {
-      setProcessing(false);
+      setPhase("idle");
     }
   };
 
-  if (success) {
+  // ── Processing + Success fullscreen overlay ──
+  if (phase === "processing" || phase === "success") {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        {/* Multi-layer ambient glow */}
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px]"
-            style={{ background: "hsl(152 60% 45%)", animation: "success-glow-expand 1.5s ease-out forwards" }} />
-          <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full opacity-[0.04] blur-[80px]"
-            style={{ background: "hsl(var(--primary))", animation: "success-glow-expand 2s ease-out 0.3s forwards" }} />
-        </div>
-
-        {/* Floating particles */}
-        <div className="fixed inset-0 pointer-events-none z-[1]">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="absolute w-1 h-1 rounded-full"
+      <div className="fixed inset-0 bg-background z-50 flex flex-col items-center justify-center px-6 overflow-hidden">
+        {/* Animated background rings */}
+        <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="absolute rounded-full border"
               style={{
-                left: `${15 + i * 10}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                background: i % 2 === 0 ? "hsl(152 60% 50% / 0.3)" : "hsl(var(--primary) / 0.25)",
-                animation: `float-particle ${3 + i * 0.5}s ease-in-out ${i * 0.3}s infinite`,
+                width: `${150 + i * 120}px`,
+                height: `${150 + i * 120}px`,
+                borderColor: phase === "success"
+                  ? `hsl(152 60% 45% / ${0.06 - i * 0.015})`
+                  : `hsl(var(--primary) / ${0.06 - i * 0.015})`,
+                animation: phase === "processing"
+                  ? `ring-pulse 2.5s ease-in-out ${i * 0.4}s infinite`
+                  : `ring-expand 0.8s ease-out ${i * 0.1}s both`,
+                transition: "border-color 0.6s ease",
               }} />
           ))}
         </div>
 
-        <div className="relative z-10 text-center w-full max-w-sm">
-          {/* Animated checkmark ring */}
-          <div className="relative mx-auto mb-8 w-[100px] h-[100px]"
-            style={{ animation: "success-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            {/* Outer ring */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(152 60% 45% / 0.1)" strokeWidth="2" />
-              <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(152 60% 45% / 0.6)" strokeWidth="2"
-                strokeDasharray="289" strokeDashoffset="289" strokeLinecap="round"
-                style={{ animation: "circle-draw 1s ease-out 0.3s forwards" }} />
-            </svg>
-            {/* Inner glow */}
-            <div className="absolute inset-[8px] rounded-full"
-              style={{
-                background: "linear-gradient(135deg, hsl(152 60% 45% / 0.12), hsl(152 60% 45% / 0.03))",
-                boxShadow: "0 8px 40px hsl(152 60% 45% / 0.2), inset 0 1px 0 hsl(152 60% 45% / 0.08)",
-                border: "1px solid hsl(152 60% 45% / 0.08)",
-                animation: "glow-pulse 2.5s ease-in-out infinite",
-              }} />
-            <div className="absolute inset-0 flex items-center justify-center"
-              style={{ animation: "checkmark-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
-              <Check className="w-10 h-10" style={{ color: "hsl(152 60% 50%)" }} strokeWidth={2.5} />
-            </div>
-          </div>
-
-          {/* Title with stagger */}
-          <h2 className="text-[26px] font-bold tracking-[-0.8px] mb-1"
+        {/* Ambient glow - transitions color */}
+        <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
+          <div className="w-[400px] h-[400px] rounded-full blur-[120px] transition-all duration-1000"
             style={{
-              background: "linear-gradient(135deg, hsl(152 60% 55%), hsl(152 60% 70%))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both",
-            }}>
-            Money Added!
-          </h2>
-          <p className="text-[13px] text-white/35 mb-8 font-medium"
-            style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both" }}>
-            ₹{amount} added via {method.toUpperCase()}
-          </p>
+              background: phase === "success" ? "hsl(152 60% 45%)" : "hsl(var(--primary))",
+              opacity: phase === "success" ? 0.1 : 0.06,
+              transform: phase === "success" ? "scale(1.3)" : "scale(1)",
+            }} />
+        </div>
 
-          {/* Premium balance card */}
-          <div className="rounded-[24px] p-6 mb-5 relative overflow-hidden"
-            style={{
-              background: "linear-gradient(160deg, hsl(220 18% 10%), hsl(220 20% 5.5%))",
-              border: "1px solid hsl(220 15% 13%)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 hsl(220 15% 14%)",
-              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both",
-            }}>
-            {/* Top accent line */}
-            <div className="absolute top-0 left-8 right-8 h-[1px]"
-              style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.25), transparent)" }} />
-            {/* Card shimmer */}
-            <div className="absolute inset-0 opacity-30"
-              style={{
-                background: "linear-gradient(110deg, transparent 30%, hsl(var(--primary) / 0.03) 50%, transparent 70%)",
-                backgroundSize: "200% 100%",
-                animation: "skeleton-shimmer 4s ease-in-out infinite",
-              }} />
-
-            <div className="relative z-10">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center"
-                  style={{ background: "hsl(var(--primary) / 0.1)" }}>
-                  <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--primary))" }} />
-                </div>
-                <p className="text-[10px] text-white/30 font-semibold tracking-[0.2em] uppercase">New Balance</p>
-              </div>
-              <p className="text-[40px] font-bold tracking-[-1.5px] leading-none"
+        <div className="relative z-10 text-center w-full max-w-xs">
+          {/* Central animated element */}
+          <div className="relative mx-auto mb-10 w-[120px] h-[120px]">
+            {/* Outer spinning ring (processing) / drawn circle (success) */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 120 120">
+              {/* Background ring */}
+              <circle cx="60" cy="60" r="54" fill="none"
+                stroke={phase === "success" ? "hsl(152 60% 45% / 0.08)" : "hsl(var(--primary) / 0.06)"}
+                strokeWidth="2.5"
+                style={{ transition: "stroke 0.6s ease" }} />
+              {/* Animated ring */}
+              <circle cx="60" cy="60" r="54" fill="none"
+                strokeWidth="2.5"
+                strokeLinecap="round"
                 style={{
-                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.6))",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  filter: "drop-shadow(0 2px 8px hsl(var(--primary) / 0.2))",
-                }}>
-                ₹{(newBalance / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          </div>
-
-          {/* Transaction receipt mini */}
-          <div className="rounded-[16px] p-4 mb-8 flex items-center justify-between"
-            style={{
-              background: "hsl(220 15% 8%)",
-              border: "1px solid hsl(220 15% 11%)",
-              animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s both",
-            }}>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: "hsl(152 60% 45% / 0.1)" }}>
-                <Zap className="w-4 h-4" style={{ color: "hsl(152 60% 50%)" }} />
-              </div>
-              <div className="text-left">
-                <p className="text-[11px] font-semibold text-white/50">Transaction</p>
-                <p className="text-[9px] text-white/20">Completed successfully</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[13px] font-bold" style={{ color: "hsl(152 60% 50%)" }}>+₹{amount}</p>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both" }}>
-            <button onClick={() => navigate("/home")}
-              className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all relative overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.75))",
-                color: "hsl(220 20% 6%)",
-                boxShadow: "0 4px 24px hsl(var(--primary) / 0.3), 0 1px 0 hsl(var(--primary) / 0.4) inset",
-              }}>
-              {/* Button shimmer */}
-              <div className="absolute inset-0 opacity-30"
-                style={{
-                  background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.12) 50%, transparent 70%)",
-                  backgroundSize: "200% 100%",
-                  animation: "skeleton-shimmer 3s ease-in-out infinite",
+                  stroke: phase === "success" ? "hsl(152 60% 45% / 0.7)" : "hsl(var(--primary) / 0.5)",
+                  strokeDasharray: phase === "success" ? "339.3" : "80 259.3",
+                  strokeDashoffset: phase === "success" ? "0" : "0",
+                  animation: phase === "processing"
+                    ? "spinner-rotate 1.4s linear infinite"
+                    : "circle-complete 0.8s ease-out both",
+                  transformOrigin: "center",
+                  transition: "stroke 0.4s ease",
                 }} />
-              <span className="relative z-10">Done</span>
-            </button>
+            </svg>
+
+            {/* Inner glow disc */}
+            <div className="absolute inset-[14px] rounded-full transition-all duration-700"
+              style={{
+                background: phase === "success"
+                  ? "linear-gradient(135deg, hsl(152 60% 45% / 0.12), hsl(152 60% 45% / 0.03))"
+                  : "linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--primary) / 0.02))",
+                boxShadow: phase === "success"
+                  ? "0 0 60px hsl(152 60% 45% / 0.15)"
+                  : "0 0 40px hsl(var(--primary) / 0.1)",
+                border: `1px solid ${phase === "success" ? "hsl(152 60% 45% / 0.1)" : "hsl(var(--primary) / 0.06)"}`,
+              }} />
+
+            {/* Icon transition */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {phase === "processing" ? (
+                <div className="text-[28px]" style={{ animation: "icon-breathe 2s ease-in-out infinite" }}>
+                  {method === "upi" ? "⚡" : method === "card" ? "💳" : "🏦"}
+                </div>
+              ) : (
+                <div style={{ animation: "checkmark-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+                  <Check className="w-12 h-12" style={{ color: "hsl(152 60% 50%)" }} strokeWidth={2} />
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Amount display */}
+          <div className="mb-3" style={{ animation: phase === "success" ? "amount-celebrate 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" : undefined }}>
+            <p className="text-[42px] font-bold tracking-[-2px] leading-none transition-all duration-500"
+              style={{
+                background: phase === "success"
+                  ? "linear-gradient(135deg, hsl(152 60% 55%), hsl(152 60% 70%))"
+                  : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}>
+              ₹{amount}
+            </p>
+          </div>
+
+          {/* Status text */}
+          <div className="h-[50px] flex flex-col items-center justify-center">
+            {phase === "processing" ? (
+              <div key="processing" style={{ animation: "fade-switch 0.3s ease both" }}>
+                <p className="text-[15px] font-semibold text-white/60 mb-1.5">
+                  {processingSteps[processingStep]}
+                </p>
+                {/* Step dots */}
+                <div className="flex items-center justify-center gap-2">
+                  {processingSteps.map((_, i) => (
+                    <div key={i} className="h-[3px] rounded-full transition-all duration-500"
+                      style={{
+                        width: i === processingStep ? "20px" : "6px",
+                        background: i <= processingStep
+                          ? "hsl(var(--primary) / 0.6)"
+                          : "hsl(220 15% 15%)",
+                      }} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div key="success" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+                <p className="text-[18px] font-bold tracking-[-0.3px]"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(152 60% 55%), hsl(152 60% 70%))",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}>
+                  Payment Successful
+                </p>
+                <p className="text-[12px] text-white/30 mt-1 font-medium">
+                  via {method.toUpperCase()} • {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Success CTA - only show after success */}
+          {phase === "success" && (
+            <div className="mt-12 space-y-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>
+              <button onClick={() => navigate("/home")}
+                className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.75))",
+                  color: "hsl(220 20% 6%)",
+                  boxShadow: "0 4px 24px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(var(--primary) / 0.3)",
+                }}>
+                <div className="absolute inset-0 opacity-20"
+                  style={{
+                    background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.15) 50%, transparent 70%)",
+                    backgroundSize: "200% 100%",
+                    animation: "skeleton-shimmer 3s ease-in-out infinite",
+                  }} />
+                <span className="relative z-10">Back to Home</span>
+              </button>
+
+              <button onClick={() => { setPhase("idle"); setAmount(""); }}
+                className="w-full h-[48px] rounded-2xl font-medium text-[13px] text-white/40 active:scale-[0.97] transition-all"
+                style={{
+                  background: "hsl(220 15% 8%)",
+                  border: "1px solid hsl(220 15% 12%)",
+                }}>
+                Add More Money
+              </button>
+            </div>
+          )}
         </div>
 
         <style>{`
-          @keyframes success-bounce {
-            0% { opacity: 0; transform: scale(0.3); }
-            60% { transform: scale(1.08); }
-            100% { opacity: 1; transform: scale(1); }
+          @keyframes spinner-rotate {
+            to { transform: rotate(360deg); }
           }
-          @keyframes circle-draw {
-            to { stroke-dashoffset: 0; }
+          @keyframes circle-complete {
+            0% { stroke-dasharray: 80 259.3; stroke-dashoffset: 0; transform: rotate(0deg); }
+            100% { stroke-dasharray: 339.3 0; stroke-dashoffset: 0; transform: rotate(0deg); }
           }
-          @keyframes checkmark-pop {
-            0% { opacity: 0; transform: scale(0); }
-            100% { opacity: 1; transform: scale(1); }
+          @keyframes ring-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.5; }
           }
-          @keyframes success-glow-expand {
-            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
+          @keyframes ring-expand {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
           }
-          @keyframes float-particle {
-            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-            50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+          @keyframes icon-breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
+          @keyframes checkmark-reveal {
+            0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+          }
+          @keyframes amount-celebrate {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+          }
+          @keyframes fade-switch {
+            0% { opacity: 0; transform: translateY(6px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes slide-up-spring {
+            0% { opacity: 0; transform: translateY(20px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
           }
         `}</style>
       </div>
     );
   }
+
+  // ── Main form ──
   return (
     <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
-      {/* Ambient orbs */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-32 -right-32 w-[350px] h-[350px] rounded-full opacity-[0.035] blur-[100px]" style={{ background: "hsl(var(--primary))" }} />
         <div className="absolute bottom-[40%] -left-20 w-[200px] h-[200px] rounded-full opacity-[0.02] blur-[70px]" style={{ background: "hsl(152 60% 45%)" }} />
@@ -275,7 +328,6 @@ const AddMoney = () => {
             animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both",
           }}
           onClick={() => inputRef.current?.focus()}>
-          {/* Top accent */}
           <div className="absolute top-0 left-6 right-6 h-[1px]"
             style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.2), transparent)" }} />
 
@@ -297,7 +349,6 @@ const AddMoney = () => {
             </span>
           </div>
 
-          {/* Hidden input */}
           <input
             ref={inputRef}
             type="number"
@@ -308,7 +359,6 @@ const AddMoney = () => {
             inputMode="numeric"
           />
 
-          {/* Subtle underline indicator */}
           <div className="w-16 h-[2px] mx-auto mt-2 rounded-full transition-all duration-300"
             style={{
               background: amount
@@ -319,7 +369,7 @@ const AddMoney = () => {
 
         {/* Quick Amounts */}
         <div className="flex gap-2 mb-6" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-          {quickAmounts.map((a, i) => (
+          {quickAmounts.map((a) => (
             <button
               key={a}
               onClick={() => { haptic.light(); setAmount(String(a)); }}
@@ -358,7 +408,6 @@ const AddMoney = () => {
                 animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.18 + i * 0.04}s both`,
               }}
             >
-              {/* Selection accent */}
               {method === m.id && (
                 <div className="absolute top-0 left-4 right-4 h-[1px]"
                   style={{ background: `linear-gradient(90deg, transparent, hsl(${m.accent} / 0.25), transparent)` }} />
@@ -387,7 +436,6 @@ const AddMoney = () => {
                 </span>
               </div>
 
-              {/* Radio indicator */}
               <div className="w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0"
                 style={{
                   borderColor: method === m.id ? `hsl(${m.accent})` : "hsl(220 12% 18%)",
@@ -406,7 +454,7 @@ const AddMoney = () => {
         <div style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>
           <button
             onClick={handleAddMoney}
-            disabled={processing || !amount || parseFloat(amount) <= 0}
+            disabled={!amount || parseFloat(amount) <= 0}
             className="w-full h-[52px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all duration-300 disabled:opacity-30 disabled:scale-100 relative overflow-hidden"
             style={{
               background: (!amount || parseFloat(amount) <= 0)
@@ -415,8 +463,7 @@ const AddMoney = () => {
               color: (!amount || parseFloat(amount) <= 0) ? "hsl(220 10% 30%)" : "hsl(220 20% 6%)",
               boxShadow: (amount && parseFloat(amount) > 0) ? "0 4px 24px hsl(var(--primary) / 0.3)" : "none",
             }}>
-            {/* Shimmer on active */}
-            {amount && parseFloat(amount) > 0 && !processing && (
+            {amount && parseFloat(amount) > 0 && (
               <div className="absolute inset-0"
                 style={{
                   background: "linear-gradient(110deg, transparent 30%, hsl(0 0% 100% / 0.1) 50%, transparent 70%)",
@@ -425,17 +472,8 @@ const AddMoney = () => {
                 }} />
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {processing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Add ₹{amount || "0"}
-                </>
-              )}
+              <Sparkles className="w-4 h-4" />
+              Add ₹{amount || "0"}
             </span>
           </button>
         </div>
@@ -447,10 +485,6 @@ const AddMoney = () => {
         @keyframes slide-up-spring {
           0% { opacity: 0; transform: translateY(20px) scale(0.97); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes glow-pulse {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
         }
         @keyframes skeleton-shimmer {
           0% { background-position: 200% 0; }
