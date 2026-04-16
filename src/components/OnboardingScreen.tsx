@@ -85,6 +85,15 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     if (current > 0) goTo(current - 1);
   }, [current, goTo]);
 
+  // Parallax on touch/mouse move
+  const handleParallaxMove = useCallback((clientX: number, clientY: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width - 0.5) * 2; // -1 to 1
+    const y = ((clientY - rect.top) / rect.height - 0.5) * 2;
+    setParallax({ x: x * 12, y: y * 8 });
+  }, []);
+
   // Swipe handling
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -93,6 +102,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEndX.current = e.touches[0].clientX;
+    handleParallaxMove(e.touches[0].clientX, e.touches[0].clientY);
   };
 
   const handleTouchEnd = () => {
@@ -101,6 +111,15 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     if (diff > threshold) next();
     else if (diff < -threshold) prev();
     setPaused(false);
+    setParallax({ x: 0, y: 0 });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleParallaxMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseLeave = () => {
+    setParallax({ x: 0, y: 0 });
   };
 
   // Auto-play timer
