@@ -211,13 +211,41 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
             key={`img-${current}`}
             className={`relative w-full max-w-[320px] ${animating ? "opacity-0 scale-95 translate-y-6" : "opacity-100 scale-100 translate-y-0"} transition-all duration-400`}
           >
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20" style={{ background: "hsl(42 78% 55%)" }} />
+            {/* Parallax glow layer (moves opposite) */}
+            <div
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 55%)",
+                transform: `translate(${-parallax.x * 0.5}px, ${-parallax.y * 0.5}px)`,
+              }}
+            />
+            {/* Main image with parallax */}
             <img
               src={slide.image}
               alt={slide.highlight}
-              className="w-full h-auto object-contain drop-shadow-2xl relative z-10"
+              className="w-full h-auto object-contain drop-shadow-2xl relative z-10 transition-transform duration-200 ease-out"
+              style={{ transform: `translate(${parallax.x}px, ${parallax.y}px) scale(1.02)` }}
               width={768}
               height={1024}
+            />
+            {/* Floating sparkle accents with deeper parallax */}
+            <div
+              className="absolute top-[15%] right-[10%] w-2 h-2 rounded-full z-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 55%)",
+                boxShadow: "0 0 8px hsl(42 78% 55% / 0.6)",
+                transform: `translate(${parallax.x * 2}px, ${parallax.y * 2}px)`,
+                animation: "sparkle-twinkle 2s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="absolute top-[25%] left-[8%] w-1.5 h-1.5 rounded-full z-20 transition-transform duration-300 ease-out"
+              style={{
+                background: "hsl(42 78% 65%)",
+                boxShadow: "0 0 6px hsl(42 78% 55% / 0.4)",
+                transform: `translate(${parallax.x * 1.5}px, ${parallax.y * 1.5}px)`,
+                animation: "sparkle-twinkle 2.5s ease-in-out 0.5s infinite",
+              }}
             />
           </div>
         </div>
