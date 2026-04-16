@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import {
   UserPlus, ArrowLeftRight, ShieldCheck, DollarSign,
-  TrendingUp, TrendingDown, Calendar, Filter,
-  BarChart3, Activity, PieChart as PieChartIcon, LineChart as LineChartIcon,
+  Calendar,
+  BarChart3, Activity, PieChart as PieChartIcon,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -61,25 +61,19 @@ const AdminAnalytics = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchAll();
-  }, [days]);
+  useEffect(() => { fetchAll(); }, [days]);
 
-  // Realtime subscriptions
   useEffect(() => {
     if (!isLive) return;
-
     const channel = supabase
       .channel('admin-analytics-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_requests' }, () => fetchAll())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [isLive, days]);
 
-  // Generate date labels
   const dateLabels = useMemo(() => {
     const labels: string[] = [];
     for (let i = days - 1; i >= 0; i--) {
@@ -90,7 +84,6 @@ const AdminAnalytics = () => {
     return labels;
   }, [days]);
 
-  // Daily signups
   const signupData = useMemo(() => {
     return dateLabels.map(date => {
       const count = profiles.filter(p => p.created_at?.startsWith(date)).length;
@@ -98,7 +91,6 @@ const AdminAnalytics = () => {
     });
   }, [profiles, dateLabels, days]);
 
-  // Transaction volume trends
   const volumeData = useMemo(() => {
     return dateLabels.map(date => {
       const dayTxns = transactions.filter(t => t.created_at?.startsWith(date) && t.status === "success");
@@ -108,39 +100,31 @@ const AdminAnalytics = () => {
     });
   }, [transactions, dateLabels, days]);
 
-  // KYC approval rates
   const kycData = useMemo(() => {
     const verified = kycRequests.filter(k => k.status === "verified").length;
     const pending = kycRequests.filter(k => k.status === "pending").length;
     const rejected = kycRequests.filter(k => k.status === "rejected").length;
     const total = kycRequests.length;
     const rate = total > 0 ? Math.round((verified / total) * 100) : 0;
-
     const pie = [
       { name: "Verified", value: verified || 0 },
       { name: "Pending", value: pending || 0 },
       { name: "Rejected", value: rejected || 0 },
     ].filter(d => d.value > 0);
-
-    // Daily KYC trend
     const trend = dateLabels.map(date => {
       const dayKyc = kycRequests.filter(k => k.submitted_at?.startsWith(date));
       const dayVerified = dayKyc.filter(k => k.status === "verified").length;
       return { date: formatLabel(date, days), submitted: dayKyc.length, verified: dayVerified };
     });
-
     return { pie: pie.length ? pie : [{ name: "No Data", value: 1 }], rate, total, verified, pending, rejected, trend };
   }, [kycRequests, dateLabels, days]);
 
-  // Revenue metrics
   const revenueData = useMemo(() => {
     const successTxns = transactions.filter(t => t.status === "success");
     const totalRevenue = successTxns.reduce((s: number, t: any) => s + (t.amount || 0), 0) / 100;
     const creditRevenue = successTxns.filter(t => t.type === "credit").reduce((s: number, t: any) => s + (t.amount || 0), 0) / 100;
     const debitRevenue = successTxns.filter(t => t.type === "debit").reduce((s: number, t: any) => s + (t.amount || 0), 0) / 100;
     const avgTxnValue = successTxns.length > 0 ? totalRevenue / successTxns.length : 0;
-
-    // Category breakdown
     const catMap = new Map<string, number>();
     successTxns.forEach(t => {
       const cat = t.category || "other";
@@ -150,19 +134,15 @@ const AdminAnalytics = () => {
       .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value: Math.round(value) }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
-
-    // Daily revenue
     const daily = dateLabels.map(date => {
       const dayTxns = successTxns.filter(t => t.created_at?.startsWith(date));
       const credit = dayTxns.filter(t => t.type === "credit").reduce((s: number, t: any) => s + (t.amount || 0), 0) / 100;
       const debit = dayTxns.filter(t => t.type === "debit").reduce((s: number, t: any) => s + (t.amount || 0), 0) / 100;
       return { date: formatLabel(date, days), credit, debit, total: credit + debit };
     });
-
     return { totalRevenue, creditRevenue, debitRevenue, avgTxnValue, categories: categories.length ? categories : [{ name: "No Data", value: 1 }], daily };
   }, [transactions, dateLabels, days]);
 
-  // Summary stats
   const totalSignups = signupData.reduce((s, d) => s + d.count, 0);
   const totalVolume = volumeData.reduce((s, d) => s + d.volume, 0);
   const totalTxnCount = volumeData.reduce((s, d) => s + d.count, 0);
@@ -177,12 +157,23 @@ const AdminAnalytics = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 relative">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-white/[0.02] animate-pulse border border-white/[0.04]" />)}
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-28 rounded-2xl overflow-hidden relative border border-white/[0.04]">
+                <div className="absolute inset-0 bg-white/[0.02]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
+              </div>
+            ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-72 rounded-2xl bg-white/[0.02] animate-pulse border border-white/[0.04]" />)}
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-72 rounded-2xl overflow-hidden relative border border-white/[0.04]">
+                <div className="absolute inset-0 bg-white/[0.02]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
+              </div>
+            ))}
           </div>
         </div>
       </AdminLayout>
@@ -192,45 +183,36 @@ const AdminAnalytics = () => {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.02] blur-[120px] pointer-events-none" />
+        {/* Ambient */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[20%] left-0 w-[200px] h-[200px] rounded-full bg-teal-500/[0.02] blur-[80px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center justify-between relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-primary" /> Analytics
             </h1>
             <div className="flex items-center gap-3 mt-1">
               <p className="text-xs text-muted-foreground">Deep insights into your platform performance</p>
-              <button
-                onClick={() => setIsLive(!isLive)}
+              <button onClick={() => setIsLive(!isLive)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
-                  isLive ? "bg-success/10 border border-success/10 text-success" : "bg-white/[0.03] border border-white/[0.06] text-muted-foreground"
-                }`}
-              >
+                  isLive ? "bg-success/10 border border-success/20 text-success" : "bg-white/[0.03] border border-white/[0.06] text-muted-foreground"
+                }`}>
                 <div className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
                 {isLive ? "Live" : "Paused"}
               </button>
-              <span className="text-[10px] text-muted-foreground">
-                Updated {lastUpdate.toLocaleTimeString()}
-              </span>
+              <span className="text-[10px] text-muted-foreground">Updated {lastUpdate.toLocaleTimeString()}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
-            <div className="flex rounded-xl bg-white/[0.03] border border-white/[0.06] p-0.5">
+            <div className="flex rounded-xl bg-white/[0.02] border border-white/[0.04] p-0.5">
               {DATE_RANGES.map(r => (
-                <button
-                  key={r.value}
-                  onClick={() => setRange(r.value)}
+                <button key={r.value} onClick={() => setRange(r.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    range === r.value
-                      ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(42_78%_55%/0.3)]"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {r.label}
-                </button>
+                    range === r.value ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(42_78%_55%/0.3)]" : "text-muted-foreground hover:text-foreground"
+                  }`}>{r.label}</button>
               ))}
             </div>
           </div>
@@ -239,26 +221,24 @@ const AdminAnalytics = () => {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {summaryCards.map((s, i) => (
-            <div
-              key={s.label}
-              className="group p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/20 transition-all duration-300 hover:shadow-[0_0_30px_hsl(42_78%_55%/0.06)] relative overflow-hidden"
-              style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s both` }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center ${s.color}`}>
+            <div key={s.label}
+              className="group p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/15 transition-all duration-500 hover:shadow-[0_0_30px_hsl(42_78%_55%/0.06)] relative overflow-hidden"
+              style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.08 + i * 0.06}s both` }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10">
+                <div className={`w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center ${s.color} mb-3 group-hover:scale-110 transition-transform duration-300`}>
                   <s.icon className="w-5 h-5" />
                 </div>
+                <p className="text-2xl font-bold tracking-tight">{s.value}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 font-medium">{s.label}</p>
               </div>
-              <p className="text-2xl font-bold tracking-tight">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1 font-medium">{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* Row 1: Signups + Transaction Volume */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Daily Signups */}
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04]" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both" }}>
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm hover:border-white/[0.06] transition-all duration-300" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-primary" />
@@ -283,8 +263,7 @@ const AdminAnalytics = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Transaction Volume */}
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04]" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.38s both" }}>
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm hover:border-white/[0.06] transition-all duration-300" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.38s both" }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-accent" />
@@ -306,8 +285,7 @@ const AdminAnalytics = () => {
 
         {/* Row 2: KYC + Revenue */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* KYC Approval */}
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04]" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.46s both" }}>
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm hover:border-white/[0.06] transition-all duration-300" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.46s both" }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-warning" />
@@ -335,15 +313,15 @@ const AdminAnalytics = () => {
                 </div>
               </div>
               <div className="space-y-3 flex flex-col justify-center">
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03]">
+                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-muted-foreground">Approval Rate</p>
                   <p className="text-2xl font-bold text-success">{kycData.rate}%</p>
                 </div>
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03]">
+                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-muted-foreground">Pending</p>
                   <p className="text-lg font-bold text-warning">{kycData.pending}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03]">
+                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-muted-foreground">Rejected</p>
                   <p className="text-lg font-bold text-destructive">{kycData.rejected}</p>
                 </div>
@@ -351,8 +329,7 @@ const AdminAnalytics = () => {
             </div>
           </div>
 
-          {/* Revenue Metrics */}
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04]" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.54s both" }}>
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm hover:border-white/[0.06] transition-all duration-300" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.54s both" }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-success" />
@@ -361,15 +338,15 @@ const AdminAnalytics = () => {
               <span className="text-[10px] text-muted-foreground">₹{revenueData.totalRevenue.toLocaleString("en-IN")}</span>
             </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
                 <p className="text-[9px] text-muted-foreground">Credits</p>
                 <p className="text-sm font-bold text-success">₹{revenueData.creditRevenue.toLocaleString("en-IN")}</p>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
                 <p className="text-[9px] text-muted-foreground">Debits</p>
                 <p className="text-sm font-bold text-primary">₹{revenueData.debitRevenue.toLocaleString("en-IN")}</p>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
                 <p className="text-[9px] text-muted-foreground">Avg Txn</p>
                 <p className="text-sm font-bold text-accent">₹{Math.round(revenueData.avgTxnValue).toLocaleString("en-IN")}</p>
               </div>
@@ -388,7 +365,7 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Row 3: Revenue by Category */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04]" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both" }}>
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm hover:border-white/[0.06] transition-all duration-300" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.6s both" }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <PieChartIcon className="w-4 h-4 text-primary" />
@@ -406,8 +383,8 @@ const AdminAnalytics = () => {
             </ResponsiveContainer>
             <div className="space-y-2">
               {revenueData.categories.map((c, i) => (
-                <div key={c.name} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.02] transition-colors">
-                  <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                <div key={c.name} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.02] transition-colors group">
+                  <div className="w-3 h-3 rounded-sm shrink-0 group-hover:scale-110 transition-transform" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
                   <span className="text-sm flex-1">{c.name}</span>
                   <span className="text-sm font-semibold text-primary">₹{c.value.toLocaleString("en-IN")}</span>
                 </div>
