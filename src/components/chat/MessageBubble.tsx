@@ -10,6 +10,7 @@ interface MessageBubbleProps {
   isMine: boolean;
   timestamp: string;
   senderName?: string;
+  isRead?: boolean;
 }
 
 const MessageBubble = ({
