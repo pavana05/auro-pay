@@ -5,7 +5,7 @@ import {
   Target, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, ChevronRight, Wallet, Zap, Gift,
   Search, Shield, Sparkles, Activity, BarChart3,
-  MessageCircle, Flame, Trophy, Star,
+  MessageCircle, Flame, Trophy, Star, X, ArrowRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -46,7 +46,11 @@ const TeenHome = () => {
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [recentAchievements, setRecentAchievements] = useState<AchievementData[]>([]);
   const [unreadChats, setUnreadChats] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const cardRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const rewardsScrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -124,7 +128,37 @@ const TeenHome = () => {
   const initials = profile?.full_name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?";
   const firstName = profile?.full_name?.split(" ")[0] || "";
   const animBal = useCountUp(wallet?.balance || 0, 1200, showBalance);
-  const greet = () => { const h = new Date().getHours(); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening"; };
+  // IST-based greeting (UTC+5:30) regardless of device timezone
+  const greet = () => {
+    const istHour = (new Date().getUTCHours() * 60 + new Date().getUTCMinutes() + 330) % 1440 / 60;
+    return istHour < 12 ? "Good Morning" : istHour < 17 ? "Good Afternoon" : istHour < 21 ? "Good Evening" : "Good Night";
+  };
+
+  // Auto-scroll the rewards strip slowly, pause on touch
+  useEffect(() => {
+    const el = rewardsScrollRef.current;
+    if (!el || rewards.length < 2) return;
+    let paused = false;
+    const onTouch = () => { paused = true; setTimeout(() => { paused = false; }, 4000); };
+    el.addEventListener("touchstart", onTouch, { passive: true });
+    el.addEventListener("mouseenter", onTouch);
+    const id = setInterval(() => {
+      if (paused) return;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: 1, behavior: "auto" });
+      }
+    }, 30);
+    return () => {
+      clearInterval(id);
+      el.removeEventListener("touchstart", onTouch);
+      el.removeEventListener("mouseenter", onTouch);
+    };
+  }, [rewards.length]);
+
+  // Focus search when opened
+  useEffect(() => { if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 100); }, [searchOpen]);
 
   const moneyIn = transactions.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
   const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
@@ -205,31 +239,80 @@ const TeenHome = () => {
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
           className="px-5 pt-4 pb-5"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: avatar with budget progress ring + greeting */}
+            <div className={`flex items-center gap-3.5 transition-all duration-300 ${searchOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100 flex-1 min-w-0"}`}>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => { haptic.light(); navigate("/profile"); }}
-                className="shrink-0"
+                className="shrink-0 relative w-[54px] h-[54px]"
+                aria-label="Open profile"
               >
-                <div className="relative">
+                {/* Progress ring (monthly budget used) */}
+                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 54 54">
+                  <circle cx="27" cy="27" r="25" fill="none" stroke="hsl(220 15% 14%)" strokeWidth="2" />
+                  <motion.circle
+                    cx="27" cy="27" r="25" fill="none"
+                    stroke={spendPct > 80 ? "hsl(0 72% 51%)" : spendPct > 50 ? "hsl(38 92% 50%)" : "hsl(42 78% 55%)"}
+                    strokeWidth="2.2" strokeLinecap="round"
+                    initial={{ strokeDasharray: "0 157" }}
+                    animate={{ strokeDasharray: `${(spendPct / 100) * 157} 157` }}
+                    transition={{ duration: 1.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ filter: "drop-shadow(0 0 4px hsl(42 78% 55% / 0.45))" }}
+                  />
+                </svg>
+                <div className="absolute inset-[3px] rounded-full overflow-hidden">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-[50px] h-[50px] rounded-[17px] object-cover ring-[1.5px] ring-primary/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]" />
+                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-[50px] h-[50px] rounded-[17px] gradient-primary flex items-center justify-center text-[15px] font-bold text-primary-foreground shadow-[0_8px_32px_hsl(42_78%_55%/0.35)] ring-[1.5px] ring-primary/20">
+                    <div className="w-full h-full gradient-primary flex items-center justify-center text-[15px] font-bold text-primary-foreground">
                       {initials}
                     </div>
                   )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-[13px] h-[13px] rounded-full bg-success border-[2px] border-background" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.6)" }} />
                 </div>
+                {/* Online indicator */}
+                <div className="absolute bottom-0 right-0 w-[13px] h-[13px] rounded-full bg-success border-[2px] border-background z-10" style={{ boxShadow: "0 0 8px hsl(152 60% 45% / 0.6)" }} />
               </motion.button>
-              <div>
-                <p className="text-[11px] text-muted-foreground/50 font-medium tracking-wide">{greet()}</p>
-                <h1 className="text-[19px] font-bold tracking-[-0.5px] text-foreground leading-tight font-sora">{firstName || "User"} ✨</h1>
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground/50 font-medium tracking-wide truncate">{greet()}{firstName ? `, ${firstName}` : ""}</p>
+                <h1 className="text-[18px] font-bold tracking-[-0.5px] text-foreground leading-tight font-sora truncate">Welcome back ✨</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {/* Family Chat Button */}
+
+            {/* Expanding search */}
+            <motion.div
+              animate={{ width: searchOpen ? "100%" : 40 }}
+              transition={{ type: "spring", stiffness: 280, damping: 28 }}
+              className="relative h-[40px] shrink-0"
+              style={{ flexBasis: searchOpen ? "100%" : 40 }}
+            >
+              {searchOpen ? (
+                <div className="w-full h-full rounded-[13px] bg-muted/30 backdrop-blur-sm border border-primary/30 flex items-center pl-3 pr-1 gap-2"
+                  style={{ boxShadow: "0 0 16px hsl(42 78% 55% / 0.15)" }}>
+                  <Search className="w-[15px] h-[15px] text-primary shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); } }}
+                    placeholder="Search contacts, transactions…"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-[12px] font-sora placeholder:text-muted-foreground/40 text-foreground"
+                  />
+                  <button onClick={() => { haptic.light(); setSearchOpen(false); setSearchQuery(""); }}
+                    className="w-[28px] h-[28px] rounded-[9px] bg-muted/40 flex items-center justify-center shrink-0">
+                    <X className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  </button>
+                </div>
+              ) : (
+                <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); setSearchOpen(true); }}
+                  className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center border border-border/30">
+                  <Search className="w-[17px] h-[17px] text-muted-foreground/50" />
+                </motion.button>
+              )}
+            </motion.div>
+
+            {/* Hide chat + bell when search is open */}
+            <div className={`flex items-center gap-2 transition-all duration-200 ${searchOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
               <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/chats"); }}
                 className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
                 <MessageCircle className="w-[17px] h-[17px] text-muted-foreground/50" />
@@ -360,20 +443,26 @@ const TeenHome = () => {
                           {fmt(animBal)}
                         </motion.h2>
                       ) : (
-                        <motion.h2
+                        <motion.div
                           key="hidden"
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
-                          className="text-[34px] font-extrabold tracking-[4px] leading-none select-none"
-                          style={{
-                            background: "linear-gradient(90deg, hsl(42 78% 55% / 0.2), hsl(42 78% 55% / 0.06), hsl(42 78% 55% / 0.2))",
-                            backgroundSize: "200% 100%", animation: "shimmer-card 2s linear infinite",
-                            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                          }}
+                          className="flex items-end gap-1.5 leading-none select-none h-[44px]"
+                          aria-label="Balance hidden"
                         >
-                          •••••
-                        </motion.h2>
+                          <span className="text-[40px] font-bold text-primary/35 mr-1">₹</span>
+                          {[0, 1, 2, 3, 4, 5].map((i) => (
+                            <span
+                              key={i}
+                              className="w-2.5 h-2.5 rounded-full bg-primary/40"
+                              style={{
+                                animation: `dot-pulse 1.4s ease-in-out ${i * 0.12}s infinite`,
+                                boxShadow: "0 0 6px hsl(42 78% 55% / 0.4)",
+                              }}
+                            />
+                          ))}
+                        </motion.div>
                       )}
                     </AnimatePresence>
                     <div className="w-8 h-8 rounded-[10px] bg-muted/20 flex items-center justify-center backdrop-blur-sm border border-border/20">
@@ -398,6 +487,38 @@ const TeenHome = () => {
                   <span className="text-[10px] font-semibold text-destructive/80 font-sora">Wallet Frozen</span>
                 </div>
               )}
+
+              {/* Spent Today / Daily Limit + horizontal progress */}
+              {(() => {
+                const todayPct = wallet ? Math.min(((wallet.spent_today || 0) / Math.max(wallet.daily_limit || 1, 1)) * 100, 100) : 0;
+                const todayColor = todayPct > 80 ? "hsl(0 72% 51%)" : todayPct > 50 ? "hsl(38 92% 50%)" : "hsl(42 78% 55%)";
+                return (
+                  <div className="mb-3 pt-3.5 border-t border-border/15">
+                    <div className="flex items-end justify-between mb-2">
+                      <div>
+                        <span className="text-[8px] text-foreground/25 font-bold tracking-[0.15em] uppercase font-sora block mb-0.5">Spent Today</span>
+                        <p className="text-[13px] font-bold tabular-nums font-mono text-foreground/85">{fmt(wallet?.spent_today || 0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] text-foreground/25 font-bold tracking-[0.15em] uppercase font-sora block mb-0.5">Daily Limit</span>
+                        <p className="text-[13px] font-bold tabular-nums font-mono text-foreground/55">{fmt(wallet?.daily_limit || 0)}</p>
+                      </div>
+                    </div>
+                    <div className="h-[4px] rounded-full bg-muted/25 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${todayPct}%` }}
+                        transition={{ duration: 1.1, delay: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, ${todayColor}, ${todayColor}cc)`,
+                          boxShadow: `0 0 10px ${todayColor}55`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Income / Expense */}
               <div className="grid grid-cols-2 gap-2.5">
@@ -428,6 +549,52 @@ const TeenHome = () => {
               </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* FamPay-Style: Send Money Across India banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18, type: "spring", stiffness: 200, damping: 22 }}
+          className="px-5 mb-5"
+        >
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { haptic.medium(); navigate("/quick-pay"); }}
+            className="group w-full rounded-[20px] p-4 relative overflow-hidden border border-primary/15 text-left flex items-center gap-3.5"
+            style={{
+              background: "linear-gradient(135deg, hsl(220 22% 9%) 0%, hsl(220 18% 6%) 100%)",
+              boxShadow: "0 8px 28px -8px hsl(42 78% 55% / 0.12), inset 0 1px 0 hsl(42 78% 55% / 0.08)",
+            }}
+          >
+            <div className="absolute -right-10 -top-10 w-[180px] h-[180px] rounded-full opacity-[0.06] blur-[60px]" style={{ background: "hsl(42 78% 55%)" }} />
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.3), transparent)" }} />
+
+            {/* Indian flag tile */}
+            <div className="relative w-[46px] h-[46px] rounded-[14px] overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.4)]" style={{ border: "1px solid hsl(42 30% 30% / 0.3)" }}>
+              <div className="absolute inset-x-0 top-0 h-1/3" style={{ background: "hsl(20 80% 50%)" }} />
+              <div className="absolute inset-x-0 top-1/3 h-1/3 bg-white flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full border-[1.5px]" style={{ borderColor: "hsl(220 80% 35%)" }} />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: "hsl(120 50% 35%)" }} />
+            </div>
+
+            <div className="flex-1 min-w-0 relative z-10">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[8px] font-bold text-primary tracking-[0.18em] uppercase font-sora">India · UPI</span>
+                <span className="w-1 h-1 rounded-full bg-success animate-pulse" />
+              </div>
+              <h3 className="text-[14px] font-bold leading-tight font-sora">Send Money Across India</h3>
+              <p className="text-[10px] text-muted-foreground/45 font-sora mt-0.5">Instant UPI transfers · Zero fees</p>
+            </div>
+
+            <div
+              className="w-[40px] h-[40px] rounded-full gradient-primary flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:rotate-45 group-active:rotate-45"
+              style={{ boxShadow: "0 6px 20px hsl(42 78% 55% / 0.35), inset 0 1px 0 hsl(48 90% 70% / 0.3)" }}
+            >
+              <ArrowRight className="w-[18px] h-[18px] text-primary-foreground" strokeWidth={2.2} />
+            </div>
+          </motion.button>
         </motion.div>
 
         {/* Quick Actions */}
@@ -606,12 +773,24 @@ const TeenHome = () => {
                   transition={{ delay: 0.45 + i * 0.06, type: "spring", stiffness: 300, damping: 22 }}
                   whileTap={{ scale: 0.88 }}
                   onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
-                  className="flex flex-col items-center gap-2 min-w-[58px] group"
+                  className={`flex flex-col items-center gap-2 group ${i === 0 ? "min-w-[66px]" : "min-w-[58px]"}`}
                 >
-                  <div className={`${i === 0 ? "w-[56px] h-[56px]" : "w-[50px] h-[50px]"} rounded-[16px] bg-muted/20 border border-border/20 flex items-center justify-center text-[22px] group-active:border-primary/30 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.15)]`}>
+                  <div
+                    className={`${i === 0 ? "w-[66px] h-[66px] text-[26px]" : "w-[50px] h-[50px] text-[22px]"} rounded-full flex items-center justify-center transition-all relative`}
+                    style={{
+                      background: "linear-gradient(135deg, hsl(220 18% 11%), hsl(220 20% 7%))",
+                      border: i === 0 ? "1.5px solid hsl(42 78% 55% / 0.55)" : "1px solid hsl(0 0% 100% / 0.06)",
+                      boxShadow: i === 0
+                        ? "0 6px 20px hsl(42 78% 55% / 0.25), 0 0 0 3px hsl(42 78% 55% / 0.08)"
+                        : "0 2px 8px rgba(0,0,0,0.25)",
+                    }}
+                  >
                     {fav.avatar_emoji}
+                    {i === 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-[1px] rounded-full text-[7px] font-bold tracking-wider gradient-primary text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.4)]">NEW</span>
+                    )}
                   </div>
-                  <span className="text-[9px] text-muted-foreground/50 font-medium truncate w-full text-center font-sora">{fav.contact_name.split(" ")[0]}</span>
+                  <span className={`${i === 0 ? "text-[10px] font-bold text-foreground/85" : "text-[9px] font-medium text-muted-foreground/55"} truncate w-full text-center font-sora`}>{fav.contact_name.split(" ")[0]}</span>
                 </motion.button>
               ))}
               <motion.button
@@ -767,7 +946,7 @@ const TeenHome = () => {
                 View All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
+            <div ref={rewardsScrollRef} className="flex gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-hide scroll-smooth">
               {rewards.map((r, i) => (
                 <motion.button
                   key={r.id}
@@ -894,6 +1073,10 @@ const TeenHome = () => {
         @keyframes glow-pulse {
           0%, 100% { opacity: 1; box-shadow: 0 0 10px hsl(42 78% 55% / 0.8); }
           50% { opacity: 0.6; box-shadow: 0 0 4px hsl(42 78% 55% / 0.4); }
+        }
+        @keyframes dot-pulse {
+          0%, 100% { opacity: 0.35; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.15); }
         }
       `}</style>
     </div>
