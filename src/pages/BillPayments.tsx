@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone, Star, RotateCcw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone, Star, RotateCcw, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
@@ -168,6 +168,10 @@ const BillPayments = () => {
   const [searchProvider, setSearchProvider] = useState("");
   const [paying, setPaying] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteBill[]>([]);
+  const [swipeOffsets, setSwipeOffsets] = useState<Record<number, number>>({});
+  const [removingIdx, setRemovingIdx] = useState<number | null>(null);
+  const swipeStartY = useRef<Record<number, number>>({});
+  const swipeStartX = useRef<Record<number, number>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("bill_favorites");
@@ -189,6 +193,42 @@ const BillPayments = () => {
   const filteredProviders = selectedCategory === "mobile"
     ? currentProviders.filter(p => p.name.toLowerCase().includes(mobileType) && p.name.toLowerCase().includes(searchProvider.toLowerCase()))
     : currentProviders.filter(p => p.name.toLowerCase().includes(searchProvider.toLowerCase()));
+
+  const removeFavorite = (idx: number) => {
+    setRemovingIdx(idx);
+    haptic.medium();
+    setTimeout(() => {
+      const updated = favorites.filter((_, i) => i !== idx);
+      setFavorites(updated);
+      localStorage.setItem("bill_favorites", JSON.stringify(updated));
+      setSwipeOffsets(prev => { const n = { ...prev }; delete n[idx]; return n; });
+      setRemovingIdx(null);
+    }, 300);
+  };
+
+  const handleFavTouchStart = (idx: number, e: React.TouchEvent) => {
+    swipeStartX.current[idx] = e.touches[0].clientX;
+    swipeStartY.current[idx] = e.touches[0].clientY;
+  };
+
+  const handleFavTouchMove = (idx: number, e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - (swipeStartX.current[idx] || 0);
+    const dy = e.touches[0].clientY - (swipeStartY.current[idx] || 0);
+    // Only allow vertical swipe (upward to delete)
+    if (Math.abs(dy) > Math.abs(dx) && dy < 0) {
+      e.preventDefault();
+      setSwipeOffsets(prev => ({ ...prev, [idx]: Math.min(0, dy) }));
+    }
+  };
+
+  const handleFavTouchEnd = (idx: number) => {
+    const offset = swipeOffsets[idx] || 0;
+    if (offset < -60) {
+      removeFavorite(idx);
+    } else {
+      setSwipeOffsets(prev => ({ ...prev, [idx]: 0 }));
+    }
+  };
 
   const handleSelectCategory = (key: string) => {
     haptic.light();
@@ -317,39 +357,68 @@ const BillPayments = () => {
                     <Star className="w-3.5 h-3.5 text-primary" />
                     <h3 className="text-[12px] font-semibold text-muted-foreground/50 tracking-[0.1em] uppercase">Favorites</h3>
                   </div>
-                  <span className="text-[10px] text-muted-foreground/30">Quick repeat</span>
+                  <span className="text-[10px] text-muted-foreground/30">Swipe up to remove</span>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                   {favorites.map((fav, i) => {
                     const catData = categories.find(c => c.key === fav.category);
+                    const offset = swipeOffsets[i] || 0;
+                    const isRemoving = removingIdx === i;
+                    const deleteProgress = Math.min(1, Math.abs(offset) / 60);
                     return (
-                      <button
+                      <div
                         key={`${fav.category}-${fav.provider}-${i}`}
-                        onClick={() => {
-                          haptic.light();
-                          setSelectedCategory(fav.category);
-                          setSelectedProvider(fav.provider);
-                          setStep("details");
-                        }}
-                        className="shrink-0 w-[140px] rounded-[18px] border border-white/[0.06] p-3.5 text-left active:scale-[0.95] transition-all group relative overflow-hidden"
-                        style={{
-                          background: "linear-gradient(145deg, rgba(200,149,46,0.04), rgba(13,14,18,0.8))",
-                          animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.08}s both`,
-                        }}
+                        className="shrink-0 w-[140px] relative"
+                        style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.08}s both` }}
                       >
-                        <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04] blur-[20px]" style={{ background: "hsl(42 78% 55%)" }} />
-                        <div className="flex items-center gap-2 mb-2.5">
-                          {catData?.image && (
-                            <img src={catData.image} alt="" className="w-8 h-8 object-contain rounded-[8px]" width={32} height={32} />
-                          )}
-                          <RotateCcw className="w-3 h-3 text-primary/40 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {/* Delete indicator behind card */}
+                        <div
+                          className="absolute inset-0 rounded-[18px] flex flex-col items-center justify-end pb-3 transition-opacity"
+                          style={{
+                            opacity: deleteProgress > 0.2 ? deleteProgress : 0,
+                            background: `linear-gradient(to top, rgba(239,68,68,${0.15 * deleteProgress}), transparent 60%)`,
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" style={{ opacity: deleteProgress, transform: `scale(${0.6 + deleteProgress * 0.4})` }} />
+                          <span className="text-[9px] text-destructive/70 mt-1">Release to delete</span>
                         </div>
-                        <p className="text-[12px] font-bold truncate">{fav.provider}</p>
-                        <div className="flex items-baseline gap-1 mt-1">
-                          <span className="text-[11px] text-primary font-bold">₹{fav.lastAmount}</span>
-                        </div>
-                        <p className="text-[9px] text-muted-foreground/30 mt-1">{fav.lastPaidDate}</p>
-                      </button>
+                        {/* Swipeable card */}
+                        <button
+                          onTouchStart={(e) => handleFavTouchStart(i, e)}
+                          onTouchMove={(e) => handleFavTouchMove(i, e)}
+                          onTouchEnd={() => handleFavTouchEnd(i)}
+                          onClick={() => {
+                            if (Math.abs(offset) < 10) {
+                              haptic.light();
+                              setSelectedCategory(fav.category);
+                              setSelectedProvider(fav.provider);
+                              setStep("details");
+                            }
+                          }}
+                          className="w-full rounded-[18px] border border-white/[0.06] p-3.5 text-left active:scale-[0.95] transition-all group relative overflow-hidden"
+                          style={{
+                            background: "linear-gradient(145deg, rgba(200,149,46,0.04), rgba(13,14,18,0.8))",
+                            transform: isRemoving
+                              ? "translateY(-100px) scale(0.8)"
+                              : `translateY(${offset}px)`,
+                            opacity: isRemoving ? 0 : 1,
+                            transition: offset === 0 || isRemoving ? "transform 0.3s ease, opacity 0.3s ease" : "none",
+                          }}
+                        >
+                          <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04] blur-[20px]" style={{ background: "hsl(42 78% 55%)" }} />
+                          <div className="flex items-center gap-2 mb-2.5">
+                            {catData?.image && (
+                              <img src={catData.image} alt="" className="w-8 h-8 object-contain rounded-[8px]" width={32} height={32} />
+                            )}
+                            <RotateCcw className="w-3 h-3 text-primary/40 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          <p className="text-[12px] font-bold truncate">{fav.provider}</p>
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-[11px] text-primary font-bold">₹{fav.lastAmount}</span>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground/30 mt-1">{fav.lastPaidDate}</p>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
