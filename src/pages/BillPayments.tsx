@@ -168,6 +168,10 @@ const BillPayments = () => {
   const [searchProvider, setSearchProvider] = useState("");
   const [paying, setPaying] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteBill[]>([]);
+  const [swipeOffsets, setSwipeOffsets] = useState<Record<number, number>>({});
+  const [removingIdx, setRemovingIdx] = useState<number | null>(null);
+  const swipeStartY = useRef<Record<number, number>>({});
+  const swipeStartX = useRef<Record<number, number>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("bill_favorites");
