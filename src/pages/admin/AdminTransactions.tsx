@@ -495,6 +495,13 @@ const AdminTransactions = () => {
         notificationTitle="ℹ️ More info needed about a transaction"
         auditAction="transaction_request_more_info"
       />
+
+      <RefundConfirmModal
+        target={refundTarget}
+        userName={refundTarget ? wallets[refundTarget.wallet_id]?.full_name || null : null}
+        onClose={() => setRefundTarget(null)}
+        onComplete={onRefundComplete}
+      />
     </AdminLayout>
   );
 };
