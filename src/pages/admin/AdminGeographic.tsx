@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { MapPin, TrendingUp, TrendingDown, Building2, Globe2 } from "lucide-react";
+import { MapPin, TrendingUp, TrendingDown, Building2, Globe2, Sparkles, Loader2 } from "lucide-react";
 import { INDIA_STATES, type IndiaState } from "@/lib/india-states";
+import { toast } from "sonner";
 
 /* ──────────────────────────────────────────────────────────────
  * Geographic intelligence — India map.
@@ -145,23 +146,47 @@ const AdminGeographic = () => {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<DateRange>("30d");
   const [hoverState, setHoverState] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  const loadAll = async () => {
+    setLoading(true);
+    const [{ data: us }, { data: tx }, { data: ws }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, phone, role, created_at, state_code, city, state_source"),
+      supabase.from("transactions").select("amount, status, created_at, wallet_id").eq("status", "success").limit(5000),
+      supabase.from("wallets").select("id, user_id"),
+    ]);
+    const map: Record<string, string> = {};
+    (ws || []).forEach((w: any) => (map[w.id] = w.user_id));
+    setWalletToUser(map);
+    setUsers((us || []) as UserRow[]);
+    setTxns((tx || []) as Tx[]);
+    setLoading(false);
+  };
+
+  const handleResolveUnknowns = async () => {
+    if (resolving) return;
+    setResolving(true);
+    const t = toast.loading("Re-running phone-based inference on unknown profiles…");
+    const { data, error } = await supabase.rpc("resolve_unknown_states" as any);
+    toast.dismiss(t);
+    if (error) {
+      toast.error(error.message || "Failed to resolve");
+    } else {
+      const row = Array.isArray(data) ? data[0] : data;
+      const scanned = row?.scanned ?? 0;
+      const resolved = row?.resolved ?? 0;
+      if (resolved > 0) toast.success(`Resolved ${resolved} of ${scanned} unknown profiles`);
+      else toast.message(`Scanned ${scanned} unknown profiles — none could be inferred from phone`);
+      await loadAll();
+    }
+    setResolving(false);
+  };
+
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [{ data: us }, { data: tx }, { data: ws }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone, role, created_at, state_code, city, state_source"),
-        supabase.from("transactions").select("amount, status, created_at, wallet_id").eq("status", "success").limit(5000),
-        supabase.from("wallets").select("id, user_id"),
-      ]);
-      const map: Record<string, string> = {};
-      (ws || []).forEach((w: any) => (map[w.id] = w.user_id));
-      setWalletToUser(map);
-      setUsers((us || []) as UserRow[]);
-      setTxns((tx || []) as Tx[]);
-      setLoading(false);
-    })();
+    loadAll();
   }, []);
+
 
   const cutoffMs = useMemo(() => {
     const r = RANGES.find((x) => x.v === range);
@@ -184,11 +209,15 @@ const AdminGeographic = () => {
 
   // State stats
   const stateStats = useMemo(() => {
-    const map = new Map<string, { node: StateNode; users: number; teens: number; parents: number; volume: number; volumePrev: number }>();
+    type Row = { node: StateNode; users: number; teens: number; parents: number; volume: number; volumePrev: number; manual: number; inferred: number; unknown: number };
+    const map = new Map<string, Row>();
     STATES.forEach((s) =>
-      map.set(s.code, { node: s, users: 0, teens: 0, parents: 0, volume: 0, volumePrev: 0 })
+      map.set(s.code, { node: s, users: 0, teens: 0, parents: 0, volume: 0, volumePrev: 0, manual: 0, inferred: 0, unknown: 0 })
     );
 
+    // Map each user → which state they were placed in, AND track the source the placement came from.
+    // Only users whose state_code on the profile matches the placed state count toward 'manual/inferred',
+    // since rows resolved by client-side fallback or hash are effectively 'unknown' for trust purposes.
     const userToState = new Map<string, StateNode>();
     for (const e of enriched) {
       userToState.set(e.user.id, e.state);
@@ -196,6 +225,12 @@ const AdminGeographic = () => {
       m.users++;
       if (e.user.role === "teen") m.teens++;
       else if (e.user.role === "parent") m.parents++;
+
+      const placedFromColumn = e.user.state_code === e.state.code;
+      const src = (e.user.state_source || "unknown").toLowerCase();
+      if (placedFromColumn && src === "manual") m.manual++;
+      else if (placedFromColumn && src === "inferred") m.inferred++;
+      else m.unknown++;
     }
 
     for (const t of txns) {
@@ -318,6 +353,21 @@ const AdminGeographic = () => {
               ⚠ Low confidence — {sourceStats.unknownPct}% of users have no resolved state
             </span>
           )}
+          <button
+            onClick={handleResolveUnknowns}
+            disabled={resolving || sourceStats.unknown === 0}
+            title={sourceStats.unknown === 0 ? "No unknown profiles to resolve" : "Re-run phone-based inference on every profile with state_source='unknown'"}
+            className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: "rgba(200,149,46,0.12)",
+              color: "#e8c060",
+              border: "1px solid rgba(200,149,46,0.35)",
+              boxShadow: resolving ? "none" : "0 0 12px rgba(200,149,46,0.15)",
+            }}
+          >
+            {resolving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {resolving ? "Resolving…" : "Resolve unknowns"}
+          </button>
         </div>
 
         {/* Map + State table */}
@@ -438,9 +488,10 @@ const AdminGeographic = () => {
                         onMouseLeave={() => setHoverState(null)}
                         className={`border-b border-white/[0.03] transition-colors cursor-pointer ${isHover ? "bg-primary/[0.06]" : "hover:bg-white/[0.02]"}`}>
                         <td className="py-2.5 px-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ background: colorFor(s.users) }} />
-                            <span className="font-medium">{s.node.name}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: colorFor(s.users) }} />
+                            <span className="font-medium truncate">{s.node.name}</span>
+                            <TrustBadge manual={s.manual} inferred={s.inferred} unknown={s.unknown} />
                           </div>
                         </td>
                         <td className="py-2.5 px-2 text-right font-mono">{s.users}</td>
@@ -508,6 +559,37 @@ const AdminGeographic = () => {
         </div>
       </div>
     </AdminLayout>
+  );
+};
+
+/* ───────── Per-state trust badge ───────── */
+const TrustBadge = ({ manual, inferred, unknown }: { manual: number; inferred: number; unknown: number }) => {
+  const total = manual + inferred + unknown;
+  if (total === 0) return null;
+  const manualPct = Math.round((manual / total) * 100);
+  const inferredPct = Math.round((inferred / total) * 100);
+  // Highest-priority signal: if mostly manual → green; mostly inferred → gold; mostly unknown → red.
+  const dominant: "manual" | "inferred" | "unknown" =
+    manual >= inferred && manual >= unknown ? "manual"
+      : inferred >= unknown ? "inferred"
+      : "unknown";
+  const palette = {
+    manual: { bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)", color: "#22c55e", glyph: "✓" },
+    inferred: { bg: "rgba(200,149,46,0.12)", border: "rgba(200,149,46,0.35)", color: "#e8c060", glyph: "≈" },
+    unknown: { bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)", color: "#ef4444", glyph: "?" },
+  }[dominant];
+  const hint =
+    `${manual} manual · ${inferred} inferred · ${unknown} unknown\n` +
+    `${manualPct}% confirmed by users, ${inferredPct}% guessed from phone`;
+  return (
+    <span
+      title={hint}
+      className="ml-1 inline-flex items-center gap-1 text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: palette.bg, color: palette.color, border: `1px solid ${palette.border}` }}
+    >
+      <span aria-hidden>{palette.glyph}</span>
+      {dominant === "manual" ? `${manualPct}% set` : dominant === "inferred" ? `${inferredPct}% guess` : `${Math.round((unknown / total) * 100)}% ?`}
+    </span>
   );
 };
 
