@@ -374,6 +374,31 @@ const LinkedTeens = () => {
         </div>
       )}
 
+      <AlertDialog open={!!pauseTarget} onOpenChange={(o) => !o && setPauseTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-primary" />
+              Pause {pauseTarget?.teen_name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              While paused, scheduled pocket money transfers will be suspended and won't be sent until you resume the link. You can resume at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep active</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pauseTarget) performToggle(pauseTarget);
+                setPauseTarget(null);
+              }}
+            >
+              Pause link
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BottomNav />
 
       <style>{`
