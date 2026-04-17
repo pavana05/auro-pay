@@ -441,10 +441,11 @@ const PaymentConfirm = () => {
     return (
       <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
         <div className="relative w-[200px] h-[200px] flex items-center justify-center">
-          {/* Concentric expanding rings */}
+          {/* Concentric expanding rings — anchored to center */}
           {[0, 1, 2].map((i) => (
             <span key={i} className="absolute rounded-full border border-primary/40" style={{
               width: 80, height: 80,
+              top: "50%", left: "50%", marginTop: -40, marginLeft: -40,
               animation: `ring-expand 2.4s ease-out ${i * 0.8}s infinite`,
             }} />
           ))}

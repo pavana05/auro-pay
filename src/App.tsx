@@ -75,6 +75,7 @@ import ChatRoom from "./pages/ChatRoom.tsx";
 import ManageRecurring from "./pages/ManageRecurring.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 import DeepLinkHandler from "./components/DeepLinkHandler";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -186,7 +187,7 @@ const App = () => (
                     <Route path="/savings" element={<SavingsGoals />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/scan" element={<ScanPay />} />
-                    <Route path="/pay" element={<PaymentConfirm />} />
+                    <Route path="/pay" element={<ErrorBoundary label="Payment"><PaymentConfirm /></ErrorBoundary>} />
                     <Route path="/add-money" element={<AddMoney />} />
                     <Route path="/parent" element={<ParentHome />} />
                     <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />

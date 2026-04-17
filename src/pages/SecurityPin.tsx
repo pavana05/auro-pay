@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -8,6 +8,8 @@ import ForgotPinModal from "@/components/ForgotPinModal";
 
 const SecurityPin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSetupMode = searchParams.get("setup") === "1";
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -15,6 +17,16 @@ const SecurityPin = () => {
   const [showNew, setShowNew] = useState(false);
   const [changing, setChanging] = useState(false);
   const [showForgotPin, setShowForgotPin] = useState(false);
+
+  useEffect(() => {
+    if (isSetupMode) {
+      toast.info("Set up your 4-digit Payment PIN to continue", { duration: 5000 });
+      // Scroll to PIN section
+      setTimeout(() => {
+        document.getElementById("pin-setup-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [isSetupMode]);
 
   const handleChangePin = () => {
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
@@ -54,15 +66,30 @@ const SecurityPin = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[22px] font-semibold">Security & PIN</h1>
+      <div className="flex items-center gap-3 mb-6">
+        {!isSetupMode && (
+          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+        <h1 className="text-[22px] font-semibold">{isSetupMode ? "Create Payment PIN" : "Security & PIN"}</h1>
       </div>
 
+      {isSetupMode && (
+        <div className="rounded-xl p-4 mb-5 flex items-start gap-3"
+          style={{ background: "rgba(200,149,46,0.08)", border: "1px solid rgba(200,149,46,0.3)" }}>
+          <Sparkles className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(var(--primary))" }} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">One last step</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Set a 4-digit PIN below — you'll use it to authorise every payment.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Change PIN */}
-      <div className="rounded-xl bg-card border border-border card-glow p-5 mb-6">
+      <div id="pin-setup-section" className="rounded-xl bg-card border border-border card-glow p-5 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center">
             <Lock className="w-5 h-5 text-primary-foreground" />
