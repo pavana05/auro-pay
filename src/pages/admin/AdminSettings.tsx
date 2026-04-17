@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
+import { useAdminQuery } from "@/hooks/useAdminQuery";
+import { AdminQueryError, AdminQueryStatus } from "@/components/admin/AdminQueryState";
 import {
   Settings, Shield, Sliders, CreditCard, Zap, AlertTriangle, Lock,
   CheckCircle2, Power, UserX, Ban, Activity, Wrench, Globe, Bell, Sparkles, Clock, X,
@@ -89,7 +91,6 @@ const Toggle = ({ on, onChange, color = C.primary, danger }: { on: boolean; onCh
 const AdminSettings = () => {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [originalSettings, setOriginalSettings] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [recentlySavedKeys, setRecentlySavedKeys] = useState<Set<string>>(new Set());
@@ -102,33 +103,26 @@ const AdminSettings = () => {
   const [emergencyOpen, setEmergencyOpen] = useState<{ key: string; phase: 1 | 2 } | null>(null);
   const [emergencyText, setEmergencyText] = useState("");
 
-  /* Load all settings + ensure defaults exist locally */
+  /* Load all settings via shared admin query (with retry, polling, timestamp) */
+  const { loading, error, refetch, lastUpdatedAt } = useAdminQuery<Record<string, string>>(
+    async () => {
+      const { data, error } = await supabase.from("app_settings").select("key,value");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data || []).forEach((s: any) => { map[s.key] = s.value; });
+      // Merge in defaults for any keys not yet in DB so the UI always renders.
+      Object.entries(SETTING_DEFS).forEach(([k, def]) => {
+        if (map[k] === undefined) map[k] = def.default;
+      });
+      setSettings(map);
+      setOriginalSettings(map);
+      return map;
+    },
+    { label: "app settings", refetchInterval: 60_000 }
+  );
+
+  // Cleanup debounce timers on unmount
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase.from("app_settings").select("*");
-        if (error) {
-          console.error("[AdminSettings] load error:", error);
-          toast.error(`Failed to load settings: ${error.message}`);
-        }
-        const map: Record<string, string> = {};
-        (data || []).forEach((s: any) => { map[s.key] = s.value; });
-        Object.entries(SETTING_DEFS).forEach(([k, def]) => {
-          if (map[k] === undefined) map[k] = def.default;
-        });
-        setSettings(map);
-        setOriginalSettings(map);
-      } catch (e: any) {
-        console.error("[AdminSettings] load exception:", e);
-        toast.error(e?.message || "Failed to load settings");
-        const map: Record<string, string> = {};
-        Object.entries(SETTING_DEFS).forEach(([k, def]) => { map[k] = def.default; });
-        setSettings(map);
-        setOriginalSettings(map);
-      } finally {
-        setLoading(false);
-      }
-    })();
     return () => { Object.values(debounceTimers.current).forEach(clearTimeout); };
   }, []);
 
