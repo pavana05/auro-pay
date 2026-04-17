@@ -49,6 +49,7 @@ const AdminTransactions = () => {
   const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
   const [realtimeOn, setRealtimeOn] = useState(true);
   const [infoTarget, setInfoTarget] = useState<Transaction | null>(null);
+  const [refundTarget, setRefundTarget] = useState<Transaction | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -229,23 +230,25 @@ const AdminTransactions = () => {
     toast.success("Transaction flagged for review");
   };
 
-  const refundTransaction = async (t: Transaction) => {
-    if (!confirm(`Refund ${formatAmount(t.amount)}? This will credit the user wallet.`)) return;
-    const { error } = await supabase.from("transactions").insert({
-      wallet_id: t.wallet_id,
-      type: "credit",
-      amount: t.amount,
-      status: "success",
-      category: "refund",
-      description: `Admin refund for ${t.id}`,
-    });
-    if (error) {
-      toast.error(error.message);
+  // Refund: opens typed-CONFIRM modal; the modal calls the admin-refund-transaction edge fn.
+  const refundTransaction = (t: Transaction) => {
+    if (t.status !== "success") {
+      toast.error("Only successful transactions can be refunded");
       return;
     }
-    await logAudit("transaction_refunded", t);
-    toast.success("Refund issued");
+    if (t.type === "credit") {
+      toast.error("Cannot refund a credit transaction");
+      return;
+    }
+    setRefundTarget(t);
     hide();
+  };
+
+  const onRefundComplete = (txId: string) => {
+    // Refresh: mark refunded visually by refetching that transaction's wallet activity is enough
+    // (the refund row will appear via realtime). We'll also pull the latest status quickly.
+    setRefundTarget(null);
+    toast.success("Refund issued");
   };
 
   const retryTransaction = async (t: Transaction) => {
@@ -492,6 +495,13 @@ const AdminTransactions = () => {
         notificationTitle="ℹ️ More info needed about a transaction"
         auditAction="transaction_request_more_info"
       />
+
+      <RefundConfirmModal
+        target={refundTarget}
+        userName={refundTarget ? wallets[refundTarget.wallet_id]?.full_name || null : null}
+        onClose={() => setRefundTarget(null)}
+        onComplete={onRefundComplete}
+      />
     </AdminLayout>
   );
 };
@@ -663,6 +673,99 @@ const TxFlashStyles = () => (
     .tx-flash { animation: tx-flash-anim 2.2s ease-out; }
   `}</style>
 );
+
+/* ───────────────────────── Refund Confirm Modal ───────────────────────── */
+const RefundConfirmModal = ({
+  target, userName, onClose, onComplete,
+}: {
+  target: Transaction | null;
+  userName: string | null;
+  onClose: () => void;
+  onComplete: (txId: string) => void;
+}) => {
+  const [reason, setReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (target) {
+      setReason("");
+      setConfirmText("");
+      setSubmitting(false);
+    }
+  }, [target?.id]);
+
+  if (!target) return null;
+
+  const canSubmit = confirmText === "CONFIRM" && reason.trim().length >= 5 && !submitting;
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-refund-transaction", {
+        body: { transaction_id: target.id, reason: reason.trim() },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      onComplete(target.id);
+    } catch (e: any) {
+      toast.error(e?.message || "Refund failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card border border-white/[0.08] p-6 space-y-5"
+        style={{ animation: "slide-up-spring 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <RefreshCcw className="w-4 h-4 text-primary" />
+            <h3 className="text-base font-bold">Refund transaction</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Server-side, audit-logged. The user's wallet is credited and they're notified.
+          </p>
+        </div>
+
+        <div className="rounded-xl p-3 bg-white/[0.03] border border-white/[0.06] space-y-1.5 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="font-semibold">{formatAmount(target.amount)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="truncate ml-2">{userName || "—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Txn ID</span><span className="font-mono text-[10px]">{target.id.slice(0, 16)}…</span></div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Reason (visible to user, min 5 chars)</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)}
+            rows={3} placeholder="e.g. Duplicate charge confirmed by Razorpay support ticket #123"
+            className="w-full rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-xs focus:outline-none focus:border-primary/40 resize-none" />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Type <span className="font-mono text-primary">CONFIRM</span> to proceed
+          </label>
+          <input value={confirmText} onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+            placeholder="CONFIRM"
+            className="w-full h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 text-xs font-mono tracking-widest focus:outline-none focus:border-primary/40" />
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose} disabled={submitting}
+            className="flex-1 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium hover:bg-white/[0.06] transition disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={submit} disabled={!canSubmit}
+            className="flex-1 h-10 rounded-xl bg-primary/20 text-primary border border-primary/40 text-xs font-bold hover:bg-primary/30 transition disabled:opacity-30 disabled:pointer-events-none">
+            {submitting ? "Refunding…" : `Refund ${formatAmount(target.amount)}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AdminTransactionsWithStyles = () => (<><TxFlashStyles /><AdminTransactions /></>);
 
