@@ -89,8 +89,15 @@ const Toggle = ({ on, onChange, color = C.primary, danger }: { on: boolean; onCh
 );
 
 const AdminSettings = () => {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [originalSettings, setOriginalSettings] = useState<Record<string, string>>({});
+  // Seed with hardcoded defaults so the UI is never blank, even if the DB
+  // fetch is slow or fails. Live values overwrite these on load.
+  const initialDefaults = useMemo(() => {
+    const m: Record<string, string> = {};
+    Object.entries(SETTING_DEFS).forEach(([k, def]) => { m[k] = def.default; });
+    return m;
+  }, []);
+  const [settings, setSettings] = useState<Record<string, string>>(initialDefaults);
+  const [originalSettings, setOriginalSettings] = useState<Record<string, string>>(initialDefaults);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [recentlySavedKeys, setRecentlySavedKeys] = useState<Set<string>>(new Set());
