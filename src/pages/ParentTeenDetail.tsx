@@ -123,8 +123,11 @@ const ParentTeenDetail = () => {
     const { error } = await supabase.from("limit_increase_requests").update(updates).eq("id", req.id);
     if (error) { toast.error(error.message); return; }
     if (approve && wallet) {
-      const field = req.limit_type === "daily" ? "daily_limit" : "monthly_limit";
-      await supabase.from("wallets").update({ [field]: req.requested_limit }).eq("id", wallet.id);
+      if (req.limit_type === "daily") {
+        await supabase.from("wallets").update({ daily_limit: req.requested_limit }).eq("id", wallet.id);
+      } else {
+        await supabase.from("wallets").update({ monthly_limit: req.requested_limit }).eq("id", wallet.id);
+      }
       logParentAction(teenId, "approve_request",
         `Approved ${req.limit_type} limit increase to ₹${req.requested_limit / 100}`,
         { request_id: req.id });
