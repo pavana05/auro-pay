@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  User, Shield, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
+  User, Shield, ShieldCheck, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
   ChevronRight, Trophy, Star, Flame, Zap, Crown, Copy, Check, Gem,
   Award, TrendingUp, Gift, Tag, Clock, Sun, Moon,
 } from "lucide-react";
@@ -177,6 +177,7 @@ const ProfileScreen = () => {
     { icon: Shield, label: "Security & PIN", path: "/security", desc: "Change PIN, biometrics" },
     { icon: Wallet, label: "Spending Limits", path: "/spending-limits", desc: "Daily & monthly limits" },
     { icon: Users, label: "Linked Parents", path: "/linked-parents", desc: "Manage parent connections" },
+    { icon: ShieldCheck, label: "Parent Controls", path: "/parent-controls", desc: "Limits, restrictions & requests" },
     { icon: Target, label: "Savings Goals", path: "/savings", desc: "Track your goals" },
     { icon: Bell, label: "Notifications", path: "/notifications", desc: "Alert preferences" },
     { icon: HelpCircle, label: "Help & Support", path: "/help", desc: "FAQs, contact us" },

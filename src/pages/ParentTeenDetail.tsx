@@ -9,6 +9,15 @@ const categoryIcons: Record<string, string> = {
   food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
 };
 
+// Helper: log a parent action (best-effort, never blocks UI)
+const logParentAction = async (teenId: string, action_type: string, description: string, metadata: any = {}) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("parent_actions").insert({
+    parent_id: user.id, teen_id: teenId, action_type, description, metadata,
+  });
+};
+
 const ParentTeenDetail = () => {
   const { teenId } = useParams();
   const navigate = useNavigate();
@@ -16,6 +25,7 @@ const ParentTeenDetail = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [spendingLimits, setSpendingLimits] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [freezing, setFreezing] = useState(false);
   const [editingLimit, setEditingLimit] = useState(false);
@@ -36,12 +46,14 @@ const ParentTeenDetail = () => {
       setWallet(walletRes.data);
       setNewDailyLimit(String((walletRes.data.daily_limit || 0) / 100));
 
-      const [txRes, limitsRes] = await Promise.all([
+      const [txRes, limitsRes, reqRes] = await Promise.all([
         supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("spending_limits").select("*").eq("teen_wallet_id", walletRes.data.id),
+        supabase.from("limit_increase_requests").select("*").eq("teen_id", teenId).eq("status", "pending").order("created_at", { ascending: false }),
       ]);
       setTransactions(txRes.data || []);
       setSpendingLimits(limitsRes.data || []);
+      setRequests(reqRes.data || []);
     }
     setLoading(false);
   };
@@ -51,54 +63,88 @@ const ParentTeenDetail = () => {
   const formatAmount = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
   const toggleFreeze = async () => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     setFreezing(true);
-    const { error } = await supabase.from("wallets").update({ is_frozen: !wallet.is_frozen }).eq("id", wallet.id);
+    const wasFrozen = wallet.is_frozen;
+    const { error } = await supabase.from("wallets").update({ is_frozen: !wasFrozen }).eq("id", wallet.id);
     if (error) toast.error("Failed to update");
     else {
-      toast.success(wallet.is_frozen ? "Wallet unfrozen" : "Wallet frozen");
+      toast.success(wasFrozen ? "Wallet unfrozen" : "Wallet frozen");
+      logParentAction(teenId, wasFrozen ? "unfreeze_card" : "freeze_card",
+        wasFrozen ? "Unfroze the card" : "Froze the card");
       fetchData();
     }
     setFreezing(false);
   };
 
   const updateDailyLimit = async () => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     const limitPaise = Math.round(parseFloat(newDailyLimit) * 100);
     if (isNaN(limitPaise) || limitPaise <= 0) { toast.error("Enter a valid amount"); return; }
     const { error } = await supabase.from("wallets").update({ daily_limit: limitPaise }).eq("id", wallet.id);
     if (error) toast.error("Failed to update");
-    else { toast.success("Daily limit updated"); setEditingLimit(false); fetchData(); }
+    else {
+      toast.success("Daily limit updated");
+      logParentAction(teenId, "set_daily_limit", `Set daily limit to ₹${limitPaise / 100}`, { value: limitPaise });
+      setEditingLimit(false);
+      fetchData();
+    }
   };
 
   const toggleCategoryBlock = async (category: string) => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const existing = spendingLimits.find(sl => sl.category === category);
+    let nowBlocked = false;
     if (existing) {
-      // Can't update via anon, delete and re-insert
-      // Toggle block
-      const { error } = await supabase.from("spending_limits").delete().eq("id", existing.id);
-      if (!error && !existing.is_blocked) {
+      await supabase.from("spending_limits").delete().eq("id", existing.id);
+      if (!existing.is_blocked) {
         await supabase.from("spending_limits").insert({
-          teen_wallet_id: wallet.id,
-          category,
-          is_blocked: true,
-          set_by_parent_id: user.id,
+          teen_wallet_id: wallet.id, category, is_blocked: true, set_by_parent_id: user.id,
         });
-      } else if (!error && existing.is_blocked) {
-        // Unblock - just delete was enough
+        nowBlocked = true;
       }
     } else {
       await supabase.from("spending_limits").insert({
-        teen_wallet_id: wallet.id,
-        category,
-        is_blocked: true,
-        set_by_parent_id: user.id,
+        teen_wallet_id: wallet.id, category, is_blocked: true, set_by_parent_id: user.id,
       });
+      nowBlocked = true;
     }
+    logParentAction(teenId, nowBlocked ? "block_category" : "unblock_category",
+      `${nowBlocked ? "Blocked" : "Unblocked"} ${category} category`, { category });
+    fetchData();
+  };
+
+  const decideRequest = async (req: any, approve: boolean) => {
+    if (!teenId) return;
+    const updates: any = { status: approve ? "approved" : "rejected", decided_at: new Date().toISOString() };
+    const { error } = await supabase.from("limit_increase_requests").update(updates).eq("id", req.id);
+    if (error) { toast.error(error.message); return; }
+    if (approve && wallet) {
+      if (req.limit_type === "daily") {
+        await supabase.from("wallets").update({ daily_limit: req.requested_limit }).eq("id", wallet.id);
+      } else {
+        await supabase.from("wallets").update({ monthly_limit: req.requested_limit }).eq("id", wallet.id);
+      }
+      logParentAction(teenId, "approve_request",
+        `Approved ${req.limit_type} limit increase to ₹${req.requested_limit / 100}`,
+        { request_id: req.id });
+    } else {
+      logParentAction(teenId, "reject_request",
+        `Rejected ${req.limit_type} limit increase request`,
+        { request_id: req.id });
+    }
+    await supabase.from("notifications").insert({
+      user_id: req.teen_id,
+      title: approve ? "✅ Limit increase approved" : "❌ Limit request declined",
+      body: approve
+        ? `Your ${req.limit_type} limit is now ₹${req.requested_limit / 100}.`
+        : `Your parent declined the ${req.limit_type} limit increase.`,
+      type: "limit_decision",
+    });
+    toast.success(approve ? "Approved" : "Rejected");
     fetchData();
   };
 
@@ -183,7 +229,35 @@ const ParentTeenDetail = () => {
 
       {tab === "overview" && (
         <div className="space-y-3">
-          {/* Daily Limit Editor */}
+          {/* Pending limit increase requests */}
+          {requests.length > 0 && requests.map(r => (
+            <div key={r.id} className="p-4 rounded-lg bg-card border border-primary/30 card-glow"
+              style={{ background: "linear-gradient(160deg, hsl(var(--primary) / 0.08), hsl(220 22% 5%))" }}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base">💰</span>
+                <p className="text-sm font-semibold flex-1">Limit increase request</p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                  style={{ background: "hsl(var(--primary) / 0.15)", color: "hsl(var(--primary))" }}>
+                  {r.limit_type}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Raise from <span className="text-foreground font-mono">{formatAmount(r.current_limit)}</span>
+                {" → "}<span className="text-foreground font-mono font-bold">{formatAmount(r.requested_limit)}</span>
+              </p>
+              {r.reason && <p className="text-xs italic text-white/60 mb-3 px-3 py-2 rounded-lg" style={{ background: "hsl(220 15% 7%)" }}>"{r.reason}"</p>}
+              <div className="flex gap-2">
+                <button onClick={() => decideRequest(r, false)}
+                  className="flex-1 h-9 rounded-pill border border-destructive/40 text-destructive text-xs font-semibold active:scale-95 transition">
+                  Reject
+                </button>
+                <button onClick={() => decideRequest(r, true)}
+                  className="flex-1 h-9 rounded-pill gradient-primary text-primary-foreground text-xs font-semibold active:scale-95 transition">
+                  Approve
+                </button>
+              </div>
+            </div>
+          ))}
           <div className="p-4 rounded-lg bg-card border border-border card-glow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Daily Limit</span>
