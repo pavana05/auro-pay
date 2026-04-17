@@ -113,6 +113,21 @@ const AdminWallets = () => {
     fetchWallets();
   };
 
+  const openWalletPanel = (w: WalletRow) => {
+    ctxPanel.show({
+      title: w.profile?.full_name || "Wallet",
+      subtitle: w.profile?.phone || w.id.slice(0, 18) + "…",
+      body: (
+        <WalletPanelBody
+          wallet={w}
+          onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
+          onDeduct={() => setFundsModal({ wallet: w, mode: "deduct" })}
+          onFreeze={() => toggleFreeze(w)}
+        />
+      ),
+    });
+  };
+
   const summaryCards = [
     { label: "System Balance", value: formatAmount(totalBalance), icon: DollarSign, color: "text-primary", hero: true },
     { label: "Total Wallets", value: wallets.length, icon: Wallet, color: "text-accent" },
