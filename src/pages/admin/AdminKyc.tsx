@@ -303,7 +303,7 @@ const AdminKyc = () => {
               title="Pending" status="pending" count={groups.pending.length} accent={C.warning}
               dragOver={dragOver === "pending"} onDragOver={(e) => { e.preventDefault(); setDragOver("pending"); }} onDrop={() => onDrop("pending")}
             >
-              {groups.pending.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)} accent={C.warning} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
+              {groups.pending.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)} accent={C.warning} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
               {groups.pending.length === 0 && <Empty label="No pending" />}
             </KanbanCol>
 
@@ -311,7 +311,7 @@ const AdminKyc = () => {
               title="In Review" status="in_review" count={groups.in_review.length} accent={C.info}
               dragOver={dragOver === "in_review"} onDragOver={(e) => { e.preventDefault(); setDragOver("in_review"); }} onDrop={() => onDrop("in_review")}
             >
-              {groups.in_review.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)} accent={C.info} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
+              {groups.in_review.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)} accent={C.info} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
               {groups.in_review.length === 0 && <Empty label="Drag here to review" />}
             </KanbanCol>
 
@@ -321,7 +321,7 @@ const AdminKyc = () => {
             >
               <p className="text-[9px] uppercase tracking-wider text-white/30 font-sora mb-1.5">Drop to approve · use ⋮ to reject</p>
               {[...groups.verified, ...groups.rejected].slice(0, 30).map((r) => (
-                <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)}
+                <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)}
                   accent={r.status === "verified" ? C.success : C.danger} maskAadhaar={maskAadhaar} queueTime={queueTime} done />
               ))}
               {groups.verified.length + groups.rejected.length === 0 && <Empty label="Nothing completed yet" />}
