@@ -429,7 +429,7 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                   digit ? `0 0 12px hsl(42 78% 55% / 0.5)` : "none";
                 const isCurrent = !digit && otp.findIndex((d) => !d) === i;
                 return (
-                  <div key={i} className="relative flex-1" style={{
+                  <div key={i} className="relative flex-1 h-14" style={{
                     animationDelay: otpFlash === "success" ? `${i * 60}ms` : "0ms",
                     animation: otpFlash === "success" ? "auth-otp-flash 0.5s ease forwards" : undefined,
                   }}>
