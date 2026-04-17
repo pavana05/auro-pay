@@ -367,8 +367,37 @@ const LinkedTeens = () => {
                 </div>
               )}
               {lookup.status === "missing" && (
-                <div className="rounded-2xl p-4 text-[12px]" style={{ background: "hsl(0 0% 100% / 0.04)", border: "1.5px solid hsl(0 0% 100% / 0.08)", color: "hsl(0 0% 100% / 0.55)" }}>
-                  No teen account found with this number. They need to sign up first.
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: "hsl(0 0% 100% / 0.04)", border: "1.5px solid hsl(0 0% 100% / 0.08)" }}>
+                  <p className="text-[12px]" style={{ color: "hsl(0 0% 100% / 0.55)" }}>
+                    No teen account found with this number. Invite them to join AuroPay.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      const code = user ? `AURO${user.id.substring(0, 6).toUpperCase()}` : "";
+                      const url = `https://auro-pay.lovable.app/?ref=${code}`;
+                      const text = `Join me on AuroPay with code ${code} and we both earn ₹50! 🎉\n\n${url}`;
+                      try {
+                        if (typeof navigator !== "undefined" && (navigator as any).share) {
+                          await (navigator as any).share({ title: "Join AuroPay", text, url });
+                        } else {
+                          await navigator.clipboard.writeText(text);
+                          toast.success("Invite link copied");
+                        }
+                      } catch (e: any) {
+                        if (e?.name !== "AbortError") toast.error("Couldn't open share sheet");
+                      }
+                    }}
+                    className="w-full h-11 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-2"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+                      color: "hsl(220 15% 5%)",
+                      boxShadow: "0 8px 20px hsl(42 78% 55% / 0.35)",
+                    }}
+                  >
+                    <UserPlus className="w-4 h-4" /> Phone not found? Invite them
+                  </button>
                 </div>
               )}
               {lookup.status === "error" && (
