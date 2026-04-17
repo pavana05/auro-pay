@@ -184,7 +184,8 @@ const SendMoney = () => {
 
   const amt = parseInt(amount || "0", 10) || 0;
   const amtPaise = amt * 100;
-  const overBalance = amtPaise > balance;
+  // Only validate balance for sending; requesting money has no balance constraint.
+  const overBalance = mode === "send" && amtPaise > balance;
   const canSend = amt > 0 && !overBalance;
 
   const pickRecipient = (f: Favorite) => {
@@ -237,25 +238,78 @@ const SendMoney = () => {
     pickRecipient(data as Favorite);
   };
 
-  // ---- SUBMIT — hand off to the cinematic /pay flow ----
-  // Every payment in the app now flows through PaymentConfirm so users see
-  // the same review → PIN → processing → success animation.
-  const submit = () => {
+  // ---- SUBMIT ----
+  // SEND mode: hand off to the cinematic /pay flow.
+  // REQUEST mode: insert a payment_requests row → recipient sees a pending pill on home.
+  const submit = async () => {
     if (!recipient || !canSend) return;
     haptic.medium();
-    // Mark the favorite as just-paid for the recents jump animation on return.
-    setJustSentId(recipient.id);
-    setTimeout(() => setJustSentId(null), 1800);
-    navigate("/pay", {
-      state: {
-        upi_id: recipient.contact_upi_id || recipient.contact_phone || `${recipient.contact_name.toLowerCase().replace(/\s+/g, "")}@auropay`,
-        payee_name: recipient.contact_name,
-        amount: amt,
-        amount_locked: false,
-        note: note || undefined,
-        category,
-      },
+
+    if (mode === "send") {
+      // Mark the favorite as just-paid for the recents jump animation on return.
+      setJustSentId(recipient.id);
+      setTimeout(() => setJustSentId(null), 1800);
+      navigate("/pay", {
+        state: {
+          upi_id: recipient.contact_upi_id || recipient.contact_phone || `${recipient.contact_name.toLowerCase().replace(/\s+/g, "")}@auropay`,
+          payee_name: recipient.contact_name,
+          amount: amt,
+          amount_locked: false,
+          note: note || undefined,
+          category,
+        },
+      });
+      return;
+    }
+
+    // REQUEST mode — find the recipient's auropay user_id by phone or upi.
+    setSending(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSending(false); toast.error("Sign in required"); return; }
+
+    let recipientUserId: string | null = null;
+    // Try phone first (uses RLS-safe RPC), then UPI fallback.
+    if (recipient.contact_phone) {
+      const { data: byPhone } = await supabase.rpc("lookup_teen_by_phone", { _phone: recipient.contact_phone });
+      if (byPhone && byPhone.length > 0) recipientUserId = byPhone[0].id;
+    }
+    if (!recipientUserId && recipient.contact_upi_id) {
+      const { data: byUpi } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("upi_id", recipient.contact_upi_id)
+        .maybeSingle();
+      if (byUpi) recipientUserId = byUpi.id;
+    }
+
+    if (!recipientUserId) {
+      setSending(false);
+      toast.error(`${recipient.contact_name} isn't on Auropay yet`, {
+        description: "We can only request money from Auropay users.",
+      });
+      return;
+    }
+
+    if (recipientUserId === user.id) {
+      setSending(false);
+      toast.error("You can't request money from yourself");
+      return;
+    }
+
+    const { error } = await supabase.from("payment_requests").insert({
+      requester_id: user.id,
+      recipient_id: recipientUserId,
+      amount: amtPaise,
+      note: note.trim() || null,
+      category,
     });
+    setSending(false);
+    if (error) {
+      toast.error(error.message || "Could not send request");
+      return;
+    }
+    haptic.success();
+    setSuccess(true);
   };
 
   const closeRecipient = () => {
