@@ -625,7 +625,39 @@ const FilterField = ({ label, children }: { label: string; children: React.React
     {children}
   </div>
 );
-const ActionItem = ({ icon: Icon, label, onClick, danger = false, disabled = false }: { icon: any; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) => (
+
+const SortHeader = ({ label, k, sortKey, sortDir, onClick }: { label: string; k: string; sortKey: string; sortDir: "asc" | "desc"; onClick: (k: any) => void }) => {
+  const active = sortKey === k;
+  return (
+    <button onClick={() => onClick(k)} className={`flex items-center gap-1 text-left transition-colors ${active ? "text-primary" : "text-white/30 hover:text-white/70"}`}>
+      <span>{label}</span>
+      {active && (sortDir === "asc" ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />)}
+    </button>
+  );
+};
+
+const PresetChip = ({ active, onClick, label, icon: Icon, built, onDelete }: { active: boolean; onClick: () => void; label: string; icon?: any; built?: boolean; onDelete?: () => void }) => (
+  <div className="relative group shrink-0">
+    <button onClick={onClick} className="flex items-center gap-1 h-7 pl-2.5 pr-2.5 rounded-[8px] text-[10px] font-medium font-sora transition-all"
+      style={{
+        background: active ? "rgba(200,149,46,0.18)" : "rgba(255,255,255,0.03)",
+        color: active ? C.primary : "rgba(255,255,255,0.7)",
+        border: `1px solid ${active ? "rgba(200,149,46,0.35)" : "rgba(255,255,255,0.06)"}`,
+      }}>
+      {Icon && <Icon className="w-2.5 h-2.5" />}
+      {label}
+      {built && <span className="ml-1 text-[8px] uppercase tracking-wider opacity-60">built-in</span>}
+    </button>
+    {onDelete && (
+      <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete preset "${label}"?`)) onDelete(); }}
+        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center"
+        style={{ background: "rgba(239,68,68,0.9)" }}>
+        <X className="w-2 h-2 text-white" />
+      </button>
+    )}
+  </div>
+);
+
   <button onClick={onClick} disabled={disabled} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-sora text-left transition-colors disabled:opacity-30 disabled:pointer-events-none" style={{ color: danger ? C.danger : "rgba(255,255,255,0.75)" }} onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = danger ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
     <Icon className="w-3.5 h-3.5" /> {label}
   </button>
