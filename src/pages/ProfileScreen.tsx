@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  User, Shield, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
+  User, Shield, ShieldCheck, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
   ChevronRight, Trophy, Star, Flame, Zap, Crown, Copy, Check, Gem,
   Award, TrendingUp, Gift, Tag, Clock, Sun, Moon,
 } from "lucide-react";
