@@ -861,6 +861,35 @@ const AddMoney = () => {
         </>
       )}
 
+      {/* UPI app-not-installed fallback */}
+      {showFallback && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setShowFallback(null)} />
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 rounded-t-[24px] p-6 border-t border-x"
+            style={{ background: "hsl(220 22% 5%)", borderColor: "hsl(220 15% 11%)", animation: "am-sheet-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "hsl(220 15% 18%)" }} />
+            <h3 className="text-[16px] font-bold mb-1">{showFallback.appLabel} not installed</h3>
+            <p className="text-[12px] text-white/50 mb-5">Install {showFallback.appLabel} to pay via UPI, or continue with secure card / netbanking checkout.</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button onClick={() => setShowFallback(null)}
+                className="h-12 rounded-2xl font-semibold text-[12.5px] text-white/70 active:scale-[0.97]"
+                style={{ background: "hsl(220 15% 9%)", border: "1px solid hsl(220 15% 13%)" }}>
+                Cancel
+              </button>
+              <button onClick={async () => { setShowFallback(null); setMethod("card"); toast.message("Switched to Card · tap Pay again"); }}
+                className="h-12 rounded-2xl font-semibold text-[12.5px] active:scale-[0.97]"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))",
+                  color: "hsl(220 22% 6%)",
+                  boxShadow: "0 6px 20px hsl(var(--primary) / 0.3)",
+                }}>
+                Use Razorpay
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <BottomNav />
 
       <style>{`
