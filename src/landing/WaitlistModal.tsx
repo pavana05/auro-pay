@@ -77,22 +77,32 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
 
     setLoading(true);
     const referred_by = await getReferrerId();
-    const { error: insErr } = await supabase.from("waitlist").insert({
-      full_name: name.trim(),
-      phone: "+91" + cleanPhone,
-      email: email.trim().toLowerCase(),
-      role,
-      source: "landing_modal",
-      referred_by,
-    });
+    const { data: inserted, error: insErr } = await supabase
+      .from("waitlist")
+      .insert({
+        full_name: name.trim(),
+        phone: "+91" + cleanPhone,
+        email: email.trim().toLowerCase(),
+        role,
+        source: "landing_modal",
+        referred_by,
+      })
+      .select("referral_code")
+      .single();
     setLoading(false);
 
     if (insErr) {
-      // Likely duplicate email
       setError(insErr.message.includes("waitlist_email_lower_idx") || insErr.code === "23505"
         ? "You're already on the list!"
         : "Couldn't join right now. Please try again.");
       return;
+    }
+
+    if (inserted?.referral_code) {
+      setRefCode(inserted.referral_code);
+      // Pre-warm the OG image cache so the first WhatsApp/Twitter share preview renders instantly
+      fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${inserted.referral_code}`, { mode: "no-cors" })
+        .catch(() => {});
     }
 
     setDone(true);
