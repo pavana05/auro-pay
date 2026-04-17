@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, Mail, Phone, ChevronLeft } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon } from "lucide-react";
 import { z } from "zod";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile");
 
@@ -14,6 +15,8 @@ const RESEND_SECONDS = 30;
 const OTP_LENGTH = 6;
 
 const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
+  const { isOn } = useAppSettings();
+  const signupsDisabled = isOn("disable_new_signups");
   const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
   const [phoneFocused, setPhoneFocused] = useState(false);
@@ -229,6 +232,11 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     setEmailLoading(true);
     try {
       if (isSignUp) {
+        if (signupsDisabled) {
+          toast.error("New signups are temporarily disabled. Please try again later.");
+          setEmailLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/` },
