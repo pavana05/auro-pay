@@ -477,7 +477,15 @@ const AdminUsers = () => {
           {/* Header */}
           <div className="hidden md:grid grid-cols-[36px_1.6fr_1fr_80px_90px_120px_70px_120px_80px_60px] gap-3 px-4 h-11 items-center border-b text-[9px] uppercase tracking-wider text-white/30 font-sora" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             <input type="checkbox" checked={allChecked} onChange={toggleAllPage} className="rounded accent-primary" />
-            <span>User</span><span>Phone</span><span>Role</span><span>KYC</span><span>Balance</span><span>Txns</span><span>Last active</span><span>Status</span><span></span>
+            <SortHeader label="User" k="name" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <span>Phone</span>
+            <span>Role</span>
+            <span>KYC</span>
+            <SortHeader label="Balance" k="balance" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <SortHeader label="Txns" k="txnCount" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <SortHeader label="Last active" k="lastActiveAt" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <span>Status</span>
+            <span></span>
           </div>
 
           {loading ? (
