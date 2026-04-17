@@ -20,6 +20,7 @@ interface Profile {
   kyc_status: string | null;
   upi_id: string | null;
   created_at: string | null;
+  pin_set_at: string | null;
 }
 
 interface DailyTotal { day: string; total: number; }
