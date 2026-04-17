@@ -12,6 +12,7 @@ import {
   ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
   Image as ImageIcon, Download, Loader2, Maximize2, MessageSquareWarning,
 } from "lucide-react";
+import HighRiskConfirmGate, { type HighRiskGatePayload } from "@/components/admin/HighRiskConfirmGate";
 
 const C = {
   primary: "#c8952e", secondary: "#d4a84b",
