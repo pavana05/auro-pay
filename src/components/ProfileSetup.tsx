@@ -317,6 +317,13 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
               onNext={handleStep2Parent}
             />
           )}
+          {step === STEP_CITY && (
+            <CityStep
+              city={city}
+              onChange={setCity}
+              onNext={handleStepCity}
+            />
+          )}
           {step === STEP_AVATAR && (
             <AvatarStep
               avatar={avatar}
