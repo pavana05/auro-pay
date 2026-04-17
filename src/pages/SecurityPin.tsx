@@ -147,18 +147,20 @@ const SecurityPin = () => {
         </div>
       </div>
 
-      {/* Security Options */}
-      <div className="space-y-2">
-        {securityOptions.map(opt => (
-          <button key={opt.label} onClick={opt.action} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border card-glow hover:border-primary/30 transition-all">
-            <opt.icon className="w-5 h-5 text-muted-foreground" />
-            <div className="flex-1 text-left">
-              <p className="text-sm font-medium">{opt.label}</p>
-              <p className="text-xs text-muted-foreground">{opt.desc}</p>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* Security Options — hidden during forced PIN setup */}
+      {!isSetupMode && (
+        <div className="space-y-2">
+          {securityOptions.map(opt => (
+            <button key={opt.label} onClick={opt.action} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border card-glow hover:border-primary/30 transition-all">
+              <opt.icon className="w-5 h-5 text-muted-foreground" />
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium">{opt.label}</p>
+                <p className="text-xs text-muted-foreground">{opt.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <ForgotPinModal
         open={showForgotPin}
@@ -166,7 +168,7 @@ const SecurityPin = () => {
         onSuccess={() => toast.success("PIN reset — you can now use your new PIN")}
       />
 
-      <BottomNav />
+      {!isSetupMode && <BottomNav />}
     </div>
   );
 };
