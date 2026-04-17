@@ -521,13 +521,91 @@ const TransactionDetailPage = () => {
           )}
         </div>
 
-        {/* Actions — themed pill buttons */}
+        {/* Status Timeline */}
+        <div className={`relative overflow-hidden backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+          style={{ transitionDelay: "0.55s", background: "linear-gradient(180deg, hsl(220 15% 8% / 0.8), hsl(220 15% 6% / 0.9))" }}>
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.3 }} />
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className={`w-3.5 h-3.5 ${theme.color} opacity-60`} />
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">Timeline</p>
+          </div>
+          <div className="relative pl-1">
+            {[
+              { label: "Initiated", time: date, done: true },
+              { label: "Processing", time: date, done: txStatus !== "pending" || true },
+              { label: txStatus === "failed" ? "Failed" : txStatus === "success" ? "Completed" : "Pending confirmation", time: txStatus === "pending" ? null : date, done: txStatus === "success", failed: txStatus === "failed" },
+            ].map((step, i, arr) => (
+              <div key={i} className="flex gap-3 relative">
+                <div className="flex flex-col items-center">
+                  <div className={`w-3 h-3 rounded-full border-2 ${step.failed ? "bg-red-400 border-red-400" : step.done ? `bg-current ${theme.color} border-current` : "bg-transparent border-white/20"} relative z-10`}
+                    style={step.done && !step.failed ? { boxShadow: `0 0 10px hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.5)` } : {}} />
+                  {i < arr.length - 1 && (
+                    <div className="w-[2px] flex-1 min-h-[28px] my-1"
+                      style={{ background: step.done ? `hsl(${theme.hue} ${theme.sat}% ${theme.light}% / 0.3)` : "hsl(0 0% 100% / 0.06)" }} />
+                  )}
+                </div>
+                <div className="flex-1 pb-4">
+                  <p className={`text-[13px] font-medium ${step.failed ? "text-red-400" : step.done ? "text-foreground" : "text-muted-foreground/50"}`}>{step.label}</p>
+                  {step.time && <p className="text-[10px] text-muted-foreground/50 mt-0.5">{step.time.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scratch card reveal banner */}
+        {scratchCard && !scratchCard.is_scratched && (
+          <button
+            onClick={() => { haptic.medium(); navigate("/scratch-cards"); }}
+            className={`relative overflow-hidden w-full rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] transition-all duration-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+            style={{
+              transitionDelay: "0.58s",
+              background: "linear-gradient(135deg, hsl(42 78% 55% / 0.18), hsl(42 78% 35% / 0.08))",
+              border: "1px solid hsl(42 78% 55% / 0.25)",
+              boxShadow: "0 0 30px hsl(42 78% 55% / 0.15)",
+            }}>
+            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-2xl shrink-0">🎁</div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-primary">Scratch card unlocked!</p>
+              <p className="text-[11px] text-muted-foreground">Tap to reveal your reward</p>
+            </div>
+            <div className="text-primary text-xs font-semibold">Open →</div>
+          </button>
+        )}
+
+        {/* Primary actions — Pay again / Split bill / Dispute */}
         <div className={`grid grid-cols-3 gap-3 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
           style={{ transitionDelay: "0.6s" }}>
           {[
-            { icon: AlertCircle, label: "Report", onClick: () => { haptic.light(); setShowReport(true); setReportSubmitted(false); setReportReason(""); }, accent: false },
-            { icon: Download, label: "Receipt", onClick: () => { haptic.light(); setShowDownload(true); }, accent: false },
-            { icon: Share2, label: "Share", onClick: () => { haptic.light(); navigator.share?.({ text: `₹${(tx.amount/100).toFixed(2)} ${isCredit ? "received from" : "paid to"} ${tx.merchant_name || "someone"} via AuroPay` }).catch(() => {}); }, accent: true },
+            {
+              icon: RotateCw, label: "Pay again", accent: true,
+              onClick: () => {
+                haptic.medium();
+                const params = new URLSearchParams({
+                  amount: String(tx.amount / 100),
+                  ...(tx.merchant_name ? { name: tx.merchant_name } : {}),
+                  ...(tx.merchant_upi_id ? { upi: tx.merchant_upi_id } : {}),
+                });
+                navigate(`/quick-pay?${params.toString()}`);
+              },
+            },
+            {
+              icon: Users, label: "Split bill", accent: false,
+              onClick: () => {
+                haptic.light();
+                const params = new URLSearchParams({
+                  amount: String(tx.amount / 100),
+                  ...(tx.merchant_name ? { title: tx.merchant_name } : {}),
+                  ...(tx.category ? { category: tx.category } : {}),
+                });
+                navigate(`/bill-split?${params.toString()}`);
+              },
+            },
+            {
+              icon: AlertCircle, label: "Dispute", accent: false,
+              onClick: () => { haptic.light(); setShowReport(true); setReportSubmitted(false); setReportReason(""); },
+            },
           ].map((action, i) => (
             <button key={action.label} onClick={action.onClick}
               className={`flex flex-col items-center justify-center gap-2.5 py-5 rounded-2xl text-xs font-semibold active:scale-[0.95] transition-all duration-200 ${
@@ -537,6 +615,21 @@ const TransactionDetailPage = () => {
               }`}
               style={{ animation: mounted ? `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.65 + i * 0.06}s both` : "none" }}>
               <action.icon className={`w-5 h-5 ${action.accent ? theme.color : "text-muted-foreground"}`} />
+              {action.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Secondary actions — Receipt + Share */}
+        <div className={`grid grid-cols-2 gap-3 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+          style={{ transitionDelay: "0.7s" }}>
+          {[
+            { icon: Download, label: "Download receipt", onClick: () => { haptic.light(); setShowDownload(true); } },
+            { icon: Share2, label: "Share", onClick: () => { haptic.light(); navigator.share?.({ text: `₹${(tx.amount/100).toFixed(2)} ${isCredit ? "received from" : "paid to"} ${tx.merchant_name || "someone"} via AuroPay` }).catch(() => {}); } },
+          ].map((action) => (
+            <button key={action.label} onClick={action.onClick}
+              className="flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-medium bg-white/[0.02] border border-white/[0.05] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground active:scale-[0.97] transition-all duration-200">
+              <action.icon className="w-4 h-4" />
               {action.label}
             </button>
           ))}
