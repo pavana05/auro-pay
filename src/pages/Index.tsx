@@ -44,8 +44,13 @@ const Index = () => {
       setUserPhone(session.user.phone || "");
       await navigateByRole(session.user.id);
     } else {
-      // Returning users who already saw onboarding skip straight to auth.
-      const seen = typeof window !== "undefined" && localStorage.getItem("auropay_onboarded") === "1";
+      // Allow forcing onboarding via ?onboarding=1 for QA / testing.
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const force = params?.get("onboarding") === "1";
+      if (force) {
+        try { localStorage.removeItem("auropay_onboarded"); } catch {}
+      }
+      const seen = !force && typeof window !== "undefined" && localStorage.getItem("auropay_onboarded") === "1";
       setState(seen ? "auth" : "onboarding");
     }
   }, [navigateByRole]);
@@ -70,13 +75,14 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session && state === "ready") {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // On sign-out from anywhere in the app, surface the auth screen.
+      if (event === "SIGNED_OUT" || !session) {
         setState("auth");
       }
     });
     return () => subscription.unsubscribe();
-  }, [state]);
+  }, []);
 
   switch (state) {
     case "splash":
