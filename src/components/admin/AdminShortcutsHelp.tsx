@@ -1,13 +1,11 @@
-import { forwardRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Command, Keyboard } from "lucide-react";
 
 /**
  * Press ⌘/ (or Ctrl+/) to open. ESC to close.
  * Self-contained: listens for the shortcut globally so any admin page works.
- * Wrapped in forwardRef so parent layouts that attach refs (e.g. for HMR
- * probing) don't trigger React's "function components cannot be given refs" warning.
  */
-export const AdminShortcutsHelp = forwardRef<HTMLDivElement>((_props, _ref) => {
+const AdminShortcutsHelp = () => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -74,7 +72,6 @@ export const AdminShortcutsHelp = forwardRef<HTMLDivElement>((_props, _ref) => {
       </div>
     </div>
   );
-});
-AdminShortcutsHelp.displayName = "AdminShortcutsHelp";
+};
 
 export default AdminShortcutsHelp;

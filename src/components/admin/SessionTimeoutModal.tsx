@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock, LogOut } from "lucide-react";
 
 interface Props {
@@ -14,16 +14,13 @@ interface Props {
  * Tracks user activity. When inactive for (timeout - warning) ms, shows a
  * countdown modal. If user clicks "Stay signed in" the timer resets.
  * Otherwise after `warningMs` of further inactivity, fires onLogout.
- *
- * Wrapped in forwardRef so parent layouts that attach refs (e.g. for HMR
- * probing) don't trigger React's "function components cannot be given refs" warning.
  */
-export const SessionTimeoutModal = forwardRef<HTMLDivElement, Props>(({
+const SessionTimeoutModal = ({
   enabled,
   timeoutMs = 2 * 60 * 60 * 1000,
   warningMs = 5 * 60 * 1000,
   onLogout,
-}, _ref) => {
+}: Props) => {
   const [showWarning, setShowWarning] = useState(false);
   const [remaining, setRemaining] = useState(warningMs);
   const lastActivity = useRef(Date.now());
@@ -108,7 +105,6 @@ export const SessionTimeoutModal = forwardRef<HTMLDivElement, Props>(({
       </div>
     </div>
   );
-});
-SessionTimeoutModal.displayName = "SessionTimeoutModal";
+};
 
 export default SessionTimeoutModal;
