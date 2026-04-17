@@ -557,7 +557,7 @@ const CardScreen = () => {
               style={{ background: "hsl(220 15% 8%)" }}>
               Cancel
             </button>
-            <button onClick={handleToggleFreeze}
+            <button onClick={handleConfirmFreezeRequestPin}
               className="flex-1 h-[48px] rounded-2xl font-semibold text-[13px]"
               style={{
                 background: isFrozen ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))" : "hsl(205 80% 55%)",
