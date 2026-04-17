@@ -29,14 +29,14 @@ interface Streak {
 }
 
 const catColors: Record<string, string> = {
-  money: "from-emerald-500/20 to-emerald-500/5",
-  savings: "from-blue-500/20 to-blue-500/5",
-  budget: "from-orange-500/20 to-orange-500/5",
-  streak: "from-red-500/20 to-red-500/5",
-  social: "from-pink-500/20 to-pink-500/5",
-  chores: "from-yellow-500/20 to-yellow-500/5",
+  money: "from-primary/20 to-primary/5",
+  savings: "from-amber-500/20 to-amber-500/5",
+  budget: "from-amber-600/20 to-amber-600/5",
+  streak: "from-primary/20 to-amber-500/5",
+  social: "from-primary/15 to-primary/5",
+  chores: "from-amber-500/20 to-yellow-600/5",
   rewards: "from-primary/20 to-primary/5",
-  account: "from-blue-500/20 to-blue-500/5",
+  account: "from-amber-500/15 to-amber-500/5",
   general: "from-primary/20 to-primary/5",
 };
 
@@ -123,11 +123,11 @@ const Achievements = () => {
       <div className="px-5 pt-4 space-y-6">
         {/* Streak Card */}
         <div style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 border border-orange-500/10 relative overflow-hidden">
-            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-orange-500/5 blur-2xl" />
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-amber-500/10 to-yellow-500/10 border border-primary/15 relative overflow-hidden">
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-primary/5 blur-2xl" />
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center">
-                <Flame className="w-8 h-8 text-orange-400" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-amber-500/20 flex items-center justify-center">
+                <Flame className="w-8 h-8 text-primary" />
               </div>
               <div className="flex-1">
                 <p className="text-3xl font-black">{streak?.current_streak || 0}</p>
@@ -151,7 +151,7 @@ const Achievements = () => {
                   key={i}
                   className={`flex-1 h-2 rounded-full transition-all ${
                     i < (streak?.current_streak || 0) % 7 || ((streak?.current_streak || 0) >= 7 && (streak?.current_streak || 0) % 7 === 0)
-                      ? "bg-gradient-to-r from-orange-400 to-yellow-400"
+                      ? "bg-gradient-to-r from-primary to-amber-400"
                       : "bg-white/[0.05]"
                   }`}
                 />

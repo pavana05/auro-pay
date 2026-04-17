@@ -299,7 +299,7 @@ const ChatList = () => {
                       {getInitials(chat.recipientName)}
                     </div>
                   )}
-                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-background" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-background" />
                 </div>
 
                 <div className="flex-1 min-w-0 text-left">
