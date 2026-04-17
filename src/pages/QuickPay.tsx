@@ -768,9 +768,7 @@ const SendMoney = () => {
           <p
             className="text-[42px] font-mono font-bold mb-2"
             style={{
-              background: "linear-gradient(135deg, hsl(152 60% 60%), hsl(152 60% 75%))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: "hsl(152 60% 70%)",
               animation: "qp-success 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both",
             }}
           >

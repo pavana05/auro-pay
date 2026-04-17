@@ -21,7 +21,7 @@ const Index = () => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, role, haptics_enabled")
+      .select("id, role, haptics_enabled, kyc_status, pin_hash")
       .eq("id", uid)
       .single();
     // Apply user's haptics preference globally before any page renders.
@@ -30,6 +30,9 @@ const Index = () => {
       setHapticsEnabled((profile as any).haptics_enabled);
     }
     if (profile) {
+      // Force PIN setup if KYC is verified but no payment PIN set yet.
+      const needsPin = (profile as any).kyc_status === "verified" && !(profile as any).pin_hash;
+      if (needsPin) { navigate("/security?setup=1"); return; }
       if (profile.role === "parent") navigate("/parent");
       else navigate("/home");
     } else {
