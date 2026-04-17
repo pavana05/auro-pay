@@ -134,9 +134,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       const [kycRes, walletRes, notifRes, ticketsRes, recentRes] = await Promise.all([
         supabase.from("kyc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("wallets").select("id", { count: "exact", head: true }).eq("is_frozen", true),
-        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false),
+        // Only count admin-relevant unread notifications in the bell badge.
+        supabase.from("notifications").select("id", { count: "exact", head: true })
+          .eq("is_read", false)
+          .in("type", ADMIN_NOTIFICATION_TYPES as unknown as string[]),
         supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
-        supabase.from("notifications").select("id, title, body, type, created_at, is_read").order("created_at", { ascending: false }).limit(6),
+        // Bell dropdown list — same filter so admins never see user-only noise.
+        supabase.from("notifications").select("id, title, body, type, created_at, is_read")
+          .in("type", ADMIN_NOTIFICATION_TYPES as unknown as string[])
+          .order("created_at", { ascending: false }).limit(6),
       ]);
       const elapsed = performance.now() - t0;
       const anyErr = !!(kycRes.error || walletRes.error || notifRes.error || ticketsRes.error || recentRes.error);
