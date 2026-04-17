@@ -731,7 +731,7 @@ const SendMoney = () => {
           <div className="px-5 pb-6 pt-2">
             <button
               onClick={submit}
-              disabled={!canSend}
+              disabled={!canSend || sending}
               className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all disabled:scale-100 relative overflow-hidden"
               style={{
                 background: !canSend
