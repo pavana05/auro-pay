@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
+import { useAdminQuery } from "@/hooks/useAdminQuery";
+import { AdminQueryError, AdminQueryStatus } from "@/components/admin/AdminQueryState";
 import {
   Settings, Shield, Sliders, CreditCard, Zap, AlertTriangle, Lock,
   CheckCircle2, Power, UserX, Ban, Activity, Wrench, Globe, Bell, Sparkles, Clock, X,
@@ -87,9 +89,15 @@ const Toggle = ({ on, onChange, color = C.primary, danger }: { on: boolean; onCh
 );
 
 const AdminSettings = () => {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [originalSettings, setOriginalSettings] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  // Seed with hardcoded defaults so the UI is never blank, even if the DB
+  // fetch is slow or fails. Live values overwrite these on load.
+  const initialDefaults = useMemo(() => {
+    const m: Record<string, string> = {};
+    Object.entries(SETTING_DEFS).forEach(([k, def]) => { m[k] = def.default; });
+    return m;
+  }, []);
+  const [settings, setSettings] = useState<Record<string, string>>(initialDefaults);
+  const [originalSettings, setOriginalSettings] = useState<Record<string, string>>(initialDefaults);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [recentlySavedKeys, setRecentlySavedKeys] = useState<Set<string>>(new Set());
@@ -102,33 +110,26 @@ const AdminSettings = () => {
   const [emergencyOpen, setEmergencyOpen] = useState<{ key: string; phase: 1 | 2 } | null>(null);
   const [emergencyText, setEmergencyText] = useState("");
 
-  /* Load all settings + ensure defaults exist locally */
+  /* Load all settings via shared admin query (with retry, polling, timestamp) */
+  const { loading, error, refetch, lastUpdatedAt } = useAdminQuery<Record<string, string>>(
+    async () => {
+      const { data, error } = await supabase.from("app_settings").select("key,value");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data || []).forEach((s: any) => { map[s.key] = s.value; });
+      // Merge in defaults for any keys not yet in DB so the UI always renders.
+      Object.entries(SETTING_DEFS).forEach(([k, def]) => {
+        if (map[k] === undefined) map[k] = def.default;
+      });
+      setSettings(map);
+      setOriginalSettings(map);
+      return map;
+    },
+    { label: "app settings", refetchInterval: 60_000 }
+  );
+
+  // Cleanup debounce timers on unmount
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase.from("app_settings").select("*");
-        if (error) {
-          console.error("[AdminSettings] load error:", error);
-          toast.error(`Failed to load settings: ${error.message}`);
-        }
-        const map: Record<string, string> = {};
-        (data || []).forEach((s: any) => { map[s.key] = s.value; });
-        Object.entries(SETTING_DEFS).forEach(([k, def]) => {
-          if (map[k] === undefined) map[k] = def.default;
-        });
-        setSettings(map);
-        setOriginalSettings(map);
-      } catch (e: any) {
-        console.error("[AdminSettings] load exception:", e);
-        toast.error(e?.message || "Failed to load settings");
-        const map: Record<string, string> = {};
-        Object.entries(SETTING_DEFS).forEach(([k, def]) => { map[k] = def.default; });
-        setSettings(map);
-        setOriginalSettings(map);
-      } finally {
-        setLoading(false);
-      }
-    })();
     return () => { Object.values(debounceTimers.current).forEach(clearTimeout); };
   }, []);
 
@@ -205,7 +206,7 @@ const AdminSettings = () => {
               Full control panel · changes auto-save with debounce
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {savingKey ? (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px]" style={{ background: `${C.primary}15`, color: C.primary, border: `1px solid ${C.primary}33` }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.primary }} />
@@ -217,6 +218,7 @@ const AdminSettings = () => {
                 {savedLabel}
               </div>
             )}
+            <AdminQueryStatus lastUpdatedAt={lastUpdatedAt} loading={loading} onRefresh={() => refetch()} />
           </div>
         </div>
 
@@ -235,11 +237,15 @@ const AdminSettings = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="space-y-4 relative z-10">
-            {[1,2,3].map(i => <div key={i} className="h-40 rounded-[16px] animate-pulse" style={{ background: "rgba(255,255,255,0.02)" }} />)}
+        {error && !lastUpdatedAt && (
+          <div className="relative z-10">
+            <AdminQueryError error={error} onRetry={refetch} label="app settings" />
           </div>
-        ) : (
+        )}
+
+        {(
+          // Always render the form — settings is seeded with defaults so the
+          // page is never blank. Live values overlay these on first successful load.
           <div className="space-y-6 relative z-10">
             {(Object.keys(SECTION_META) as Section[]).map(sec => {
               const meta = SECTION_META[sec];
