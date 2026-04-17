@@ -2,7 +2,7 @@
 // Navigated to from ScanPay (and reusable from QuickPay/recurring) via:
 //   navigate("/pay", { state: { upi_id, payee_name, amount, amount_locked, note, category } })
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, Wallet, Delete, Lock, ArrowRight, CheckCircle2, XCircle,
   Share2, Download, Shield, ChevronRight,
@@ -43,7 +43,19 @@ const merchantColor = (name: string) => {
 const PaymentConfirm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state || {}) as PayState;
+  const [searchParams] = useSearchParams();
+  const locState = (location.state || {}) as PayState;
+
+  // Merge: location.state wins, URL params used as fallback so /pay?upi=&amount=&name=&note=&category= works.
+  const state: PayState = {
+    upi_id: locState.upi_id ?? searchParams.get("upi") ?? undefined,
+    payee_name: locState.payee_name ?? searchParams.get("name") ?? undefined,
+    amount: locState.amount ?? (searchParams.get("amount") ? Number(searchParams.get("amount")) : undefined),
+    amount_locked: locState.amount_locked ?? (searchParams.get("amount_locked") === "1"),
+    note: locState.note ?? searchParams.get("note") ?? undefined,
+    category: locState.category ?? searchParams.get("category") ?? undefined,
+    payment_request_id: locState.payment_request_id ?? searchParams.get("payment_request_id") ?? undefined,
+  };
 
   const [stage, setStage] = useState<Stage>("review");
   const [amount, setAmount] = useState<string>(state.amount ? String(state.amount) : "");
