@@ -90,6 +90,25 @@ const RealtimeWrapper = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Globally listen for sign-out and bounce the user back to root so Index
+// can show the auth screen. Without this, signing out from an inner route
+// leaves the user on a blank/protected page.
+const AuthRedirector = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        if (location.pathname !== "/" && location.pathname !== "/reset-password") {
+          navigate("/", { replace: true });
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate, location.pathname]);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -115,6 +134,7 @@ const App = () => (
       />
       <BrowserRouter>
         <DeepLinkHandler />
+        <AuthRedirector />
         <RealtimeWrapper>
         <Routes>
             {/* Admin routes */}
