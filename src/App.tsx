@@ -81,6 +81,7 @@ import DeepLinkHandler from "./components/DeepLinkHandler";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MaintenanceGate from "./components/MaintenanceGate";
 import KycEnforcer from "./components/KycEnforcer";
+import PinEnforcer from "./components/PinEnforcer";
 import VerifyKyc from "./pages/VerifyKyc.tsx";
 
 const queryClient = new QueryClient({
@@ -143,7 +144,8 @@ const App = () => (
       <BrowserRouter>
         <DeepLinkHandler />
         <AuthRedirector />
-        <KycEnforcer />
+          <KycEnforcer />
+          <PinEnforcer />
         <RealtimeWrapper>
         <MaintenanceGate>
         <Routes>

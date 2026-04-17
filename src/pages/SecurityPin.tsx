@@ -28,7 +28,7 @@ const SecurityPin = () => {
     }
   }, [isSetupMode]);
 
-  const handleChangePin = () => {
+  const handleChangePin = async () => {
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
       toast.error("PIN must be exactly 4 digits");
       return;
@@ -38,14 +38,32 @@ const SecurityPin = () => {
       return;
     }
     setChanging(true);
-    // Simulated - in production this would be a secure backend call
-    setTimeout(() => {
-      toast.success("PIN updated successfully!");
-      setCurrentPin("");
-      setNewPin("");
-      setConfirmPin("");
+    try {
+      const { data, error } = await supabase.functions.invoke("payment-pin", {
+        body: { action: "set", pin: newPin, current_pin: currentPin || undefined },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success(isSetupMode ? "PIN created — you're all set!" : "PIN updated successfully!");
+      setCurrentPin(""); setNewPin(""); setConfirmPin("");
+
+      if (isSetupMode) {
+        // After setup, send the user on to their home (parent or teen).
+        const { data: { user } } = await supabase.auth.getUser();
+        let dest = "/home";
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles").select("role").eq("id", user.id).maybeSingle();
+          if (profile?.role === "parent") dest = "/parent";
+        }
+        navigate(dest, { replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update PIN");
+    } finally {
       setChanging(false);
-    }, 1000);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -101,19 +119,21 @@ const SecurityPin = () => {
         </div>
 
         <div className="space-y-3">
-          <div className="relative">
-            <input
-              type={showCurrent ? "text" : "password"}
-              value={currentPin}
-              onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="Current PIN"
-              className="input-auro w-full pr-10"
-              maxLength={4}
-            />
-            <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
+          {!isSetupMode && (
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={currentPin}
+                onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="Current PIN"
+                className="input-auro w-full pr-10"
+                maxLength={4}
+              />
+              <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
           <div className="relative">
             <input
               type={showNew ? "text" : "password"}
@@ -135,8 +155,8 @@ const SecurityPin = () => {
             className="input-auro w-full"
             maxLength={4}
           />
-          <button onClick={handleChangePin} disabled={changing} className="w-full h-11 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
-            {changing ? "Updating..." : "Update PIN"}
+          <button onClick={handleChangePin} disabled={changing} className="w-full h-11 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50">
+            {changing ? (isSetupMode ? "Creating..." : "Updating...") : (isSetupMode ? "Create PIN & Continue" : "Update PIN")}
           </button>
           <button
             onClick={() => setShowForgotPin(true)}
