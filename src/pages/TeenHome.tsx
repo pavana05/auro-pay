@@ -16,6 +16,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import InlineSearchResults from "@/components/InlineSearchResults";
 import PressTooltip from "@/components/PressTooltip";
 import SwipeActionRow from "@/components/SwipeActionRow";
+import PaymentRequestPill from "@/components/PaymentRequestPill";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -37,6 +38,7 @@ const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -83,6 +85,7 @@ const TeenHome = () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setUserId(user.id);
     const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
       supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", user.id).single(),
       supabase.from("wallets").select("*").eq("user_id", user.id).single(),
@@ -226,6 +229,7 @@ const TeenHome = () => {
     { label: "Split Bill", path: "/bill-split", emoji: "👥", desc: "Share costs" },
     { label: "Budget", path: "/budget", emoji: "📈", desc: "Plan ahead" },
     { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
+    { label: "Request", path: "/quick-pay", state: { mode: "request" }, emoji: "💰", desc: "Ask for money" },
     { label: "Scratch", path: "/scratch-cards", emoji: "🎰", desc: "Win rewards" },
     { label: "Spin", path: "/spin-wheel", emoji: "🎡", desc: "Spin to win" },
     { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn money" },
@@ -369,6 +373,9 @@ const TeenHome = () => {
             onClose={() => { setSearchOpen(false); setSearchQuery(""); }}
           />
         )}
+
+        {/* Pending payment requests — banner if 1, list if 2+ */}
+        {userId && <PaymentRequestPill userId={userId} />}
 
         {/* KYC pending banner */}
         {profile && profile.kyc_status !== "verified" && (
@@ -1067,7 +1074,7 @@ const TeenHome = () => {
                 key={f.label}
                 variants={stagger.item}
                 whileTap={{ scale: 0.88 }}
-                onClick={() => { haptic.light(); navigate(f.path); }}
+                onClick={() => { haptic.light(); navigate(f.path, (f as any).state ? { state: (f as any).state } : undefined); }}
                 className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-muted/10 border border-border/15 group"
               >
                 <span className="text-[22px] group-active:scale-110 transition-transform duration-200">{f.emoji}</span>

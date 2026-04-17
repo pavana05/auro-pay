@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Search, Plus, X, Send, Check, Shield, UserPlus, Loader2, Pencil, Delete,
-  Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles,
+  Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles, HandCoins,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +93,10 @@ const SendMoney = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const incomingContact = (location.state as any)?.selectedContact as Favorite | undefined;
+  const incomingMode = (location.state as any)?.mode as "send" | "request" | undefined;
+
+  // Top-level mode: Send Money or Request Money
+  const [mode, setMode] = useState<"send" | "request">(incomingMode || "send");
 
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +184,8 @@ const SendMoney = () => {
 
   const amt = parseInt(amount || "0", 10) || 0;
   const amtPaise = amt * 100;
-  const overBalance = amtPaise > balance;
+  // Only validate balance for sending; requesting money has no balance constraint.
+  const overBalance = mode === "send" && amtPaise > balance;
   const canSend = amt > 0 && !overBalance;
 
   const pickRecipient = (f: Favorite) => {
@@ -233,25 +238,78 @@ const SendMoney = () => {
     pickRecipient(data as Favorite);
   };
 
-  // ---- SUBMIT — hand off to the cinematic /pay flow ----
-  // Every payment in the app now flows through PaymentConfirm so users see
-  // the same review → PIN → processing → success animation.
-  const submit = () => {
+  // ---- SUBMIT ----
+  // SEND mode: hand off to the cinematic /pay flow.
+  // REQUEST mode: insert a payment_requests row → recipient sees a pending pill on home.
+  const submit = async () => {
     if (!recipient || !canSend) return;
     haptic.medium();
-    // Mark the favorite as just-paid for the recents jump animation on return.
-    setJustSentId(recipient.id);
-    setTimeout(() => setJustSentId(null), 1800);
-    navigate("/pay", {
-      state: {
-        upi_id: recipient.contact_upi_id || recipient.contact_phone || `${recipient.contact_name.toLowerCase().replace(/\s+/g, "")}@auropay`,
-        payee_name: recipient.contact_name,
-        amount: amt,
-        amount_locked: false,
-        note: note || undefined,
-        category,
-      },
+
+    if (mode === "send") {
+      // Mark the favorite as just-paid for the recents jump animation on return.
+      setJustSentId(recipient.id);
+      setTimeout(() => setJustSentId(null), 1800);
+      navigate("/pay", {
+        state: {
+          upi_id: recipient.contact_upi_id || recipient.contact_phone || `${recipient.contact_name.toLowerCase().replace(/\s+/g, "")}@auropay`,
+          payee_name: recipient.contact_name,
+          amount: amt,
+          amount_locked: false,
+          note: note || undefined,
+          category,
+        },
+      });
+      return;
+    }
+
+    // REQUEST mode — find the recipient's auropay user_id by phone or upi.
+    setSending(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSending(false); toast.error("Sign in required"); return; }
+
+    let recipientUserId: string | null = null;
+    // Try phone first (uses RLS-safe RPC), then UPI fallback.
+    if (recipient.contact_phone) {
+      const { data: byPhone } = await supabase.rpc("lookup_teen_by_phone", { _phone: recipient.contact_phone });
+      if (byPhone && byPhone.length > 0) recipientUserId = byPhone[0].id;
+    }
+    if (!recipientUserId && recipient.contact_upi_id) {
+      const { data: byUpi } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("upi_id", recipient.contact_upi_id)
+        .maybeSingle();
+      if (byUpi) recipientUserId = byUpi.id;
+    }
+
+    if (!recipientUserId) {
+      setSending(false);
+      toast.error(`${recipient.contact_name} isn't on Auropay yet`, {
+        description: "We can only request money from Auropay users.",
+      });
+      return;
+    }
+
+    if (recipientUserId === user.id) {
+      setSending(false);
+      toast.error("You can't request money from yourself");
+      return;
+    }
+
+    const { error } = await supabase.from("payment_requests").insert({
+      requester_id: user.id,
+      recipient_id: recipientUserId,
+      amount: amtPaise,
+      note: note.trim() || null,
+      category,
     });
+    setSending(false);
+    if (error) {
+      toast.error(error.message || "Could not send request");
+      return;
+    }
+    haptic.success();
+    setSuccess(true);
   };
 
   const closeRecipient = () => {
@@ -282,7 +340,9 @@ const SendMoney = () => {
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
           </button>
           <div className="flex-1">
-            <h1 className="text-[19px] font-bold tracking-[-0.5px]">Send Money</h1>
+            <h1 className="text-[19px] font-bold tracking-[-0.5px]">
+              {mode === "send" ? "Send Money" : "Request Money"}
+            </h1>
             <p className="text-[10px] text-white/30 font-medium flex items-center gap-1">
               <Shield className="w-2.5 h-2.5" /> End-to-end secured
             </p>
@@ -296,6 +356,48 @@ const SendMoney = () => {
               ₹{(balance / 100).toLocaleString("en-IN")}
             </span>
           </div>
+        </div>
+
+        {/* MODE TABS — Send / Request */}
+        <div
+          className="mt-4 p-1 rounded-[14px] flex gap-1 border border-white/[0.05]"
+          style={{ background: "hsl(220 15% 7%)" }}
+          role="tablist"
+          aria-label="Quick pay mode"
+        >
+          {([
+            { key: "send", label: "Send Money", Icon: Send },
+            { key: "request", label: "Request Money", Icon: HandCoins },
+          ] as const).map(t => {
+            const active = mode === t.key;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  if (mode === t.key) return;
+                  haptic.selection();
+                  setMode(t.key);
+                  // reset amount stage when switching modes
+                  setRecipient(null);
+                  setAmount(""); setNote(""); setCategory("other");
+                  setSuccess(false); setConfirming(false);
+                }}
+                className="flex-1 h-[40px] rounded-[11px] flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all active:scale-[0.98]"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))"
+                    : "transparent",
+                  color: active ? "hsl(220 20% 6%)" : "hsl(0 0% 100% / 0.55)",
+                  boxShadow: active ? "0 4px 14px hsl(var(--primary) / 0.25)" : "none",
+                }}
+              >
+                <t.Icon className="w-3.5 h-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -499,7 +601,9 @@ const SendMoney = () => {
               <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
             </button>
             <div className="flex-1 text-center">
-              <p className="text-[10px] text-white/30 tracking-widest uppercase">Sending to</p>
+              <p className="text-[10px] text-white/30 tracking-widest uppercase">
+                {mode === "send" ? "Sending to" : "Requesting from"}
+              </p>
               <p className="text-[14px] font-bold truncate">{recipient.contact_name}</p>
             </div>
             <button className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center bg-white/[0.04] active:scale-90">
@@ -627,7 +731,7 @@ const SendMoney = () => {
           <div className="px-5 pb-6 pt-2">
             <button
               onClick={submit}
-              disabled={!canSend}
+              disabled={!canSend || sending}
               className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all disabled:scale-100 relative overflow-hidden"
               style={{
                 background: !canSend
@@ -639,9 +743,11 @@ const SendMoney = () => {
               }}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
-                <Send className="w-4 h-4" />
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : (mode === "send" ? <Send className="w-4 h-4" /> : <HandCoins className="w-4 h-4" />)}
                 {amt > 0
-                  ? `Continue · ₹${amt.toLocaleString("en-IN")}`
+                  ? (mode === "send"
+                      ? `Continue · ₹${amt.toLocaleString("en-IN")}`
+                      : `Request ₹${amt.toLocaleString("en-IN")}`)
                   : "Enter an amount"}
               </span>
             </button>
@@ -763,7 +869,7 @@ const SendMoney = () => {
           </div>
 
           <p className="text-[15px] text-white/60 mb-1" style={{ animation: "qp-fade 0.4s ease-out 0.2s both" }}>
-            Sent to {recipient.contact_name}
+            {mode === "send" ? `Sent to ${recipient.contact_name}` : `Requested from ${recipient.contact_name}`}
           </p>
           <p
             className="text-[42px] font-mono font-bold mb-2"
