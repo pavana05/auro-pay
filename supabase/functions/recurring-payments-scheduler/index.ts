@@ -60,7 +60,68 @@ Deno.serve(async (req) => {
       });
     }
 
-    const nowIso = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    // ---- 1) Send 3-day pre-run reminders ----
+    // Find auto-pays scheduled to run between now+2.5d and now+3.5d that haven't been reminded yet
+    const reminderWindowStart = new Date(now.getTime() + 2.5 * 24 * 60 * 60 * 1000).toISOString();
+    const reminderWindowEnd = new Date(now.getTime() + 3.5 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: upcoming } = await admin
+      .from("recurring_payments")
+      .select("*")
+      .eq("is_active", true)
+      .gte("next_run_at", reminderWindowStart)
+      .lte("next_run_at", reminderWindowEnd)
+      .limit(200);
+
+    let reminded = 0;
+    for (const r of (upcoming as unknown as Recurring[]) || []) {
+      const marker = `reminded:${r.next_run_at}`;
+      if (r.last_status === marker) continue; // already reminded for this run
+
+      const runDate = new Date(r.next_run_at);
+      const dateStr = runDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const amountStr = `₹${(r.amount / 100).toFixed(0)}`;
+      const title = r.kind === "topup" ? "⏰ Auto Top-up in 3 days" : "⏰ Auto-Pay in 3 days";
+      let body = "";
+      if (r.kind === "topup") {
+        body = `${amountStr} will be added to your wallet on ${dateStr}.`;
+      } else {
+        let toName = "";
+        if (r.favorite_id) {
+          const { data: fav } = await admin
+            .from("quick_pay_favorites").select("contact_name")
+            .eq("id", r.favorite_id).maybeSingle();
+          toName = fav?.contact_name ? ` to ${fav.contact_name}` : "";
+        }
+        body = `${amountStr}${toName} will be auto-paid on ${dateStr}. Make sure your wallet has enough balance.`;
+      }
+
+      await admin.from("notifications").insert({
+        user_id: r.user_id,
+        title,
+        body,
+        type: "autopay_reminder",
+      });
+
+      // Best-effort push
+      try {
+        await admin.functions.invoke("send-push-notification", {
+          body: { user_id: r.user_id, title, body, data: { type: "autopay_reminder", route: "/manage-recurring", skip_in_app: "1" } },
+        });
+      } catch (_) { /* push optional */ }
+
+      await admin.from("recurring_payments").update({
+        last_status: marker,
+        updated_at: nowIso,
+      }).eq("id", r.id);
+
+      reminded++;
+    }
+
+    // ---- 2) Process due runs ----
     const { data: due, error } = await admin
       .from("recurring_payments")
       .select("*")
