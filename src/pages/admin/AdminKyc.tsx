@@ -168,7 +168,7 @@ const AdminKyc = () => {
     });
   };
 
-  const approveNow = async (r: KycRow): Promise<boolean> => {
+  const approveNow = async (r: KycRow, reason?: string): Promise<boolean> => {
     const prev = rows;
     return optimistic({
       apply: () => setRows((p) => p.map((x) => x.id === r.id ? { ...x, status: "verified", verified_at: new Date().toISOString() } : x)),
@@ -183,7 +183,7 @@ const AdminKyc = () => {
           body: "Your identity verification was approved. You now have full access to PayVibe.",
           type: "kyc_approved",
         });
-        await logAudit("kyc_approve", r.id, { user_name: r.aadhaar_name });
+        await logAudit("kyc_approve", r.id, { user_name: r.aadhaar_name, ...(reason ? { reason, gated: true } : {}) });
         return u;
       },
       successMessage: `KYC approved for ${r.aadhaar_name || "user"} 🎉`,
