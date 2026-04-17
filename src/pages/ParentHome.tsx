@@ -143,12 +143,28 @@ const ParentHome = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold">Your Teens</h3>
+          <button
+            onClick={() => navigate("/linked-teens")}
+            className="text-[12px] font-bold text-primary inline-flex items-center gap-1"
+          >
+            Manage →
+          </button>
         </div>
 
         {teens.length === 0 ? (
           <div className="text-center py-8 rounded-lg bg-card border border-border card-glow">
-            <p className="text-sm text-muted-foreground mb-2">No teens linked yet</p>
-            <p className="text-xs text-muted-foreground">Link a teen from your profile settings</p>
+            <p className="text-sm text-muted-foreground mb-3">No teens linked yet</p>
+            <button
+              onClick={() => navigate("/linked-teens")}
+              className="h-10 px-4 rounded-full text-[12px] font-bold inline-flex items-center gap-2"
+              style={{
+                background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+                color: "hsl(220 15% 5%)",
+                boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
+              }}
+            >
+              <Plus className="w-4 h-4" /> Link a teen
+            </button>
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
