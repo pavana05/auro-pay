@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { ArrowRight, Sparkles, QrCode, Smartphone, Bell, ShieldCheck, Check } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
+import Lottie from "lottie-react";
 import { haptic } from "@/lib/haptics";
 
 const AUTOPLAY_MS = 6500;
@@ -7,36 +8,47 @@ const AUTOPLAY_MS = 6500;
 type Slide = {
   title: string;
   subtitle: string;
-  hue: number; // base hue tint for ambient bg
-  illustration: "qr" | "link" | "aadhaar";
+  hue: number;
+  /** Public LottieFiles JSON URL (free, MIT) */
+  lottieUrl: string;
+  /** When set, renders the special tilt-to-reveal coin animation instead of Lottie */
+  variant?: "tilt-coin";
 };
 
+// Curated free Lottie animations from lottiefiles.com (publicly hosted)
 const slides: Slide[] = [
   {
     title: "Scan any QR. Pay in a tap.",
     subtitle: "Pay at any shop in India by scanning their UPI QR code — no card, no cash, no fuss.",
-    hue: 42, // gold
-    illustration: "qr",
+    hue: 42,
+    lottieUrl: "https://assets10.lottiefiles.com/packages/lf20_uwos7gnz.json", // QR / scanning wallet
   },
   {
     title: "Parents stay in the loop.",
     subtitle: "Real-time alerts, smart limits, and instant top-ups — connected across both phones.",
-    hue: 28, // amber
-    illustration: "link",
+    hue: 28,
+    lottieUrl: "https://assets3.lottiefiles.com/packages/lf20_yfsb3a1d.json", // family / parent-child
   },
   {
     title: "Verified safe with Aadhaar.",
     subtitle: "Bank-grade KYC in under a minute. Your money is protected from day one.",
-    hue: 50, // warm gold
-    illustration: "aadhaar",
+    hue: 50,
+    lottieUrl: "https://assets9.lottiefiles.com/packages/lf20_xlmz9xwm.json", // shield / verified check
+  },
+  {
+    title: "Tilt to reveal your reward.",
+    subtitle: "Earn scratch cards, coins, and cashback every time you pay. Move your phone to flip the coin.",
+    hue: 45,
+    lottieUrl: "", // not used
+    variant: "tilt-coin",
   },
 ];
 
 const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [current, setCurrent] = useState(0);
-  const [progress, setProgress] = useState(0); // 0..(slides.length) — continuous fill across whole bar
+  const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [dragX, setDragX] = useState(0); // current finger drag offset px
+  const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
@@ -69,7 +81,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     if (current > 0) goTo(current - 1);
   }, [current, goTo]);
 
-  // Touch: follow finger
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
@@ -87,7 +98,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
       }
     }
     if (lockedAxis.current === "x") {
-      // resistance at edges
       let val = dx;
       if ((current === 0 && dx > 0) || (current === slides.length - 1 && dx < 0)) {
         val = dx * 0.35;
@@ -110,7 +120,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     lockedAxis.current = null;
   };
 
-  // Auto-advance + continuous progress
   useEffect(() => {
     if (paused) return;
     slideStartTime.current = Date.now();
@@ -127,7 +136,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     return () => clearInterval(tick);
   }, [current, paused, goTo, finish]);
 
-  // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") next();
@@ -139,7 +147,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   const titleWords = useMemo(() => slide.title.split(" "), [slide.title]);
 
-  // Hue-tinted background
   const bgStyle = useMemo(() => ({
     background: `
       radial-gradient(ellipse 80% 60% at 50% 15%, hsl(${slide.hue} 78% 55% / 0.18), transparent 70%),
@@ -219,7 +226,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
         )}
       </div>
 
-      {/* Slides track — translates X following finger */}
+      {/* Slides track */}
       <div className="flex-1 relative z-10 overflow-hidden" style={{ perspective: "1400px" }}>
         <div
           className="absolute inset-0 flex"
@@ -236,17 +243,19 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
                 className="w-full h-full flex-shrink-0 flex flex-col items-center justify-center px-6"
                 style={{ width: "100%" }}
               >
-                {/* 3D illustration */}
+                {/* Animation area */}
                 <div
-                  className="relative w-full max-w-[320px] aspect-square mb-10"
+                  className="relative w-full max-w-[320px] aspect-square mb-8 flex items-center justify-center"
                   style={{ transformStyle: "preserve-3d" }}
                 >
-                  {s.illustration === "qr" && <QrIllustration active={isActive} />}
-                  {s.illustration === "link" && <LinkIllustration active={isActive} />}
-                  {s.illustration === "aadhaar" && <AadhaarIllustration active={isActive} />}
+                  {s.variant === "tilt-coin" ? (
+                    <TiltCoin active={isActive} />
+                  ) : (
+                    <LottieSlide url={s.lottieUrl} active={isActive} hue={s.hue} />
+                  )}
                 </div>
 
-                {/* Title — word-by-word from bottom */}
+                {/* Title */}
                 <h2 className="text-[30px] font-black leading-[1.1] tracking-tight text-center max-w-[320px] mb-4">
                   {s.title.split(" ").map((word, wi) => (
                     <span
@@ -273,7 +282,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
                   ))}
                 </h2>
 
-                {/* Subtitle — fades in after title */}
+                {/* Subtitle */}
                 <p
                   className="text-[14px] text-white/55 text-center leading-relaxed max-w-[300px] font-light"
                   style={{
@@ -301,7 +310,6 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
             boxShadow: "0 14px 40px hsl(42 78% 55% / 0.4), inset 0 1px 0 hsl(45 100% 85% / 0.5)",
           }}
         >
-          {/* shimmer */}
           <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
           <span className="relative z-10 flex items-center gap-2">
             {current === slides.length - 1 ? (
@@ -315,7 +323,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
           </span>
         </button>
 
-        {/* Slide dots indicator */}
+        {/* Slide dots */}
         <div className="flex justify-center gap-1.5 mt-5">
           {slides.map((_, i) => (
             <button
@@ -344,419 +352,223 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
           0%, 100% { transform: translate(0, 0); }
           50% { transform: translate(-60px, -30px); }
         }
-        @keyframes onb-float-3d {
-          0%, 100% { transform: translateY(0) rotateY(-8deg) rotateX(4deg); }
-          50% { transform: translateY(-12px) rotateY(8deg) rotateX(-2deg); }
+        @keyframes onb-coin-spin-fallback {
+          0% { transform: rotateY(0deg); }
+          100% { transform: rotateY(360deg); }
         }
-        @keyframes onb-float-soft {
-          0%, 100% { transform: translateY(0) rotate(-2deg); }
-          50% { transform: translateY(-8px) rotate(2deg); }
+        @keyframes onb-coin-glow {
+          0%, 100% { filter: drop-shadow(0 8px 24px hsl(42 78% 55% / 0.5)); }
+          50% { filter: drop-shadow(0 12px 36px hsl(42 95% 65% / 0.85)); }
         }
-        @keyframes onb-qr-scan {
-          0% { top: 8%; opacity: 0; }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { top: 88%; opacity: 0; }
-        }
-        @keyframes onb-amount-rise {
-          0% { opacity: 0; transform: translate(-50%, 30px) scale(0.8); }
-          20% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-          80% { opacity: 1; transform: translate(-50%, -10px) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -40px) scale(0.95); }
-        }
-        @keyframes onb-merchant-in {
-          0%, 30% { opacity: 0; transform: translate(-50%, 8px); }
-          50%, 90% { opacity: 1; transform: translate(-50%, 0); }
-          100% { opacity: 0; transform: translate(-50%, -4px); }
-        }
-        @keyframes onb-link-pulse {
-          0%, 100% { stroke-dashoffset: 0; opacity: 0.7; }
-          50% { stroke-dashoffset: -20; opacity: 1; }
-        }
-        @keyframes onb-alert-fly {
-          0% { opacity: 0; transform: translate(-50%, -50%) translateX(-70px) scale(0.6); }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { opacity: 0; transform: translate(-50%, -50%) translateX(70px) scale(0.6); }
-        }
-        @keyframes onb-alert-fly-rev {
-          0% { opacity: 0; transform: translate(-50%, -50%) translateX(70px) scale(0.6); }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { opacity: 0; transform: translate(-50%, -50%) translateX(-70px) scale(0.6); }
-        }
-        @keyframes onb-aadhaar-slide {
-          0% { transform: translate(-120%, -50%) rotate(-8deg); opacity: 0; }
-          60% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
-          100% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
-        }
-        @keyframes onb-stamp-in {
-          0%, 70% { opacity: 0; transform: translate(0, 0) scale(2.5) rotate(-25deg); }
-          80% { opacity: 1; transform: translate(0, 0) scale(0.95) rotate(-12deg); }
-          90% { transform: translate(0, 0) scale(1.05) rotate(-12deg); }
-          100% { opacity: 1; transform: translate(0, 0) scale(1) rotate(-12deg); }
+        @keyframes onb-coin-sparkle {
+          0%, 100% { opacity: 0; transform: scale(0.6); }
+          50% { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
   );
 };
 
-/* ============= 3D ILLUSTRATIONS ============= */
+/* ============= LOTTIE SLIDE ============= */
 
-const QrIllustration = ({ active }: { active: boolean }) => (
-  <div
-    className="relative w-full h-full flex items-center justify-center"
-    style={{
-      animation: active ? "onb-float-3d 6s ease-in-out infinite" : undefined,
-      transformStyle: "preserve-3d",
-    }}
-  >
-    {/* Glow under QR */}
-    <div
-      className="absolute inset-[15%] rounded-3xl blur-3xl opacity-40"
-      style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.6), transparent 70%)" }}
-    />
+const LottieSlide = ({ url, active, hue }: { url: string; active: boolean; hue: number }) => {
+  const [data, setData] = useState<any>(null);
+  const [errored, setErrored] = useState(false);
 
-    {/* QR frame */}
-    <div
-      className="relative rounded-[28px] overflow-hidden"
-      style={{
-        width: "78%",
-        aspectRatio: "1",
-        background: "linear-gradient(135deg, hsl(220 15% 10%), hsl(220 15% 6%))",
-        border: "1.5px solid hsl(42 78% 55% / 0.35)",
-        boxShadow: "0 30px 60px hsl(0 0% 0% / 0.5), inset 0 1px 0 hsl(42 78% 55% / 0.15)",
-      }}
-    >
-      {/* Corner brackets */}
-      {[
-        { top: 10, left: 10, borders: "border-t-2 border-l-2", radius: "rounded-tl-xl" },
-        { top: 10, right: 10, borders: "border-t-2 border-r-2", radius: "rounded-tr-xl" },
-        { bottom: 10, left: 10, borders: "border-b-2 border-l-2", radius: "rounded-bl-xl" },
-        { bottom: 10, right: 10, borders: "border-b-2 border-r-2", radius: "rounded-br-xl" },
-      ].map((c, i) => (
-        <div
-          key={i}
-          className={`absolute w-8 h-8 ${c.borders} ${c.radius}`}
-          style={{
-            ...c,
-            borderColor: "hsl(42 78% 55%)",
-            boxShadow: "0 0 12px hsl(42 78% 55% / 0.5)",
-          }}
-        />
-      ))}
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    setErrored(false);
+    fetch(url)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("fetch failed")))
+      .then((json) => { if (!cancelled) setData(json); })
+      .catch(() => { if (!cancelled) setErrored(true); });
+    return () => { cancelled = true; };
+  }, [url]);
 
-      {/* Mock QR pattern */}
-      <div className="absolute inset-[18%] grid grid-cols-8 gap-[3px] opacity-90">
-        {Array.from({ length: 64 }).map((_, i) => {
-          const filled = (i * 7 + (i % 5)) % 3 !== 0;
-          return (
-            <div
-              key={i}
-              className="rounded-[2px]"
-              style={{
-                background: filled ? "hsl(42 90% 72%)" : "transparent",
-                boxShadow: filled ? "0 0 4px hsl(42 78% 55% / 0.4)" : "none",
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* QR center logo */}
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Glow base */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{
-          background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-          boxShadow: "0 4px 16px hsl(42 78% 55% / 0.6)",
-        }}
-      >
-        <QrCode className="w-5 h-5" style={{ color: "hsl(220 15% 5%)" }} />
-      </div>
-
-      {/* Scanning laser line */}
-      {active && (
+        className="absolute inset-[12%] rounded-full blur-3xl opacity-40"
+        style={{ background: `radial-gradient(circle, hsl(${hue} 78% 55% / 0.55), transparent 70%)` }}
+      />
+      {data && !errored ? (
+        <Lottie
+          animationData={data}
+          loop
+          autoplay={active}
+          className="relative w-full h-full"
+          rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }}
+        />
+      ) : errored ? (
+        // Fallback: minimal gold orb so the screen never looks empty
         <div
-          className="absolute left-[12%] right-[12%] h-[2px] rounded-full"
+          className="relative w-32 h-32 rounded-full"
           style={{
-            background: "linear-gradient(90deg, transparent, hsl(42 95% 70%), transparent)",
-            boxShadow: "0 0 16px hsl(42 78% 55% / 0.9), 0 0 32px hsl(42 78% 55% / 0.5)",
-            animation: "onb-qr-scan 2.4s ease-in-out infinite",
+            background: `radial-gradient(circle at 30% 30%, hsl(${hue} 95% 78%), hsl(${hue} 78% 45%))`,
+            boxShadow: `0 16px 48px hsl(${hue} 78% 55% / 0.5)`,
+            animation: "onb-coin-glow 2.4s ease-in-out infinite",
           }}
         />
+      ) : (
+        <div className="text-[10px] text-white/30 tracking-widest">LOADING</div>
       )}
     </div>
+  );
+};
 
-    {/* Merchant name pop-up */}
-    {active && (
+/* ============= TILT-TO-REVEAL COIN ============= */
+
+const TiltCoin = ({ active }: { active: boolean }) => {
+  const [tiltY, setTiltY] = useState(0);
+  const [tiltX, setTiltX] = useState(0);
+  const [orientationGranted, setOrientationGranted] = useState(false);
+  const [needsPermission, setNeedsPermission] = useState(false);
+
+  // Detect if iOS-style permission is required
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window as any;
+    if (typeof w.DeviceOrientationEvent !== "undefined" &&
+        typeof w.DeviceOrientationEvent.requestPermission === "function") {
+      setNeedsPermission(true);
+    } else if (typeof window.DeviceOrientationEvent !== "undefined") {
+      // Auto-enable on Android / non-iOS
+      setOrientationGranted(true);
+    }
+  }, []);
+
+  // Listen for tilt
+  useEffect(() => {
+    if (!orientationGranted || !active) return;
+    const onTilt = (e: DeviceOrientationEvent) => {
+      // gamma: left-right tilt (-90..90), beta: front-back (-180..180)
+      const g = e.gamma ?? 0;
+      const b = e.beta ?? 0;
+      setTiltY(Math.max(-45, Math.min(45, g * 1.4)));
+      setTiltX(Math.max(-25, Math.min(25, (b - 30) * 0.5)));
+    };
+    window.addEventListener("deviceorientation", onTilt);
+    return () => window.removeEventListener("deviceorientation", onTilt);
+  }, [orientationGranted, active]);
+
+  const requestPermission = async () => {
+    const w = window as any;
+    try {
+      const res = await w.DeviceOrientationEvent.requestPermission();
+      if (res === "granted") {
+        setOrientationGranted(true);
+        setNeedsPermission(false);
+      }
+    } catch {
+      // ignore — fall back to CSS auto-spin
+    }
+  };
+
+  const useFallbackSpin = !orientationGranted;
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center" style={{ perspective: 800 }}>
+      {/* radial glow */}
       <div
-        className="absolute bottom-[8%] left-1/2 px-3 py-1.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
-        style={{
-          background: "hsl(220 15% 10% / 0.85)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid hsl(42 78% 55% / 0.3)",
-          color: "hsl(42 90% 75%)",
-          animation: "onb-merchant-in 4s ease-in-out infinite",
-          animationDelay: "1.5s",
-        }}
-      >
-        ☕ Cafe Aurora • Mumbai
-      </div>
-    )}
-
-    {/* Floating ₹ amount */}
-    {active && (
-      <div
-        className="absolute top-[2%] left-1/2 text-[26px] font-black"
-        style={{
-          background: "linear-gradient(135deg, hsl(42 95% 78%), hsl(42 78% 55%))",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          filter: "drop-shadow(0 4px 16px hsl(42 78% 55% / 0.6))",
-          animation: "onb-amount-rise 4s ease-in-out infinite",
-          animationDelay: "2s",
-        }}
-      >
-        ₹ 249
-      </div>
-    )}
-  </div>
-);
-
-const LinkIllustration = ({ active }: { active: boolean }) => (
-  <div
-    className="relative w-full h-full flex items-center justify-center"
-    style={{
-      animation: active ? "onb-float-soft 7s ease-in-out infinite" : undefined,
-      transformStyle: "preserve-3d",
-    }}
-  >
-    {/* Background glow */}
-    <div
-      className="absolute inset-[10%] rounded-full blur-3xl opacity-30"
-      style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.6), transparent 70%)" }}
-    />
-
-    {/* Connecting curved line (SVG) */}
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id="connectGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="hsl(42 95% 70%)" />
-          <stop offset="100%" stopColor="hsl(38 80% 50%)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M 22 32 Q 50 50, 78 68"
-        fill="none"
-        stroke="url(#connectGrad)"
-        strokeWidth="1.2"
-        strokeDasharray="3 3"
-        strokeLinecap="round"
-        style={{
-          filter: "drop-shadow(0 0 4px hsl(42 78% 55% / 0.6))",
-          animation: active ? "onb-link-pulse 1.8s ease-in-out infinite" : undefined,
-        }}
+        className="absolute inset-[10%] rounded-full blur-3xl opacity-50"
+        style={{ background: "radial-gradient(circle, hsl(42 95% 60% / 0.6), transparent 70%)" }}
       />
-    </svg>
 
-    {/* Parent phone — top-left */}
-    <div
-      className="absolute"
-      style={{
-        top: "8%",
-        left: "8%",
-        width: "42%",
-        aspectRatio: "9/16",
-        transform: "perspective(800px) rotateY(-15deg) rotateX(8deg)",
-        transformStyle: "preserve-3d",
-      }}
-    >
-      <PhoneMockup label="Parent" icon="bell" />
-    </div>
+      {/* Sparkles */}
+      {active && (
+        <>
+          {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: "hsl(42 95% 80%)",
+                boxShadow: "0 0 8px hsl(42 95% 70%)",
+                transform: `rotate(${deg}deg) translateY(-110px)`,
+                transformOrigin: "center",
+                animation: `onb-coin-sparkle 2s ease-in-out ${i * 0.2}s infinite`,
+              }}
+            />
+          ))}
+        </>
+      )}
 
-    {/* Teen phone — bottom-right */}
-    <div
-      className="absolute"
-      style={{
-        bottom: "8%",
-        right: "8%",
-        width: "42%",
-        aspectRatio: "9/16",
-        transform: "perspective(800px) rotateY(15deg) rotateX(-8deg)",
-        transformStyle: "preserve-3d",
-      }}
-    >
-      <PhoneMockup label="Teen" icon="phone" />
-    </div>
-
-    {/* Flying alerts between phones */}
-    {active && (
-      <>
-        <div
-          className="absolute top-1/2 left-1/2 w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-            boxShadow: "0 6px 20px hsl(42 78% 55% / 0.6)",
-            animation: "onb-alert-fly 3s ease-in-out infinite",
-          }}
-        >
-          <Bell className="w-4 h-4" style={{ color: "hsl(220 15% 5%)" }} />
-        </div>
-        <div
-          className="absolute top-1/2 left-1/2 w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg, hsl(38 80% 55%), hsl(42 78% 45%))",
-            boxShadow: "0 6px 20px hsl(42 78% 55% / 0.5)",
-            animation: "onb-alert-fly-rev 3s ease-in-out infinite",
-            animationDelay: "1.5s",
-          }}
-        >
-          <Sparkles className="w-4 h-4" style={{ color: "hsl(220 15% 5%)" }} />
-        </div>
-      </>
-    )}
-  </div>
-);
-
-const PhoneMockup = ({ label, icon }: { label: string; icon: "bell" | "phone" }) => (
-  <div
-    className="relative w-full h-full rounded-[18px] overflow-hidden"
-    style={{
-      background: "linear-gradient(160deg, hsl(220 15% 12%), hsl(220 15% 6%))",
-      border: "1.5px solid hsl(42 78% 55% / 0.3)",
-      boxShadow: "0 16px 40px hsl(0 0% 0% / 0.5), inset 0 1px 0 hsl(42 78% 55% / 0.15)",
-    }}
-  >
-    {/* Notch */}
-    <div
-      className="absolute top-1.5 left-1/2 -translate-x-1/2 w-8 h-1.5 rounded-full"
-      style={{ background: "hsl(220 15% 4%)" }}
-    />
-    {/* Screen content */}
-    <div className="absolute inset-2 top-4 rounded-[12px] flex flex-col items-center justify-center gap-1.5" style={{ background: "hsl(220 15% 4%)" }}>
+      {/* The coin */}
       <div
-        className="w-7 h-7 rounded-lg flex items-center justify-center"
+        className="relative w-44 h-44"
         style={{
-          background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-          boxShadow: "0 0 12px hsl(42 78% 55% / 0.5)",
+          transformStyle: "preserve-3d",
+          transform: useFallbackSpin
+            ? undefined
+            : `rotateY(${tiltY}deg) rotateX(${-tiltX}deg)`,
+          transition: useFallbackSpin ? undefined : "transform 120ms ease-out",
+          animation: useFallbackSpin && active
+            ? "onb-coin-spin-fallback 5s linear infinite, onb-coin-glow 2.4s ease-in-out infinite"
+            : "onb-coin-glow 2.4s ease-in-out infinite",
         }}
       >
-        {icon === "bell" ? (
-          <Bell className="w-3.5 h-3.5" style={{ color: "hsl(220 15% 5%)" }} />
-        ) : (
-          <Smartphone className="w-3.5 h-3.5" style={{ color: "hsl(220 15% 5%)" }} />
-        )}
-      </div>
-      <span className="text-[8px] font-bold tracking-widest" style={{ color: "hsl(42 90% 75%)" }}>
-        {label.toUpperCase()}
-      </span>
-    </div>
-  </div>
-);
-
-const AadhaarIllustration = ({ active }: { active: boolean }) => (
-  <div
-    className="relative w-full h-full flex items-center justify-center"
-    style={{
-      animation: active ? "onb-float-soft 7s ease-in-out infinite" : undefined,
-      transformStyle: "preserve-3d",
-    }}
-  >
-    {/* Background glow */}
-    <div
-      className="absolute inset-[15%] rounded-3xl blur-3xl opacity-40"
-      style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.5), transparent 70%)" }}
-    />
-
-    {/* Aadhaar card — slides in */}
-    <div
-      className="absolute top-1/2 left-1/2 rounded-2xl overflow-hidden"
-      style={{
-        width: "82%",
-        aspectRatio: "1.6",
-        background: "linear-gradient(135deg, hsl(42 30% 95%), hsl(42 25% 88%))",
-        border: "1px solid hsl(42 50% 70%)",
-        boxShadow: "0 20px 50px hsl(0 0% 0% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.6)",
-        transform: "translate(-50%, -50%) perspective(800px) rotateY(-6deg)",
-        animation: active ? "onb-aadhaar-slide 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards" : undefined,
-        opacity: active ? undefined : 0,
-      }}
-    >
-      {/* Card header */}
-      <div className="flex items-center justify-between px-3 pt-2.5">
-        <div className="flex items-center gap-1.5">
+        {/* Front face — ₹ */}
+        <div
+          className="absolute inset-0 rounded-full flex items-center justify-center"
+          style={{
+            background: "radial-gradient(circle at 30% 25%, hsl(45 100% 88%), hsl(42 95% 60%) 45%, hsl(38 85% 38%) 100%)",
+            boxShadow: "inset 0 -6px 20px hsl(30 80% 25% / 0.5), inset 0 4px 12px hsl(45 100% 85% / 0.6), 0 16px 40px hsl(42 78% 35% / 0.5)",
+            backfaceVisibility: "hidden",
+          }}
+        >
+          {/* ridges */}
           <div
-            className="w-5 h-5 rounded-full flex items-center justify-center"
+            className="absolute inset-0 rounded-full"
             style={{
-              background: "linear-gradient(135deg, hsl(15 80% 55%), hsl(42 80% 55%), hsl(140 50% 45%))",
+              background: "repeating-conic-gradient(from 0deg, hsl(38 70% 35% / 0.25) 0deg 4deg, transparent 4deg 8deg)",
+              maskImage: "radial-gradient(circle, transparent 70%, black 72%, black 100%)",
+              WebkitMaskImage: "radial-gradient(circle, transparent 70%, black 72%, black 100%)",
+            }}
+          />
+          <span
+            className="text-[68px] font-black select-none"
+            style={{
+              color: "hsl(30 80% 28%)",
+              textShadow: "0 2px 0 hsl(45 100% 85%), 0 -2px 0 hsl(30 70% 22%)",
             }}
           >
-            <span className="text-[8px] font-black text-white">आ</span>
-          </div>
-          <span className="text-[8px] font-bold tracking-wider" style={{ color: "hsl(220 15% 25%)" }}>
-            आधार • AADHAAR
+            ₹
           </span>
         </div>
-        <div className="flex flex-col items-end gap-0.5">
-          <div className="w-6 h-1 rounded-sm" style={{ background: "hsl(220 15% 30%)" }} />
-          <div className="w-4 h-1 rounded-sm" style={{ background: "hsl(220 15% 50%)" }} />
-        </div>
-      </div>
 
-      {/* Card body */}
-      <div className="flex gap-2.5 px-3 pt-2">
-        {/* Photo */}
+        {/* Back face — Star (visible when flipped) */}
         <div
-          className="w-12 h-14 rounded-md shrink-0"
+          className="absolute inset-0 rounded-full flex items-center justify-center"
           style={{
-            background: "linear-gradient(135deg, hsl(220 15% 65%), hsl(220 15% 45%))",
-            border: "1px solid hsl(220 15% 35%)",
-          }}
-        />
-        {/* Info */}
-        <div className="flex-1 flex flex-col gap-1 pt-1">
-          <div className="text-[10px] font-bold" style={{ color: "hsl(220 20% 15%)" }}>
-            Arjun Sharma
-          </div>
-          <div className="text-[7px]" style={{ color: "hsl(220 15% 35%)" }}>
-            DOB: 12/08/2007
-          </div>
-          <div className="text-[7px] font-mono tracking-wider mt-0.5" style={{ color: "hsl(220 20% 20%)" }}>
-            **** **** 4829
-          </div>
-        </div>
-      </div>
-
-      {/* Verified stamp */}
-      <div
-        className="absolute"
-        style={{
-          bottom: 8,
-          right: 12,
-          opacity: active ? undefined : 0,
-          animation: active ? "onb-stamp-in 2.5s ease-out forwards" : undefined,
-        }}
-      >
-        <div
-          className="flex items-center gap-1 px-2.5 py-1 rounded-full border-2"
-          style={{
-            borderColor: "hsl(140 65% 40%)",
-            color: "hsl(140 65% 30%)",
-            background: "hsl(140 50% 95% / 0.5)",
-            boxShadow: "0 0 16px hsl(140 65% 40% / 0.3)",
+            background: "radial-gradient(circle at 30% 25%, hsl(45 100% 88%), hsl(42 95% 60%) 45%, hsl(38 85% 38%) 100%)",
+            boxShadow: "inset 0 -6px 20px hsl(30 80% 25% / 0.5), inset 0 4px 12px hsl(45 100% 85% / 0.6)",
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
           }}
         >
-          <ShieldCheck className="w-3 h-3" />
-          <span className="text-[9px] font-black tracking-wider">VERIFIED</span>
-          <Check className="w-3 h-3" strokeWidth={3} />
+          <Sparkles className="w-16 h-16" style={{ color: "hsl(30 80% 28%)" }} />
         </div>
       </div>
+
+      {/* Permission prompt */}
+      {needsPermission && active && (
+        <button
+          onClick={requestPermission}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-semibold whitespace-nowrap z-10"
+          style={{
+            background: "hsl(220 15% 10% / 0.85)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid hsl(42 78% 55% / 0.4)",
+            color: "hsl(42 90% 75%)",
+          }}
+        >
+          Enable motion to tilt
+        </button>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export default OnboardingScreen;
