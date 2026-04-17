@@ -214,6 +214,61 @@ const AdminWallets = () => {
     return performFreezeToggle(w, next);
   };
 
+  // Unlock-account flow specifically for wallets locked by a confirmed_fraud flag.
+  // Requires typed reason, unfreezes, audit-logs, and notifies the user that access is restored.
+  const requestUnlockAccount = (w: WalletRow) => {
+    const flagId = fraudLocks.get(w.id);
+    if (!flagId) {
+      toast.error("No fraud lock found for this wallet");
+      return;
+    }
+    const userLabel = w.profile?.full_name || w.profile?.phone || "this user";
+    setUnlockGate({
+      wallet: w,
+      flagId,
+      payload: {
+        title: "Unlock fraud-locked account",
+        description: `${userLabel} • Wallet was frozen by a confirmed_fraud flag. Document why access is being restored.`,
+        confirmLabel: "Unlock account",
+        destructive: false,
+        minReasonLength: 15,
+        reasonPlaceholder: "e.g. Compliance review #2231 cleared user; charges reversed and identity re-verified on call.",
+      },
+    });
+  };
+
+  const performUnlockAccount = async (w: WalletRow, flagId: string, reason: string) => {
+    return optimistic({
+      apply: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: false } : x)),
+      rollback: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: true } : x)),
+      mutate: async () => {
+        const u = await supabase.from("wallets").update({ is_frozen: false }).eq("id", w.id);
+        if (!u.error) {
+          await logAudit("wallet_account_unlock", w.id, {
+            user: w.profile?.full_name,
+            balance_paise: w.balance || 0,
+            triggered_by_flag_id: flagId,
+            reason,
+            gated: true,
+          });
+          await supabase.from("notifications").insert({
+            user_id: w.user_id,
+            title: "✅ Your account has been restored",
+            body: `Our team has reviewed the recent fraud flag and restored full access to your wallet. Reason: ${reason.slice(0, 160)}`,
+            type: "account_restored",
+          });
+          setFraudLocks((prev) => {
+            const m = new Map(prev);
+            m.delete(w.id);
+            return m;
+          });
+        }
+        return u;
+      },
+      successMessage: "Account unlocked & user notified",
+    });
+  };
+
   const openWalletPanel = (w: WalletRow) => {
     ctxPanel.show({
       title: w.profile?.full_name || "Wallet",
