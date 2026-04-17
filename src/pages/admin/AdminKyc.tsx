@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
   ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
+  Image as ImageIcon, Download, Loader2, Maximize2,
 } from "lucide-react";
 
 const C = {
@@ -730,6 +731,9 @@ const KycPanelBody = ({
         </div>
       )}
 
+      {/* Aadhaar document preview */}
+      <AadhaarImagePreview kycId={r.id} hasDigio={!!r.digio_request_id} />
+
       {/* Identity details */}
       <div className="rounded-xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
         <DetailRow icon={UserIcon} label="Aadhaar Name" value={r.aadhaar_name || "—"} />
@@ -753,6 +757,104 @@ const KycPanelBody = ({
         </button>
       </div>
     </div>
+  );
+};
+
+/* ─────────── Aadhaar document preview ─────────── */
+const AadhaarImagePreview = ({ kycId, hasDigio }: { kycId: string; hasDigio: boolean }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isMock, setIsMock] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+
+  const fetchImage = async () => {
+    setLoading(true); setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("digio-fetch-document", {
+        body: { kyc_request_id: kycId },
+      });
+      if (fnErr) throw fnErr;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.image_url) throw new Error("No image returned");
+      setImageUrl(data.image_url);
+      setIsMock(!!data.mock);
+    } catch (e: any) {
+      setError(e.message || "Failed to fetch document");
+      toast.error(e.message || "Failed to fetch document");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!hasDigio) {
+    return (
+      <div className="rounded-xl border p-4 text-center" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <ImageIcon className="w-6 h-6 mx-auto text-white/20 mb-1.5" />
+        <p className="text-[10px] text-white/40 font-sora">No Digio request linked — document preview unavailable</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="rounded-xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-3 h-3 text-white/40" />
+            <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Aadhaar document</span>
+            {isMock && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ background: `${C.warning}15`, color: C.warning }}>Mock</span>}
+          </div>
+          {imageUrl && (
+            <button onClick={() => setZoomed(true)} className="text-[10px] text-white/50 hover:text-white flex items-center gap-1 font-sora">
+              <Maximize2 className="w-2.5 h-2.5" /> Expand
+            </button>
+          )}
+        </div>
+
+        {!imageUrl && !loading && !error && (
+          <div className="p-5 text-center">
+            <ImageIcon className="w-8 h-8 mx-auto text-white/20 mb-2" />
+            <p className="text-[11px] text-white/50 font-sora mb-3">View the actual Aadhaar document submitted via Digio</p>
+            <button onClick={fetchImage}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-semibold font-sora transition-all"
+              style={{ background: `${C.primary}15`, color: C.primary, border: `1px solid ${C.primary}30` }}>
+              <Download className="w-3 h-3" /> Load document
+            </button>
+          </div>
+        )}
+
+        {loading && (
+          <div className="p-8 text-center">
+            <Loader2 className="w-5 h-5 mx-auto text-white/40 animate-spin mb-2" />
+            <p className="text-[10px] text-white/40 font-sora">Fetching from Digio…</p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="p-5 text-center">
+            <AlertTriangle className="w-6 h-6 mx-auto mb-2" style={{ color: C.danger }} />
+            <p className="text-[11px] font-sora mb-2" style={{ color: C.danger }}>{error}</p>
+            <button onClick={fetchImage} className="text-[10px] text-white/60 hover:text-white underline font-sora">Retry</button>
+          </div>
+        )}
+
+        {imageUrl && (
+          <button onClick={() => setZoomed(true)} className="block w-full">
+            <img src={imageUrl} alt="Aadhaar document" className="w-full h-auto cursor-zoom-in" />
+          </button>
+        )}
+      </div>
+
+      {zoomed && imageUrl && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6" style={{ background: "rgba(0,0,0,0.92)", animation: "fade-in 0.2s ease-out" }} onClick={() => setZoomed(false)}>
+          <button onClick={() => setZoomed(false)} className="absolute top-5 right-5 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white">
+            <X className="w-5 h-5" />
+          </button>
+          <img src={imageUrl} alt="Aadhaar document (zoomed)" className="max-w-full max-h-full rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+    </>
   );
 };
 
