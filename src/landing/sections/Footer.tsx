@@ -43,7 +43,7 @@ export default function Footer() {
 
         <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
           <div>© 2025 AuroPay. All rights reserved.</div>
-          <div>Made with <span style={{ color: "#c8952e" }}>♥</span> in Mysuru, India</div>
+          <div>Made with <span style={{ color: "#c8952e" }}>❤️</span> in Bengaluru, India</div>
         </div>
       </div>
     </footer>
