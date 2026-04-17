@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, ShieldAlert, TrendingUp, XCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, ShieldAlert, Snowflake, TrendingUp, XCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface FlagRow {
   wallet_id: string;

@@ -52,8 +52,11 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Always create in-app notification
-    await supabase.from("notifications").insert({ user_id, title, body, type: extra?.type || "general" });
+    // Create in-app notification unless caller already inserted one (e.g. broadcast bulk-insert)
+    const skipInApp = extra?.skip_in_app === "1" || extra?.skip_in_app === true;
+    if (!skipInApp) {
+      await supabase.from("notifications").insert({ user_id, title, body, type: extra?.type || "general" });
+    }
 
     // Get FCM token
     const { data: tokenRow } = await supabase
