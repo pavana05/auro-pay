@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { Link2, Users, Wallet } from "lucide-react";
 import { useAdminQuery } from "@/hooks/useAdminQuery";
-import { AdminQueryError, AdminQueryLoading } from "@/components/admin/AdminQueryState";
+import { AdminQueryError, AdminQueryLoading, AdminQueryStatus } from "@/components/admin/AdminQueryState";
 
 const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", success: "#22c55e", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
@@ -12,7 +12,7 @@ interface ParentLinksData {
 }
 
 const AdminParentLinks = () => {
-  const { data, loading, error, refetch } = useAdminQuery<ParentLinksData>(
+  const { data, loading, error, refetch, lastUpdatedAt } = useAdminQuery<ParentLinksData>(
     async () => {
       const { data, error: linksErr } = await supabase
         .from("parent_teen_links")
@@ -34,7 +34,7 @@ const AdminParentLinks = () => {
       const orphaned = (totalTeens || 0) - linkedTeens.size;
       return { links, stats: { active, totalPocketMoney, orphaned } };
     },
-    { label: "parent-teen links" }
+    { label: "parent-teen links", refetchInterval: 30_000 }
   );
 
   const links = data?.links ?? [];
@@ -43,7 +43,10 @@ const AdminParentLinks = () => {
   return (
     <AdminLayout>
       <div className="p-4 lg:p-8 space-y-6">
-        <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Parent-Teen Links</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Parent-Teen Links</h1>
+          <AdminQueryStatus lastUpdatedAt={lastUpdatedAt} loading={loading} onRefresh={() => refetch()} />
+        </div>
 
         {error ? (
           <AdminQueryError error={error} onRetry={refetch} label="parent-teen links" />

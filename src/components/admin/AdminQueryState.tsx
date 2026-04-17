@@ -1,9 +1,11 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { formatTimeAgo, useNow } from "@/hooks/useAdminQuery";
 
 const C = {
   cardBg: "rgba(13,14,18,0.7)",
   border: "rgba(200,149,46,0.10)",
   primary: "#c8952e",
+  success: "#22c55e",
   danger: "#ef4444",
   textPrimary: "#ffffff",
   textSecondary: "rgba(255,255,255,0.55)",
@@ -66,6 +68,46 @@ export function AdminQueryLoading({ rows = 4 }: { rows?: number }) {
           style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}` }}
         />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Pill that shows "Updated Xs ago" with a manual refresh button.
+ * Re-renders every 5s so the relative time stays accurate.
+ */
+export function AdminQueryStatus({
+  lastUpdatedAt,
+  loading,
+  onRefresh,
+}: {
+  lastUpdatedAt: number | null;
+  loading?: boolean;
+  onRefresh: () => void;
+}) {
+  useNow(5000);
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="text-[11px] flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+        style={{ background: `${C.success}10`, color: C.success, border: `1px solid ${C.success}33` }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ background: C.success, boxShadow: `0 0 6px ${C.success}` }}
+        />
+        Updated {formatTimeAgo(lastUpdatedAt)}
+      </span>
+      <button
+        onClick={onRefresh}
+        disabled={loading}
+        className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50"
+        style={{ background: `${C.primary}15`, color: C.primary, border: `1px solid ${C.primary}33` }}
+        title="Refresh now"
+      >
+        <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+        Refresh
+      </button>
     </div>
   );
 }
