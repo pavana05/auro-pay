@@ -24,6 +24,7 @@ const PersonalInfo = () => {
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [hapticsEnabled, setHapticsEnabledState] = useState(true);
+  const [soundsEnabled, setSoundsEnabledState] = useState(getSoundsEnabled());
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -62,6 +63,13 @@ const PersonalInfo = () => {
     } else {
       toast.success(value ? "Haptics enabled" : "Haptics disabled");
     }
+  };
+
+  const toggleSounds = (value: boolean) => {
+    setSoundsEnabledState(value);
+    setSoundsEnabled(value);
+    if (value) sound.success();
+    toast.success(value ? "Sounds enabled" : "Sounds disabled");
   };
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +212,20 @@ const PersonalInfo = () => {
             </div>
           </div>
           <Switch checked={hapticsEnabled} onCheckedChange={toggleHaptics} />
+        </div>
+
+        {/* Sound Effects Toggle */}
+        <div className="input-auro w-full flex items-center justify-between !py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <Volume2 className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Sound Effects</p>
+              <p className="text-xs text-muted-foreground">Tap, success & error tones</p>
+            </div>
+          </div>
+          <Switch checked={soundsEnabled} onCheckedChange={toggleSounds} />
         </div>
       </div>
 
