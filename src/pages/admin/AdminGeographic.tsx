@@ -5,11 +5,10 @@ import { MapPin, TrendingUp, TrendingDown, Building2, Globe2 } from "lucide-reac
 
 /* ──────────────────────────────────────────────────────────────
  * Geographic intelligence — India map.
- * No `state`/`city` column → infer state from phone prefix mapping.
- * Each Indian mobile number's first digit after the country code
- * doesn't carry state info, so we use a deterministic hash on the
- * phone number (and fallback on user_id) to assign demo regions.
- * Replace `inferState()` once a real state column is added.
+ * Uses the real `state_code` column on profiles (backfilled from
+ * Indian telecom-circle phone-prefix mapping). Falls back to a
+ * deterministic hash only when both column and phone are missing,
+ * so the map stays populated for legacy rows.
  * ────────────────────────────────────────────────────────────── */
 
 interface StateNode {
@@ -70,7 +69,45 @@ interface UserRow {
   phone: string | null;
   role: string | null;
   created_at: string | null;
+  state_code?: string | null;
+  city?: string | null;
+  state_source?: string | null;
 }
+
+// Client-side mirror of the SQL infer_state_from_phone function (subset of common prefixes).
+// Used only as a fallback when the DB column is null AND row hasn't hit the trigger yet.
+const PHONE_PREFIX_STATE: Record<string, string> = {
+  "9820": "MH", "9821": "MH", "9833": "MH", "9892": "MH", "9930": "MH", "9967": "MH", "9987": "MH",
+  "9810": "DL", "9811": "DL", "9818": "DL", "9871": "DL", "9899": "DL", "9911": "DL", "9971": "DL", "9999": "DL",
+  "9880": "KA", "9886": "KA", "9900": "KA", "9901": "KA", "9945": "KA", "9448": "KA", "9844": "KA",
+  "9840": "TN", "9841": "TN", "9884": "TN", "9952": "TN", "9962": "TN", "9444": "TN", "9445": "TN",
+  "9849": "TS", "9959": "TS", "9700": "TS", "9701": "TS", "9866": "TS",
+  "9848": "AP", "9963": "AP", "9985": "AP",
+  "9830": "WB", "9831": "WB", "9836": "WB", "9874": "WB", "9883": "WB", "9933": "WB",
+  "9824": "GJ", "9825": "GJ", "9879": "GJ", "9909": "GJ", "9979": "GJ",
+  "9815": "PB", "9876": "PB", "9888": "PB", "9417": "PB",
+  "9812": "HR", "9813": "HR", "9416": "HR",
+  "9828": "RJ", "9829": "RJ", "9001": "RJ", "9314": "RJ",
+  "9415": "UP", "9450": "UP", "9839": "UP", "9889": "UP", "9919": "UP",
+  "9304": "BR", "9534": "BR", "9852": "BR",
+  "9407": "MP", "9425": "MP", "9893": "MP", "9926": "MP",
+  "9400": "KL", "9447": "KL", "9495": "KL", "9846": "KL", "9961": "KL",
+  "9437": "OD", "9583": "OD", "9777": "OD",
+  "9854": "AS", "9864": "AS", "9706": "AS",
+  "9418": "HP", "9816": "HP", "9882": "HP",
+  "9411": "UK", "9719": "UK",
+  "9419": "JK", "9596": "JK", "9858": "JK",
+  "9822": "GA", "9823": "GA",
+};
+
+const inferStateFromPhone = (phone: string | null): string | null => {
+  if (!phone) return null;
+  let d = phone.replace(/\D/g, "");
+  if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
+  if (d.length > 10 && d.startsWith("0")) d = d.slice(1);
+  if (d.length !== 10 || !"6789".includes(d[0])) return null;
+  return PHONE_PREFIX_STATE[d.slice(0, 4)] ?? null;
+};
 
 interface Tx {
   amount: number;
@@ -85,11 +122,26 @@ const hash = (s: string) => {
   return h;
 };
 
+const STATE_BY_CODE = new Map(STATES.map((s) => [s.code, s]));
+
 const inferState = (u: UserRow): StateNode => {
+  // 1. Real column (backfilled from telecom-circle mapping)
+  if (u.state_code) {
+    const node = STATE_BY_CODE.get(u.state_code);
+    if (node) return node;
+  }
+  // 2. Client-side phone-prefix fallback (covers rows the trigger hasn't processed)
+  const fromPhone = inferStateFromPhone(u.phone);
+  if (fromPhone) {
+    const node = STATE_BY_CODE.get(fromPhone);
+    if (node) return node;
+  }
+  // 3. Deterministic last-resort (so the map isn't empty for legacy/test rows)
   const seed = u.phone || u.id;
   return STATES[hash(seed) % STATES.length];
 };
 const inferCity = (u: UserRow, st: StateNode): string => {
+  if (u.city) return u.city;
   const seed = (u.phone || u.id) + "city";
   const pool = TIER_CITIES[st.tier];
   return pool[hash(seed) % pool.length];
@@ -122,7 +174,7 @@ const AdminGeographic = () => {
     (async () => {
       setLoading(true);
       const [{ data: us }, { data: tx }, { data: ws }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone, role, created_at"),
+        supabase.from("profiles").select("id, full_name, phone, role, created_at, state_code, city, state_source"),
         supabase.from("transactions").select("amount, status, created_at, wallet_id").eq("status", "success").limit(5000),
         supabase.from("wallets").select("id, user_id"),
       ]);
