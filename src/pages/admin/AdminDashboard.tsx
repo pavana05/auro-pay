@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { Sparkline, VolumeBars, StatusDonut, GrowthLine, HBars, type VolBar } from "@/components/admin/charts";
+import BroadcastNotification from "@/components/admin/BroadcastNotification";
+import FraudDetectionPanel from "@/components/admin/FraudDetectionPanel";
 import { toast } from "sonner";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, AlertTriangle,
