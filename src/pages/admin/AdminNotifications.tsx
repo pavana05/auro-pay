@@ -120,7 +120,7 @@ const AdminNotifications = () => {
     try {
       const userIds = await estimateRecipients();
       if (userIds.length === 0) { toast.error("No recipients match your filters"); setSending(false); return; }
-      const notifications = userIds.map((uid) => ({ user_id: uid, title: title.trim(), body: body.trim(), type: "system" }));
+      const notifications = userIds.map((uid) => ({ user_id: uid, title: title.trim(), body: body.trim(), type: "admin_broadcast" }));
       // Chunk inserts to avoid payload limits
       const chunkSize = 500;
       for (let i = 0; i < notifications.length; i += chunkSize) {
