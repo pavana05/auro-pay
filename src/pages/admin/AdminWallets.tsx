@@ -104,6 +104,21 @@ const AdminWallets = () => {
     const w = wallets.find((x) => x.id === edit.walletId);
     if (!w) return;
     const oldVal = (w[edit.field] as number) || 0;
+
+    // High-risk gate: balance changes whose delta >= ₹10,000 must go through OTP+reason flow.
+    if (edit.field === "balance") {
+      const delta = valuePaise - oldVal;
+      if (Math.abs(delta) >= FORCE_THRESHOLD_PAISE) {
+        setForcePayload({
+          wallet_id: w.id,
+          kind: delta > 0 ? "credit" : "debit",
+          amount_paise: Math.abs(delta),
+          user_label: w.profile?.full_name || w.profile?.phone || "this wallet",
+        });
+        return; // modal will run the mutation server-side
+      }
+    }
+
     const update: Record<string, number> = { [edit.field]: valuePaise };
     const { error } = await supabase.from("wallets").update(update as any).eq("id", edit.walletId);
     if (error) { toast.error(error.message); return; }
@@ -111,6 +126,17 @@ const AdminWallets = () => {
     setSavedFlash(`${edit.walletId}-${edit.field}`);
     setTimeout(() => setSavedFlash(null), 1500);
     setEdit(null);
+    fetchWallets();
+  };
+
+  // Called by ForceActionConfirmModal once the server has applied + logged the change.
+  const handleForceSuccess = (newBalance: number) => {
+    if (!forcePayload) return;
+    setWallets((prev) => prev.map((x) => x.id === forcePayload.wallet_id ? { ...x, balance: newBalance } : x));
+    setSavedFlash(`${forcePayload.wallet_id}-balance`);
+    setTimeout(() => setSavedFlash(null), 1500);
+    setEdit(null);
+    setForcePayload(null);
     fetchWallets();
   };
 
