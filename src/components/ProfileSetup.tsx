@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward } from "lucide-react";
+import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward, MapPin } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
+import { CityAutocomplete } from "@/components/CityAutocomplete";
+import type { IndiaCity } from "@/lib/india-cities";
+
 
 interface Props {
   userId: string;
