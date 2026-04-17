@@ -18,6 +18,7 @@ import AdminThemeToggle from "@/components/admin/AdminThemeToggle";
 import AdminShortcutsHelp from "@/components/admin/AdminShortcutsHelp";
 import SessionTimeoutModal from "@/components/admin/SessionTimeoutModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ADMIN_NOTIFICATION_TYPES } from "@/lib/admin-notifications";
 
 const ADMIN_PASSWORD = "180525Pt";
 

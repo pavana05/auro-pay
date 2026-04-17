@@ -6,6 +6,7 @@ import {
   Send, Bell, Clock, Users, User, Zap, Eye, Search, Filter, Calendar,
   ShieldCheck, Wallet as WalletIcon, Sparkles, X, Smartphone, ChevronDown,
 } from "lucide-react";
+import { ADMIN_NOTIFICATION_TYPES } from "@/lib/admin-notifications";
 
 type AudienceMode = "all" | "role" | "kyc" | "balance" | "active" | "specific";
 
@@ -53,7 +54,14 @@ const AdminNotifications = () => {
   /* ───────── Load history + profiles ───────── */
   const loadHistory = async () => {
     setHistoryLoading(true);
-    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100);
+    // Only show admin-relevant notifications in the history feed — exclude
+    // routine user-only types like `transfer`, `payment`, `reward`, etc.
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .in("type", ADMIN_NOTIFICATION_TYPES as unknown as string[])
+      .order("created_at", { ascending: false })
+      .limit(100);
     setHistory(data || []);
     setHistoryLoading(false);
   };
