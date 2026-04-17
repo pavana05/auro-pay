@@ -511,6 +511,20 @@ const AdminGeographic = () => {
   );
 };
 
+/* ───────── Coverage chip ───────── */
+const CoverageChip = ({ label, count, pct, color, hint }: { label: string; count: number; pct: number; color: string; hint: string }) => (
+  <div
+    title={hint}
+    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border"
+    style={{ background: `${color}10`, borderColor: `${color}30` }}
+  >
+    <div className="w-1.5 h-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+    <span className="text-[10px] font-semibold" style={{ color }}>{label}</span>
+    <span className="text-[10px] font-mono text-white/80">{count.toLocaleString()}</span>
+    <span className="text-[9px] font-mono text-white/40">{pct}%</span>
+  </div>
+);
+
 /* ───────── City horizontal bars ───────── */
 const CityBars = ({ data }: { data: { city: string; users: number; tier: 1 | 2 | 3 }[] }) => {
   const max = Math.max(...data.map((d) => d.users), 1);
