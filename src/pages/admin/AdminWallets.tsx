@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3 } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText } from "lucide-react";
 
 interface WalletRow {
   id: string;
