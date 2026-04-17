@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3 } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -31,6 +32,7 @@ type EditField = "balance" | "daily_limit" | "monthly_limit";
 type EditState = { walletId: string; field: EditField; value: string } | null;
 
 const AdminWallets = () => {
+  const ctxPanel = useContextPanel();
   const [wallets, setWallets] = useState<WalletRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -109,6 +111,21 @@ const AdminWallets = () => {
     await logAudit(w.is_frozen ? "wallet_unfreeze" : "wallet_freeze", w.id, { user: w.profile?.full_name });
     toast.success(w.is_frozen ? "Wallet unfrozen" : "Wallet frozen");
     fetchWallets();
+  };
+
+  const openWalletPanel = (w: WalletRow) => {
+    ctxPanel.show({
+      title: w.profile?.full_name || "Wallet",
+      subtitle: w.profile?.phone || w.id.slice(0, 18) + "…",
+      body: (
+        <WalletPanelBody
+          wallet={w}
+          onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
+          onDeduct={() => setFundsModal({ wallet: w, mode: "deduct" })}
+          onFreeze={() => toggleFreeze(w)}
+        />
+      ),
+    });
   };
 
   const summaryCards = [
@@ -218,7 +235,7 @@ const AdminWallets = () => {
                   </td></tr>
                 ) : (
                   filtered.map((w, i) => (
-                    <tr key={w.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group"
+                    <tr key={w.id} onClick={() => openWalletPanel(w)} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group cursor-pointer"
                       style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.3)}s both` }}>
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
@@ -241,7 +258,7 @@ const AdminWallets = () => {
                           w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
                         }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => setFundsModal({ wallet: w, mode: "add" })}
                             className="p-1.5 rounded-lg bg-success/10 hover:bg-success/20 border border-success/20 transition-all" title="Add funds">
@@ -296,7 +313,7 @@ const InlineCell = ({
   const value = (w[field] as number) || 0;
 
   return (
-    <td className={`py-3.5 px-5 transition-colors duration-500 ${flashed ? "bg-success/15" : ""}`}>
+    <td onClick={(e) => e.stopPropagation()} className={`py-3.5 px-5 transition-colors duration-500 ${flashed ? "bg-success/15" : ""}`}>
       {isEditing ? (
         <div className="flex items-center gap-1.5">
           <input value={edit.value} onChange={(e) => setEdit({ ...edit!, value: e.target.value })}
@@ -412,5 +429,163 @@ const FundsModal = ({
     </div>
   );
 };
+
+/* ─────────── Wallet context-panel body ─────────── */
+const G = { primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", danger: "#ef4444", info: "#3b82f6", cyan: "#06b6d4" };
+
+const WalletPanelBody = ({
+  wallet, onAdd, onDeduct, onFreeze,
+}: {
+  wallet: WalletRow;
+  onAdd: () => void;
+  onDeduct: () => void;
+  onFreeze: () => void;
+}) => {
+  const [recentTx, setRecentTx] = useState<any[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [auditEntries, setAuditEntries] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [tx, aud] = await Promise.all([
+        supabase.from("transactions").select("*").eq("wallet_id", wallet.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("audit_logs").select("*").eq("target_type", "wallet").eq("target_id", wallet.id).order("created_at", { ascending: false }).limit(10),
+      ]);
+      if (cancelled) return;
+      setRecentTx(tx.data || []);
+      setAuditEntries(aud.data || []);
+      setLoadingTx(false);
+    })();
+    return () => { cancelled = true; };
+  }, [wallet.id]);
+
+  const successCount = recentTx.filter((t) => t.status === "success").length;
+  const failedCount = recentTx.filter((t) => t.status === "failed").length;
+  const balancePct = wallet.daily_limit ? Math.min(100, ((wallet.spent_today || 0) / wallet.daily_limit) * 100) : 0;
+  const monthPct = wallet.monthly_limit ? Math.min(100, ((wallet.spent_this_month || 0) / wallet.monthly_limit) * 100) : 0;
+
+  const copy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied`);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Hero balance */}
+      <div className="rounded-2xl p-4 border" style={{ background: `linear-gradient(135deg, rgba(200,149,46,0.10), rgba(255,255,255,0.01))`, borderColor: "rgba(200,149,46,0.2)" }}>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora mb-1">Current Balance</p>
+        <p className="text-3xl font-bold text-white font-mono">{formatAmount(wallet.balance || 0)}</p>
+        <div className="flex items-center gap-2 mt-2">
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${wallet.is_frozen ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
+            {wallet.is_frozen ? "🔒 Frozen" : "● Active"}
+          </span>
+          {wallet.profile?.role && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.05] text-white/60 uppercase tracking-wider">{wallet.profile.role}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-3 gap-2">
+        <ActionBtn icon={Plus} label="Add" color={G.success} onClick={onAdd} />
+        <ActionBtn icon={Minus} label="Deduct" color={G.danger} onClick={onDeduct} />
+        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze" : "Freeze"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+      </div>
+
+      {/* Limits with progress */}
+      <div className="space-y-2">
+        <LimitBar label="Daily" spent={wallet.spent_today || 0} limit={wallet.daily_limit || 0} pct={balancePct} />
+        <LimitBar label="Monthly" spent={wallet.spent_this_month || 0} limit={wallet.monthly_limit || 0} pct={monthPct} />
+      </div>
+
+      {/* Activity stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <MiniStat k="Last 20 tx" v={recentTx.length.toString()} color={G.primary} />
+        <MiniStat k="Success" v={successCount.toString()} color={G.success} />
+        <MiniStat k="Failed" v={failedCount.toString()} color={G.danger} />
+      </div>
+
+      {/* Wallet metadata */}
+      <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Wallet info</p>
+        <button onClick={() => copy(wallet.id, "Wallet ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">Wallet ID</span>
+          <span className="font-mono truncate max-w-[180px] flex items-center gap-1.5">{wallet.id.slice(0, 8)}…{wallet.id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+        <button onClick={() => copy(wallet.user_id, "User ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">User ID</span>
+          <span className="font-mono truncate max-w-[180px] flex items-center gap-1.5">{wallet.user_id.slice(0, 8)}…{wallet.user_id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+        <div className="flex items-center justify-between text-[11px] text-white/60">
+          <span className="font-sora">Created</span>
+          <span className="font-mono">{wallet.created_at ? new Date(wallet.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
+        </div>
+      </div>
+
+      {/* Recent transactions */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora mb-2 flex items-center gap-1.5"><ArrowLeftRight className="w-3 h-3" /> Recent activity</p>
+        <div className="max-h-[240px] overflow-y-auto space-y-1">
+          {loadingTx ? <p className="text-[11px] text-white/30 text-center py-4">Loading…</p> :
+           recentTx.length === 0 ? <p className="text-[11px] text-white/30 text-center py-4">No transactions yet</p> :
+           recentTx.slice(0, 12).map((t) => (
+            <div key={t.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.015)" }}>
+              <div className="min-w-0">
+                <p className="text-[11px] text-white truncate font-sora">{t.merchant_name || t.description || t.type}</p>
+                <p className="text-[9px] text-white/40 font-mono">{t.created_at ? new Date(t.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+              </div>
+              <span className="font-mono text-[11px] font-semibold ml-2 shrink-0" style={{ color: t.type === "credit" ? G.success : G.danger }}>
+                {t.type === "credit" ? "+" : "−"}{formatAmount(t.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Audit log */}
+      {auditEntries.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora mb-2 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Recent admin actions</p>
+          <div className="space-y-1 max-h-[160px] overflow-y-auto">
+            {auditEntries.map((a) => (
+              <div key={a.id} className="p-2 rounded-lg text-[10px]" style={{ background: "rgba(255,255,255,0.015)" }}>
+                <p className="text-white/80 font-sora">{a.action.replace(/_/g, " ")}</p>
+                <p className="text-white/40 font-mono">{new Date(a.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ActionBtn = ({ icon: Icon, label, color, onClick }: { icon: any; label: string; color: string; onClick: () => void }) => (
+  <button onClick={onClick} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95"
+    style={{ background: `${color}10`, borderColor: `${color}25` }}>
+    <Icon className="w-4 h-4" style={{ color }} />
+    <span className="text-[10px] font-semibold font-sora" style={{ color }}>{label}</span>
+  </button>
+);
+
+const LimitBar = ({ label, spent, limit, pct }: { label: string; spent: number; limit: number; pct: number }) => (
+  <div className="rounded-xl p-3 border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+    <div className="flex items-center justify-between mb-1.5">
+      <span className="text-[10px] uppercase tracking-wider text-white/50 font-sora">{label} spent</span>
+      <span className="text-[11px] font-mono text-white">{formatAmount(spent)} / {formatAmount(limit)}</span>
+    </div>
+    <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct > 90 ? G.danger : pct > 70 ? G.primary : G.success, boxShadow: `0 0 8px ${pct > 90 ? G.danger : pct > 70 ? G.primary : G.success}60` }} />
+    </div>
+  </div>
+);
+
+const MiniStat = ({ k, v, color }: { k: string; v: string; color: string }) => (
+  <div className="rounded-xl p-2.5 border text-center" style={{ background: `${color}08`, borderColor: `${color}20` }}>
+    <p className="text-[9px] uppercase tracking-wider text-white/40 font-sora">{k}</p>
+    <p className="text-base font-bold font-mono mt-0.5" style={{ color }}>{v}</p>
+  </div>
+);
 
 export default AdminWallets;

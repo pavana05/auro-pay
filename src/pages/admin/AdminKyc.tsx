@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
-  ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash,
+  ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
 } from "lucide-react";
 
 const C = {
@@ -41,6 +42,7 @@ const STATUSES = ["pending", "in_review", "verified", "rejected"] as const;
 type StatusKey = typeof STATUSES[number];
 
 const AdminKyc = () => {
+  const ctxPanel = useContextPanel();
   const [rows, setRows] = useState<KycRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"kanban" | "table">("kanban");
@@ -232,6 +234,26 @@ const AdminKyc = () => {
     if (await rejectNow(r, "Quick review rejection", "")) bulkAdvance();
   };
 
+  /* ─────────── Context panel ─────────── */
+  const openKycPanel = (r: KycRow) => {
+    ctxPanel.show({
+      title: r.profile?.full_name || r.aadhaar_name || "KYC request",
+      subtitle: `Submitted ${fmtDateTime(r.submitted_at)}`,
+      body: (
+        <KycPanelBody
+          r={r}
+          maskAadhaar={maskAadhaar}
+          fmtDate={fmtDate}
+          fmtDateTime={fmtDateTime}
+          queueTime={queueTime}
+          onApprove={() => { setApproveTarget(r); ctxPanel.hide(); }}
+          onReject={() => { setRejectTarget(r); ctxPanel.hide(); }}
+          onMoveReview={() => moveToInReview(r)}
+        />
+      ),
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="p-4 lg:p-6 space-y-5 min-h-full relative">
@@ -281,7 +303,7 @@ const AdminKyc = () => {
               title="Pending" status="pending" count={groups.pending.length} accent={C.warning}
               dragOver={dragOver === "pending"} onDragOver={(e) => { e.preventDefault(); setDragOver("pending"); }} onDrop={() => onDrop("pending")}
             >
-              {groups.pending.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)} accent={C.warning} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
+              {groups.pending.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)} accent={C.warning} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
               {groups.pending.length === 0 && <Empty label="No pending" />}
             </KanbanCol>
 
@@ -289,7 +311,7 @@ const AdminKyc = () => {
               title="In Review" status="in_review" count={groups.in_review.length} accent={C.info}
               dragOver={dragOver === "in_review"} onDragOver={(e) => { e.preventDefault(); setDragOver("in_review"); }} onDrop={() => onDrop("in_review")}
             >
-              {groups.in_review.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)} accent={C.info} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
+              {groups.in_review.map((r) => <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)} accent={C.info} maskAadhaar={maskAadhaar} queueTime={queueTime} />)}
               {groups.in_review.length === 0 && <Empty label="Drag here to review" />}
             </KanbanCol>
 
@@ -299,7 +321,7 @@ const AdminKyc = () => {
             >
               <p className="text-[9px] uppercase tracking-wider text-white/30 font-sora mb-1.5">Drop to approve · use ⋮ to reject</p>
               {[...groups.verified, ...groups.rejected].slice(0, 30).map((r) => (
-                <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => setDetail(r)}
+                <Card key={r.id} r={r} dragId={dragId} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={() => openKycPanel(r)}
                   accent={r.status === "verified" ? C.success : C.danger} maskAadhaar={maskAadhaar} queueTime={queueTime} done />
               ))}
               {groups.verified.length + groups.rejected.length === 0 && <Empty label="Nothing completed yet" />}
@@ -318,8 +340,8 @@ const AdminKyc = () => {
               const isHot = q.hot && (r.status === "pending" || r.status === "in_review");
               const initials = (r.profile?.full_name || r.aadhaar_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
               return (
-                <div key={r.id} className="group grid grid-cols-1 md:grid-cols-[1.6fr_1fr_120px_140px_120px_100px_140px] gap-3 px-4 py-3 items-center border-b text-[12px] hover:bg-white/[0.025] transition-colors" style={{ borderColor: "rgba(255,255,255,0.025)" }}>
-                  <button onClick={() => setDetail(r)} className="flex items-center gap-2.5 text-left min-w-0">
+                <div key={r.id} onClick={() => openKycPanel(r)} className="group grid grid-cols-1 md:grid-cols-[1.6fr_1fr_120px_140px_120px_100px_140px] gap-3 px-4 py-3 items-center border-b text-[12px] hover:bg-white/[0.025] transition-colors cursor-pointer" style={{ borderColor: "rgba(255,255,255,0.025)" }}>
+                  <button onClick={(e) => { e.stopPropagation(); openKycPanel(r); }} className="flex items-center gap-2.5 text-left min-w-0">
                     {r.profile?.avatar_url ? (
                       <img src={r.profile.avatar_url} alt="" className="w-8 h-8 rounded-[8px] object-cover" />
                     ) : (
@@ -341,8 +363,8 @@ const AdminKyc = () => {
                     background: r.status === "verified" ? "rgba(34,197,94,0.1)" : r.status === "rejected" ? "rgba(239,68,68,0.1)" : r.status === "in_review" ? "rgba(59,130,246,0.1)" : "rgba(245,158,11,0.1)",
                     color: r.status === "verified" ? C.success : r.status === "rejected" ? C.danger : r.status === "in_review" ? C.info : C.warning,
                   }}>{(r.status || "pending").replace("_", " ")}</span>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.04]" title="View">
+                  <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => openKycPanel(r)} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.04]" title="View">
                       <Eye className="w-3.5 h-3.5" />
                     </button>
                     {(r.status === "pending" || r.status === "in_review") && (
@@ -643,5 +665,95 @@ const DetailRow = ({ icon: Icon, label, value, mono = false, last = false }: { i
     <span className={`text-[12px] text-white text-right ${mono ? "font-mono" : "font-sora"}`}>{value}</span>
   </div>
 );
+
+/* ─────────── Context-panel body ─────────── */
+const KycPanelBody = ({
+  r, maskAadhaar, fmtDate, fmtDateTime, queueTime, onApprove, onReject, onMoveReview,
+}: {
+  r: KycRow;
+  maskAadhaar: (n: string | null) => string;
+  fmtDate: (d: string | null) => string;
+  fmtDateTime: (d: string | null) => string;
+  queueTime: (d: string | null) => { label: string; hot: boolean };
+  onApprove: () => void;
+  onReject: () => void;
+  onMoveReview: () => void;
+}) => {
+  const q = queueTime(r.submitted_at);
+  const status = r.status || "pending";
+  const canDecide = status === "pending" || status === "in_review";
+  const initials = (r.profile?.full_name || r.aadhaar_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast.success(`${label} copied`); };
+
+  const statusColor = status === "verified" ? C.success : status === "rejected" ? C.danger : status === "in_review" ? C.info : C.warning;
+
+  return (
+    <div className="space-y-4">
+      {/* Hero */}
+      <div className="rounded-2xl p-4 border" style={{ background: `linear-gradient(135deg, ${statusColor}10, rgba(255,255,255,0.01))`, borderColor: `${statusColor}30` }}>
+        <div className="flex items-center gap-3">
+          {r.profile?.avatar_url ? (
+            <img src={r.profile.avatar_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>{initials}</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold text-white truncate font-sora">{r.profile?.full_name || r.aadhaar_name || "Unnamed"}</p>
+            <p className="text-[11px] text-white/50 font-mono truncate">{r.profile?.phone || "—"}</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: `${statusColor}15`, color: statusColor }}>{status.replace("_", " ")}</span>
+              {canDecide && (
+                <span className="flex items-center gap-1 text-[10px] font-mono font-semibold" style={{ color: q.hot ? C.warning : "rgba(255,255,255,0.5)" }}>
+                  {q.hot && <AlertTriangle className="w-2.5 h-2.5" />}{q.label} in queue
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Decision actions */}
+      {canDecide && (
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={onApprove} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.success}10`, borderColor: `${C.success}25` }}>
+            <CheckCircle2 className="w-4 h-4" style={{ color: C.success }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.success }}>Approve</span>
+          </button>
+          <button onClick={onReject} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.danger}10`, borderColor: `${C.danger}25` }}>
+            <XCircle className="w-4 h-4" style={{ color: C.danger }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.danger }}>Reject</span>
+          </button>
+          <button onClick={onMoveReview} disabled={status === "in_review"} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: `${C.info}10`, borderColor: `${C.info}25` }}>
+            <Clock className="w-4 h-4" style={{ color: C.info }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.info }}>In review</span>
+          </button>
+        </div>
+      )}
+
+      {/* Identity details */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <DetailRow icon={UserIcon} label="Aadhaar Name" value={r.aadhaar_name || "—"} />
+        <DetailRow icon={Hash} label="Aadhaar Number" value={maskAadhaar(r.aadhaar_number)} mono />
+        <DetailRow icon={Calendar} label="Date of Birth" value={fmtDate(r.date_of_birth)} />
+        <DetailRow icon={Clock} label="Submitted" value={fmtDateTime(r.submitted_at)} />
+        {r.digio_request_id && <DetailRow icon={Hash} label="Digio Request" value={r.digio_request_id} mono />}
+        {r.verified_at && <DetailRow icon={CheckCircle2} label="Decided" value={fmtDateTime(r.verified_at)} last />}
+      </div>
+
+      {/* IDs */}
+      <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5"><FileText className="w-3 h-3" /> References</p>
+        <button onClick={() => copy(r.id, "Request ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">Request ID</span>
+          <span className="font-mono flex items-center gap-1.5">{r.id.slice(0, 8)}…{r.id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+        <button onClick={() => copy(r.user_id, "User ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">User ID</span>
+          <span className="font-mono flex items-center gap-1.5">{r.user_id.slice(0, 8)}…{r.user_id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default AdminKyc;
