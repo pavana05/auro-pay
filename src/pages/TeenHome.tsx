@@ -13,6 +13,9 @@ import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCountUp } from "@/hooks/useCountUp";
+import InlineSearchResults from "@/components/InlineSearchResults";
+import PressTooltip from "@/components/PressTooltip";
+import SwipeActionRow from "@/components/SwipeActionRow";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -102,7 +105,8 @@ const TeenHome = () => {
     }
     if (walletRes.data) {
       setWallet(walletRes.data as WalletData);
-      const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(5);
+      // Fetch more so the inline search + last-amount tooltip have range; UI slices to 5.
+      const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(40);
       if (txns) setTransactions(txns as Transaction[]);
     }
     // Check unread chats
