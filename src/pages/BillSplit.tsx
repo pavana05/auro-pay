@@ -55,11 +55,27 @@ const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { max
 
 const BillSplitPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [me, setMe] = useState<{ id: string; name: string } | null>(null);
   const [splits, setSplits] = useState<BillSplit[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "create" | "detail">("list");
   const [activeSplitId, setActiveSplitId] = useState<string | null>(null);
+
+  // URL-param prefill: /bill-split?title=&amount=&category=
+  const qpTitle = searchParams.get("title") || "";
+  const qpAmount = searchParams.get("amount") || "";
+  const qpCategory = searchParams.get("category") || "";
+  const [prefill, setPrefill] = useState<{ title: string; amount: string; category: string } | null>(null);
+
+  useEffect(() => {
+    if (qpTitle || qpAmount || qpCategory) {
+      setPrefill({ title: qpTitle, amount: qpAmount, category: qpCategory });
+      setView("create");
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {
