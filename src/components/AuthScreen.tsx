@@ -142,12 +142,16 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
   const verifyOtp = useCallback(async (code: string) => {
     setVerifying(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone: fullPhone,
         token: code,
         type: "sms",
       });
       if (error) throw error;
+      if (data.user) {
+        markReturningSession(data.user.id);
+        if (await isBiometricAvailable() && !isBiometricEnabled()) setBiometricEnabled(true);
+      }
       setOtpFlash("success");
       toast.success("Welcome to AuroPay!");
       setTimeout(() => onAuth(), 600);
