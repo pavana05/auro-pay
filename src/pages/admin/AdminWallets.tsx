@@ -32,6 +32,7 @@ type EditField = "balance" | "daily_limit" | "monthly_limit";
 type EditState = { walletId: string; field: EditField; value: string } | null;
 
 const AdminWallets = () => {
+  const ctxPanel = useContextPanel();
   const [wallets, setWallets] = useState<WalletRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
