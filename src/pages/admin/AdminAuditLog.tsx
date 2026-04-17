@@ -387,7 +387,7 @@ const AdminAuditLog = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : view === "table" ? (
           /* ───── TABLE VIEW ───── */
           <div className="rounded-[16px] overflow-hidden relative z-10" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
             <div className="overflow-x-auto">
@@ -434,6 +434,61 @@ const AdminAuditLog = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        ) : (
+          /* ───── COMPACT VIRTUALIZED VIEW ───── */
+          <div className="relative z-10">
+            <VirtualTable
+              rows={filtered}
+              rowKey={(l) => l.id}
+              rowHeight={44}
+              height={640}
+              onRowClick={(l) => setDetailOf(l)}
+              empty="No audit log entries"
+              columns={[
+                {
+                  key: "ts", header: "Timestamp", width: "180px",
+                  render: (l) => <span className="tabular-nums text-white/55">{formatDate(l.created_at)}</span>,
+                },
+                {
+                  key: "admin", header: "Admin", width: "180px",
+                  render: (l) => {
+                    const name = adminNames[l.admin_user_id] || "Admin";
+                    return (
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>{initialsOf(name)}</span>
+                        <span className="text-white truncate">{name}</span>
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "action", header: "Action", width: "200px",
+                  render: (l) => {
+                    const m = actionMeta[l.action] || actionMeta.default;
+                    const Icon = m.icon;
+                    return (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md" style={{ background: m.bg, color: m.color }}>
+                        <Icon className="w-3 h-3" />{humanize(l.action)}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "target", header: "Target",
+                  render: (l) => (
+                    <span className="text-white/55">
+                      {l.target_type}
+                      {l.target_id && <code className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: "rgba(255,255,255,0.04)", color: C.primary }}>{l.target_id.slice(0, 8)}…</code>}
+                    </span>
+                  ),
+                },
+                {
+                  key: "ip", header: "IP", width: "120px",
+                  render: (l) => <span className="font-mono text-[10px] text-white/30">{l.ip_address || "—"}</span>,
+                },
+              ]}
+            />
           </div>
         )}
 
