@@ -45,6 +45,8 @@ const AdminTransactions = () => {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
+  const [realtimeOn, setRealtimeOn] = useState(true);
 
   // Filters
   const [search, setSearch] = useState("");
