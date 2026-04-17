@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Loader2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
+import { getReferrerId } from "@/landing/referral";
 
 type Role = "teen" | "parent" | "both";
 
@@ -31,12 +32,14 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     if (name.trim().length < 2) { setError("Enter your full name."); return; }
 
     setLoading(true);
+    const referred_by = await getReferrerId();
     const { error: insErr } = await supabase.from("waitlist").insert({
       full_name: name.trim(),
       phone: "+91" + cleanPhone,
       email: email.trim().toLowerCase(),
       role,
       source: "landing_modal",
+      referred_by,
     });
     setLoading(false);
 
