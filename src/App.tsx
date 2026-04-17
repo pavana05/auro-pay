@@ -20,6 +20,9 @@ import LinkedTeens from "./pages/LinkedTeens.tsx";
 import ParentControls from "./pages/ParentControls.tsx";
 import HelpSupport from "./pages/HelpSupport.tsx";
 import AboutApp from "./pages/AboutApp.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import Terms from "./pages/Terms.tsx";
+import DataSafety from "./pages/DataSafety.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
@@ -186,6 +189,9 @@ const App = () => (
                     <Route path="/parent-controls" element={<ParentControls />} />
                     <Route path="/help" element={<HelpSupport />} />
                     <Route path="/about" element={<AboutApp />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/data-safety" element={<DataSafety />} />
                     <Route path="/savings" element={<SavingsGoals />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/scan" element={<ScanPay />} />
