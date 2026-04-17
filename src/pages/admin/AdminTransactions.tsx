@@ -246,13 +246,27 @@ const AdminTransactions = () => {
     hide();
   };
 
+  const retryTransaction = async (t: Transaction) => {
+    if (t.status !== "failed" && t.status !== "pending") {
+      toast.error("Only failed or pending transactions can be retried");
+      return;
+    }
+    if (!confirm(`Retry transaction for ${formatAmount(t.amount)}?`)) return;
+    const { error } = await supabase.from("transactions").update({ status: "success" }).eq("id", t.id);
+    if (error) { toast.error(error.message); return; }
+    await logAudit("transaction_retried", t, { previous_status: t.status });
+    toast.success("Transaction marked as success");
+    setTransactions((prev) => prev.map((x) => x.id === t.id ? { ...x, status: "success" } : x));
+    hide();
+  };
+
   const openDetail = (t: Transaction) => {
     setSelectedId(t.id);
     const w = wallets[t.wallet_id];
     show({
       title: "Transaction Detail",
       subtitle: t.id.slice(0, 16) + "…",
-      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} />,
+      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} onRetry={retryTransaction} />,
     });
   };
 
