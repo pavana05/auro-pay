@@ -202,8 +202,9 @@ const AdminAuditLog = () => {
   };
 
   const knownActions = useMemo(() => Array.from(new Set(logs.map(l => l.action))), [logs]);
-  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all" || forceActionsOnly);
+  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all" || forceActionsOnly || unlocksOnly);
   const forceCount = useMemo(() => logs.filter(l => FORCE_ACTIONS.has(l.action)).length, [logs]);
+  const unlockCount = useMemo(() => logs.filter(l => l.action === UNLOCK_ACTION).length, [logs]);
 
   return (
     <AdminLayout>
