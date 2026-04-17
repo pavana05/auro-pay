@@ -666,4 +666,94 @@ const DetailRow = ({ icon: Icon, label, value, mono = false, last = false }: { i
   </div>
 );
 
+/* ─────────── Context-panel body ─────────── */
+const KycPanelBody = ({
+  r, maskAadhaar, fmtDate, fmtDateTime, queueTime, onApprove, onReject, onMoveReview,
+}: {
+  r: KycRow;
+  maskAadhaar: (n: string | null) => string;
+  fmtDate: (d: string | null) => string;
+  fmtDateTime: (d: string | null) => string;
+  queueTime: (d: string | null) => { label: string; hot: boolean };
+  onApprove: () => void;
+  onReject: () => void;
+  onMoveReview: () => void;
+}) => {
+  const q = queueTime(r.submitted_at);
+  const status = r.status || "pending";
+  const canDecide = status === "pending" || status === "in_review";
+  const initials = (r.profile?.full_name || r.aadhaar_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast.success(`${label} copied`); };
+
+  const statusColor = status === "verified" ? C.success : status === "rejected" ? C.danger : status === "in_review" ? C.info : C.warning;
+
+  return (
+    <div className="space-y-4">
+      {/* Hero */}
+      <div className="rounded-2xl p-4 border" style={{ background: `linear-gradient(135deg, ${statusColor}10, rgba(255,255,255,0.01))`, borderColor: `${statusColor}30` }}>
+        <div className="flex items-center gap-3">
+          {r.profile?.avatar_url ? (
+            <img src={r.profile.avatar_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>{initials}</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold text-white truncate font-sora">{r.profile?.full_name || r.aadhaar_name || "Unnamed"}</p>
+            <p className="text-[11px] text-white/50 font-mono truncate">{r.profile?.phone || "—"}</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: `${statusColor}15`, color: statusColor }}>{status.replace("_", " ")}</span>
+              {canDecide && (
+                <span className="flex items-center gap-1 text-[10px] font-mono font-semibold" style={{ color: q.hot ? C.warning : "rgba(255,255,255,0.5)" }}>
+                  {q.hot && <AlertTriangle className="w-2.5 h-2.5" />}{q.label} in queue
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Decision actions */}
+      {canDecide && (
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={onApprove} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.success}10`, borderColor: `${C.success}25` }}>
+            <CheckCircle2 className="w-4 h-4" style={{ color: C.success }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.success }}>Approve</span>
+          </button>
+          <button onClick={onReject} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.danger}10`, borderColor: `${C.danger}25` }}>
+            <XCircle className="w-4 h-4" style={{ color: C.danger }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.danger }}>Reject</span>
+          </button>
+          <button onClick={onMoveReview} disabled={status === "in_review"} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: `${C.info}10`, borderColor: `${C.info}25` }}>
+            <Clock className="w-4 h-4" style={{ color: C.info }} />
+            <span className="text-[10px] font-semibold font-sora" style={{ color: C.info }}>In review</span>
+          </button>
+        </div>
+      )}
+
+      {/* Identity details */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <DetailRow icon={UserIcon} label="Aadhaar Name" value={r.aadhaar_name || "—"} />
+        <DetailRow icon={Hash} label="Aadhaar Number" value={maskAadhaar(r.aadhaar_number)} mono />
+        <DetailRow icon={Calendar} label="Date of Birth" value={fmtDate(r.date_of_birth)} />
+        <DetailRow icon={Clock} label="Submitted" value={fmtDateTime(r.submitted_at)} />
+        {r.digio_request_id && <DetailRow icon={Hash} label="Digio Request" value={r.digio_request_id} mono />}
+        {r.verified_at && <DetailRow icon={CheckCircle2} label="Decided" value={fmtDateTime(r.verified_at)} last />}
+      </div>
+
+      {/* IDs */}
+      <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5"><FileText className="w-3 h-3" /> References</p>
+        <button onClick={() => copy(r.id, "Request ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">Request ID</span>
+          <span className="font-mono flex items-center gap-1.5">{r.id.slice(0, 8)}…{r.id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+        <button onClick={() => copy(r.user_id, "User ID")} className="w-full flex items-center justify-between text-[11px] hover:text-white text-white/60 group">
+          <span className="font-sora">User ID</span>
+          <span className="font-mono flex items-center gap-1.5">{r.user_id.slice(0, 8)}…{r.user_id.slice(-6)} <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" /></span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default AdminKyc;
