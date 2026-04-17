@@ -154,6 +154,45 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     sendOtp();
   };
 
+  /* -------- WEB OTP API: auto-fill OTP from SMS on Android Chrome / Capacitor WebView --------
+     Works when the SMS contains the line: "Your code is 123456 @<origin> #<otp>"
+     For native/Capacitor builds this still works via Chrome WebView when the origin is bound
+     in the SMS message. Silently no-ops where unsupported.
+  */
+  useEffect(() => {
+    if (mode !== "otp") return;
+    if (typeof window === "undefined") return;
+    const w = window as any;
+    if (!("OTPCredential" in w)) return;
+
+    const ac = new AbortController();
+    // Cancel after 2 minutes — match typical OTP TTL
+    const cancelTimer = setTimeout(() => ac.abort(), 120000);
+
+    navigator.credentials
+      .get({
+        // @ts-expect-error: WebOTP is not in TS lib yet
+        otp: { transport: ["sms"] },
+        signal: ac.signal,
+      })
+      .then((cred: any) => {
+        const code: string | undefined = cred?.code;
+        if (!code) return;
+        const digits = code.replace(/\D/g, "").slice(0, OTP_LENGTH);
+        if (digits.length !== OTP_LENGTH) return;
+        const next = digits.split("");
+        setOtp(next);
+        setOtpFlash("success");
+        setTimeout(() => verifyOtp(digits), OTP_LENGTH * 60 + 100);
+      })
+      .catch(() => { /* user dismissed / unsupported / aborted */ });
+
+    return () => {
+      clearTimeout(cancelTimer);
+      ac.abort();
+    };
+  }, [mode, verifyOtp]);
+
   /* -------- EMAIL FALLBACK FLOW (kept) -------- */
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
