@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, Check, Vibrate, Shield, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Check, Vibrate, Shield, ArrowRight, Loader2, Volume2 } from "lucide-react";
 import { startKyc } from "@/lib/kyc";
 import { Browser } from "@capacitor/browser";
 
@@ -14,7 +14,7 @@ const openInAppBrowser = async (url: string) => {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, Camera, Check, Vibrate, Shield, ArrowRight, Loader2, Volume2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { haptic, setHapticsEnabled } from "@/lib/haptics";
 import { setSoundsEnabled, getSoundsEnabled, sound } from "@/lib/sounds";
 
