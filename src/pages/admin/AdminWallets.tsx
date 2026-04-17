@@ -51,6 +51,9 @@ const AdminWallets = () => {
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [forcePayload, setForcePayload] = useState<ForceActionPayload | null>(null);
   const [freezeGate, setFreezeGate] = useState<{ wallet: WalletRow; next: boolean; payload: HighRiskGatePayload } | null>(null);
+  // Map of wallet_id -> latest confirmed_fraud flag id (used to surface "Unlock account").
+  const [fraudLocks, setFraudLocks] = useState<Map<string, string>>(new Map());
+  const [unlockGate, setUnlockGate] = useState<{ wallet: WalletRow; flagId: string; payload: HighRiskGatePayload } | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -62,6 +65,22 @@ const AdminWallets = () => {
       })
     );
     setWallets(enriched);
+
+    // Pull confirmed_fraud flags for frozen wallets so we can show "Unlock account".
+    const frozenIds = enriched.filter((w) => w.is_frozen).map((w) => w.id);
+    if (frozenIds.length) {
+      const { data: flags } = await (supabase as any)
+        .from("flagged_transactions")
+        .select("id, wallet_id, created_at")
+        .eq("status", "confirmed_fraud")
+        .in("wallet_id", frozenIds)
+        .order("created_at", { ascending: false });
+      const m = new Map<string, string>();
+      (flags || []).forEach((f: any) => { if (!m.has(f.wallet_id)) m.set(f.wallet_id, f.id); });
+      setFraudLocks(m);
+    } else {
+      setFraudLocks(new Map());
+    }
     setLoading(false);
   };
 
