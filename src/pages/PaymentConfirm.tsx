@@ -185,6 +185,16 @@ const PaymentConfirm = () => {
           pin: pinValue,
         },
       });
+      const errMsg = (data as any)?.error || error?.message;
+      // PIN not set on backend → flip back to setup flow instead of failing
+      if (errMsg && /pin not set/i.test(errMsg)) {
+        setHasPinSet(false);
+        setPin("");
+        setStage("review");
+        haptic.error();
+        toast.info("Set up your Payment PIN to continue");
+        return;
+      }
       if (error) throw new Error(error.message || "Payment failed");
       if ((data as any)?.error) throw new Error((data as any).error);
 
