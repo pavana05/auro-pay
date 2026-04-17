@@ -703,6 +703,62 @@ const TeenLookupStep = ({
   );
 };
 
+/* ============= STEP CITY: India city autocomplete ============= */
+
+const CityStep = ({
+  city, onChange, onNext,
+}: {
+  city: IndiaCity | null;
+  onChange: (c: IndiaCity | null) => void;
+  onNext: () => void;
+}) => {
+  return (
+    <div className="flex flex-col">
+      <h2 className="text-[26px] font-black text-white mb-1">Where are you based?</h2>
+      <p className="text-[13px] text-white/50 mb-8">Helps us personalize offers and rewards (optional)</p>
+
+      <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 mb-3 block">CITY</label>
+      <CityAutocomplete value={city} onChange={onChange} placeholder="Start typing your city…" autoFocus />
+
+      {city && (
+        <div
+          className="mt-4 rounded-2xl p-4 flex items-center gap-3"
+          style={{
+            background: "linear-gradient(135deg, hsl(42 78% 55% / 0.1), hsl(42 78% 55% / 0.03))",
+            border: "1.5px solid hsl(42 78% 55% / 0.4)",
+            animation: "lookup-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+              boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
+            }}
+          >
+            <MapPin className="w-5 h-5" style={{ color: "hsl(220 15% 5%)" }} strokeWidth={2.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "hsl(140 60% 65%)" }}>Set as your city</p>
+            <p className="font-bold text-[15px] text-white truncate">{city.name}, {city.stateName}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1" />
+
+      <button
+        onClick={onNext}
+        className="w-full h-11 rounded-full flex items-center justify-center gap-2 text-[12px] font-bold text-white/60 hover:text-white/90 transition-colors mb-3"
+      >
+        <SkipForward className="w-3.5 h-3.5" />
+        Skip — I'll add it later
+      </button>
+      <PrimaryButton onClick={onNext}>Continue<ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></PrimaryButton>
+    </div>
+  );
+};
+
 /* ============= STEP 4: AVATAR (optional) ============= */
 
 const AvatarStep = ({
