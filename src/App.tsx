@@ -60,6 +60,7 @@ import Chores from "./pages/Chores.tsx";
 import Achievements from "./pages/Achievements.tsx";
 import Friends from "./pages/Friends.tsx";
 import SupportTickets from "./pages/SupportTickets.tsx";
+import SupportChat from "./pages/SupportChat.tsx";
 import SpinWheel from "./pages/SpinWheel.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import FinancialEducation from "./pages/FinancialEducation.tsx";
@@ -154,6 +155,7 @@ const App = () => (
                     <Route path="/achievements" element={<Achievements />} />
                     <Route path="/friends" element={<Friends />} />
                     <Route path="/support" element={<SupportTickets />} />
+                    <Route path="/support-chat" element={<SupportChat />} />
                     <Route path="/spin-wheel" element={<SpinWheel />} />
                     <Route path="/referrals" element={<Referrals />} />
                     <Route path="/learn" element={<FinancialEducation />} />
