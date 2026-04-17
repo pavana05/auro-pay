@@ -363,8 +363,8 @@ const AdminKyc = () => {
                     background: r.status === "verified" ? "rgba(34,197,94,0.1)" : r.status === "rejected" ? "rgba(239,68,68,0.1)" : r.status === "in_review" ? "rgba(59,130,246,0.1)" : "rgba(245,158,11,0.1)",
                     color: r.status === "verified" ? C.success : r.status === "rejected" ? C.danger : r.status === "in_review" ? C.info : C.warning,
                   }}>{(r.status || "pending").replace("_", " ")}</span>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.04]" title="View">
+                  <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => openKycPanel(r)} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.04]" title="View">
                       <Eye className="w-3.5 h-3.5" />
                     </button>
                     {(r.status === "pending" || r.status === "in_review") && (
