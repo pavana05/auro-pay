@@ -419,7 +419,7 @@ const AdminTransactions = () => {
                     };
                     return (
                       <tr key={t.id} onClick={() => openDetail(t)}
-                        className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 group ${isSelected ? "bg-primary/[0.04]" : ""}`}
+                        className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 group ${isSelected ? "bg-primary/[0.04]" : ""} ${flashedIds.has(t.id) ? "tx-flash" : ""}`}
                         style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.02, 0.3)}s both` }}>
                         <td className="sticky left-0 bg-card/95 backdrop-blur z-10 py-3.5 px-5 group-hover:bg-card">
                           <input type="checkbox" onClick={(e) => e.stopPropagation()} className="accent-primary" />
