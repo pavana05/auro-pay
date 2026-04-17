@@ -637,4 +637,16 @@ const Row = ({ label, value, mono }: { label: string; value: string; mono?: bool
   </div>
 );
 
-export default AdminTransactions;
+const TxFlashStyles = () => (
+  <style>{`
+    @keyframes tx-flash-anim {
+      0% { background: hsl(var(--success) / 0.25); box-shadow: inset 3px 0 0 hsl(var(--success)); }
+      100% { background: transparent; box-shadow: inset 0 0 0 transparent; }
+    }
+    .tx-flash { animation: tx-flash-anim 2.2s ease-out; }
+  `}</style>
+);
+
+const AdminTransactionsWithStyles = () => (<><TxFlashStyles /><AdminTransactions /></>);
+
+export default AdminTransactionsWithStyles;
