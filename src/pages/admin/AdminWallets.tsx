@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -186,7 +186,7 @@ const AdminWallets = () => {
           </div>
         </div>
 
-        {/* Tabs + search */}
+        {/* Tabs + search + export */}
         <div className="flex items-center gap-3" style={{ animation: "slide-up-spring 0.5s 0.25s both" }}>
           <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
             {[{ k: "all", label: `All (${wallets.length})` }, { k: "frozen", label: `Frozen (${frozenCount})` }].map((t) => (
@@ -201,6 +201,10 @@ const AdminWallets = () => {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, wallet ID…"
               className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 transition-all" />
           </div>
+          <button onClick={() => exportWalletsCsv(filtered)}
+            className="flex items-center gap-2 px-4 h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all whitespace-nowrap">
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
         </div>
 
         {/* Table */}
@@ -587,5 +591,41 @@ const MiniStat = ({ k, v, color }: { k: string; v: string; color: string }) => (
     <p className="text-base font-bold font-mono mt-0.5" style={{ color }}>{v}</p>
   </div>
 );
+
+/* ─────────── CSV export ─────────── */
+function exportWalletsCsv(rows: WalletRow[]) {
+  if (!rows.length) { toast.info("No wallets to export"); return; }
+  const headers = [
+    "wallet_id", "user_id", "full_name", "phone", "role",
+    "balance_inr", "daily_limit_inr", "monthly_limit_inr",
+    "spent_today_inr", "spent_this_month_inr", "is_frozen", "created_at",
+  ];
+  const escape = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(",")];
+  rows.forEach((w) => {
+    lines.push([
+      w.id, w.user_id,
+      w.profile?.full_name || "", w.profile?.phone || "", w.profile?.role || "",
+      ((w.balance || 0) / 100).toFixed(2),
+      ((w.daily_limit || 0) / 100).toFixed(2),
+      ((w.monthly_limit || 0) / 100).toFixed(2),
+      ((w.spent_today || 0) / 100).toFixed(2),
+      ((w.spent_this_month || 0) / 100).toFixed(2),
+      w.is_frozen ? "yes" : "no",
+      w.created_at || "",
+    ].map(escape).join(","));
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `wallets_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast.success(`Exported ${rows.length} wallets`);
+}
 
 export default AdminWallets;
