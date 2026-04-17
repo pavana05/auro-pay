@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Sparkles, Play, ChevronRight } from "lucide-react";
 import PhoneMockup from "../PhoneMockup";
+import heroIllustration from "@/assets/hero-illustration.png";
 
 const TABS = [
   { id: "home" as const, label: "Wallet", emoji: "💰" },
@@ -165,11 +166,34 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
 
         {/* Phone with interactive tabs */}
         <div className="lg:col-span-5 relative flex flex-col items-center gap-5">
+          {/* Ambient hero illustration behind the phone */}
+          <motion.img
+            src={heroIllustration}
+            alt=""
+            aria-hidden="true"
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 0.55, scale: 1 }}
+            transition={{ delay: 2.6, duration: 1.4, ease: "easeOut" }}
+            className="pointer-events-none select-none absolute -top-10 -left-16 lg:-left-32 w-[120%] max-w-none z-0"
+            style={{
+              filter: "drop-shadow(0 30px 60px rgba(200,149,46,0.25))",
+              mixBlendMode: "screen",
+            }}
+          />
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="pointer-events-none absolute -top-6 -left-10 lg:-left-20 w-[110%] max-w-none z-0 opacity-40"
+            aria-hidden="true"
+          >
+            <img src={heroIllustration} alt="" className="w-full" style={{ filter: "blur(24px) saturate(140%)" }} />
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 2.4, duration: 0.8, type: "spring", stiffness: 60, damping: 16 }}
             style={{ perspective: 1200 }}
-            className="relative"
+            className="relative z-10"
           >
             <motion.div
               animate={{ y: [0, -14, 0] }}
