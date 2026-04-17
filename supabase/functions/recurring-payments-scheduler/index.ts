@@ -51,6 +51,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Emergency freeze check — skip the entire run while frozen
+    const { data: freezeRow } = await admin.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
+    if (freezeRow?.value === "true") {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: "freeze_all_transactions" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const nowIso = new Date().toISOString();
     const { data: due, error } = await admin
       .from("recurring_payments")

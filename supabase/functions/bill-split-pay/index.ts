@@ -26,6 +26,10 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Emergency freeze check
+    const { data: freezeRow } = await admin.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
+    if (freezeRow?.value === "true") return json({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }, 503);
+
     // Find member row for this user in this split
     const { data: member, error: memberError } = await admin
       .from("bill_split_members")
