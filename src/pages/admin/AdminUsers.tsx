@@ -790,6 +790,74 @@ const LimitField = ({ label, value, onChange, onSave }: { label: string; value: 
   </div>
 );
 
+const LocationTab = ({ userId, onChange }: { userId: string; onChange: () => void }) => {
+  const [profile, setProfile] = useState<any>(null);
+  const [stateCode, setStateCode] = useState("");
+  const [city, setCity] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("profiles").select("city, state_code, state_source, phone").eq("id", userId).maybeSingle();
+      setProfile(data);
+      setStateCode(data?.state_code || "");
+      setCity(data?.city || "");
+    })();
+  }, [userId]);
+
+  const save = async () => {
+    const trimmedCity = city.trim().slice(0, 60);
+    const code = stateCode.trim().toUpperCase().slice(0, 4);
+    if (!code) { toast.error("State code required (e.g. MH, KA, DL)"); return; }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("profiles").update({
+      state_code: code, city: trimmedCity || null, state_source: "manual",
+    }).eq("id", userId);
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    if (user) {
+      await supabase.from("audit_logs").insert({
+        admin_user_id: user.id, target_type: "user", target_id: userId, action: "location_override",
+        details: { previous: { state_code: profile?.state_code, city: profile?.city, state_source: profile?.state_source }, new: { state_code: code, city: trimmedCity, state_source: "manual" } },
+      });
+    }
+    toast.success("Location updated");
+    setProfile({ ...profile, state_code: code, city: trimmedCity, state_source: "manual" });
+    onChange();
+    setSaving(false);
+  };
+
+  const sourceColor = profile?.state_source === "manual" ? C.success : profile?.state_source === "inferred" ? C.primary : C.danger;
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl p-3 border space-y-1.5" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Current</p>
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-white font-sora">{profile?.city || "—"}, <span className="font-mono">{profile?.state_code || "—"}</span></span>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${sourceColor}15`, color: sourceColor, border: `1px solid ${sourceColor}30` }}>
+            {profile?.state_source || "unknown"}
+          </span>
+        </div>
+        <p className="text-[10px] text-white/40 font-sora">Phone: <span className="font-mono">{profile?.phone || "—"}</span></p>
+      </div>
+
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-white/40 font-sora block mb-1">State code</label>
+        <input value={stateCode} onChange={(e) => setStateCode(e.target.value.toUpperCase())} maxLength={4} placeholder="MH" className="w-full h-10 px-3 rounded-[10px] text-[12px] text-white font-mono uppercase focus:outline-none focus:ring-2 focus:ring-primary/40" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }} />
+        <p className="text-[9px] text-white/40 mt-1 font-sora">2-letter code: MH, KA, DL, TN, UP, GJ, RJ, WB, etc.</p>
+      </div>
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-white/40 font-sora block mb-1">City (optional)</label>
+        <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={60} placeholder="Mumbai" className="w-full h-10 px-3 rounded-[10px] text-[12px] text-white focus:outline-none focus:ring-2 focus:ring-primary/40" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }} />
+      </div>
+      <button onClick={save} disabled={saving} className="w-full h-9 rounded-[10px] text-[11px] font-semibold text-white disabled:opacity-50" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>
+        {saving ? "Saving…" : "Save override (marks as manual)"}
+      </button>
+      <p className="text-[10px] text-white/40 font-sora">Logged to audit trail as <span className="font-mono">location_override</span>.</p>
+    </div>
+  );
+};
+
 const NotesTab = ({ userId }: { userId: string }) => {
   const [notes, setNotes] = useState<any[]>([]);
   const [text, setText] = useState("");
