@@ -178,9 +178,8 @@ const App = () => (
             <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
             <Route path="/admin/waitlist" element={<PageTransition><AdminWaitlist /></PageTransition>} />
 
-            {/* Public landing page — full-bleed, no mobile container. Now the home route. */}
+            {/* Public landing page — full-bleed, no mobile container. Home route. */}
             <Route path="/" element={<Landing />} />
-            <Route path="/landing" element={<Landing />} />
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
