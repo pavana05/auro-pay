@@ -243,7 +243,7 @@ export default function FinancialInsights() {
       <header className="sticky top-0 z-20 backdrop-blur-xl bg-background/80 border-b border-white/[0.04]">
         <div className="flex items-center gap-3 px-4 h-14">
           <button
-            onClick={() => { haptic("light"); navigate(-1); }}
+            onClick={() => { haptic.light(); navigate(-1); }}
             className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition"
             aria-label="Back"
           >
@@ -266,7 +266,7 @@ export default function FinancialInsights() {
           ] as const).map(o => (
             <button
               key={o.k}
-              onClick={() => { haptic("light"); setWindowKey(o.k); }}
+              onClick={() => { haptic.light(); setWindowKey(o.k); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
                 windowKey === o.k ? "bg-primary text-primary-foreground" : "text-white/60"
               }`}
