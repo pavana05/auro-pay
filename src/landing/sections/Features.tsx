@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { Scan, ShieldCheck, Users, Send, PiggyBank, BarChart3, Sparkle } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import PhoneMockup from "../PhoneMockup";
 
 const FEATURES = [
@@ -12,8 +13,40 @@ const FEATURES = [
 ];
 
 export default function Features() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  // Track which feature is in view to swap the sticky phone screen
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+    const items = trackRef.current?.querySelectorAll("[data-feature-idx]");
+    if (!items) return;
+    items.forEach((el) => {
+      const idx = Number((el as HTMLElement).dataset.featureIdx);
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            setActiveIdx(idx);
+          }
+        },
+        { threshold: [0.5, 0.75], rootMargin: "-20% 0px -30% 0px" }
+      );
+      io.observe(el);
+      observers.push(io);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+  const phoneY = useTransform(scrollYProgress, [0, 1], [0, -40]);
+  const phoneYSmooth = useSpring(phoneY, { stiffness: 80, damping: 20 });
+
   return (
-    <section id="features" className="relative py-32 px-6 lg:px-12">
+    <section id="features" ref={sectionRef} className="relative py-32 px-6 lg:px-12">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
