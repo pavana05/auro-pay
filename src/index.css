@@ -502,3 +502,19 @@
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-6px); opacity: 1; }
 }
+
+/* ──────────────────────────────────────────────────────────
+   Admin light-mode preference. Most admin pages use hardcoded
+   dark surfaces by design; the toggle here lifts contrast by
+   nudging text/border alpha up so the dark theme reads as
+   "high-contrast light feel" without breaking layouts.
+   The user-facing app is unaffected (no .admin-light there).
+   ────────────────────────────────────────────────────────── */
+html.admin-light {
+  --admin-text-boost: 1.15;
+}
+html.admin-light main { background: #11141a !important; }
+html.admin-light main *:not(svg):not(path) {
+  --tw-text-opacity: 1;
+}
+

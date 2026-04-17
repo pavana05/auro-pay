@@ -14,6 +14,10 @@ import {
 import { toast } from "sonner";
 import AdminCommandPalette from "@/components/admin/AdminCommandPalette";
 import { AdminContextPanelProvider, AdminContextPanelSurface } from "@/components/admin/AdminContextPanel";
+import AdminThemeToggle from "@/components/admin/AdminThemeToggle";
+import AdminShortcutsHelp from "@/components/admin/AdminShortcutsHelp";
+import SessionTimeoutModal from "@/components/admin/SessionTimeoutModal";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const ADMIN_PASSWORD = "180525Pt";
 
@@ -177,23 +181,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  /* Session timeout - 2 hours */
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let timeout: ReturnType<typeof setTimeout>;
-    const reset = () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        sessionStorage.removeItem("admin_auth");
-        setIsAuthenticated(false);
-        toast.error("Session expired. Please re-authenticate.");
-      }, 2 * 60 * 60 * 1000);
-    };
-    reset();
-    window.addEventListener("mousemove", reset);
-    window.addEventListener("keypress", reset);
-    return () => { clearTimeout(timeout); window.removeEventListener("mousemove", reset); window.removeEventListener("keypress", reset); };
-  }, [isAuthenticated]);
+  /* Session timeout handled by SessionTimeoutModal (2h with 5-min warning) */
+  const handleSessionExpire = () => {
+    sessionStorage.removeItem("admin_auth");
+    setIsAuthenticated(false);
+    toast.error("Session expired. Please re-authenticate.");
+  };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -508,6 +501,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 <Search className="w-4 h-4" />
               </button>
 
+              {/* Theme toggle */}
+              <AdminThemeToggle />
+
               {/* Notification bell */}
               <div className="relative" ref={bellRef}>
                 <button
@@ -616,14 +612,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           {/* Main + slide-in context panel */}
           <div className="flex-1 flex overflow-hidden">
             <main className="flex-1 overflow-auto" style={{ background: G.bg }}>
-              {children}
+              <ErrorBoundary label="This page" onRetry={() => window.location.reload()}>
+                {children}
+              </ErrorBoundary>
             </main>
             <AdminContextPanelSurface />
           </div>
         </div>
 
-        {/* Command palette */}
+        {/* Command palette + global helpers */}
         <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        <AdminShortcutsHelp />
+        <SessionTimeoutModal enabled={isAuthenticated} onLogout={handleSessionExpire} />
       </div>
     </AdminContextPanelProvider>
   );
