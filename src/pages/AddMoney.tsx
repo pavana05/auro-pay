@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { ArrowLeft, CreditCard, Building2, Check, Sparkles, Search, X, Shield, Zap } from "lucide-react";
+import { ArrowLeft, CreditCard, Building2, Check, Sparkles, Search, X, Shield, Zap, Repeat, Calendar, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import { startRazorpayPayment } from "@/lib/razorpay";
-import KycGate from "@/components/KycGate";
+import { isAndroidNative, openUpiApp } from "@/lib/upi-intent";
 
 type Phase = "idle" | "processing" | "success";
 type Method = "upi" | "card" | "netbanking";
@@ -37,6 +37,8 @@ const banks = [
   { code: "INDUS", name: "IndusInd Bank",      tint: "28 85% 55%" },
 ] as const;
 
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 const AddMoney = () => {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<Method>("upi");
@@ -46,6 +48,12 @@ const AddMoney = () => {
   const [bankSearch, setBankSearch] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [processingStep, setProcessingStep] = useState(0);
+  // Auto-Pay
+  const [autoPay, setAutoPay] = useState(false);
+  const [autoFreq, setAutoFreq] = useState<"weekly" | "monthly">("weekly");
+  const [autoDay, setAutoDay] = useState<number>(1); // weekday for weekly, day-of-month for monthly
+  // UPI fallback sheet
+  const [showFallback, setShowFallback] = useState<{ appLabel: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
