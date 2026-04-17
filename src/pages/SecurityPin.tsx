@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key } from "lucide-react";
+import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import ForgotPinModal from "@/components/ForgotPinModal";
 
 const SecurityPin = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const SecurityPin = () => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [showForgotPin, setShowForgotPin] = useState(false);
 
   const handleChangePin = () => {
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
@@ -109,6 +111,12 @@ const SecurityPin = () => {
           <button onClick={handleChangePin} disabled={changing} className="w-full h-11 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
             {changing ? "Updating..." : "Update PIN"}
           </button>
+          <button
+            onClick={() => setShowForgotPin(true)}
+            className="w-full h-11 rounded-pill bg-white/[0.04] border border-white/[0.08] text-primary font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition"
+          >
+            <KeyRound className="w-4 h-4" /> Forgot PIN? Reset via OTP
+          </button>
         </div>
       </div>
 
@@ -124,6 +132,12 @@ const SecurityPin = () => {
           </button>
         ))}
       </div>
+
+      <ForgotPinModal
+        open={showForgotPin}
+        onClose={() => setShowForgotPin(false)}
+        onSuccess={() => toast.success("PIN reset — you can now use your new PIN")}
+      />
 
       <BottomNav />
     </div>
