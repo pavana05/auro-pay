@@ -146,6 +146,42 @@ const AdminGeographic = () => {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<DateRange>("30d");
   const [hoverState, setHoverState] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  const loadAll = async () => {
+    setLoading(true);
+    const [{ data: us }, { data: tx }, { data: ws }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, phone, role, created_at, state_code, city, state_source"),
+      supabase.from("transactions").select("amount, status, created_at, wallet_id").eq("status", "success").limit(5000),
+      supabase.from("wallets").select("id, user_id"),
+    ]);
+    const map: Record<string, string> = {};
+    (ws || []).forEach((w: any) => (map[w.id] = w.user_id));
+    setWalletToUser(map);
+    setUsers((us || []) as UserRow[]);
+    setTxns((tx || []) as Tx[]);
+    setLoading(false);
+  };
+
+  const handleResolveUnknowns = async () => {
+    if (resolving) return;
+    setResolving(true);
+    const t = toast.loading("Re-running phone-based inference on unknown profiles…");
+    const { data, error } = await supabase.rpc("resolve_unknown_states" as any);
+    toast.dismiss(t);
+    if (error) {
+      toast.error(error.message || "Failed to resolve");
+    } else {
+      const row = Array.isArray(data) ? data[0] : data;
+      const scanned = row?.scanned ?? 0;
+      const resolved = row?.resolved ?? 0;
+      if (resolved > 0) toast.success(`Resolved ${resolved} of ${scanned} unknown profiles`);
+      else toast.message(`Scanned ${scanned} unknown profiles — none could be inferred from phone`);
+      await loadAll();
+    }
+    setResolving(false);
+  };
+
 
   useEffect(() => {
     (async () => {
