@@ -1499,6 +1499,13 @@ export type Database = {
           id: string
         }[]
       }
+      resolve_unknown_states: {
+        Args: never
+        Returns: {
+          resolved: number
+          scanned: number
+        }[]
+      }
       scan_transaction_anomalies: {
         Args: { _lookback_minutes?: number }
         Returns: {
