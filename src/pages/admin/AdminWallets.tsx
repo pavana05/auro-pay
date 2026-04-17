@@ -3,7 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download } from "lucide-react";
+import { optimistic } from "@/lib/optimistic";
+import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
+import MaskedReveal from "@/components/admin/MaskedReveal";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download, CreditCard } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -15,6 +18,9 @@ interface WalletRow {
   spent_this_month: number | null;
   is_frozen: boolean | null;
   created_at: string | null;
+  card_number?: string | null;
+  card_expiry_month?: number | null;
+  card_expiry_year?: number | null;
   profile?: { full_name: string | null; phone: string | null; role: string | null };
 }
 
@@ -107,10 +113,17 @@ const AdminWallets = () => {
   };
 
   const toggleFreeze = async (w: WalletRow) => {
-    await supabase.from("wallets").update({ is_frozen: !w.is_frozen }).eq("id", w.id);
-    await logAudit(w.is_frozen ? "wallet_unfreeze" : "wallet_freeze", w.id, { user: w.profile?.full_name });
-    toast.success(w.is_frozen ? "Wallet unfrozen" : "Wallet frozen");
-    fetchWallets();
+    const next = !w.is_frozen;
+    return optimistic({
+      apply: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: next } : x)),
+      rollback: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: w.is_frozen } : x)),
+      mutate: async () => {
+        const u = await supabase.from("wallets").update({ is_frozen: next }).eq("id", w.id);
+        if (!u.error) await logAudit(next ? "wallet_freeze" : "wallet_unfreeze", w.id, { user: w.profile?.full_name });
+        return u;
+      },
+      successMessage: next ? "Wallet frozen" : "Wallet unfrozen",
+    });
   };
 
   const openWalletPanel = (w: WalletRow) => {
