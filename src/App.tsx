@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PageTransition from "@/components/PageTransition";
 import Index from "./pages/Index.tsx";
@@ -90,7 +90,26 @@ const RealtimeWrapper = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Sonner />
+      <Sonner
+        position="top-right"
+        duration={4000}
+        visibleToasts={5}
+        closeButton
+        toastOptions={{
+          classNames: {
+            toast:
+              "group rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md border-l-4 !bg-[#0d0e12] !text-white !border-l-[#c8952e] !border !border-[rgba(200,149,46,0.2)] !p-4",
+            title: "!text-sm !font-semibold !text-white",
+            description: "!text-xs !text-white/60 !mt-1",
+            success: "!border-l-[#22c55e]",
+            error: "!border-l-[#ef4444]",
+            warning: "!border-l-[#f59e0b]",
+            info: "!border-l-[#3b82f6]",
+            closeButton:
+              "!bg-white/[0.05] !border-white/10 !text-white/60 hover:!bg-white/[0.1] hover:!text-white",
+          },
+        }}
+      />
       <BrowserRouter>
         <DeepLinkHandler />
         <RealtimeWrapper>

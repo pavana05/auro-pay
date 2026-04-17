@@ -502,3 +502,23 @@
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-6px); opacity: 1; }
 }
+
+/* ──────────────────────────────────────────────────────────
+   Admin-only light theme. Scoped: only applies inside .admin-light
+   so the user-facing app stays dark-only.
+   Activated by AdminThemeToggle → toggles .admin-light on <html>.
+   ────────────────────────────────────────────────────────── */
+html.admin-light [class*="admin"],
+html.admin-light aside,
+html.admin-light header,
+html.admin-light main {
+  /* Light surfaces shimmer through inline styles by overriding bg of common admin shells */
+  filter: invert(0.92) hue-rotate(180deg);
+}
+html.admin-light img,
+html.admin-light video,
+html.admin-light svg [fill]:not([fill="none"]),
+html.admin-light .preserve-color {
+  filter: invert(1) hue-rotate(180deg);
+}
+
