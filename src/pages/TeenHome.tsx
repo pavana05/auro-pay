@@ -168,6 +168,18 @@ const TeenHome = () => {
   const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
   const spendPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
 
+  // Recent Activity list shows only 5; full list backs search + last-amount tooltip.
+  const recentForList = transactions.slice(0, 5);
+
+  // Map "merchant name (lowercase)" -> most recent debit amount, for Send Again tooltip.
+  const lastAmountByContact = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "debit") continue;
+    const key = (t.merchant_name || "").trim().toLowerCase();
+    if (!key) continue;
+    if (!lastAmountByContact.has(key)) lastAmountByContact.set(key, t.amount);
+  }
+
   const healthScore = Math.min(100, Math.max(0, 100 - spendPct * 0.4 + (goals.length > 0 ? 15 : 0) + (moneyIn > moneyOut ? 20 : 0)));
   const healthColor = healthScore >= 70 ? "hsl(152 60% 45%)" : healthScore >= 40 ? "hsl(38 92% 50%)" : "hsl(0 72% 51%)";
   const healthLabel = healthScore >= 70 ? "Excellent" : healthScore >= 40 ? "Good" : "Needs Attention";
