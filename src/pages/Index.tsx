@@ -44,12 +44,17 @@ const Index = () => {
       setUserPhone(session.user.phone || "");
       await navigateByRole(session.user.id);
     } else {
-      setState("onboarding");
+      // Returning users who already saw onboarding skip straight to auth.
+      const seen = typeof window !== "undefined" && localStorage.getItem("auropay_onboarded") === "1";
+      setState(seen ? "auth" : "onboarding");
     }
   }, [navigateByRole]);
 
   const handleSplashComplete = () => checkSession();
-  const handleOnboardingComplete = () => setState("auth");
+  const handleOnboardingComplete = () => {
+    try { localStorage.setItem("auropay_onboarded", "1"); } catch {}
+    setState("auth");
+  };
 
   const handleAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();

@@ -54,11 +54,16 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     slideStartTime.current = Date.now();
   }, []);
 
+  const finish = useCallback(() => {
+    try { localStorage.setItem("auropay_onboarded", "1"); } catch {}
+    onComplete();
+  }, [onComplete]);
+
   const next = useCallback(() => {
     haptic.light();
     if (current < slides.length - 1) goTo(current + 1);
-    else onComplete();
-  }, [current, goTo, onComplete]);
+    else finish();
+  }, [current, goTo, finish]);
 
   const prev = useCallback(() => {
     if (current > 0) goTo(current - 1);
