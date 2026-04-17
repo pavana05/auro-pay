@@ -46,12 +46,14 @@ const ParentTeenDetail = () => {
       setWallet(walletRes.data);
       setNewDailyLimit(String((walletRes.data.daily_limit || 0) / 100));
 
-      const [txRes, limitsRes] = await Promise.all([
+      const [txRes, limitsRes, reqRes] = await Promise.all([
         supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("spending_limits").select("*").eq("teen_wallet_id", walletRes.data.id),
+        supabase.from("limit_increase_requests").select("*").eq("teen_id", teenId).eq("status", "pending").order("created_at", { ascending: false }),
       ]);
       setTransactions(txRes.data || []);
       setSpendingLimits(limitsRes.data || []);
+      setRequests(reqRes.data || []);
     }
     setLoading(false);
   };
@@ -61,54 +63,85 @@ const ParentTeenDetail = () => {
   const formatAmount = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
   const toggleFreeze = async () => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     setFreezing(true);
-    const { error } = await supabase.from("wallets").update({ is_frozen: !wallet.is_frozen }).eq("id", wallet.id);
+    const wasFrozen = wallet.is_frozen;
+    const { error } = await supabase.from("wallets").update({ is_frozen: !wasFrozen }).eq("id", wallet.id);
     if (error) toast.error("Failed to update");
     else {
-      toast.success(wallet.is_frozen ? "Wallet unfrozen" : "Wallet frozen");
+      toast.success(wasFrozen ? "Wallet unfrozen" : "Wallet frozen");
+      logParentAction(teenId, wasFrozen ? "unfreeze_card" : "freeze_card",
+        wasFrozen ? "Unfroze the card" : "Froze the card");
       fetchData();
     }
     setFreezing(false);
   };
 
   const updateDailyLimit = async () => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     const limitPaise = Math.round(parseFloat(newDailyLimit) * 100);
     if (isNaN(limitPaise) || limitPaise <= 0) { toast.error("Enter a valid amount"); return; }
     const { error } = await supabase.from("wallets").update({ daily_limit: limitPaise }).eq("id", wallet.id);
     if (error) toast.error("Failed to update");
-    else { toast.success("Daily limit updated"); setEditingLimit(false); fetchData(); }
+    else {
+      toast.success("Daily limit updated");
+      logParentAction(teenId, "set_daily_limit", `Set daily limit to ₹${limitPaise / 100}`, { value: limitPaise });
+      setEditingLimit(false);
+      fetchData();
+    }
   };
 
   const toggleCategoryBlock = async (category: string) => {
-    if (!wallet) return;
+    if (!wallet || !teenId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const existing = spendingLimits.find(sl => sl.category === category);
+    let nowBlocked = false;
     if (existing) {
-      // Can't update via anon, delete and re-insert
-      // Toggle block
-      const { error } = await supabase.from("spending_limits").delete().eq("id", existing.id);
-      if (!error && !existing.is_blocked) {
+      await supabase.from("spending_limits").delete().eq("id", existing.id);
+      if (!existing.is_blocked) {
         await supabase.from("spending_limits").insert({
-          teen_wallet_id: wallet.id,
-          category,
-          is_blocked: true,
-          set_by_parent_id: user.id,
+          teen_wallet_id: wallet.id, category, is_blocked: true, set_by_parent_id: user.id,
         });
-      } else if (!error && existing.is_blocked) {
-        // Unblock - just delete was enough
+        nowBlocked = true;
       }
     } else {
       await supabase.from("spending_limits").insert({
-        teen_wallet_id: wallet.id,
-        category,
-        is_blocked: true,
-        set_by_parent_id: user.id,
+        teen_wallet_id: wallet.id, category, is_blocked: true, set_by_parent_id: user.id,
       });
+      nowBlocked = true;
     }
+    logParentAction(teenId, nowBlocked ? "block_category" : "unblock_category",
+      `${nowBlocked ? "Blocked" : "Unblocked"} ${category} category`, { category });
+    fetchData();
+  };
+
+  const decideRequest = async (req: any, approve: boolean) => {
+    if (!teenId) return;
+    const updates: any = { status: approve ? "approved" : "rejected", decided_at: new Date().toISOString() };
+    const { error } = await supabase.from("limit_increase_requests").update(updates).eq("id", req.id);
+    if (error) { toast.error(error.message); return; }
+    if (approve && wallet) {
+      const field = req.limit_type === "daily" ? "daily_limit" : "monthly_limit";
+      await supabase.from("wallets").update({ [field]: req.requested_limit }).eq("id", wallet.id);
+      logParentAction(teenId, "approve_request",
+        `Approved ${req.limit_type} limit increase to ₹${req.requested_limit / 100}`,
+        { request_id: req.id });
+    } else {
+      logParentAction(teenId, "reject_request",
+        `Rejected ${req.limit_type} limit increase request`,
+        { request_id: req.id });
+    }
+    await supabase.from("notifications").insert({
+      user_id: req.teen_id,
+      title: approve ? "✅ Limit increase approved" : "❌ Limit request declined",
+      body: approve
+        ? `Your ${req.limit_type} limit is now ₹${req.requested_limit / 100}.`
+        : `Your parent declined the ${req.limit_type} limit increase.`,
+      type: "limit_decision",
+    });
+    toast.success(approve ? "Approved" : "Rejected");
     fetchData();
   };
 
