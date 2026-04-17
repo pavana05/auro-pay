@@ -88,6 +88,17 @@ const ParentAddMoney = () => {
         type: "credit",
       });
 
+      // Log parent action for the timeline
+      if (user) {
+        await supabase.from("parent_actions").insert({
+          parent_id: user.id,
+          teen_id: selectedTeen,
+          action_type: "add_money",
+          description: `Added ₹${(amountPaise / 100).toLocaleString("en-IN")} to wallet`,
+          metadata: { amount: amountPaise },
+        });
+      }
+
       setSuccess(true);
       toast.success("Money added successfully!");
     } catch (err: any) {
