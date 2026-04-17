@@ -243,11 +243,9 @@ const AdminSettings = () => {
           </div>
         )}
 
-        {loading && !lastUpdatedAt ? (
-          <div className="space-y-4 relative z-10">
-            {[1,2,3].map(i => <div key={i} className="h-40 rounded-[16px] animate-pulse" style={{ background: "rgba(255,255,255,0.02)" }} />)}
-          </div>
-        ) : (
+        {(
+          // Always render the form — settings is seeded with defaults so the
+          // page is never blank. Live values overlay these on first successful load.
           <div className="space-y-6 relative z-10">
             {(Object.keys(SECTION_META) as Section[]).map(sec => {
               const meta = SECTION_META[sec];
