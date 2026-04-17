@@ -158,7 +158,37 @@ const SendMoney = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingContact]);
 
-  // Recents = top 5 by last_paid_at desc.
+  // If we arrived via URL params (e.g. /quick-pay?amount=&name=&upi=), pre-pick a transient
+  // recipient and prefill the amount/note/category. We try to match an existing favorite
+  // first (by upi or phone) so the recents card highlights correctly.
+  useEffect(() => {
+    if (recipient || loading) return;
+    if (!qpAmount && !qpName && !qpUpi && !qpPhone) return;
+
+    const matched = favorites.find(
+      f => (qpUpi && f.contact_upi_id === qpUpi) || (qpPhone && f.contact_phone === qpPhone)
+    );
+    const target: Favorite = matched || {
+      id: `transient-${Date.now()}`,
+      contact_name: qpName || qpUpi?.split("@")[0] || "Recipient",
+      contact_phone: qpPhone,
+      contact_upi_id: qpUpi,
+      avatar_emoji: "👤",
+      last_paid_at: null,
+    };
+    pickRecipient(target);
+    if (qpAmount) {
+      const cleaned = qpAmount.replace(/[^0-9]/g, "").slice(0, 7);
+      if (cleaned) setAmount(cleaned);
+    }
+    if (qpNote) setNote(qpNote.slice(0, 80));
+    if (qpCategory && CATEGORIES.some(c => c.key === qpCategory)) setCategory(qpCategory);
+
+    // Clear params so a back-out / refresh doesn't re-trigger.
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, favorites, qpAmount, qpName, qpUpi, qpPhone]);
+
   const recents = useMemo(() => {
     return [...favorites]
       .filter(f => !!f.last_paid_at)
