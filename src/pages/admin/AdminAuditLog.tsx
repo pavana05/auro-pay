@@ -60,7 +60,7 @@ const AdminAuditLog = () => {
   const [dateTo, setDateTo] = useState("");
   const [targetUser, setTargetUser] = useState("");
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
-  const [view, setView] = useState<"timeline" | "table">("timeline");
+  const [view, setView] = useState<"timeline" | "table" | "compact">("timeline");
   const [detailOf, setDetailOf] = useState<AuditEntry | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
 
@@ -218,6 +218,11 @@ const AdminAuditLog = () => {
               <button onClick={() => setView("table")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[11px] font-medium transition-all"
                 style={{ background: view === "table" ? `${C.primary}25` : "transparent", color: view === "table" ? C.primary : C.textSecondary }}>
                 <TableIcon className="w-3 h-3" /> Table
+              </button>
+              <button onClick={() => setView("compact")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[11px] font-medium transition-all"
+                style={{ background: view === "compact" ? `${C.primary}25` : "transparent", color: view === "compact" ? C.primary : C.textSecondary }}
+                title="Virtualized — handles 10k+ rows">
+                <Zap className="w-3 h-3" /> Compact
               </button>
             </div>
             <button onClick={fetchLogs} className="p-2 rounded-[10px] transition-colors" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textSecondary }}>
