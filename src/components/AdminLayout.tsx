@@ -20,8 +20,6 @@ import SessionTimeoutModal from "@/components/admin/SessionTimeoutModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ADMIN_NOTIFICATION_TYPES } from "@/lib/admin-notifications";
 
-const ADMIN_PASSWORD = "180525Pt";
-
 const G = {
   bg: "#0a0c0f",
   sidebar: "#0c0e13",
@@ -196,17 +194,27 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     toast.error("Session expired. Please re-authenticate.");
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError("");
-    setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-verify-password", {
+        body: { password },
+      });
+      if (error) throw error;
+      if (data?.ok) {
         setIsAuthenticated(true);
         sessionStorage.setItem("admin_auth", "true");
         toast.success("Admin access granted"); haptic.success();
-      } else { setAuthError("Incorrect password. Access denied."); haptic.error(); }
+      } else {
+        setAuthError("Incorrect password. Access denied."); haptic.error();
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || "Verification failed. Try again.");
+      haptic.error();
+    } finally {
       setAuthLoading(false);
-    }, 600);
+    }
   };
 
   const handleLogout = async () => {
