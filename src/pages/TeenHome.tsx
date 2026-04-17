@@ -16,6 +16,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import InlineSearchResults from "@/components/InlineSearchResults";
 import PressTooltip from "@/components/PressTooltip";
 import SwipeActionRow from "@/components/SwipeActionRow";
+import PaymentRequestPill from "@/components/PaymentRequestPill";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
