@@ -228,11 +228,31 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError("");
     try {
-      const { data, error } = await supabase.functions.invoke("admin-verify-password", {
-        body: { password },
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-verify-password`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: JSON.stringify({ password }),
       });
-      if (error) throw error;
-      if (data?.ok) {
+      const payload = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        const secs = Number(payload?.retry_after_seconds) || 900;
+        const mins = Math.ceil(secs / 60);
+        const msg = `Too many failed attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`;
+        setAuthError(msg);
+        toast.error(msg);
+        haptic.error();
+        return;
+      }
+      if (!res.ok) throw new Error(payload?.error || `Request failed (${res.status})`);
+      if (payload?.ok) {
         setIsAuthenticated(true);
         sessionStorage.setItem("admin_auth", "true");
         toast.success("Admin access granted"); haptic.success();
