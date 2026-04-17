@@ -246,6 +246,30 @@ const SavingsGoals = () => {
     else { toast.success("Goal deleted"); fetchGoals(); }
   };
 
+  // ─── Toggle / configure auto-save for a goal ───
+  const setAutoSave = async (goal: Goal, enabled: boolean, amount?: number, frequency?: string) => {
+    haptic.light();
+    const amt = amount ?? goal.autosave_amount ?? 100;
+    const freq = frequency ?? goal.autosave_frequency ?? "weekly";
+    if (enabled && (!amt || amt < 1)) { toast.error("Set a valid amount first"); return; }
+
+    const next = new Date();
+    if (freq === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
+    else if (freq === "daily") next.setUTCDate(next.getUTCDate() + 1);
+    else next.setUTCDate(next.getUTCDate() + 7);
+
+    const { error } = await supabase.from("savings_goals").update({
+      autosave_enabled: enabled,
+      autosave_amount: amt,
+      autosave_frequency: freq,
+      autosave_next_run_at: enabled ? next.toISOString() : null,
+    }).eq("id", goal.id);
+    if (error) { toast.error(error.message); return; }
+
+    toast.success(enabled ? `Auto-save on: ₹${amt} ${freq}` : "Auto-save off");
+    fetchGoals();
+  };
+
   // ─── Wizard steps config ───
   const stepLabels = ["Name & Icon", "Target", "Deadline", "Color", "Preview"];
   const canAdvance = (s: number) => {
