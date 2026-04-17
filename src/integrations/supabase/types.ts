@@ -439,6 +439,45 @@ export type Database = {
           },
         ]
       }
+      limit_increase_requests: {
+        Row: {
+          created_at: string
+          current_limit: number
+          decided_at: string | null
+          id: string
+          limit_type: string
+          parent_id: string
+          reason: string | null
+          requested_limit: number
+          status: string
+          teen_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_limit: number
+          decided_at?: string | null
+          id?: string
+          limit_type: string
+          parent_id: string
+          reason?: string | null
+          requested_limit: number
+          status?: string
+          teen_id: string
+        }
+        Update: {
+          created_at?: string
+          current_limit?: number
+          decided_at?: string | null
+          id?: string
+          limit_type?: string
+          parent_id?: string
+          reason?: string | null
+          requested_limit?: number
+          status?: string
+          teen_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string | null
@@ -520,6 +559,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parent_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          parent_id: string
+          teen_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          parent_id: string
+          teen_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          parent_id?: string
+          teen_id?: string
+        }
+        Relationships: []
       }
       parent_teen_links: {
         Row: {
