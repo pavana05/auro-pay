@@ -61,6 +61,54 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     return () => clearInterval(t);
   }, [mode, resendIn]);
 
+  /* -------- BIOMETRIC UNLOCK FOR RETURNING USERS -------- */
+  const [biometricAvailable, setBiometricAvailableState] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(isBiometricEnabled());
+  const [unlocking, setUnlocking] = useState(false);
+  const isReturning = hasReturningSession();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = await isBiometricAvailable();
+      if (!cancelled) setBiometricAvailableState(ok);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const tryBiometricUnlock = useCallback(async () => {
+    setUnlocking(true);
+    try {
+      const ok = await authenticateBiometric("Unlock AuroPay");
+      if (!ok) {
+        toast.error("Biometric not recognised — use PIN/OTP");
+        return;
+      }
+      // Check if a Supabase session is already cached locally
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.success("Welcome back!");
+        onAuth();
+      } else {
+        toast.message("Biometric verified — please complete sign-in", {
+          description: "Your session expired. Enter your number to receive an OTP.",
+        });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Biometric unlock failed");
+    } finally {
+      setUnlocking(false);
+    }
+  }, [onAuth]);
+
+  // Auto-prompt biometric on mount when enabled + available + returning user
+  useEffect(() => {
+    if (biometricAvailable && biometricEnabled && isReturning && mode === "phone") {
+      tryBiometricUnlock();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biometricAvailable, biometricEnabled]);
+
   const fullPhone = `+91${phone}`;
 
   /* -------- PHONE OTP FLOW -------- */
