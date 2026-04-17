@@ -55,6 +55,7 @@ const PaymentConfirm = () => {
   const [shake, setShake] = useState(false);
   const [txMeta, setTxMeta] = useState<{ id?: string; reference?: string; time?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [recentContacts, setRecentContacts] = useState<Array<{ id: string; name: string; emoji: string | null; upi: string | null }>>([]);
   const procTimerRef = useRef<ReturnType<typeof setInterval>>();
 
   const upi = state.upi_id || "";
@@ -80,6 +81,20 @@ const PaymentConfirm = () => {
       ]);
       setWalletBalance(wallet?.balance || 0);
       setHasPinSet(!!pinStatus?.data?.is_set || !!(pinStatus as any)?.is_set);
+
+      // Last 3 paid contacts for the quick-switch row
+      const { data: recents } = await supabase
+        .from("quick_pay_favorites")
+        .select("id, contact_name, avatar_emoji, contact_upi_id, last_paid_at")
+        .eq("user_id", user.id)
+        .not("last_paid_at", "is", null)
+        .order("last_paid_at", { ascending: false })
+        .limit(3);
+      setRecentContacts(
+        (recents || []).map((r: any) => ({
+          id: r.id, name: r.contact_name, emoji: r.avatar_emoji, upi: r.contact_upi_id,
+        }))
+      );
     })();
   }, []);
 
@@ -252,6 +267,42 @@ const PaymentConfirm = () => {
             </div>
             {note && <p className="text-[11px] text-muted-foreground/60 mt-3 pl-[60px] truncate">📝 {note}</p>}
           </motion.div>
+
+          {/* Recents quick-switch — last 3 paid contacts */}
+          {recentContacts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 22 }}
+              className="mb-5"
+            >
+              <p className="text-[10px] font-bold text-muted-foreground/50 tracking-[0.18em] uppercase mb-2.5 px-1">
+                Pay someone else
+              </p>
+              <div className="flex gap-2.5">
+                {recentContacts.map((c) => {
+                  const init = (c.name[0] || "?").toUpperCase();
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        haptic.light();
+                        navigate("/quick-pay", { state: { selectedContact: { id: c.id, contact_name: c.name, contact_upi_id: c.upi, avatar_emoji: c.emoji, contact_phone: null, last_paid_at: null } } });
+                      }}
+                      className="flex-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] p-2.5 flex items-center gap-2 active:scale-[0.96] hover:bg-white/[0.05] transition"
+                    >
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${merchantColor(c.name)}, ${merchantColor(c.name).replace("70%", "45%")})` }}
+                      >
+                        {c.emoji && c.emoji !== "👤" ? c.emoji : init}
+                      </div>
+                      <p className="text-[11px] font-semibold truncate text-left">{c.name.split(" ")[0]}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
 
           {/* Amount */}
           <motion.div
