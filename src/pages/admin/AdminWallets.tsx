@@ -47,6 +47,7 @@ const AdminWallets = () => {
   const [tab, setTab] = useState<"all" | "frozen">("all");
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
+  const [forcePayload, setForcePayload] = useState<ForceActionPayload | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
