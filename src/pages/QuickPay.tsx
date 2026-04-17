@@ -523,13 +523,11 @@ const SendMoney = () => {
               <span
                 className="text-[58px] font-mono font-bold tracking-[-1px] leading-none"
                 style={{
-                  background: overBalance
-                    ? "linear-gradient(135deg, hsl(0 70% 60%), hsl(0 70% 50%))"
+                  color: overBalance
+                    ? "hsl(0 70% 60%)"
                     : amount
-                    ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
-                    : "linear-gradient(135deg, hsl(220 10% 25%), hsl(220 10% 18%))",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                    ? "hsl(var(--primary))"
+                    : "hsl(220 10% 25%)",
                 }}
               >
                 {amount || "0"}
