@@ -4,29 +4,30 @@ import ThreeBackground from "@/landing/ThreeBackground";
 import Navbar from "@/landing/Navbar";
 import EntryAnimation from "@/landing/EntryAnimation";
 import WaitlistModal from "@/landing/WaitlistModal";
+import StickyCTA from "@/landing/StickyCTA";
 import Hero from "@/landing/sections/Hero";
-import Features from "@/landing/sections/Features";
-import HowItWorks from "@/landing/sections/HowItWorks";
+import PressStrip from "@/landing/sections/PressStrip";
 import Stats from "@/landing/sections/Stats";
 import WhyNeeded from "@/landing/sections/WhyNeeded";
+import Features from "@/landing/sections/Features";
+import HowItWorks from "@/landing/sections/HowItWorks";
 import Comparison from "@/landing/sections/Comparison";
 import Security from "@/landing/sections/Security";
 import DualPerspective from "@/landing/sections/DualPerspective";
 import Testimonials from "@/landing/sections/Testimonials";
+import FAQ from "@/landing/sections/FAQ";
 import Waitlist from "@/landing/sections/Waitlist";
 import Footer from "@/landing/sections/Footer";
 
 /**
- * AuroPay landing page — public marketing surface at /landing.
- * Dark gold premium theme. Three.js background, Framer Motion sections.
+ * AuroPay landing — public marketing surface at /.
+ * Hybrid premium dark gold + playful Gen-Z layout.
  */
 export default function Landing() {
   const reduceMotion = useReducedMotion();
   const [modalOpen, setModalOpen] = useState(false);
   const [entryDone, setEntryDone] = useState(false);
 
-  // Safety net: ensure the page is always visible after 2.5s even if the
-  // entry animation never fires onDone (e.g. tab was backgrounded).
   useEffect(() => {
     if (reduceMotion) { setEntryDone(true); return; }
     const t = setTimeout(() => setEntryDone(true), 3000);
@@ -34,11 +35,10 @@ export default function Landing() {
   }, [reduceMotion]);
 
   useEffect(() => {
-    document.title = "AuroPay — Teen Payments Reimagined";
+    document.title = "AuroPay — The grown-up way to spend smart as a teen";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "India's first scan-and-pay app for teens. Sign up with just your Aadhaar. No PAN needed.");
+    if (meta) meta.setAttribute("content", "India's first scan-and-pay app for teens. Aadhaar-only signup, no PAN. Parental controls, savings goals, and instant UPI — built for Gen Z.");
 
-    // Inject premium fonts once (only on this page)
     const id = "auropay-landing-fonts";
     if (!document.getElementById(id)) {
       const link = document.createElement("link");
@@ -62,6 +62,7 @@ export default function Landing() {
 
       <main style={{ opacity: entryDone ? 1 : 0, transition: "opacity 0.6s ease-out" }}>
         <Hero onCTA={() => setModalOpen(true)} />
+        <PressStrip />
         <Stats />
         <WhyNeeded />
         <Features />
@@ -70,10 +71,12 @@ export default function Landing() {
         <div id="security"><Security /></div>
         <DualPerspective onCTA={() => setModalOpen(true)} />
         <Testimonials />
+        <FAQ />
         <Waitlist />
         <Footer />
       </main>
 
+      <StickyCTA onCTA={() => setModalOpen(true)} />
       <WaitlistModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
