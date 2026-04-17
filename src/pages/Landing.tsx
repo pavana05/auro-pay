@@ -5,6 +5,8 @@ import Navbar from "@/landing/Navbar";
 import EntryAnimation from "@/landing/EntryAnimation";
 import WaitlistModal from "@/landing/WaitlistModal";
 import StickyCTA from "@/landing/StickyCTA";
+import ScrollProgress from "@/landing/ScrollProgress";
+import PremiumCursor from "@/landing/PremiumCursor";
 import Hero from "@/landing/sections/Hero";
 import PressStrip from "@/landing/sections/PressStrip";
 import Stats from "@/landing/sections/Stats";
@@ -61,6 +63,8 @@ export default function Landing() {
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white" style={{ background: "#050507", fontFamily: "Sora, sans-serif" }}>
       {!reduceMotion && <EntryAnimation onDone={() => setEntryDone(true)} />}
+      <ScrollProgress />
+      <PremiumCursor />
       <ThreeBackground />
 
       {/* Subtle radial gold glow over scene */}
