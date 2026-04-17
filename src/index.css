@@ -96,6 +96,114 @@
     background-clip: text;
   }
 
+  /* === LUXURY LANDING UTILITIES (Apple Vision / Rimowa direction) === */
+  .lux-glass {
+    background: linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.4),
+      0 24px 60px -20px rgba(0,0,0,0.6);
+  }
+  .lux-glass-gold {
+    background: linear-gradient(160deg, rgba(200,149,46,0.06), rgba(255,255,255,0.012));
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(200,149,46,0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255,247,227,0.08),
+      inset 0 -1px 0 rgba(0,0,0,0.4),
+      0 24px 60px -20px rgba(0,0,0,0.6),
+      0 0 60px -30px rgba(200,149,46,0.4);
+  }
+  .lux-conic-border {
+    position: relative;
+    isolation: isolate;
+  }
+  .lux-conic-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 140deg at 50% 50%,
+      rgba(200,149,46,0.0) 0deg,
+      rgba(200,149,46,0.55) 90deg,
+      rgba(255,247,227,0.7) 180deg,
+      rgba(200,149,46,0.55) 270deg,
+      rgba(200,149,46,0.0) 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .lux-hairline {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,149,46,0.45), rgba(255,247,227,0.35), rgba(200,149,46,0.45), transparent);
+    opacity: 0.55;
+  }
+  .lux-grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+  .lux-text-platinum {
+    background-image: linear-gradient(180deg, #fff7e3 0%, #ffffff 35%, #e0b048 75%, #c8952e 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .lux-text-gold {
+    background-image: linear-gradient(135deg, #c8952e 0%, #e0b048 50%, #fff7e3 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .lux-eyebrow {
+    font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; font-weight: 600;
+    background-image: linear-gradient(90deg, #c8952e, #fff7e3, #c8952e);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: lux-eyebrow-pan 8s linear infinite;
+  }
+  @keyframes lux-eyebrow-pan {
+    from { background-position: 0% 50%; }
+    to   { background-position: 200% 50%; }
+  }
+  .lux-shimmer { position: relative; overflow: hidden; }
+  .lux-shimmer::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,247,227,0.18) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: lux-shimmer-pan 4.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes lux-shimmer-pan {
+    0% { transform: translateX(-100%); }
+    50%,100% { transform: translateX(120%); }
+  }
+  .lux-rise {
+    transition: transform 600ms cubic-bezier(0.16,1,0.3,1), box-shadow 600ms cubic-bezier(0.16,1,0.3,1), border-color 400ms ease;
+  }
+  .lux-rise:hover {
+    transform: translateY(-4px);
+    border-color: rgba(200,149,46,0.4);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 30px 80px -20px rgba(0,0,0,0.7),
+      0 0 80px -30px rgba(200,149,46,0.5);
+  }
+  @keyframes lux-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes lux-orbit-pulse {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(1.08); }
+  }
+
   .gradient-card {
     background: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 12% 14%));
   }

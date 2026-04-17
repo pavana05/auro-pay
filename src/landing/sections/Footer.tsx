@@ -1,4 +1,4 @@
-import { Instagram, Twitter, Linkedin, Youtube, ArrowUp } from "lucide-react";
+import { Instagram, Twitter, Linkedin, Youtube, ArrowUp, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 type LinkItem = { label: string; href: string; external?: boolean };
@@ -39,13 +39,10 @@ function smoothScrollTo(id: string) {
 }
 
 function FooterLink({ item }: { item: LinkItem }) {
-  const cls = "text-sm text-white/70 hover:text-white transition";
+  const cls = "group inline-flex items-center gap-1 text-sm text-white/60 hover:text-amber-200 transition-colors duration-300";
   if (item.href.startsWith("#")) {
     return (
-      <button
-        onClick={() => smoothScrollTo(item.href)}
-        className={cls + " text-left"}
-      >
+      <button onClick={() => smoothScrollTo(item.href)} className={cls + " text-left"}>
         {item.label}
       </button>
     );
@@ -59,6 +56,7 @@ function FooterLink({ item }: { item: LinkItem }) {
         className={cls}
       >
         {item.label}
+        <ArrowUpRight size={11} className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
       </a>
     );
   }
@@ -72,11 +70,9 @@ function FooterLink({ item }: { item: LinkItem }) {
 function FooterCol({ title, items }: { title: string; items: LinkItem[] }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-3">{title}</div>
-      <ul className="space-y-2">
-        {items.map(it => (
-          <li key={it.label}><FooterLink item={it} /></li>
-        ))}
+      <div className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-semibold mb-4">{title}</div>
+      <ul className="space-y-2.5">
+        {items.map(it => <li key={it.label}><FooterLink item={it} /></li>)}
       </ul>
     </div>
   );
@@ -84,34 +80,63 @@ function FooterCol({ title, items }: { title: string; items: LinkItem[] }) {
 
 export default function Footer() {
   return (
-    <footer className="relative px-6 lg:px-12 pt-20 pb-10 border-t" style={{ background: "#050507", borderColor: "rgba(200,149,46,0.12)" }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="rounded-2xl p-6 mb-12 flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ background: "rgba(200,149,46,0.06)", border: "1px solid rgba(200,149,46,0.18)" }}>
-          <div className="text-center sm:text-left">
-            <div className="text-white font-semibold">Stay updated on our launch.</div>
-            <div className="text-xs text-white/50">No spam, just the good stuff.</div>
+    <footer className="relative px-6 lg:px-12 pt-24 pb-10 overflow-hidden" style={{ background: "#050507" }}>
+      {/* Top hairline */}
+      <div className="absolute top-0 inset-x-0 lux-hairline" />
+      {/* Ambient glow */}
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(ellipse, rgba(200,149,46,0.08), transparent 70%)" }} />
+
+      <div className="max-w-7xl mx-auto relative">
+        {/* CTA banner */}
+        <div className="rounded-3xl p-7 sm:p-8 mb-16 flex flex-col sm:flex-row items-center justify-between gap-5 lux-glass-gold relative overflow-hidden">
+          <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+            style={{ background: "rgba(200,149,46,0.25)" }} />
+          <div className="text-center sm:text-left relative">
+            <div className="text-white font-semibold text-lg tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
+              Stay updated on our launch.
+            </div>
+            <div className="text-sm text-white/50 mt-1">No spam, just the good stuff.</div>
           </div>
           <button
             onClick={() => smoothScrollTo("#waitlist")}
-            className="px-5 h-11 rounded-lg font-semibold text-sm text-black"
-            style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}
+            className="relative inline-flex items-center gap-1.5 pl-5 pr-2 h-12 rounded-full font-semibold text-sm text-black lux-shimmer"
+            style={{
+              background: "linear-gradient(135deg,#c8952e,#e0b048)",
+              boxShadow: "0 8px 28px rgba(200,149,46,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
+            }}
           >
             Join Waitlist
+            <span className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(0,0,0,0.18)" }}>
+              <ArrowUpRight size={14} strokeWidth={2.5} />
+            </span>
           </button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-10 mb-14">
           <div>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2 mb-3"
+              className="flex items-center gap-2.5 mb-4"
             >
-              <div className="w-8 h-8 rounded-xl" style={{ background: "linear-gradient(135deg,#c8952e,#8a6520)" }} />
-              <span className="text-white font-bold text-lg">AuroPay</span>
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden"
+                style={{
+                  background: "conic-gradient(from 220deg, #c8952e, #fff7e3, #c8952e, #8a6520, #c8952e)",
+                  boxShadow: "0 0 24px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
+                }}>
+                <div className="absolute inset-[2px] rounded-[10px]"
+                  style={{ background: "linear-gradient(135deg,#1a1206,#0a0c0f)" }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[13px] font-black lux-text-gold" style={{ fontFamily: "Sora, sans-serif" }}>A</span>
+                </div>
+              </div>
+              <span className="text-white font-semibold text-lg tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>AuroPay</span>
             </button>
-            <p className="text-sm text-white/50 max-w-xs mb-4">India's first scan-and-pay app for teens. Aadhaar-only sign-up.</p>
-            <div className="flex gap-3">
+            <p className="text-sm text-white/50 max-w-xs mb-5" style={{ lineHeight: 1.65 }}>
+              India's first scan-and-pay app for teens. Aadhaar-only sign-up. Built with care in Bengaluru.
+            </p>
+            <div className="flex gap-2">
               {SOCIALS.map(({ Icon, label, href }) => (
                 <a
                   key={label}
@@ -119,8 +144,12 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-amber-300 transition border"
-                  style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/55 hover:text-amber-200 transition-all duration-300 hover:-translate-y-0.5"
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    backdropFilter: "blur(12px)",
+                  }}
                 >
                   <Icon size={15} />
                 </a>
@@ -133,15 +162,17 @@ export default function Footer() {
           <FooterCol title="Legal" items={LEGAL} />
         </div>
 
-        <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
+        <div className="lux-hairline mb-6" />
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
           <div>© 2025 AuroPay. All rights reserved.</div>
           <div className="flex items-center gap-4">
-            <span>Made with <span style={{ color: "#c8952e" }}>❤️</span> in Bengaluru, India</span>
+            <span>Made with <span style={{ color: "#e0b048" }}>♥</span> in Bengaluru, India</span>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               aria-label="Back to top"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-full hover:text-white transition border"
-              style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-white transition-all hover:-translate-y-0.5"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
               <ArrowUp size={11} /> Top
             </button>
