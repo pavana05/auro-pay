@@ -192,13 +192,17 @@ const CardScreen = () => {
         return;
       }
       haptic.success();
-      if (pinModal === "cvv") setCvvRevealed(true);
-      if (pinModal === "details") setShowFullNumber(true);
+      const purpose = pinModal;
+      if (purpose === "cvv") setCvvRevealed(true);
+      if (purpose === "details") setShowFullNumber(true);
       setPinModal(null);
-      // auto-hide after 15s
+      if (purpose === "freeze") {
+        await performToggleFreeze();
+      }
+      // auto-hide reveals after 15s
       setTimeout(() => {
-        if (pinModal === "cvv") setCvvRevealed(false);
-        if (pinModal === "details") setShowFullNumber(false);
+        if (purpose === "cvv") setCvvRevealed(false);
+        if (purpose === "details") setShowFullNumber(false);
       }, 15000);
     } catch (e: any) {
       setPinError(e?.message || "Verification failed");
