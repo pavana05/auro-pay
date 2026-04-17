@@ -173,7 +173,7 @@ const CardScreen = () => {
   };
 
   // ─── PIN gate ───
-  const openPinModal = (purpose: "cvv" | "details") => {
+  const openPinModal = (purpose: "cvv" | "details" | "freeze") => {
     setPinInput(""); setPinError(""); setPinModal(purpose);
   };
 
