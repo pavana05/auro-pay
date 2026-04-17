@@ -608,9 +608,12 @@ const DetailPanel = ({
       )}
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button onClick={() => onRefund(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all text-xs font-medium">
+      <div className="grid grid-cols-3 gap-2 pt-2">
+        <button onClick={() => onRefund(t)} disabled={t.status !== "success"} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all text-xs font-medium disabled:opacity-30 disabled:pointer-events-none">
           <RefreshCcw className="w-3.5 h-3.5" /> Refund
+        </button>
+        <button onClick={() => onRetry(t)} disabled={!canRetry} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all text-xs font-medium disabled:opacity-30 disabled:pointer-events-none">
+          <Play className="w-3.5 h-3.5" /> Retry
         </button>
         <button onClick={() => onFlag(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all text-xs font-medium">
           <Flag className="w-3.5 h-3.5" /> Flag
