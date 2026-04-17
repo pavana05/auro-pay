@@ -481,6 +481,17 @@ const AdminTransactions = () => {
           </div>
         </div>
       </div>
+
+      <RequestInfoModal
+        open={!!infoTarget}
+        onClose={() => setInfoTarget(null)}
+        targetUserId={infoTarget ? wallets[infoTarget.wallet_id]?.user_id || "" : ""}
+        targetName={infoTarget ? wallets[infoTarget.wallet_id]?.full_name || null : null}
+        targetType="transaction"
+        targetId={infoTarget?.id || ""}
+        notificationTitle="ℹ️ More info needed about a transaction"
+        auditAction="transaction_request_more_info"
+      />
     </AdminLayout>
   );
 };
