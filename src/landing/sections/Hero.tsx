@@ -72,14 +72,40 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           {/* Social proof */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.7 }}
             className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {["#c8952e", "#e0b048", "#8a6520", "#fff7e3", "#c8952e"].map((c, i) => (
+            <div className="flex -space-x-2.5">
+              {[
+                { grad: "linear-gradient(135deg,#c8952e,#8a6520)", initial: "A" },
+                { grad: "linear-gradient(135deg,#e0b048,#c8952e)", initial: "P" },
+                { grad: "linear-gradient(135deg,#8a6520,#5a3f12)", initial: "R" },
+                { grad: "linear-gradient(135deg,#fff7e3,#e0b048)", initial: "S" },
+                { grad: "linear-gradient(135deg,#c8952e,#e0b048)", initial: "K" },
+              ].map((a, i) => (
                 <motion.div key={i}
-                  initial={{ scale: 0 }} animate={{ scale: 1 }}
-                  transition={{ delay: 2.8 + i * 0.06, type: "spring" }}
-                  className="w-7 h-7 rounded-full border-2 border-[#0a0c0f]"
-                  style={{ background: `linear-gradient(135deg, ${c}, ${c}aa)` }} />
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 2.8 + i * 0.06, type: "spring", stiffness: 220, damping: 16 }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold"
+                  style={{
+                    background: a.grad,
+                    border: "2px solid #0a0c0f",
+                    color: i === 3 ? "#1a1206" : "#1a1206",
+                    boxShadow: "0 4px 12px rgba(200,149,46,0.35), inset 0 1px 0 rgba(255,255,255,0.3)",
+                    fontFamily: "Sora, sans-serif",
+                  }}>
+                  {a.initial}
+                </motion.div>
               ))}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 3.15, type: "spring", stiffness: 220, damping: 16 }}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold text-white/90"
+                style={{
+                  background: "rgba(200,149,46,0.18)",
+                  border: "2px solid #0a0c0f",
+                  backdropFilter: "blur(6px)",
+                  fontFamily: "JetBrains Mono, monospace",
+                }}>
+                +12K
+              </motion.div>
             </div>
             <span className="text-sm text-white/60">
               Joined by <span className="text-white font-semibold tabular-nums">{count.toLocaleString()}</span> teens across India
