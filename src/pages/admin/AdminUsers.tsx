@@ -658,6 +658,7 @@ const PresetChip = ({ active, onClick, label, icon: Icon, built, onDelete }: { a
   </div>
 );
 
+const ActionItem = ({ icon: Icon, label, onClick, danger = false, disabled = false }: { icon: any; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) => (
   <button onClick={onClick} disabled={disabled} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-sora text-left transition-colors disabled:opacity-30 disabled:pointer-events-none" style={{ color: danger ? C.danger : "rgba(255,255,255,0.75)" }} onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = danger ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
     <Icon className="w-3.5 h-3.5" /> {label}
   </button>
