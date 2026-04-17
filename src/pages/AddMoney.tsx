@@ -44,14 +44,16 @@ const LS_KEY = "auropay_addmoney_method";
 
 const AddMoney = () => {
   const [amount, setAmount] = useState("");
-  // Restore last-used method + sub-selection from localStorage on first render.
-  const [method, setMethod] = useState<Method>(() => {
+  // Read once so we can mark the restored tile as "Last used".
+  const restoredMethod = useMemo<Method | null>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
       if (saved?.method && ["upi", "card", "netbanking"].includes(saved.method)) return saved.method;
     } catch {}
-    return "upi";
-  });
+    return null;
+  }, []);
+  // Restore last-used method + sub-selection from localStorage on first render.
+  const [method, setMethod] = useState<Method>(() => restoredMethod ?? "upi");
   const [selectedUpi, setSelectedUpi] = useState<string>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
