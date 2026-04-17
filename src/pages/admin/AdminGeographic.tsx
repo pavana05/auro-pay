@@ -209,11 +209,15 @@ const AdminGeographic = () => {
 
   // State stats
   const stateStats = useMemo(() => {
-    const map = new Map<string, { node: StateNode; users: number; teens: number; parents: number; volume: number; volumePrev: number }>();
+    type Row = { node: StateNode; users: number; teens: number; parents: number; volume: number; volumePrev: number; manual: number; inferred: number; unknown: number };
+    const map = new Map<string, Row>();
     STATES.forEach((s) =>
-      map.set(s.code, { node: s, users: 0, teens: 0, parents: 0, volume: 0, volumePrev: 0 })
+      map.set(s.code, { node: s, users: 0, teens: 0, parents: 0, volume: 0, volumePrev: 0, manual: 0, inferred: 0, unknown: 0 })
     );
 
+    // Map each user → which state they were placed in, AND track the source the placement came from.
+    // Only users whose state_code on the profile matches the placed state count toward 'manual/inferred',
+    // since rows resolved by client-side fallback or hash are effectively 'unknown' for trust purposes.
     const userToState = new Map<string, StateNode>();
     for (const e of enriched) {
       userToState.set(e.user.id, e.state);
@@ -221,6 +225,12 @@ const AdminGeographic = () => {
       m.users++;
       if (e.user.role === "teen") m.teens++;
       else if (e.user.role === "parent") m.parents++;
+
+      const placedFromColumn = e.user.state_code === e.state.code;
+      const src = (e.user.state_source || "unknown").toLowerCase();
+      if (placedFromColumn && src === "manual") m.manual++;
+      else if (placedFromColumn && src === "inferred") m.inferred++;
+      else m.unknown++;
     }
 
     for (const t of txns) {
