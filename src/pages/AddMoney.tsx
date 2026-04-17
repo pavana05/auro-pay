@@ -657,6 +657,77 @@ const AddMoney = () => {
           </div>
         )}
 
+        {/* Auto-Pay toggle */}
+        {amt > 0 && !outOfRange && (
+          <div className="rounded-[16px] mb-3 border overflow-hidden"
+            style={{
+              background: autoPay ? "linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(220 18% 7%))" : "hsl(220 15% 6.5%)",
+              borderColor: autoPay ? "hsl(var(--primary) / 0.3)" : "hsl(220 15% 11%)",
+              animation: "am-slide-up 0.35s ease-out both",
+            }}>
+            <button onClick={() => { haptic.selection(); setAutoPay(!autoPay); }}
+              className="w-full flex items-center gap-3 p-3.5 active:scale-[0.99] transition">
+              <div className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                style={{ background: autoPay ? "hsl(var(--primary) / 0.15)" : "hsl(220 15% 10%)" }}>
+                <Repeat className="w-[18px] h-[18px]" style={{ color: autoPay ? "hsl(var(--primary))" : "hsl(220 10% 45%)" }} />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[12.5px] font-semibold text-white/85">Auto-Pay top-up</p>
+                <p className="text-[10.5px] text-white/40">Add ₹{amt} {autoFreq === "weekly" ? `every ${DAY_LABELS[autoDay]}` : `on the ${autoDay}${["st","nd","rd"][autoDay-1]||"th"}`}</p>
+              </div>
+              <div className="w-10 h-6 rounded-full relative transition-all"
+                style={{ background: autoPay ? "hsl(var(--primary))" : "hsl(220 15% 14%)" }}>
+                <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all bg-white shadow-md"
+                  style={{ left: autoPay ? "calc(100% - 22px)" : "2px" }} />
+              </div>
+            </button>
+            {autoPay && (
+              <div className="px-3.5 pb-3.5 pt-0 space-y-2.5" style={{ animation: "am-slide-up 0.3s ease-out both" }}>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["weekly", "monthly"] as const).map(f => (
+                    <button key={f} onClick={() => { haptic.selection(); setAutoFreq(f); setAutoDay(f === "weekly" ? 1 : 1); }}
+                      className="h-10 rounded-[10px] text-[11.5px] font-semibold transition active:scale-[0.97]"
+                      style={{
+                        background: autoFreq === f ? "hsl(var(--primary) / 0.15)" : "hsl(220 15% 9%)",
+                        border: `1px solid ${autoFreq === f ? "hsl(var(--primary) / 0.4)" : "hsl(220 15% 13%)"}`,
+                        color: autoFreq === f ? "hsl(var(--primary))" : "hsl(220 10% 60%)",
+                      }}>
+                      {f === "weekly" ? "Weekly" : "Monthly"}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+                  {autoFreq === "weekly"
+                    ? DAY_LABELS.map((d, i) => (
+                        <button key={d} onClick={() => { haptic.light(); setAutoDay(i); }}
+                          className="shrink-0 w-11 h-9 rounded-[8px] text-[10.5px] font-semibold transition active:scale-90"
+                          style={{
+                            background: autoDay === i ? "hsl(var(--primary))" : "hsl(220 15% 9%)",
+                            color: autoDay === i ? "hsl(220 22% 6%)" : "hsl(220 10% 55%)",
+                          }}>
+                          {d}
+                        </button>
+                      ))
+                    : Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                        <button key={d} onClick={() => { haptic.light(); setAutoDay(d); }}
+                          className="shrink-0 w-9 h-9 rounded-[8px] text-[10.5px] font-mono font-semibold transition active:scale-90"
+                          style={{
+                            background: autoDay === d ? "hsl(var(--primary))" : "hsl(220 15% 9%)",
+                            color: autoDay === d ? "hsl(220 22% 6%)" : "hsl(220 10% 55%)",
+                          }}>
+                          {d}
+                        </button>
+                      ))}
+                </div>
+                <button onClick={() => navigate("/recurring")}
+                  className="w-full text-[10.5px] text-white/45 flex items-center justify-center gap-1 pt-1">
+                  <Calendar className="w-3 h-3" /> Manage all auto-pays <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Order summary */}
         {amt > 0 && !outOfRange && (
           <div className="rounded-[16px] p-3.5 mb-5 border"
