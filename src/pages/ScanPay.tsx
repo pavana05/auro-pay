@@ -186,16 +186,18 @@ const ScanPay = () => {
 
   const processPayment = async () => {
     if (!parsedUPI?.pa || !amount || parseFloat(amount) <= 0) { toast.error("Enter a valid amount"); return; }
-    setProcessing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("process-scan-payment", {
-        body: { upi_id: parsedUPI.pa, payee_name: parsedUPI.pn, amount: parseFloat(amount), category: "other", note: parsedUPI.tn },
-      });
-      if (error) throw new Error(error.message || "Payment failed");
-      if (data?.error) throw new Error(data.error);
-      setSuccess(true); haptic.success();
-    } catch (err: any) { toast.error(err.message || "Payment failed"); }
-    finally { setProcessing(false); }
+    haptic.medium();
+    // Hand off to unified /pay flow — it handles PIN setup, entry, processing & success.
+    navigate("/pay", {
+      state: {
+        upi_id: parsedUPI.pa,
+        payee_name: parsedUPI.pn || parsedUPI.pa,
+        amount: parseFloat(amount),
+        amount_locked: !!parsedUPI.am,
+        note: parsedUPI.tn || "",
+        category: "other",
+      },
+    });
   };
 
   // ---------- SUCCESS ----------
