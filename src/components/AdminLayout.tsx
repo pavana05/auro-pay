@@ -64,7 +64,8 @@ const navSections: NavSection[] = [
     { path: "/admin/pocket-money", icon: Calendar, label: "Pocket Money" },
   ]},
   { title: "Analytics", items: [
-    { path: "/admin/analytics", icon: BarChart3, label: "Reports" },
+    { path: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+    { path: "/admin/reports", icon: FileText, label: "Reports" },
     { path: "/admin/revenue", icon: TrendingUp, label: "Revenue" },
     { path: "/admin/geographic", icon: BarChart3, label: "Geographic" },
     { path: "/admin/rewards", icon: Gift, label: "Rewards" },
