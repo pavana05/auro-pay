@@ -14,6 +14,7 @@ import PersonalInfo from "./pages/PersonalInfo.tsx";
 import SecurityPin from "./pages/SecurityPin.tsx";
 import SpendingLimits from "./pages/SpendingLimits.tsx";
 import LinkedParents from "./pages/LinkedParents.tsx";
+import ParentControls from "./pages/ParentControls.tsx";
 import HelpSupport from "./pages/HelpSupport.tsx";
 import AboutApp from "./pages/AboutApp.tsx";
 import SavingsGoals from "./pages/SavingsGoals.tsx";
@@ -129,6 +130,7 @@ const App = () => (
                     <Route path="/security" element={<SecurityPin />} />
                     <Route path="/spending-limits" element={<SpendingLimits />} />
                     <Route path="/linked-parents" element={<LinkedParents />} />
+                    <Route path="/parent-controls" element={<ParentControls />} />
                     <Route path="/help" element={<HelpSupport />} />
                     <Route path="/about" element={<AboutApp />} />
                     <Route path="/savings" element={<SavingsGoals />} />
