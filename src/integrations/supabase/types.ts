@@ -1345,7 +1345,12 @@ export type Database = {
           balance: number | null
           card_atm_enabled: boolean
           card_contactless_enabled: boolean
+          card_expiry_month: number | null
+          card_expiry_year: number | null
+          card_holder_name: string | null
           card_international_enabled: boolean
+          card_issued_at: string | null
+          card_number: string | null
           card_online_enabled: boolean
           created_at: string | null
           daily_limit: number | null
@@ -1360,7 +1365,12 @@ export type Database = {
           balance?: number | null
           card_atm_enabled?: boolean
           card_contactless_enabled?: boolean
+          card_expiry_month?: number | null
+          card_expiry_year?: number | null
+          card_holder_name?: string | null
           card_international_enabled?: boolean
+          card_issued_at?: string | null
+          card_number?: string | null
           card_online_enabled?: boolean
           created_at?: string | null
           daily_limit?: number | null
@@ -1375,7 +1385,12 @@ export type Database = {
           balance?: number | null
           card_atm_enabled?: boolean
           card_contactless_enabled?: boolean
+          card_expiry_month?: number | null
+          card_expiry_year?: number | null
+          card_holder_name?: string | null
           card_international_enabled?: boolean
+          card_issued_at?: string | null
+          card_number?: string | null
           card_online_enabled?: boolean
           created_at?: string | null
           daily_limit?: number | null
