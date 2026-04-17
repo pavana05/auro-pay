@@ -131,7 +131,7 @@ const CardScreen = () => {
   const handleMouseLeave = () => setTilt({ x: 0, y: 0 });
 
   // ─── Actions ───
-  const handleToggleFreeze = async () => {
+  const performToggleFreeze = async () => {
     if (!wallet) return;
     const newFrozen = !wallet.is_frozen;
     const { error } = await supabase.from("wallets").update({ is_frozen: newFrozen }).eq("id", wallet.id);
@@ -139,7 +139,12 @@ const CardScreen = () => {
     setWallet({ ...wallet, is_frozen: newFrozen });
     haptic.success();
     toast.success(newFrozen ? "Card frozen" : "Card unfrozen");
+  };
+
+  // Confirm-sheet "Freeze Now" → require PIN before mutating.
+  const handleConfirmFreezeRequestPin = () => {
     setShowFreezeConfirm(false);
+    openPinModal("freeze");
   };
 
   const saveLimit = async () => {
