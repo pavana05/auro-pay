@@ -83,6 +83,7 @@ import MaintenanceGate from "./components/MaintenanceGate";
 import KycEnforcer from "./components/KycEnforcer";
 import PinEnforcer from "./components/PinEnforcer";
 import VerifyKyc from "./pages/VerifyKyc.tsx";
+import Landing from "./pages/Landing.tsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -174,6 +175,9 @@ const App = () => (
             <Route path="/admin/health" element={<PageTransition><AdminHealth /></PageTransition>} />
             <Route path="/admin/geographic" element={<PageTransition><AdminGeographic /></PageTransition>} />
             <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
+
+            {/* Public landing page — full-bleed, no mobile container */}
+            <Route path="/landing" element={<Landing />} />
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
