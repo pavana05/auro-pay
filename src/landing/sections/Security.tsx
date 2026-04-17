@@ -12,65 +12,100 @@ const ITEMS = [
 
 export default function Security() {
   return (
-    <section className="relative py-32 px-6 lg:px-12" style={{ background: "linear-gradient(180deg, transparent, rgba(10,9,5,0.4), transparent)" }}>
+    <section className="relative py-32 px-6 lg:px-12 overflow-hidden">
+      <div className="absolute inset-0 -z-10 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 70% 50% at 30% 50%, rgba(200,149,46,0.08), transparent 70%)" }} />
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+          initial={{ opacity: 0, scale: 0.92 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="relative flex justify-center"
         >
-          <div className="relative w-72 h-80">
+          <div className="relative w-80 h-80">
+            {/* Conic ring */}
             <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 8, repeat: Infinity }}
-              className="absolute inset-0 rounded-[40%_40%_45%_45%] flex items-center justify-center"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 rounded-full"
               style={{
-                background: "linear-gradient(135deg, rgba(200,149,46,0.2), rgba(200,149,46,0.04))",
-                border: "1px solid rgba(200,149,46,0.4)",
-                boxShadow: "0 0 80px rgba(200,149,46,0.25), inset 0 0 60px rgba(200,149,46,0.1)",
+                background: "conic-gradient(from 0deg, transparent, rgba(200,149,46,0.55), transparent 30%)",
+                mask: "radial-gradient(circle, transparent 58%, black 60%, black 64%, transparent 66%)",
+                WebkitMask: "radial-gradient(circle, transparent 58%, black 60%, black 64%, transparent 66%)",
+              }}
+            />
+            {/* Lock orb */}
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-8 rounded-full flex items-center justify-center"
+              style={{
+                background: "radial-gradient(circle at 35% 30%, rgba(255,247,227,0.18), rgba(200,149,46,0.06) 60%, transparent)",
+                border: "1px solid rgba(200,149,46,0.35)",
+                boxShadow: "0 0 80px rgba(200,149,46,0.3), inset 0 0 60px rgba(200,149,46,0.12), inset 0 1px 0 rgba(255,247,227,0.2)",
+                backdropFilter: "blur(20px)",
               }}
             >
-              <Lock size={80} style={{ color: "#c8952e" }} strokeWidth={1.5} />
+              <Lock size={88} style={{ color: "#e0b048" }} strokeWidth={1.2} />
             </motion.div>
+            {/* Pulse rings */}
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0, 0.4] }}
-                transition={{ duration: 3, repeat: Infinity, delay: i * 0.8 }}
-                className="absolute inset-0 rounded-[40%_40%_45%_45%]"
-                style={{ border: "1px solid rgba(200,149,46,0.4)" }}
+                animate={{ scale: [1, 1.5, 1.5], opacity: [0.4, 0, 0] }}
+                transition={{ duration: 4, repeat: Infinity, delay: i * 1.2, ease: "easeOut" }}
+                className="absolute inset-8 rounded-full"
+                style={{ border: "1px solid rgba(200,149,46,0.45)" }}
               />
             ))}
           </div>
         </motion.div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-[0.1em] font-semibold mb-4" style={{ color: "#c8952e" }}>Security</div>
-          <h2 className="text-3xl sm:text-5xl font-bold text-white mb-8" style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.02em" }}>
-            Bank-grade security.<br/><span className="text-white/50">Built for parents.</span>
-          </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="mb-5"
+          >
+            <span className="lux-eyebrow">Security</span>
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-10 tracking-tight"
+            style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
+          >
+            Bank-grade security.<br/><span className="text-white/40">Built for parents.</span>
+          </motion.h2>
           <ul className="space-y-3">
             {ITEMS.map((it, i) => {
               const Icon = it.icon;
               return (
                 <motion.li
                   key={i}
-                  initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex items-center gap-3 text-white/85"
+                  initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ delay: i * 0.07, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex items-center gap-3.5 text-white/85 p-3 rounded-xl lux-glass"
                 >
-                  <span className="inline-flex w-8 h-8 rounded-lg items-center justify-center"
-                    style={{ background: "rgba(200,149,46,0.15)", border: "1px solid rgba(200,149,46,0.25)" }}>
-                    <Icon size={16} style={{ color: "#c8952e" }} />
+                  <span className="inline-flex w-9 h-9 rounded-xl items-center justify-center shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(200,149,46,0.2), rgba(200,149,46,0.05))",
+                      border: "1px solid rgba(200,149,46,0.3)",
+                      boxShadow: "inset 0 1px 0 rgba(255,247,227,0.1)",
+                    }}>
+                    <Icon size={16} style={{ color: "#e0b048" }} strokeWidth={1.8} />
                   </span>
-                  {it.t}
+                  <span className="text-[15px]">{it.t}</span>
                 </motion.li>
               );
             })}
           </ul>
-          <div className="mt-8 pt-6 border-t border-white/5">
-            <div className="text-[11px] text-white/40 uppercase tracking-wider mb-2">Powered by</div>
-            <div className="flex flex-wrap gap-4 text-white/50 text-sm font-semibold">
-              <span>Razorpay</span><span>·</span><span>UIDAI</span><span>·</span><span>NPCI / UPI</span>
+          <div className="mt-10 pt-6 border-t border-white/5">
+            <div className="text-[10px] text-white/35 uppercase tracking-[0.28em] mb-3 font-semibold">Powered by</div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-white/55 text-sm font-medium tracking-tight">
+              <span>Razorpay</span>
+              <span className="w-1 h-1 rounded-full bg-white/20" />
+              <span>UIDAI</span>
+              <span className="w-1 h-1 rounded-full bg-white/20" />
+              <span>NPCI / UPI</span>
             </div>
           </div>
         </div>

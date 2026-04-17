@@ -8,7 +8,7 @@ const STATS = [
   { value: 300, suffix: "M+", label: "UPI merchants" },
 ];
 
-function Counter({ end, duration = 1500 }: { end: number; duration?: number }) {
+function Counter({ end, duration = 1800 }: { end: number; duration?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
   const [val, setVal] = useState(0);
@@ -17,7 +17,7 @@ function Counter({ end, duration = 1500 }: { end: number; duration?: number }) {
     let raf: number; const start = performance.now();
     const tick = (t: number) => {
       const p = Math.min((t - start) / duration, 1);
-      setVal(Math.round(end * (1 - Math.pow(1 - p, 3))));
+      setVal(Math.round(end * (1 - Math.pow(1 - p, 4))));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -34,32 +34,27 @@ export default function Stats() {
           {STATS.map((s, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -4 }}
-              className="group relative rounded-3xl p-6 lg:p-8 overflow-hidden transition"
-              style={{
-                background: "linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))",
-                border: "1px solid rgba(200,149,46,0.18)",
-              }}
+              initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="group relative rounded-3xl p-7 lg:p-9 lux-glass lux-rise overflow-hidden"
             >
               <div
-                className="absolute -top-10 -right-10 w-36 h-36 rounded-full opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500"
-                style={{ background: "rgba(200,149,46,0.4)" }}
+                className="absolute -top-12 -right-12 w-44 h-44 rounded-full opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700"
+                style={{ background: "rgba(200,149,46,0.35)" }}
               />
+              <div className="absolute inset-x-6 top-0 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(200,149,46,0.5), transparent)" }} />
               <div className="relative">
                 <div
-                  className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 tabular-nums"
+                  className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-4 tabular-nums lux-text-platinum"
                   style={{
                     fontFamily: "JetBrains Mono, monospace",
-                    backgroundImage: "linear-gradient(135deg,#fff7e3,#e0b048,#c8952e)",
-                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                    letterSpacing: "-0.04em",
+                    letterSpacing: "-0.05em",
                   }}
                 >
                   {s.prefix}<Counter end={s.value} />{s.suffix}
                 </div>
-                <div className="text-[11px] sm:text-xs text-white/45 uppercase tracking-[0.18em] font-semibold">{s.label}</div>
+                <div className="text-[10px] sm:text-[11px] text-white/45 uppercase tracking-[0.22em] font-semibold">{s.label}</div>
               </div>
             </motion.div>
           ))}

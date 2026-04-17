@@ -4,11 +4,13 @@ import { Sparkles, Play, ChevronRight } from "lucide-react";
 import PhoneMockup from "../PhoneMockup";
 import heroIllustration from "@/assets/hero-illustration.png";
 
+import { Wallet, ScanLine, Target, Users2 } from "lucide-react";
+
 const TABS = [
-  { id: "home" as const, label: "Wallet", emoji: "💰" },
-  { id: "scan" as const, label: "Scan", emoji: "📲" },
-  { id: "savings" as const, label: "Save", emoji: "🎯" },
-  { id: "parent" as const, label: "Parent", emoji: "👨‍👩‍👧" },
+  { id: "home" as const, label: "Wallet", Icon: Wallet },
+  { id: "scan" as const, label: "Scan", Icon: ScanLine },
+  { id: "savings" as const, label: "Save", Icon: Target },
+  { id: "parent" as const, label: "Parent", Icon: Users2 },
 ];
 
 export default function Hero({ onCTA }: { onCTA: () => void }) {
@@ -155,12 +157,12 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }}
-            className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-white/55 uppercase tracking-wider pt-2">
-            <span className="inline-flex items-center gap-1.5">🔒 RBI Compliant</span>
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] text-white/45 uppercase tracking-[0.22em] font-semibold pt-2">
+            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> RBI Compliant</span>
             <span className="w-px h-3 bg-white/15" />
-            <span className="inline-flex items-center gap-1.5">🛡️ Aadhaar Verified</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> Aadhaar Verified</span>
             <span className="w-px h-3 bg-white/15" />
-            <span className="inline-flex items-center gap-1.5">⚡ Instant UPI</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> Instant UPI</span>
           </motion.div>
         </div>
 
@@ -249,29 +251,33 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
               boxShadow: "0 12px 30px rgba(0,0,0,0.4)",
             }}
           >
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className="relative px-3.5 py-2 rounded-full text-xs font-medium transition"
-                style={{ color: activeTab === t.id ? "#1a1206" : "rgba(255,255,255,0.7)" }}
-              >
-                {activeTab === t.id && (
-                  <motion.div
-                    layoutId="hero-tab-pill"
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: "linear-gradient(135deg,#c8952e,#e0b048)",
-                      boxShadow: "0 4px 12px rgba(200,149,46,0.5)",
-                    }}
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <span className="relative inline-flex items-center gap-1.5">
-                  <span>{t.emoji}</span>{t.label}
-                </span>
-              </button>
-            ))}
+            {TABS.map((t) => {
+              const Icon = t.Icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className="relative px-3.5 py-2 rounded-full text-xs font-medium transition"
+                  style={{ color: activeTab === t.id ? "#1a1206" : "rgba(255,255,255,0.7)" }}
+                >
+                  {activeTab === t.id && (
+                    <motion.div
+                      layoutId="hero-tab-pill"
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: "linear-gradient(135deg,#c8952e,#e0b048)",
+                        boxShadow: "0 4px 14px rgba(200,149,46,0.55), inset 0 1px 0 rgba(255,255,255,0.4)",
+                      }}
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative inline-flex items-center gap-1.5">
+                    <Icon size={13} strokeWidth={activeTab === t.id ? 2.4 : 1.8} />
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
           </motion.div>
         </div>
       </div>

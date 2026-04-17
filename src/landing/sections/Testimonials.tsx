@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, Quote } from "lucide-react";
 
 const ITEMS = [
   { q: "My son uses AuroPay for canteen every day. I get alerts for every rupee. Perfect.", n: "Rekha S.", r: "Parent · Mysuru" },
@@ -14,40 +14,54 @@ export default function Testimonials() {
   return (
     <section className="relative py-32 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl sm:text-5xl font-bold text-white text-center mb-4"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.02em" }}>
-          12,847 families already trust AuroPay.
-        </h2>
-        <div className="flex items-center justify-center gap-2 text-white/60 mb-12">
-          {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="#c8952e" stroke="#c8952e" />)}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-center mb-5"
+        >
+          <span className="lux-eyebrow">Loved by Families</span>
+        </motion.div>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white text-center mb-5 tracking-tight"
+          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
+        >
+          <span className="lux-text-platinum tabular-nums">12,847</span> families<br className="sm:hidden" /> already trust AuroPay.
+        </motion.h2>
+        <div className="flex items-center justify-center gap-2 text-white/55 mb-16">
+          {[1,2,3,4,5].map(i => <Star key={i} size={15} fill="#e0b048" stroke="#e0b048" />)}
           <span className="ml-2 text-sm">4.9 / 5.0 from 2,847 reviews</span>
         </div>
       </div>
 
       <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(90deg, #050507 10%, transparent)" }} />
+        <div className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(-90deg, #050507 10%, transparent)" }} />
         <motion.div
           className="flex gap-5"
           animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 55, repeat: Infinity, ease: "linear" }}
           style={{ width: "max-content" }}
         >
           {[...ITEMS, ...ITEMS].map((t, i) => (
             <div key={i}
-              className="w-[340px] shrink-0 rounded-3xl p-6 backdrop-blur-md"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}>
-              <div className="flex gap-1 mb-3">
-                {[1,2,3,4,5].map(s => <Star key={s} size={12} fill="#c8952e" stroke="#c8952e" />)}
+              className="w-[340px] shrink-0 rounded-3xl p-7 lux-glass relative">
+              <Quote size={28} className="absolute top-5 right-5 opacity-30" style={{ color: "#c8952e" }} />
+              <div className="flex gap-0.5 mb-4">
+                {[1,2,3,4,5].map(s => <Star key={s} size={12} fill="#e0b048" stroke="#e0b048" />)}
               </div>
-              <p className="text-sm text-white/85 leading-relaxed mb-5">"{t.q}"</p>
+              <p className="text-[15px] text-white/85 leading-relaxed mb-6" style={{ lineHeight: 1.6 }}>"{t.q}"</p>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full"
-                  style={{ background: `linear-gradient(135deg,#c8952e,#8a6520)` }} />
+                  style={{
+                    background: `linear-gradient(135deg,#c8952e,#8a6520)`,
+                    boxShadow: "inset 0 1px 0 rgba(255,247,227,0.35), 0 4px 12px rgba(200,149,46,0.3)",
+                  }} />
                 <div>
                   <div className="text-sm text-white font-medium">{t.n}</div>
-                  <div className="text-[11px] text-white/50">{t.r}</div>
+                  <div className="text-[11px] text-white/45">{t.r}</div>
                 </div>
               </div>
             </div>
