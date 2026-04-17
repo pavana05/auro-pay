@@ -64,6 +64,10 @@ export default function AnomalySummaryCard() {
   }, [load]);
 
   const totalLast14 = series.reduce((a, b) => a + b, 0);
+  // Tier sparkline color based on sustained anomaly volume over last 14 days.
+  const sparkColor = totalLast14 > 50 ? C.danger : totalLast14 > 20 ? C.warning : C.primary;
+  const tierLabel = totalLast14 > 50 ? "Critical spike" : totalLast14 > 20 ? "Elevated" : "Normal";
+  const tierColor = sparkColor;
 
   return (
     <button
@@ -71,7 +75,7 @@ export default function AnomalySummaryCard() {
       className="text-left rounded-[16px] border p-4 lg:p-5 space-y-3 transition hover:-translate-y-0.5"
       style={{
         background: "rgba(13,14,18,0.85)",
-        borderColor: openCount > 0 ? "rgba(239,68,68,0.22)" : C.border,
+        borderColor: totalLast14 > 50 ? "rgba(239,68,68,0.35)" : totalLast14 > 20 ? "rgba(245,158,11,0.28)" : (openCount > 0 ? "rgba(239,68,68,0.22)" : C.border),
         backdropFilter: "blur(12px)",
       }}
     >
