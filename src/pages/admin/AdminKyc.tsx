@@ -234,6 +234,26 @@ const AdminKyc = () => {
     if (await rejectNow(r, "Quick review rejection", "")) bulkAdvance();
   };
 
+  /* ─────────── Context panel ─────────── */
+  const openKycPanel = (r: KycRow) => {
+    ctxPanel.show({
+      title: r.profile?.full_name || r.aadhaar_name || "KYC request",
+      subtitle: `Submitted ${fmtDateTime(r.submitted_at)}`,
+      body: (
+        <KycPanelBody
+          r={r}
+          maskAadhaar={maskAadhaar}
+          fmtDate={fmtDate}
+          fmtDateTime={fmtDateTime}
+          queueTime={queueTime}
+          onApprove={() => { setApproveTarget(r); ctxPanel.hide(); }}
+          onReject={() => { setRejectTarget(r); ctxPanel.hide(); }}
+          onMoveReview={() => moveToInReview(r)}
+        />
+      ),
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="p-4 lg:p-6 space-y-5 min-h-full relative">
