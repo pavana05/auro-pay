@@ -367,6 +367,17 @@ const AdminWallets = () => {
         onClose={() => setForcePayload(null)}
         onSuccess={handleForceSuccess}
       />
+
+      <HighRiskConfirmGate
+        open={!!freezeGate}
+        payload={freezeGate?.payload || null}
+        onClose={() => setFreezeGate(null)}
+        onConfirm={async (reason) => {
+          if (!freezeGate) return;
+          await performFreezeToggle(freezeGate.wallet, freezeGate.next, reason);
+          setFreezeGate(null);
+        }}
+      />
     </AdminLayout>
   );
 };
