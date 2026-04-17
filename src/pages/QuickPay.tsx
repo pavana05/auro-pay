@@ -601,7 +601,9 @@ const SendMoney = () => {
               <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
             </button>
             <div className="flex-1 text-center">
-              <p className="text-[10px] text-white/30 tracking-widest uppercase">Sending to</p>
+              <p className="text-[10px] text-white/30 tracking-widest uppercase">
+                {mode === "send" ? "Sending to" : "Requesting from"}
+              </p>
               <p className="text-[14px] font-bold truncate">{recipient.contact_name}</p>
             </div>
             <button className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center bg-white/[0.04] active:scale-90">
@@ -741,9 +743,11 @@ const SendMoney = () => {
               }}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
-                <Send className="w-4 h-4" />
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : (mode === "send" ? <Send className="w-4 h-4" /> : <HandCoins className="w-4 h-4" />)}
                 {amt > 0
-                  ? `Continue · ₹${amt.toLocaleString("en-IN")}`
+                  ? (mode === "send"
+                      ? `Continue · ₹${amt.toLocaleString("en-IN")}`
+                      : `Request ₹${amt.toLocaleString("en-IN")}`)
                   : "Enter an amount"}
               </span>
             </button>
@@ -865,7 +869,7 @@ const SendMoney = () => {
           </div>
 
           <p className="text-[15px] text-white/60 mb-1" style={{ animation: "qp-fade 0.4s ease-out 0.2s both" }}>
-            Sent to {recipient.contact_name}
+            {mode === "send" ? `Sent to ${recipient.contact_name}` : `Requested from ${recipient.contact_name}`}
           </p>
           <p
             className="text-[42px] font-mono font-bold mb-2"
