@@ -325,7 +325,7 @@ const AdminAuditLog = () => {
                 style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary, colorScheme: "dark" }} />
             </div>
             {hasFilters && (
-              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); }}
+              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); setUnlocksOnly(false); }}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full" style={{ color: C.textSecondary, background: "rgba(255,255,255,0.04)" }}>
                 <X className="w-3 h-3" /> Clear filters
               </button>
