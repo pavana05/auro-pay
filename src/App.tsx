@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PageTransition from "@/components/PageTransition";
