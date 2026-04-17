@@ -26,31 +26,38 @@ export default function AnomalySummaryCard() {
   const [openCount, setOpenCount] = useState(0);
   const [highCount, setHighCount] = useState(0);
   const [series, setSeries] = useState<number[]>([]);
+  const [priorTotal, setPriorTotal] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    // Pull 28 days so we can compute the prior 14d window for trend delta.
+    const since28 = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await (supabase as any)
       .from("flagged_transactions")
       .select("id, status, severity, created_at")
-      .gte("created_at", since)
-      .limit(2000);
+      .gte("created_at", since28)
+      .limit(4000);
 
     const rows: FlagRow[] = data || [];
+    // Open/high counts are point-in-time across the full lookback (open flags don't expire daily).
     setOpenCount(rows.filter((r) => r.status === "open").length);
     setHighCount(rows.filter((r) => r.severity === "high" && r.status === "open").length);
 
-    // Bucket per day for last 14 days
+    // Bucket per day for last 14 days; track prior 14d (days 14–27) for delta comparison.
     const buckets = new Array(14).fill(0);
+    let prior = 0;
     const startDay = new Date(); startDay.setHours(0, 0, 0, 0);
     rows.forEach((r) => {
       const d = new Date(r.created_at); d.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((startDay.getTime() - d.getTime()) / 86400000);
       if (diffDays >= 0 && diffDays < 14) {
         buckets[13 - diffDays] += 1;
+      } else if (diffDays >= 14 && diffDays < 28) {
+        prior += 1;
       }
     });
     setSeries(buckets);
+    setPriorTotal(prior);
     setLoading(false);
   }, []);
 
