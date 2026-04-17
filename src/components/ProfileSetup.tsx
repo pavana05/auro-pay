@@ -225,9 +225,10 @@ const StepWrapper = ({ children, direction }: { children: React.ReactNode; direc
 /* ============= STEP 1: NAME ============= */
 
 const NameStep = ({
-  value, focused, onFocus, onBlur, onChange, onNext,
+  value, focused, avatar, onAvatarChange, onFocus, onBlur, onChange, onNext,
 }: {
   value: string; focused: boolean;
+  avatar: string; onAvatarChange: (a: string) => void;
   onFocus: () => void; onBlur: () => void;
   onChange: (v: string) => void; onNext: () => void;
 }) => {
@@ -235,7 +236,47 @@ const NameStep = ({
   return (
     <div className="flex flex-col">
       <h2 className="text-[26px] font-black text-white mb-1">What should we call you?</h2>
-      <p className="text-[13px] text-white/50 mb-10">Let's personalize your AuroPay experience</p>
+      <p className="text-[13px] text-white/50 mb-6">Pick an avatar and let's personalize your AuroPay</p>
+
+      {/* Avatar selector */}
+      <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 mb-3 block">CHOOSE YOUR AVATAR</label>
+      <div className="flex gap-2 mb-7 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {AVATAR_OPTIONS.map((a) => {
+          const selected = avatar === a;
+          return (
+            <button
+              key={a}
+              onClick={() => onAvatarChange(a)}
+              type="button"
+              className="relative shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-[24px] transition-all duration-300 active:scale-90"
+              style={{
+                background: selected
+                  ? "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))"
+                  : "hsl(0 0% 100% / 0.05)",
+                border: `1.5px solid ${selected ? "hsl(42 78% 55%)" : "hsl(0 0% 100% / 0.08)"}`,
+                boxShadow: selected
+                  ? "0 8px 24px hsl(42 78% 55% / 0.5), inset 0 1px 0 hsl(45 100% 85% / 0.5)"
+                  : "none",
+                transform: selected ? "scale(1.1)" : "scale(1)",
+              }}
+              aria-label={`Avatar ${a}`}
+            >
+              <span style={{ filter: selected ? "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" : "none" }}>{a}</span>
+              {selected && (
+                <div
+                  className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "hsl(220 15% 5%)",
+                    border: "1.5px solid hsl(42 78% 55%)",
+                  }}
+                >
+                  <Check className="w-2.5 h-2.5" strokeWidth={3} style={{ color: "hsl(42 90% 70%)" }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Floating label input */}
       <div className="relative pt-5 mb-2">
