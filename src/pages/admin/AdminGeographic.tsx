@@ -353,6 +353,21 @@ const AdminGeographic = () => {
               ⚠ Low confidence — {sourceStats.unknownPct}% of users have no resolved state
             </span>
           )}
+          <button
+            onClick={handleResolveUnknowns}
+            disabled={resolving || sourceStats.unknown === 0}
+            title={sourceStats.unknown === 0 ? "No unknown profiles to resolve" : "Re-run phone-based inference on every profile with state_source='unknown'"}
+            className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: "rgba(200,149,46,0.12)",
+              color: "#e8c060",
+              border: "1px solid rgba(200,149,46,0.35)",
+              boxShadow: resolving ? "none" : "0 0 12px rgba(200,149,46,0.15)",
+            }}
+          >
+            {resolving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {resolving ? "Resolving…" : "Resolve unknowns"}
+          </button>
         </div>
 
         {/* Map + State table */}
