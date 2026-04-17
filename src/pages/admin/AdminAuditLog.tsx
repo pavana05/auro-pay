@@ -68,6 +68,7 @@ const AdminAuditLog = () => {
   const [view, setView] = useState<"timeline" | "table" | "compact">("timeline");
   const [detailOf, setDetailOf] = useState<AuditEntry | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [forceActionsOnly, setForceActionsOnly] = useState(false);
 
   const fetchLogs = async () => {
     setLoading(true);
