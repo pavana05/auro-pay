@@ -672,7 +672,15 @@ const KycDetailBody = ({ r, maskAadhaar, fmtDate, fmtDateTime, compact = false }
 
       <div className="rounded-xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
         <DetailRow icon={UserIcon} label="Aadhaar Name" value={r.aadhaar_name || "—"} />
-        <DetailRow icon={Hash} label="Aadhaar Number" value={maskAadhaar(r.aadhaar_number)} mono />
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+          <div className="flex items-center gap-2">
+            <Hash className="w-3 h-3 text-white/40" />
+            <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Aadhaar Number</span>
+          </div>
+          {r.aadhaar_number
+            ? <MaskedReveal value={r.aadhaar_number} kind="aadhaar" targetUserId={r.user_id} />
+            : <span className="text-[12px] text-white/40">—</span>}
+        </div>
         <DetailRow icon={Calendar} label="Date of Birth" value={fmtDate(r.date_of_birth)} />
         <DetailRow icon={Clock} label="Submitted" value={fmtDateTime(r.submitted_at)} />
         {r.digio_request_id && <DetailRow icon={Hash} label="Digio Request" value={r.digio_request_id} mono />}
