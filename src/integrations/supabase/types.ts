@@ -722,6 +722,51 @@ export type Database = {
           },
         ]
       }
+      payment_requests: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          note: string | null
+          paid_transaction_id: string | null
+          recipient_id: string
+          remind_after_at: string | null
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          note?: string | null
+          paid_transaction_id?: string | null
+          recipient_id: string
+          remind_after_at?: string | null
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          note?: string | null
+          paid_transaction_id?: string | null
+          recipient_id?: string
+          remind_after_at?: string | null
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aadhaar_verified: boolean | null
