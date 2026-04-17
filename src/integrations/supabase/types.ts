@@ -1403,6 +1403,62 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          admin_notes: string | null
+          city: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          ip_country: string | null
+          is_contacted: boolean
+          phone: string
+          referral_code: string | null
+          referred_by: string | null
+          role: string | null
+          source: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          city?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          ip_country?: string | null
+          is_contacted?: boolean
+          phone: string
+          referral_code?: string | null
+          referred_by?: string | null
+          role?: string | null
+          source?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          ip_country?: string | null
+          is_contacted?: boolean
+          phone?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          role?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "waitlist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           balance: number | null
@@ -1479,6 +1535,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_waitlist_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
