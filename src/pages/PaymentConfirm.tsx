@@ -77,12 +77,12 @@ const PaymentConfirm = () => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const [{ data: wallet }, { data: pinStatus }] = await Promise.all([
+      const [{ data: wallet }, { data: pinStatus, error: pinStatusError }] = await Promise.all([
         supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
         supabase.functions.invoke("payment-pin", { body: { action: "status" } }),
       ]);
       setWalletBalance(wallet?.balance || 0);
-      setHasPinSet(!!pinStatus?.data?.is_set || !!(pinStatus as any)?.is_set);
+      setHasPinSet(pinStatusError ? false : Boolean((pinStatus as any)?.is_set));
 
       // Last 3 paid contacts for the quick-switch row
       const { data: recents } = await supabase
