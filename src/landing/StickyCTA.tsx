@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import MagneticCTA from "./MagneticCTA";
 
 export default function StickyCTA({ onCTA }: { onCTA: () => void }) {
   const [visible, setVisible] = useState(false);
@@ -60,20 +61,15 @@ export default function StickyCTA({ onCTA }: { onCTA: () => void }) {
             <div className="text-sm text-white font-medium pr-1 sm:pr-0 tracking-tight">
               Be first in line.
             </div>
-            <button
-              onClick={onCTA}
-              className="group inline-flex items-center gap-1.5 h-11 pl-4 pr-1.5 rounded-full text-sm font-semibold text-black transition hover:scale-[1.04] active:scale-[0.97] ml-auto sm:ml-0 lux-shimmer"
-              style={{
-                background: "linear-gradient(135deg,#c8952e,#e0b048,#c8952e)",
-                boxShadow: "0 6px 20px rgba(200,149,46,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
-              }}
-            >
-              <span>Early Access</span>
-              <span className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(0,0,0,0.18)" }}>
-                <ArrowUpRight size={13} strokeWidth={2.5} />
-              </span>
-            </button>
+            <div className="ml-auto sm:ml-0">
+              <MagneticCTA onClick={onCTA} className="h-11 pl-4 pr-1.5 text-sm" radius={130}>
+                <span>Early Access</span>
+                <span className="w-8 h-8 rounded-full flex items-center justify-center ml-1"
+                  style={{ background: "rgba(0,0,0,0.18)" }}>
+                  <ArrowUpRight size={13} strokeWidth={2.5} />
+                </span>
+              </MagneticCTA>
+            </div>
           </div>
         </motion.div>
       )}
