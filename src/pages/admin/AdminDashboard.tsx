@@ -1,1094 +1,872 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import AdminCommandPalette from "@/components/admin/AdminCommandPalette";
-import {
-  Users, ArrowLeftRight, Wallet, ShieldCheck, TrendingUp,
-  Clock, RefreshCw, Zap, Download,
-  ArrowUpRight, ArrowDownRight,
-  DollarSign, UserPlus, BarChart3, Server,
-  Activity, Globe, Shield, Database, Cpu,
-  Sparkles, Percent, CreditCard, PiggyBank, AlertTriangle,
-  Eye, Flame, Target, Award, Gift, Heart,
-  Signal, Wifi, MonitorSmartphone,
-  Calendar, Layers, Rocket, Timer,
-  CheckCircle2, XCircle, Gauge,
-  Trophy, Search, Command,
-} from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell,
-  Tooltip, AreaChart, Area, CartesianGrid, LineChart, Line,
-} from "recharts";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCountUp } from "@/hooks/useCountUp";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
+import { Sparkline, VolumeBars, StatusDonut, GrowthLine, HBars, type VolBar } from "@/components/admin/charts";
 import { toast } from "sonner";
+import {
+  Users, ArrowLeftRight, Wallet, ShieldCheck, AlertTriangle,
+  UserPlus, DollarSign, CreditCard, Heart, Link2,
+  ArrowUpRight, ArrowDownRight, Sparkles, Activity,
+  Pause, Play, RefreshCw, CheckCircle2, XCircle, Server,
+  Database, Globe, Wifi, Trophy, Filter,
+} from "lucide-react";
 
-/* ── Semantic color refs (gold theme) ── */
 const C = {
   primary: "#c8952e", secondary: "#d4a84b", glow: "#e8c060",
   success: "#22c55e", danger: "#ef4444", warning: "#f59e0b",
   info: "#3b82f6", cyan: "#06b6d4",
 };
 
-/* ── Animated Counter ── */
+/* ─────────── Helpers ─────────── */
+const fmtPaise = (p: number) =>
+  p >= 10000000 ? `₹${(p / 10000000).toFixed(2)}Cr` :
+  p >= 100000 ? `₹${(p / 100000).toFixed(2)}L` :
+  p >= 1000 ? `₹${(p / 100).toLocaleString("en-IN")}` :
+  `₹${(p / 100).toFixed(2)}`;
+
 const Counter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) => {
-  const display = useCountUp(value, 1400, true);
-  return <span className="font-mono">{prefix}{display.toLocaleString("en-IN")}{suffix}</span>;
+  const v = useCountUp(value, 1200, true);
+  return <span className="font-mono">{prefix}{v.toLocaleString("en-IN")}{suffix}</span>;
 };
 
-/* ── Stagger variants ── */
-const staggerParent = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const staggerChild = {
-  hidden: { opacity: 0, y: 18, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 260, damping: 22 } },
+const greetingFor = (date: Date) => {
+  const h = parseInt(date.toLocaleString("en-IN", { hour: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }), 10);
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Working late";
 };
 
-/* ── Stat Card ── */
-const StatCard = ({ label, value, icon: Icon, trend, trendUp, color, subtitle, onClick }: {
-  label: string; value: string | number; icon: any; trend?: string; trendUp?: boolean;
-  color: string; subtitle?: string; onClick?: () => void;
-}) => (
-  <motion.div
-    variants={staggerChild}
-    whileHover={{ y: -3, transition: { duration: 0.2 } }}
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className="relative rounded-[20px] p-5 overflow-hidden cursor-pointer group border border-border/30"
-    style={{ background: "rgba(13,14,18,0.7)", backdropFilter: "blur(20px)" }}
-  >
-    {/* Top shine */}
-    <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}30, transparent)` }} />
-    {/* Left accent */}
-    <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full group-hover:w-[4px] transition-all" style={{ background: `linear-gradient(180deg, ${color}, ${color}40)` }} />
-    {/* Hover shimmer */}
-    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 0%, ${color}08, transparent 60%)` }} />
+const trendPct = (curr: number, prev: number) => {
+  if (prev === 0 && curr === 0) return 0;
+  if (prev === 0) return 100;
+  return Math.round(((curr - prev) / prev) * 100);
+};
 
-    <div className="flex items-center justify-between mb-3">
-      <div className="w-11 h-11 rounded-[14px] flex items-center justify-center group-hover:scale-110 transition-transform" style={{ background: `${color}12`, border: `1px solid ${color}20` }}>
-        <Icon className="w-5 h-5" style={{ color }} />
+/* ─────────── KPI Card ─────────── */
+interface Kpi {
+  label: string; value: number | string; numericValue?: number;
+  icon: any; color: string; trendPct?: number; trendLabel?: string;
+  spark: number[]; suffix?: string; prefix?: string;
+  onClick?: () => void;
+}
+
+const KpiCard = ({ k }: { k: Kpi }) => {
+  const trendUp = (k.trendPct ?? 0) >= 0;
+  return (
+    <button
+      onClick={k.onClick}
+      className="group relative text-left rounded-[18px] p-4 overflow-hidden border transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        background: "rgba(13,14,18,0.7)",
+        backdropFilter: "blur(20px)",
+        borderColor: "rgba(255,255,255,0.05)",
+        animation: "kpi-in 0.5s cubic-bezier(0.22,1,0.36,1) both",
+      }}
+    >
+      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full" style={{ background: `linear-gradient(180deg, ${k.color}, ${k.color}40)` }} />
+      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.color}30, transparent)` }} />
+
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: `${k.color}14`, border: `1px solid ${k.color}25` }}>
+          <k.icon className="w-4 h-4" style={{ color: k.color }} />
+        </div>
+        {k.trendPct !== undefined && (
+          <span
+            className="text-[10px] font-semibold font-mono px-2 py-0.5 rounded-full flex items-center gap-0.5"
+            style={{
+              background: trendUp ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+              color: trendUp ? C.success : C.danger,
+              border: `1px solid ${trendUp ? "rgba(34,197,94,0.18)" : "rgba(239,68,68,0.18)"}`,
+            }}
+            title={k.trendLabel}
+          >
+            {trendUp ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+            {Math.abs(k.trendPct)}%
+          </span>
+        )}
       </div>
-      {trend && (
-        <span className="text-[10px] font-semibold font-mono px-2.5 py-1 rounded-full flex items-center gap-0.5" style={{
-          background: trendUp ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-          color: trendUp ? C.success : C.danger,
-          border: `1px solid ${trendUp ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)"}`,
-        }}>
-          {trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />} {trend}
-        </span>
+
+      <p className="text-[10px] uppercase tracking-[0.1em] text-white/40 font-sora mb-1">{k.label}</p>
+      <p className="text-[26px] font-bold tracking-tight text-white leading-none" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {typeof k.value === "number"
+          ? <Counter value={k.value} prefix={k.prefix} suffix={k.suffix} />
+          : k.value}
+      </p>
+      {k.trendLabel && (
+        <p className="text-[10px] mt-1.5 font-sora" style={{ color: trendUp ? `${C.success}b0` : `${C.danger}b0` }}>
+          {trendUp ? "↑" : "↓"} {k.trendLabel}
+        </p>
       )}
-    </div>
-    <p className="text-2xl font-bold tracking-tight font-mono text-foreground">
-      {typeof value === "number" ? <Counter value={value} /> : value}
-    </p>
-    <p className="text-[11px] font-medium mt-1.5 text-muted-foreground/50 font-sora">{label}</p>
-    {subtitle && <p className="text-[9px] mt-0.5 font-sora" style={{ color: `${color}80` }}>{subtitle}</p>}
-  </motion.div>
-);
 
-/* ── Mini Sparkline ── */
-const MiniSparkline = ({ data, color, height = 40 }: { data: number[]; color: string; height?: number }) => {
-  const max = Math.max(...data, 1);
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * 100},${100 - (v / max) * 80}`).join(" ");
-  return (
-    <svg width="100%" height={height} viewBox="0 0 100 100" preserveAspectRatio="none" className="opacity-60">
-      <defs>
-        <linearGradient id={`spark-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
-      <polygon fill={`url(#spark-${color.replace("#", "")})`} points={`0,100 ${points} 100,100`} />
-    </svg>
+      <div className="mt-3 -mx-1 -mb-1">
+        <Sparkline data={k.spark.length ? k.spark : [0, 0, 0, 0, 0, 0, 0]} color={k.color} height={32} />
+      </div>
+    </button>
   );
 };
 
-/* ── Performance Gauge ── */
-const PerformanceGauge = ({ value, label, color }: { value: number; label: string; color: string }) => {
-  const circ = 2 * Math.PI * 36;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width="88" height="88" viewBox="0 0 88 88">
-        <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="6" />
-        <motion.circle
-          cx="44" cy="44" r="36" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
-          initial={{ strokeDasharray: `0 ${circ}` }}
-          animate={{ strokeDasharray: `${(value / 100) * circ} ${circ}` }}
-          transition={{ duration: 1.5, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          transform="rotate(-90 44 44)"
-        />
-        <text x="44" y="40" textAnchor="middle" fill="#fff" fontSize="16" fontWeight="700" fontFamily="'JetBrains Mono', monospace">{value}%</text>
-        <text x="44" y="54" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="Sora">{label}</text>
-      </svg>
-    </div>
-  );
-};
-
-/* ── Widget Card ── */
-const Widget = ({ children, className = "", noPadding = false, glow = false, highlight = false }: {
-  children: React.ReactNode; className?: string; noPadding?: boolean; glow?: boolean; highlight?: boolean;
-}) => (
-  <motion.div
-    variants={staggerChild}
-    whileHover={{ y: -2, transition: { duration: 0.2 } }}
-    className={`relative rounded-[20px] overflow-hidden border border-border/30 ${!noPadding ? "p-5" : ""} ${className}`}
+/* ─────────── Widget shell ─────────── */
+const Widget = ({ children, className = "", noPadding = false }: { children: React.ReactNode; className?: string; noPadding?: boolean }) => (
+  <div
+    className={`relative rounded-[18px] overflow-hidden border ${!noPadding ? "p-5" : ""} ${className}`}
     style={{
-      background: highlight ? `linear-gradient(135deg, rgba(200,149,46,0.08), rgba(13,14,18,0.85))` : "rgba(13,14,18,0.7)",
+      background: "rgba(13,14,18,0.7)",
       backdropFilter: "blur(20px)",
-      boxShadow: glow ? `inset 0 1px 0 rgba(200,149,46,0.08), 0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(200,149,46,0.05)` : `inset 0 1px 0 rgba(255,255,255,0.03), 0 4px 24px rgba(0,0,0,0.2)`,
+      borderColor: "rgba(255,255,255,0.05)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.025)",
+      animation: "kpi-in 0.5s cubic-bezier(0.22,1,0.36,1) both",
     }}
   >
-    <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${highlight ? "rgba(200,149,46,0.35)" : "rgba(200,149,46,0.15)"}, transparent)` }} />
+    <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(200,149,46,0.15), transparent)" }} />
     {children}
-  </motion.div>
+  </div>
 );
 
-interface Stats {
-  totalUsers: number; totalTransactionsToday: number; totalVolumeToday: number;
-  pendingKyc: number; frozenWallets: number; activeWallets: number;
-  totalBalance: number; newUsersToday: number; totalTransactionsAll: number;
-  successRate: number; teens: number; parents: number;
-  failedToday: number; avgTxnValue: number; activeLinks: number;
-  newUsersYesterday: number; totalVolume: number;
-  categoryBreakdown: { name: string; value: number; color: string }[];
-  topUsers: { name: string; volume: number; txns: number }[];
-  totalRewards: number; openTickets: number; totalSavingsGoals: number; totalChores: number;
-}
-
-interface Transaction {
-  id: string; type: string; amount: number; merchant_name: string | null;
-  status: string | null; created_at: string | null; wallet_id: string; category: string | null;
-}
-
+/* ─────────── Page ─────────── */
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0, totalTransactionsToday: 0, totalVolumeToday: 0,
-    pendingKyc: 0, frozenWallets: 0, activeWallets: 0, totalBalance: 0,
-    newUsersToday: 0, totalTransactionsAll: 0, successRate: 0, teens: 0, parents: 0,
-    failedToday: 0, avgTxnValue: 0, activeLinks: 0, newUsersYesterday: 0, totalVolume: 0,
-    categoryBreakdown: [], topUsers: [], totalRewards: 0, openTickets: 0,
-    totalSavingsGoals: 0, totalChores: 0,
-  });
-  const [liveTxns, setLiveTxns] = useState<Transaction[]>([]);
-  const [dailyVolume, setDailyVolume] = useState<any[]>([]);
-  const [statusBreakdown, setStatusBreakdown] = useState<any[]>([]);
-  const [userGrowth, setUserGrowth] = useState<any[]>([]);
+  const ctxPanel = useContextPanel();
+
+  /* Snapshot state */
   const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
-  const [kycRequests, setKycRequests] = useState<any[]>([]);
-  const [greeting, setGreeting] = useState("");
-  const [uptime, setUptime] = useState(0);
-  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "operations">("overview");
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [hourlyTraffic, setHourlyTraffic] = useState<{ hour: number; count: number }[]>([]);
+  const [now, setNow] = useState(new Date());
+  const [profile, setProfile] = useState<any>(null);
 
-  // ⌘K / Ctrl+K opens palette
+  /* Live data */
+  const [users, setUsers] = useState<any[]>([]);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [allTxns, setAllTxns] = useState<any[]>([]);
+  const [pendingKyc, setPendingKyc] = useState<any[]>([]);
+  const [recentFailed, setRecentFailed] = useState<any[]>([]);
+  const [activeLinks, setActiveLinks] = useState(0);
+  const [systemBalance, setSystemBalance] = useState(0);
+
+  /* Live feed */
+  const [feed, setFeed] = useState<any[]>([]);
+  const [feedPaused, setFeedPaused] = useState(false);
+  const pausedRef = useRef(feedPaused);
+  pausedRef.current = feedPaused;
+  const queuedRef = useRef<any[]>([]);
+  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
+
+  /* Filtering */
+  const [filterDate, setFilterDate] = useState<string | null>(null);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setPaletteOpen(p => !p);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    const h = new Date().getHours();
-    setGreeting(h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening");
-    setUptime(Date.now());
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+      setProfile(data);
+    })();
   }, []);
 
-  const fetchStats = useCallback(async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-
-    const [usersRes, txnsTodayRes, kycRes, walletsRes, allTxnsRes, linksRes, kycPendingRes, rewardsRes, ticketsRes, goalsRes, choresRes] = await Promise.all([
-      supabase.from("profiles").select("id, created_at, role, full_name, phone"),
-      supabase.from("transactions").select("*").gte("created_at", today),
-      supabase.from("kyc_requests").select("id").eq("status", "pending"),
-      supabase.from("wallets").select("id, balance, is_frozen, user_id"),
-      supabase.from("transactions").select("id, status, merchant_name, amount, type, created_at, category, wallet_id").order("created_at", { ascending: false }).limit(500),
-      supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
+  const fetchAll = useCallback(async () => {
+    const [usersRes, walletsRes, txnsRes, kycRes, linksRes] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, role, created_at, phone").order("created_at", { ascending: false }),
+      supabase.from("wallets").select("id, user_id, balance, is_frozen"),
+      supabase.from("transactions").select("id, type, amount, status, merchant_name, merchant_upi_id, category, created_at, wallet_id, razorpay_payment_id").order("created_at", { ascending: false }).limit(1000),
       supabase.from("kyc_requests").select("id, user_id, aadhaar_name, submitted_at, status").eq("status", "pending").order("submitted_at", { ascending: false }).limit(5),
-      supabase.from("rewards").select("id", { count: "exact", head: true }).eq("is_active", true),
-      supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
-      supabase.from("savings_goals").select("id", { count: "exact", head: true }),
-      supabase.from("chores").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
     ]);
 
     const allUsers = usersRes.data || [];
-    const txnsToday = (txnsTodayRes.data || []) as Transaction[];
-    const successToday = txnsToday.filter(t => t.status === "success");
-    const failedToday = txnsToday.filter(t => t.status === "failed").length;
-    const volume = successToday.reduce((s, t) => s + t.amount, 0);
-    const wallets = walletsRes.data || [];
-    const frozenWallets = wallets.filter((w: any) => w.is_frozen).length;
-    const totalBalance = wallets.reduce((s: number, w: any) => s + (w.balance || 0), 0);
-    const newUsersToday = allUsers.filter((u: any) => u.created_at?.startsWith(today)).length;
-    const newUsersYesterday = allUsers.filter((u: any) => u.created_at?.startsWith(yesterday)).length;
-    const allTxns = allTxnsRes.data || [];
-    const successCount = allTxns.filter((t: any) => t.status === "success").length;
-    const teens = allUsers.filter((u: any) => u.role === "teen").length;
-    const parents = allUsers.filter((u: any) => u.role === "parent").length;
-    const avgTxnValue = successToday.length > 0 ? Math.round(volume / successToday.length) : 0;
-    const totalVolume = allTxns.filter((t: any) => t.status === "success").reduce((s: number, t: any) => s + t.amount, 0);
-
-    const catMap: Record<string, number> = {};
-    const catColors: Record<string, string> = { food: C.warning, shopping: C.info, transport: C.cyan, entertainment: C.secondary, education: C.success, other: C.primary };
-    allTxns.forEach((t: any) => { const cat = t.category || "other"; catMap[cat] = (catMap[cat] || 0) + t.amount; });
-    const categoryBreakdown = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6)
-      .map(([name, value]) => ({ name, value, color: catColors[name] || C.secondary }));
-
-    const topUsers = wallets.sort((a: any, b: any) => (b.balance || 0) - (a.balance || 0)).slice(0, 5)
-      .map((w: any) => {
-        const user = allUsers.find((u: any) => u.id === w.user_id);
-        return { name: user?.full_name || "User", volume: w.balance || 0, txns: 0 };
-      });
-
-    setStats({
-      totalUsers: allUsers.length, totalTransactionsToday: txnsToday.length, totalVolumeToday: volume,
-      pendingKyc: kycRes.data?.length || 0, frozenWallets, activeWallets: wallets.length - frozenWallets,
-      totalBalance, newUsersToday, totalTransactionsAll: allTxns.length,
-      successRate: allTxns.length > 0 ? Math.round((successCount / allTxns.length) * 100) : 0,
-      teens, parents, failedToday, avgTxnValue,
-      activeLinks: linksRes.count || 0, newUsersYesterday, totalVolume,
-      categoryBreakdown, topUsers,
-      totalRewards: rewardsRes.count || 0, openTickets: ticketsRes.count || 0,
-      totalSavingsGoals: goalsRes.count || 0, totalChores: choresRes.count || 0,
-    });
-
-    setKycRequests(kycPendingRes.data || []);
-    setLiveTxns(allTxns.slice(0, 20) as Transaction[]);
-
-    const successC = txnsToday.filter(t => t.status === "success").length;
-    const failedC = txnsToday.filter(t => t.status === "failed").length;
-    const pendingC = txnsToday.filter(t => t.status === "pending").length;
-    setStatusBreakdown([
-      { name: "Success", value: successC || 0, color: C.success },
-      { name: "Failed", value: failedC || 0, color: C.danger },
-      { name: "Pending", value: pendingC || 0, color: C.warning },
-    ].filter(d => d.value > 0));
-
-    const days: any[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      const dayTxns = allTxns.filter((t: any) => t.created_at?.startsWith(dateStr) && t.status === "success");
-      days.push({ day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), volume: dayTxns.reduce((s: number, t: any) => s + t.amount, 0) / 100, count: dayTxns.length });
-    }
-    setDailyVolume(days);
-
-    const growth: any[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      growth.push({ day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), users: allUsers.filter((u: any) => u.created_at?.startsWith(dateStr)).length });
-    }
-    setUserGrowth(growth);
-
-    // Hourly traffic for last 24h
-    const hours: { hour: number; count: number }[] = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
-    const dayAgo = Date.now() - 24 * 3600000;
-    allTxns.forEach((t: any) => {
-      if (!t.created_at) return;
-      const ts = new Date(t.created_at).getTime();
-      if (ts >= dayAgo) {
-        const h = new Date(t.created_at).getHours();
-        hours[h].count += 1;
-      }
-    });
-    setHourlyTraffic(hours);
-
+    const allWallets = walletsRes.data || [];
+    const txns = txnsRes.data || [];
+    setUsers(allUsers);
+    setWallets(allWallets);
+    setAllTxns(txns);
+    setPendingKyc(kycRes.data || []);
+    setActiveLinks(linksRes.count || 0);
+    setSystemBalance(allWallets.reduce((s: number, w: any) => s + (w.balance || 0), 0));
+    setRecentFailed(txns.filter((t: any) => t.status === "failed").slice(0, 5));
+    setFeed(txns.slice(0, 30));
     setLoading(false);
-    setLastRefresh(new Date());
   }, []);
 
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  /* Realtime: live feed insert */
   useEffect(() => {
-    fetchStats();
-    const txChannel = supabase.channel("admin-dash-txns").on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
-      setLiveTxns(prev => [payload.new as Transaction, ...prev].slice(0, 20));
-      fetchStats();
-    }).subscribe();
-    const usersChannel = supabase.channel("admin-dash-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchStats()).subscribe();
-    const walletsChannel = supabase.channel("admin-dash-wallets").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => fetchStats()).subscribe();
-    const kycChannel = supabase.channel("admin-dash-kyc").on("postgres_changes", { event: "*", schema: "public", table: "kyc_requests" }, () => fetchStats()).subscribe();
-    return () => { [txChannel, usersChannel, walletsChannel, kycChannel].forEach(c => supabase.removeChannel(c)); };
-  }, [fetchStats]);
+    const ch = supabase
+      .channel("admin-mc-txns")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
+        const row: any = payload.new;
+        if (pausedRef.current) {
+          queuedRef.current = [row, ...queuedRef.current];
+          return;
+        }
+        setFeed((prev) => [row, ...prev].slice(0, 50));
+        setFlashIds((s) => { const n = new Set(s); n.add(row.id); return n; });
+        setTimeout(() => setFlashIds((s) => { const n = new Set(s); n.delete(row.id); return n; }), 1400);
+        setAllTxns((prev) => [row, ...prev].slice(0, 1000));
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "kyc_requests" }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [fetchAll]);
 
-  const handleRefresh = async () => { setRefreshing(true); await fetchStats(); setTimeout(() => setRefreshing(false), 600); };
-  const fmtAmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
-  const totalStatusCount = statusBreakdown.reduce((s, d) => s + d.value, 0);
-  const handleApproveKyc = async (id: string) => {
-    await supabase.from("kyc_requests").update({ status: "verified", verified_at: new Date().toISOString() }).eq("id", id);
-    fetchStats();
+  /* Resume: drain queue */
+  useEffect(() => {
+    if (!feedPaused && queuedRef.current.length > 0) {
+      const drained = queuedRef.current;
+      queuedRef.current = [];
+      setFeed((prev) => [...drained, ...prev].slice(0, 50));
+      const ids = new Set(drained.map((d) => d.id));
+      setFlashIds((s) => { const n = new Set(s); ids.forEach((i) => n.add(i)); return n; });
+      setTimeout(() => setFlashIds((s) => { const n = new Set(s); ids.forEach((i) => n.delete(i)); return n; }), 1400);
+    }
+  }, [feedPaused]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true); haptic(); await fetchAll();
+    setTimeout(() => setRefreshing(false), 500);
   };
-  const getUptime = () => { if (!uptime) return "0m"; const mins = Math.floor((Date.now() - uptime) / 60000); return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`; };
+  function haptic() { try { (navigator as any).vibrate?.(8); } catch {} }
 
-  const exportCsv = () => {
-    if (!liveTxns.length) { toast.error("Nothing to export yet"); return; }
-    const header = ["id", "type", "amount_paise", "amount_inr", "merchant", "category", "status", "created_at"];
-    const rows = liveTxns.map(t => [
-      t.id, t.type, t.amount, (t.amount / 100).toFixed(2),
-      `"${(t.merchant_name || "").replace(/"/g, '""')}"`,
-      t.category || "", t.status || "", t.created_at || "",
-    ]);
-    const csv = [header.join(","), ...rows.map(r => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `auropay-transactions-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Exported to CSV");
+  /* ─────────── Derived stats ─────────── */
+  const today = useMemo(() => {
+    const d = new Date(); d.setHours(0,0,0,0); return d;
+  }, []);
+  const yesterday = useMemo(() => new Date(today.getTime() - 86400000), [today]);
+
+  const todayTxns = useMemo(() => allTxns.filter((t) => t.created_at && new Date(t.created_at) >= today), [allTxns, today]);
+  const yTxns = useMemo(() => allTxns.filter((t) => {
+    if (!t.created_at) return false;
+    const d = new Date(t.created_at);
+    return d >= yesterday && d < today;
+  }), [allTxns, today, yesterday]);
+
+  const todaySuccess = todayTxns.filter((t) => t.status === "success");
+  const todayFailed = todayTxns.filter((t) => t.status === "failed");
+  const todayPending = todayTxns.filter((t) => t.status === "pending");
+  const yesterdaySuccess = yTxns.filter((t) => t.status === "success");
+  const yesterdayFailed = yTxns.filter((t) => t.status === "failed");
+
+  const volumeToday = todaySuccess.reduce((s, t) => s + (t.amount || 0), 0);
+  const volumeYday = yesterdaySuccess.reduce((s, t) => s + (t.amount || 0), 0);
+
+  const newUsersToday = users.filter((u) => u.created_at && new Date(u.created_at) >= today).length;
+  const newUsersYday = users.filter((u) => {
+    if (!u.created_at) return false;
+    const d = new Date(u.created_at);
+    return d >= yesterday && d < today;
+  }).length;
+
+  const activeUsersToday = useMemo(() => {
+    const set = new Set<string>();
+    todayTxns.forEach((t) => {
+      const w = wallets.find((w) => w.id === t.wallet_id);
+      if (w?.user_id) set.add(w.user_id);
+    });
+    return set.size;
+  }, [todayTxns, wallets]);
+  const activeUsersYday = useMemo(() => {
+    const set = new Set<string>();
+    yTxns.forEach((t) => {
+      const w = wallets.find((w) => w.id === t.wallet_id);
+      if (w?.user_id) set.add(w.user_id);
+    });
+    return set.size;
+  }, [yTxns, wallets]);
+
+  const avgTxn = todaySuccess.length > 0 ? Math.round(volumeToday / todaySuccess.length) : 0;
+
+  /* 7-day sparkline series */
+  const last7Days = useMemo(() => {
+    const days: { date: string; volume: number; count: number; users: number; failed: number; kyc: number; active: Set<string>; signups: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const next = new Date(d.getTime() + 86400000);
+      const dayTxns = allTxns.filter((t) => t.created_at && new Date(t.created_at) >= d && new Date(t.created_at) < next);
+      const success = dayTxns.filter((t) => t.status === "success");
+      const active = new Set<string>();
+      dayTxns.forEach((t) => {
+        const w = wallets.find((w) => w.id === t.wallet_id);
+        if (w?.user_id) active.add(w.user_id);
+      });
+      const signups = users.filter((u) => u.created_at && new Date(u.created_at) >= d && new Date(u.created_at) < next).length;
+      days.push({
+        date: d.toISOString().slice(0, 10),
+        volume: success.reduce((s, t) => s + (t.amount || 0), 0),
+        count: dayTxns.length,
+        users: signups,
+        failed: dayTxns.filter((t) => t.status === "failed").length,
+        kyc: 0, active, signups,
+      });
+    }
+    return days;
+  }, [allTxns, users, wallets, today]);
+
+  const sparkUsers = last7Days.map((d) => d.users);
+  const sparkActive = last7Days.map((d) => d.active.size);
+  const sparkVolume = last7Days.map((d) => d.volume);
+  const sparkCount = last7Days.map((d) => d.count);
+  const sparkFailed = last7Days.map((d) => d.failed);
+  const sparkKyc = useMemo(() => Array(7).fill(pendingKyc.length), [pendingKyc.length]);
+
+  /* 30-day volume bars */
+  const volumeBars: VolBar[] = useMemo(() => {
+    const out: VolBar[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const next = new Date(d.getTime() + 86400000);
+      const dayTxns = allTxns.filter((t) => t.created_at && new Date(t.created_at) >= d && new Date(t.created_at) < next && t.status === "success");
+      out.push({
+        day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        date: d.toISOString().slice(0, 10),
+        volume: dayTxns.reduce((s, t) => s + (t.amount || 0), 0),
+        count: dayTxns.length,
+      });
+    }
+    return out;
+  }, [allTxns, today]);
+
+  /* User-growth (signups, last 30 days) */
+  const growthData = useMemo(() => {
+    const out: { day: string; users: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const next = new Date(d.getTime() + 86400000);
+      const c = users.filter((u) => u.created_at && new Date(u.created_at) >= d && new Date(u.created_at) < next).length;
+      out.push({ day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), users: c });
+    }
+    return out;
+  }, [users, today]);
+
+  /* Status donut for today */
+  const donutData = useMemo(() => [
+    { label: "Success", value: todaySuccess.length, color: C.success },
+    { label: "Pending", value: todayPending.length, color: C.warning },
+    { label: "Failed",  value: todayFailed.length,  color: C.danger },
+  ].filter((d) => d.value > 0), [todaySuccess.length, todayPending.length, todayFailed.length]);
+
+  /* Payment method distribution (UPI vs Razorpay vs Wallet vs Other) */
+  const paymentMethods = useMemo(() => {
+    let upi = 0, razor = 0, internal = 0, other = 0;
+    todayTxns.forEach((t) => {
+      if (t.merchant_upi_id) upi++;
+      else if (t.razorpay_payment_id) razor++;
+      else if (t.type === "credit" || t.type === "debit") internal++;
+      else other++;
+    });
+    return [
+      { label: "UPI", value: upi, color: C.primary },
+      { label: "Razorpay", value: razor, color: C.info },
+      { label: "Wallet", value: internal, color: C.secondary },
+      { label: "Other", value: other, color: C.cyan },
+    ].filter((d) => d.value > 0);
+  }, [todayTxns]);
+
+  /* Top merchant today */
+  const topMerchant = useMemo(() => {
+    const map: Record<string, { count: number; volume: number }> = {};
+    todaySuccess.forEach((t) => {
+      const k = t.merchant_name || "Unknown";
+      map[k] = map[k] || { count: 0, volume: 0 };
+      map[k].count++;
+      map[k].volume += t.amount || 0;
+    });
+    const arr = Object.entries(map).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.count - a.count);
+    return arr[0] || null;
+  }, [todaySuccess]);
+
+  const visibleFeed = filterDate
+    ? feed.filter((t) => t.created_at?.slice(0, 10) === filterDate)
+    : feed;
+
+  /* ─────────── Click handlers wiring context panel ─────────── */
+  const openTxnInPanel = (tx: any) => {
+    const w = wallets.find((w) => w.id === tx.wallet_id);
+    const user = w ? users.find((u) => u.id === w.user_id) : null;
+    ctxPanel.show({
+      title: tx.merchant_name || tx.type || "Transaction",
+      subtitle: tx.id,
+      body: (
+        <div className="space-y-4">
+          <div className="rounded-2xl p-4 border border-white/5" style={{ background: "rgba(255,255,255,0.02)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Amount</span>
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: tx.status === "success" ? "rgba(34,197,94,0.12)" : tx.status === "failed" ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.12)",
+                  color: tx.status === "success" ? C.success : tx.status === "failed" ? C.danger : C.warning,
+                }}
+              >
+                {tx.status}
+              </span>
+            </div>
+            <p className="text-3xl font-bold font-mono text-white">{fmtPaise(tx.amount || 0)}</p>
+            <p className="text-[11px] text-white/40 font-sora mt-1">{tx.created_at ? new Date(tx.created_at).toLocaleString("en-IN") : "—"}</p>
+          </div>
+          <DetailRow label="User" value={user?.full_name || "Unknown"} />
+          <DetailRow label="Type" value={tx.type} />
+          <DetailRow label="Category" value={tx.category || "—"} />
+          <DetailRow label="UPI ID" value={tx.merchant_upi_id || "—"} mono />
+          <DetailRow label="Razorpay ID" value={tx.razorpay_payment_id || "—"} mono />
+          <DetailRow label="Wallet" value={tx.wallet_id} mono />
+          <button
+            onClick={() => navigate(`/admin/transactions`)}
+            className="w-full h-10 rounded-xl text-[12px] font-semibold text-white"
+            style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}
+          >
+            View in transactions →
+          </button>
+        </div>
+      ),
+    });
   };
 
-  const tooltipStyle = { background: "rgba(18,20,24,0.95)", border: "1px solid rgba(200,149,46,0.1)", borderRadius: 14, color: "#fff", fontSize: 11, boxShadow: "0 16px 48px rgba(0,0,0,0.6)" };
+  const openKycInPanel = async (kyc: any) => {
+    const user = users.find((u) => u.id === kyc.user_id);
+    ctxPanel.show({
+      title: kyc.aadhaar_name || user?.full_name || "KYC request",
+      subtitle: `Submitted ${kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString("en-IN") : "—"}`,
+      body: (
+        <div className="space-y-4">
+          <div className="rounded-2xl p-4 border border-warning/20" style={{ background: "rgba(245,158,11,0.05)" }}>
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-warning mb-1"><ShieldCheck className="w-3.5 h-3.5" /> Pending verification</div>
+            <p className="text-[11px] text-white/60 font-sora">Approve to unlock the user's wallet and full app access.</p>
+          </div>
+          <DetailRow label="User" value={user?.full_name || "—"} />
+          <DetailRow label="Phone" value={user?.phone || "—"} mono />
+          <DetailRow label="KYC ID" value={kyc.id} mono />
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                await supabase.from("kyc_requests").update({ status: "verified", verified_at: new Date().toISOString() }).eq("id", kyc.id);
+                toast.success("KYC approved");
+                ctxPanel.hide(); fetchAll();
+              }}
+              className="flex-1 h-10 rounded-xl text-[12px] font-semibold text-white"
+              style={{ background: C.success }}
+            >
+              Approve
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.from("kyc_requests").update({ status: "rejected" }).eq("id", kyc.id);
+                toast.error("KYC rejected");
+                ctxPanel.hide(); fetchAll();
+              }}
+              className="flex-1 h-10 rounded-xl text-[12px] font-semibold text-white"
+              style={{ background: C.danger }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      ),
+    });
+  };
 
+  /* ─────────── Loading shell ─────────── */
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-4 lg:p-8 space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="h-32 rounded-[20px] overflow-hidden border border-border/20" style={{ background: "rgba(13,14,18,0.7)" }}>
+        <div className="p-4 lg:p-6 space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-[140px] rounded-[18px] border border-white/5 overflow-hidden" style={{ background: "rgba(13,14,18,0.7)" }}>
                 <div className="h-full w-full" style={{
-                  background: "linear-gradient(110deg, transparent 40%, rgba(200,149,46,0.06) 50%, transparent 60%)",
-                  backgroundSize: "200% 100%", animation: "shimmer-card 1.8s ease-in-out infinite",
+                  background: "linear-gradient(110deg, transparent 40%, rgba(200,149,46,0.08) 50%, transparent 60%)",
+                  backgroundSize: "200% 100%", animation: "shimmer-card 1.6s ease-in-out infinite",
                 }} />
               </div>
             ))}
           </div>
           <div className="flex items-center justify-center py-20">
-            <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
           </div>
         </div>
       </AdminLayout>
     );
   }
 
-  const signupChange = stats.newUsersYesterday > 0 ? Math.round(((stats.newUsersToday - stats.newUsersYesterday) / stats.newUsersYesterday) * 100) : 0;
-  const failureRate = stats.totalTransactionsToday > 0 ? Math.round((stats.failedToday / stats.totalTransactionsToday) * 100) : 0;
-  const sparkData = dailyVolume.map(d => d.volume);
-
-  const tabs = [
-    { key: "overview" as const, label: "Overview", icon: Layers },
-    { key: "analytics" as const, label: "Analytics", icon: BarChart3 },
-    { key: "operations" as const, label: "Operations", icon: Zap },
+  /* ─────────── KPI definitions ─────────── */
+  const kpis: Kpi[] = [
+    { label: "Total Users", value: users.length, icon: Users, color: C.info, spark: sparkUsers,
+      trendPct: trendPct(newUsersToday, newUsersYday), trendLabel: `${newUsersToday} new today`,
+      onClick: () => navigate("/admin/users") },
+    { label: "Active Today", value: activeUsersToday, icon: Activity, color: C.cyan, spark: sparkActive,
+      trendPct: trendPct(activeUsersToday, activeUsersYday), trendLabel: `${Math.abs(activeUsersToday - activeUsersYday)} vs yesterday` },
+    { label: "Volume Today", value: fmtPaise(volumeToday), icon: DollarSign, color: C.primary, spark: sparkVolume,
+      trendPct: trendPct(volumeToday, volumeYday), trendLabel: "vs yesterday" },
+    { label: "Transactions", value: todayTxns.length, icon: ArrowLeftRight, color: C.secondary, spark: sparkCount,
+      trendPct: trendPct(todayTxns.length, yTxns.length), trendLabel: "vs yesterday",
+      onClick: () => navigate("/admin/transactions") },
+    { label: "Pending KYC", value: pendingKyc.length, icon: ShieldCheck, color: C.warning, spark: sparkKyc,
+      onClick: () => navigate("/admin/kyc") },
+    { label: "Failed Txns", value: todayFailed.length, icon: AlertTriangle, color: C.danger, spark: sparkFailed,
+      trendPct: trendPct(todayFailed.length, yesterdayFailed.length), trendLabel: "vs yesterday" },
   ];
+
+  const secondaryKpis: Kpi[] = [
+    { label: "Platform Balance", value: fmtPaise(systemBalance), icon: Wallet, color: C.primary, spark: sparkVolume },
+    { label: "New Signups", value: newUsersToday, icon: UserPlus, color: C.info, spark: sparkUsers,
+      trendPct: trendPct(newUsersToday, newUsersYday), trendLabel: "vs yesterday" },
+    { label: "Avg Transaction", value: fmtPaise(avgTxn), icon: CreditCard, color: C.cyan, spark: sparkVolume.map((v, i) => sparkCount[i] > 0 ? Math.round(v / sparkCount[i]) : 0) },
+    { label: "Parent-Teen Pairs", value: activeLinks, icon: Link2, color: C.success, spark: [activeLinks, activeLinks, activeLinks, activeLinks, activeLinks, activeLinks, activeLinks] },
+  ];
+
+  const summary = `₹${(volumeToday / 100).toLocaleString("en-IN")} transacted today across ${todayTxns.length} transaction${todayTxns.length === 1 ? "" : "s"}.`;
 
   return (
     <AdminLayout>
-      <div className="p-4 lg:p-8 space-y-6 relative min-h-full">
-        {/* Ambient orbs */}
-        <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-[0.03] blur-[150px]" style={{ background: `radial-gradient(circle, ${C.primary}, transparent)` }} />
-        <div className="fixed bottom-0 left-0 w-[400px] h-[400px] rounded-full pointer-events-none opacity-[0.02] blur-[100px]" style={{ background: `radial-gradient(circle, ${C.secondary}, transparent)` }} />
+      <div className="p-4 lg:p-6 space-y-5 relative min-h-full">
+        {/* Ambient glow */}
+        <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-[0.04] blur-[150px]" style={{ background: `radial-gradient(circle, ${C.primary}, transparent)` }} />
 
-        {/* Welcome Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring" as const, stiffness: 200, damping: 22 }}
-          className="relative rounded-[22px] overflow-hidden border border-primary/[0.14]"
-          style={{ background: `linear-gradient(135deg, rgba(200,149,46,0.1) 0%, rgba(13,14,18,0.9) 40%, rgba(200,149,46,0.05) 100%)`, backdropFilter: "blur(24px)" }}
+        {/* Welcome banner */}
+        <div
+          className="relative rounded-[20px] overflow-hidden border border-primary/[0.14] p-5 lg:p-6"
+          style={{
+            background: `linear-gradient(135deg, rgba(200,149,46,0.1) 0%, rgba(13,14,18,0.85) 50%, rgba(200,149,46,0.05) 100%)`,
+            backdropFilter: "blur(24px)",
+            animation: "kpi-in 0.4s cubic-bezier(0.22,1,0.36,1) both",
+          }}
         >
-          <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(200,149,46,0.35), transparent)" }} />
-          <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full" style={{ background: "radial-gradient(circle, rgba(200,149,46,0.12), transparent)", animation: "float-up 6s ease-in-out infinite" }} />
-
-          <div className="relative p-5 lg:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80 font-sora">{greeting}</span>
+          <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(200,149,46,0.5), transparent)" }} />
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-4 h-4" style={{ color: C.primary }} />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] font-sora" style={{ color: `${C.primary}cc` }}>
+                  {greetingFor(now)} · {now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} IST
+                </span>
               </div>
-              <h1 className="text-xl lg:text-[26px] font-bold tracking-tight text-foreground font-sora">Command Center</h1>
-              <p className="text-xs mt-1.5 flex items-center gap-3 text-muted-foreground/50 font-sora">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {lastRefresh.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
-                <span className="flex items-center gap-1 text-success"><Signal className="w-3 h-3" /> Live</span>
-                <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {getUptime()}</span>
-              </p>
+              <h1 className="text-xl lg:text-[24px] font-bold tracking-tight text-white font-sora">
+                {greetingFor(now)}, {profile?.full_name?.split(" ")[0] || "Admin"}.
+              </h1>
+              <p className="text-[12px] mt-1 text-white/55 font-sora">Here's what's happening.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setPaletteOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-[14px] border border-border/30 text-[11px] text-muted-foreground bg-muted/20 font-sora"
-                title="Quick search (⌘K)"
+            <div className="flex items-center gap-3 sm:text-right">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Today</p>
+                <p className="text-[14px] font-medium text-white font-sora truncate">{summary}</p>
+              </div>
+              <button
+                onClick={handleRefresh}
+                className="p-2.5 rounded-xl border text-white/60 hover:text-white hover:bg-white/[0.04] transition-colors shrink-0"
+                style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                title="Refresh"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>Search…</span>
-                <kbd className="ml-1 text-[9px] font-mono px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground/60 flex items-center gap-0.5">
-                  <Command className="w-2.5 h-2.5" />K
-                </kbd>
-              </motion.button>
-              <motion.button whileTap={{ scale: 0.92 }} onClick={handleRefresh} className="p-2.5 rounded-[14px] border border-border/30 text-muted-foreground bg-muted/20" title="Refresh">
                 <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-              </motion.button>
-              <motion.button whileTap={{ scale: 0.96 }} onClick={exportCsv} className="flex items-center gap-2 px-5 py-2.5 rounded-[14px] text-xs font-semibold gradient-primary text-primary-foreground shadow-[0_4px_20px_rgba(200,149,46,0.3)] font-sora">
-                <Download className="w-3.5 h-3.5" /> Export
-              </motion.button>
+              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Tab Navigation */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-1 p-1 rounded-[16px] bg-muted/10 border border-border/20"
-        >
-          {tabs.map(tab => (
-            <motion.button
-              key={tab.key}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-medium flex-1 justify-center font-sora transition-all ${
-                activeTab === tab.key ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground/50 border border-transparent"
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </motion.button>
-          ))}
-        </motion.div>
+        {/* Primary KPIs (6) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {kpis.map((k) => <KpiCard key={k.label} k={k} />)}
+        </div>
 
-        <AnimatePresence mode="wait">
-          {/* ══════ OVERVIEW ══════ */}
-          {activeTab === "overview" && (
-            <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              {/* Primary KPIs */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <StatCard label="Total Users" value={stats.totalUsers} icon={Users} trend={`+${stats.newUsersToday}`} trendUp color={C.info} subtitle="Registered" />
-                <StatCard label="Active Teens" value={stats.teens} icon={UserPlus} trend={`${stats.parents} parents`} trendUp color={C.success} />
-                <StatCard label="Volume Today" value={fmtAmt(stats.totalVolumeToday)} icon={DollarSign} color={C.primary} subtitle="Successful" />
-                <StatCard label="Txns Today" value={stats.totalTransactionsToday} icon={ArrowLeftRight} trend={`${stats.successRate}%`} trendUp={stats.successRate > 90} color={C.cyan} subtitle="Success rate" />
-                <StatCard label="Pending KYC" value={stats.pendingKyc} icon={ShieldCheck} trend="review" trendUp={false} color={C.warning} onClick={() => navigate("/admin/kyc")} />
-                <StatCard label="Failed Txns" value={stats.failedToday} icon={AlertTriangle} trend={`${failureRate}%`} trendUp={false} color={C.danger} subtitle="Failure rate" />
-              </motion.div>
+        {/* Secondary KPIs (4) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {secondaryKpis.map((k) => <KpiCard key={k.label} k={k} />)}
+        </div>
 
-              {/* Revenue + Secondary */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                <Widget highlight glow className="lg:col-span-1">
-                  <div className="flex flex-col gap-3">
+        {/* Charts row 1: volume bars (60%) + status donut (40%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <Widget className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] font-semibold text-white font-sora">Transaction Volume</h3>
+                <span className="text-[9px] px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(200,149,46,0.12)", color: C.primary }}>30D</span>
+              </div>
+              {filterDate && (
+                <button
+                  onClick={() => setFilterDate(null)}
+                  className="text-[10px] flex items-center gap-1 px-2 py-1 rounded-full font-sora"
+                  style={{ background: "rgba(200,149,46,0.12)", color: C.primary }}
+                >
+                  <Filter className="w-3 h-3" /> Filtered: {filterDate} <XCircle className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <VolumeBars data={volumeBars} selected={filterDate} onSelect={setFilterDate} height={220} />
+            <p className="text-[10px] text-white/30 font-sora mt-2">Click any bar to filter the live feed by that date.</p>
+          </Widget>
+
+          <Widget className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[13px] font-semibold text-white font-sora">Live Status</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.success, boxShadow: `0 0 6px ${C.success}` }} />
+                <span className="text-[9px] font-bold tracking-wider font-mono" style={{ color: C.success }}>LIVE</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-4">
+              <StatusDonut data={donutData} size={180} />
+              <div className="w-full space-y-2">
+                {donutData.length === 0 ? (
+                  <p className="text-[11px] text-center text-white/30 font-sora py-2">No transactions yet today.</p>
+                ) : donutData.map((d) => (
+                  <div key={d.label} className="flex items-center justify-between px-3 py-2 rounded-[10px]" style={{ background: `${d.color}08` }}>
                     <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-[12px] flex items-center justify-center gradient-primary">
-                        <Wallet className="w-5 h-5 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground/40 font-sora">Platform Balance</p>
-                        <p className="text-lg font-bold font-mono text-foreground">
-                          <Counter value={Math.round(stats.totalBalance / 100)} prefix="₹" />
-                        </p>
-                      </div>
+                      <span className="w-2 h-2 rounded-full" style={{ background: d.color, boxShadow: `0 0 6px ${d.color}50` }} />
+                      <span className="text-[11px] text-white/70 font-sora">{d.label}</span>
                     </div>
-                    <MiniSparkline data={sparkData.length > 0 ? sparkData : [0,1,2,1,3]} color={C.primary} height={32} />
+                    <span className="text-[12px] font-bold font-mono text-white">{d.value}</span>
                   </div>
-                </Widget>
-                <StatCard label="New Signups" value={stats.newUsersToday} icon={Flame} trend={`${signupChange > 0 ? "+" : ""}${signupChange}%`} trendUp={signupChange >= 0} color={C.info} subtitle="vs yesterday" />
-                <StatCard label="Avg Txn" value={fmtAmt(stats.avgTxnValue)} icon={CreditCard} color={C.cyan} />
-                <StatCard label="Active Rewards" value={stats.totalRewards} icon={Gift} color={C.secondary} subtitle="Live offers" onClick={() => navigate("/admin/rewards")} />
-                <StatCard label="Open Tickets" value={stats.openTickets} icon={Heart} color={stats.openTickets > 5 ? C.danger : C.success} subtitle="Support" onClick={() => navigate("/admin/support")} />
-              </motion.div>
+                ))}
+              </div>
+            </div>
+          </Widget>
+        </div>
 
-              {/* Charts */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Widget glow className="lg:col-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
-                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-primary/10 border border-primary/20">
-                        <BarChart3 className="w-4 h-4 text-primary" />
-                      </div>
-                      Transaction Volume
-                      <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-mono">30D</span>
-                    </h3>
-                    <span className="text-[10px] font-bold font-mono text-foreground">{fmtAmt(stats.totalVolume)}</span>
-                  </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={dailyVolume}>
-                      <defs>
-                        <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.primary} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={C.primary} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.05)" />
-                      <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area type="monotone" dataKey="volume" stroke={C.primary} fill="url(#volGrad)" strokeWidth={2.5} dot={{ r: 2, fill: C.primary, strokeWidth: 0 }} activeDot={{ r: 5, fill: C.primary, stroke: "#0a0c0f", strokeWidth: 2 }} animationDuration={1500} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Widget>
+        {/* Charts row 2: user growth + payment methods */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Widget>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[13px] font-semibold text-white font-sora">User Growth</h3>
+              <span className="text-[9px] px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(200,149,46,0.12)", color: C.primary }}>30D</span>
+            </div>
+            <GrowthLine data={growthData} height={200} />
+          </Widget>
 
-                <Widget>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-success/10 border border-success/20">
-                      <Percent className="w-4 h-4 text-success" />
-                    </div>
-                    Status
-                  </h3>
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative">
-                      <ResponsiveContainer width={160} height={160}>
-                        <PieChart>
-                          <Pie data={statusBreakdown.length > 0 ? statusBreakdown : [{ name: "No data", value: 1, color: "rgba(255,255,255,0.05)" }]} cx="50%" cy="50%" innerRadius={52} outerRadius={72} dataKey="value" paddingAngle={statusBreakdown.length > 1 ? 4 : 0} strokeWidth={0}>
-                            {(statusBreakdown.length > 0 ? statusBreakdown : [{ color: "rgba(255,255,255,0.05)" }]).map((d, i) => <Cell key={i} fill={d.color} />)}
-                          </Pie>
-                          <Tooltip contentStyle={tooltipStyle} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-xl font-bold font-mono text-foreground">{totalStatusCount}</p>
-                        <p className="text-[9px] text-muted-foreground/40 font-sora">Today</p>
-                      </div>
-                    </div>
-                    <div className="w-full space-y-2">
-                      {statusBreakdown.map(d => (
-                        <div key={d.name} className="flex items-center justify-between px-3 py-2 rounded-[10px] transition-all" style={{ background: `${d.color}08` }}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color, boxShadow: `0 0 6px ${d.color}50` }} />
-                            <span className="text-[11px] font-medium text-muted-foreground/70 font-sora">{d.name}</span>
-                          </div>
-                          <span className="text-xs font-bold font-mono text-foreground">{d.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Widget>
-              </motion.div>
+          <Widget>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[13px] font-semibold text-white font-sora">Payment Methods</h3>
+              <span className="text-[9px] text-white/40 font-mono">today</span>
+            </div>
+            {paymentMethods.length === 0 ? (
+              <p className="text-[11px] text-white/30 text-center py-10 font-sora">No transactions yet today.</p>
+            ) : <HBars data={paymentMethods} />}
+          </Widget>
+        </div>
 
-              {/* User Growth + Categories + Live Feed */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Widget glow>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-primary/10 border border-primary/20">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                    </div>
-                    User Growth <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono">30D</span>
-                  </h3>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <AreaChart data={userGrowth}>
-                      <defs>
-                        <linearGradient id="userGrowthG2" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.primary} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={C.primary} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.05)" />
-                      <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} interval={6} />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} width={25} allowDecimals={false} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area type="monotone" dataKey="users" stroke={C.primary} fill="url(#userGrowthG2)" strokeWidth={2} dot={false} animationDuration={1500} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Widget>
+        {/* Live feed + quick actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Live feed */}
+          <Widget className="lg:col-span-2" noPadding>
+            <div className="px-5 h-14 flex items-center justify-between border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] font-semibold text-white font-sora flex items-center gap-2">
+                  <Activity className="w-4 h-4" style={{ color: C.primary }} />
+                  Live Transaction Feed
+                </h3>
+                {!feedPaused && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold tracking-wider font-mono" style={{ color: C.success }}>
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.success, boxShadow: `0 0 6px ${C.success}` }} /> LIVE
+                  </span>
+                )}
+                {feedPaused && queuedRef.current.length > 0 && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full font-mono" style={{ background: "rgba(245,158,11,0.12)", color: C.warning }}>
+                    +{queuedRef.current.length} queued
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setFeedPaused((p) => !p)}
+                className="flex items-center gap-1.5 px-2.5 h-8 rounded-[10px] text-[11px] font-medium font-sora transition-colors"
+                style={{
+                  background: feedPaused ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)",
+                  color: feedPaused ? C.warning : "rgba(255,255,255,0.6)",
+                  border: `1px solid ${feedPaused ? "rgba(245,158,11,0.2)" : "rgba(255,255,255,0.06)"}`,
+                }}
+              >
+                {feedPaused ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Pause</>}
+              </button>
+            </div>
 
-                {/* Category Breakdown */}
-                <Widget>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-secondary/10 border border-secondary/20">
-                      <Target className="w-4 h-4" style={{ color: C.secondary }} />
-                    </div>
-                    Categories
-                  </h3>
-                  <div className="space-y-2.5">
-                    {stats.categoryBreakdown.map((cat, i) => {
-                      const maxVal = Math.max(...stats.categoryBreakdown.map(c => c.value), 1);
-                      return (
-                        <motion.div
-                          key={cat.name}
-                          initial={{ opacity: 0, x: -12 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + i * 0.06 }}
-                          className="space-y-1"
-                        >
-                          <div className="flex justify-between text-[11px]">
-                            <span className="capitalize text-muted-foreground/60 font-sora">{cat.name}</span>
-                            <span className="font-bold font-mono text-foreground">{fmtAmt(cat.value)}</span>
-                          </div>
-                          <div className="h-[5px] rounded-full bg-muted/20 overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${(cat.value / maxVal) * 100}%` }}
-                              transition={{ duration: 0.8, delay: 0.4 + i * 0.06 }}
-                              className="h-full rounded-full"
-                              style={{ background: cat.color, boxShadow: `0 0 8px ${cat.color}40` }}
-                            />
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                    {stats.categoryBreakdown.length === 0 && (
-                      <p className="text-[11px] text-muted-foreground/30 text-center py-6 font-sora">No category data yet</p>
-                    )}
-                  </div>
-                </Widget>
+            <div className="hidden md:grid grid-cols-[80px_1fr_110px_1fr_80px_70px] gap-3 px-5 py-2 text-[9px] uppercase tracking-wider text-white/30 font-sora border-b" style={{ borderColor: "rgba(255,255,255,0.03)" }}>
+              <span>Time</span><span>User</span><span>Amount</span><span>Merchant</span><span>Method</span><span>Status</span>
+            </div>
 
-                {/* Live Feed */}
-                <Widget noPadding>
-                  <div className="p-4 pb-2 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
-                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-primary/10 border border-primary/20">
-                        <Activity className="w-4 h-4 text-primary" />
-                      </div>
-                      Live Feed
-                    </h3>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-success animate-pulse" style={{ boxShadow: "0 0 6px rgba(34,197,94,0.6)" }} />
-                      <span className="text-[9px] font-bold text-success font-mono">LIVE</span>
-                    </div>
-                  </div>
-                  <div className="max-h-[320px] overflow-y-auto px-3 pb-3 space-y-0.5">
-                    {liveTxns.slice(0, 12).map((tx, i) => {
-                      const statusColor = tx.status === "success" ? C.success : tx.status === "failed" ? C.danger : C.warning;
-                      const timeAgo = tx.created_at ? (() => {
-                        const diff = Date.now() - new Date(tx.created_at).getTime();
-                        if (diff < 60000) return "now";
-                        if (diff < 3600000) return `${Math.round(diff / 60000)}m`;
-                        if (diff < 86400000) return `${Math.round(diff / 3600000)}h`;
-                        return `${Math.round(diff / 86400000)}d`;
-                      })() : "—";
-                      return (
-                        <motion.div
-                          key={tx.id}
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 + i * 0.03, type: "spring" as const, stiffness: 300, damping: 24 }}
-                          className="flex items-center gap-3 p-2.5 rounded-[10px] hover:bg-muted/10 transition-colors cursor-pointer"
-                        >
-                          <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${tx.type === "credit" ? C.success : C.danger}10` }}>
-                            {tx.type === "credit" ? <ArrowDownRight className="w-3.5 h-3.5" style={{ color: C.success }} /> : <ArrowUpRight className="w-3.5 h-3.5" style={{ color: C.danger }} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-medium truncate text-foreground font-sora">{tx.merchant_name || tx.type}</p>
-                            <p className="text-[9px] text-muted-foreground/40 font-sora">{timeAgo} · {tx.category || "—"}</p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-[12px] font-bold font-mono" style={{ color: tx.type === "credit" ? C.success : undefined }}>
-                              {tx.type === "credit" ? "+" : "-"}{fmtAmt(tx.amount)}
-                            </p>
-                            <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full font-sora" style={{ background: `${statusColor}12`, color: statusColor }}>{tx.status}</span>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </Widget>
-              </motion.div>
-
-              {/* KYC + System Health */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* KYC */}
-                <Widget>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
-                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-warning/10 border border-warning/20">
-                        <ShieldCheck className="w-4 h-4 text-warning" />
-                      </div>
-                      Pending KYC
-                      {stats.pendingKyc > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-mono">{stats.pendingKyc}</span>}
-                    </h3>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate("/admin/kyc")} className="text-[11px] font-medium text-primary px-3 py-1.5 rounded-[10px] bg-primary/[0.06] font-sora">
-                      View All <ArrowUpRight className="w-3 h-3 inline" />
-                    </motion.button>
-                  </div>
-                  {kycRequests.length === 0 ? (
-                    <div className="flex flex-col items-center py-6 gap-2">
-                      <CheckCircle2 className="w-8 h-8 text-success" />
-                      <p className="text-sm font-medium text-success font-sora">All clear!</p>
-                      <p className="text-[11px] text-muted-foreground/40 font-sora">No pending requests</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {kycRequests.map((kyc: any, i: number) => (
-                        <motion.div
-                          key={kyc.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.06 }}
-                          className="flex items-center justify-between p-3 rounded-[12px] bg-muted/10 border border-border/20 hover:border-warning/20 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold bg-warning/10 text-warning">{kyc.aadhaar_name?.charAt(0) || "?"}</div>
-                            <div>
-                              <p className="text-[12px] font-medium text-foreground font-sora">{kyc.aadhaar_name || "Unknown"}</p>
-                              <p className="text-[9px] text-muted-foreground/40 font-sora">{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString("en-IN") : "—"}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <motion.button whileTap={{ scale: 0.85 }} onClick={() => handleApproveKyc(kyc.id)} className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-success text-white"><CheckCircle2 className="w-4 h-4" /></motion.button>
-                            <motion.button whileTap={{ scale: 0.85 }} className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-destructive text-white"><XCircle className="w-4 h-4" /></motion.button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </Widget>
-
-                {/* System Health */}
-                <Widget>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-success/10 border border-success/20">
-                      <Shield className="w-4 h-4 text-success" />
-                    </div>
-                    System Health
-                    <span className="ml-auto text-[9px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success font-sora">All Operational</span>
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { label: "Database", status: "OK", icon: Database, ok: true },
-                      { label: "Auth", status: "OK", icon: Shield, ok: true },
-                      { label: "Payments", status: "Active", icon: Globe, ok: true },
-                      { label: "KYC", status: stats.pendingKyc > 5 ? "Backlog" : "OK", icon: Cpu, ok: stats.pendingKyc <= 5 },
-                      { label: "Functions", status: "Running", icon: Server, ok: true },
-                      { label: "Realtime", status: "Live", icon: Wifi, ok: true },
-                    ].map((h, i) => (
-                      <motion.div
-                        key={h.label}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 + i * 0.05 }}
-                        className="flex items-center gap-2 p-2.5 rounded-[10px] bg-muted/10 border border-border/20 hover:border-success/20 transition-colors"
-                      >
-                        <div className="w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0" style={{ background: `${h.ok ? C.success : C.warning}10` }}>
-                          <h.icon className="w-3 h-3" style={{ color: h.ok ? C.success : C.warning }} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium text-foreground truncate font-sora">{h.label}</p>
-                          <div className="flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: h.ok ? C.success : C.warning, boxShadow: `0 0 4px ${h.ok ? C.success : C.warning}` }} />
-                            <p className="text-[8px] font-semibold font-sora" style={{ color: h.ok ? C.success : C.warning }}>{h.status}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </Widget>
-              </motion.div>
-
-              {/* Top Wallets Leaderboard + Hourly Traffic Heatmap */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Top Wallets */}
-                <Widget glow>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
-                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.primary}12`, border: `1px solid ${C.primary}20` }}>
-                        <Trophy className="w-4 h-4" style={{ color: C.primary }} />
-                      </div>
-                      Top Wallets by Balance
-                    </h3>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate("/admin/wallets")} className="text-[11px] font-medium text-primary px-3 py-1.5 rounded-[10px] bg-primary/[0.06] font-sora">
-                      View All <ArrowUpRight className="w-3 h-3 inline" />
-                    </motion.button>
-                  </div>
-                  {stats.topUsers.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/40 text-center py-8 font-sora">No wallet data yet</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {stats.topUsers.map((u, i) => {
-                        const rankColors = [C.primary, C.secondary, "#cd7f32", "#94a3b8", "#94a3b8"];
-                        const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
-                        const maxBal = Math.max(...stats.topUsers.map(t => t.volume), 1);
-                        return (
-                          <motion.div
-                            key={`${u.name}-${i}`}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 + i * 0.06 }}
-                            className="relative flex items-center gap-3 p-3 rounded-[12px] bg-muted/10 border border-border/20 overflow-hidden"
-                          >
-                            <div className="absolute inset-y-0 left-0 rounded-[12px]" style={{
-                              width: `${(u.volume / maxBal) * 100}%`,
-                              background: `linear-gradient(90deg, ${rankColors[i]}10, transparent)`,
-                            }} />
-                            <div className="relative w-8 h-8 rounded-[10px] flex items-center justify-center text-sm font-bold shrink-0" style={{ background: `${rankColors[i]}18`, color: rankColors[i] }}>
-                              {rankIcon}
-                            </div>
-                            <div className="relative flex-1 min-w-0">
-                              <p className="text-[12px] font-medium text-foreground truncate font-sora">{u.name}</p>
-                              <p className="text-[9px] text-muted-foreground/40 font-sora">Wallet balance</p>
-                            </div>
-                            <p className="relative text-[13px] font-bold font-mono" style={{ color: rankColors[i] }}>{fmtAmt(u.volume)}</p>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </Widget>
-
-                {/* Hourly Traffic Heatmap */}
-                <Widget glow>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground font-sora">
-                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}20` }}>
-                        <Activity className="w-4 h-4" style={{ color: C.cyan }} />
-                      </div>
-                      Hourly Traffic
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/10 font-mono" style={{ color: C.cyan }}>24H</span>
-                    </h3>
-                    <span className="text-[10px] text-muted-foreground/40 font-mono">{hourlyTraffic.reduce((s, h) => s + h.count, 0)} txns</span>
-                  </div>
-                  {(() => {
-                    const max = Math.max(...hourlyTraffic.map(h => h.count), 1);
-                    const peakHour = hourlyTraffic.reduce((a, b) => b.count > a.count ? b : a, hourlyTraffic[0] || { hour: 0, count: 0 });
-                    return (
-                      <>
-                        <div className="grid grid-cols-12 gap-1 mb-3">
-                          {hourlyTraffic.map((h) => {
-                            const intensity = h.count / max;
-                            const isPeak = h.count > 0 && h.count === peakHour.count;
-                            return (
-                              <motion.div
-                                key={h.hour}
-                                initial={{ scale: 0.6, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: h.hour * 0.015, type: "spring" as const, stiffness: 280, damping: 20 }}
-                                className="aspect-square rounded-[6px] flex items-center justify-center text-[8px] font-mono font-bold relative group cursor-pointer"
-                                style={{
-                                  background: h.count === 0
-                                    ? "rgba(255,255,255,0.03)"
-                                    : `rgba(200,149,46,${0.15 + intensity * 0.55})`,
-                                  border: isPeak ? `1px solid ${C.primary}` : "1px solid rgba(200,149,46,0.05)",
-                                  color: intensity > 0.5 ? "#fff" : "rgba(255,255,255,0.4)",
-                                  boxShadow: isPeak ? `0 0 12px ${C.primary}50` : undefined,
-                                }}
-                                title={`${h.hour}:00 — ${h.count} txns`}
-                              >
-                                {h.hour}
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] font-sora">
-                          <span className="text-muted-foreground/40">00h</span>
-                          <span className="text-primary font-semibold">Peak: {peakHour.hour}:00 ({peakHour.count})</span>
-                          <span className="text-muted-foreground/40">23h</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-3 text-[9px] text-muted-foreground/40 font-sora">
-                          <span>Less</span>
-                          <div className="flex gap-0.5">
-                            {[0.05, 0.2, 0.4, 0.6, 0.75].map((o, i) => (
-                              <div key={i} className="w-3 h-3 rounded-[3px]" style={{ background: `rgba(200,149,46,${o})` }} />
-                            ))}
-                          </div>
-                          <span>More</span>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </Widget>
-              </motion.div>
-            </motion.div>
-          )}
-
-          {/* ══════ ANALYTICS ══════ */}
-          {activeTab === "analytics" && (
-            <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              <motion.div variants={staggerParent} initial="hidden" animate="show">
-                <Widget highlight glow>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-5 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-primary/10 border border-primary/20">
-                      <Gauge className="w-4 h-4 text-primary" />
-                    </div>
-                    Performance Metrics
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 justify-items-center">
-                    <PerformanceGauge value={stats.successRate} label="Success" color={C.success} />
-                    <PerformanceGauge value={100 - failureRate} label="Reliability" color={C.info} />
-                    <PerformanceGauge value={stats.activeWallets > 0 ? Math.min(Math.round((stats.totalTransactionsAll / stats.activeWallets) * 10), 100) : 0} label="Engagement" color={C.primary} />
-                    <PerformanceGauge value={stats.totalUsers > 0 ? Math.min(Math.round((stats.activeWallets / stats.totalUsers) * 100), 100) : 0} label="Adoption" color={C.secondary} />
-                  </div>
-                </Widget>
-              </motion.div>
-
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Widget glow>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}20` }}>
-                      <BarChart3 className="w-4 h-4" style={{ color: C.cyan }} />
-                    </div>
-                    Daily Transaction Count
-                  </h3>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={dailyVolume} barCategoryGap="15%">
-                      <defs>
-                        <linearGradient id="countBarGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.cyan} stopOpacity={0.8} />
-                          <stop offset="100%" stopColor={C.cyan} stopOpacity={0.15} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.05)" />
-                      <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar dataKey="count" fill="url(#countBarGrad)" radius={[6, 6, 2, 2]} animationDuration={1200} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Widget>
-
-                <Widget glow>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-success/10 border border-success/20">
-                      <TrendingUp className="w-4 h-4 text-success" />
-                    </div>
-                    Volume Trend
-                  </h3>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={dailyVolume}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,149,46,0.05)" />
-                      <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} width={35} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Line type="monotone" dataKey="volume" stroke={C.success} strokeWidth={2.5} dot={{ r: 2.5, fill: C.success, strokeWidth: 0 }} activeDot={{ r: 5, fill: C.success, stroke: "#0a0c0f", strokeWidth: 2 }} animationDuration={1500} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Widget>
-              </motion.div>
-
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Total Volume" value={fmtAmt(stats.totalVolume)} icon={DollarSign} color={C.primary} />
-                <StatCard label="All Transactions" value={stats.totalTransactionsAll} icon={ArrowLeftRight} color={C.cyan} />
-                <StatCard label="Savings Goals" value={stats.totalSavingsGoals} icon={PiggyBank} color={C.success} onClick={() => navigate("/admin/savings-oversight")} />
-                <StatCard label="Pending Chores" value={stats.totalChores} icon={Award} color={C.warning} />
-              </motion.div>
-            </motion.div>
-          )}
-
-          {/* ══════ OPERATIONS ══════ */}
-          {activeTab === "operations" && (
-            <motion.div key="operations" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Frozen Wallets" value={stats.frozenWallets} icon={AlertTriangle} color={C.danger} onClick={() => navigate("/admin/wallets")} />
-                <StatCard label="Active Wallets" value={stats.activeWallets} icon={Wallet} color={C.success} />
-                <StatCard label="Parent-Teen" value={stats.activeLinks} icon={Users} color={C.info} onClick={() => navigate("/admin/parent-links")} />
-                <StatCard label="Open Tickets" value={stats.openTickets} icon={Heart} color={stats.openTickets > 5 ? C.danger : C.success} onClick={() => navigate("/admin/support")} />
-              </motion.div>
-
-              <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Timeline */}
-                <Widget glow>
-                  <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-primary/10 border border-primary/20">
-                      <Clock className="w-4 h-4 text-primary" />
-                    </div>
-                    Activity Timeline
-                  </h3>
-                  <div className="space-y-0 max-h-[360px] overflow-y-auto">
-                    {liveTxns.slice(0, 10).map((tx, i) => {
-                      const timeAgo = tx.created_at ? (() => {
-                        const diff = Date.now() - new Date(tx.created_at).getTime();
-                        if (diff < 60000) return "Just now";
-                        if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
-                        return `${Math.round(diff / 3600000)}h ago`;
-                      })() : "—";
-                      return (
-                        <motion.div
-                          key={tx.id}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.04 }}
-                          className="flex gap-3 relative pl-6 py-3"
-                        >
-                          <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/20" style={{ display: i < 9 ? "block" : "none" }} />
-                          <div className="absolute left-[6px] top-4 w-[12px] h-[12px] rounded-full" style={{
-                            background: `${tx.status === "success" ? C.success : tx.status === "failed" ? C.danger : C.warning}20`,
-                            border: `2px solid ${tx.status === "success" ? C.success : tx.status === "failed" ? C.danger : C.warning}`,
-                          }} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="text-[11px] font-medium text-foreground font-sora">{tx.type === "credit" ? "Credit" : "Debit"} · {tx.merchant_name || "Transaction"}</p>
-                              <span className="text-[10px] text-muted-foreground/40 font-sora">{timeAgo}</span>
-                            </div>
-                            <p className="text-[10px] mt-0.5 text-muted-foreground/40 font-sora">
-                              <span className="font-mono">{fmtAmt(tx.amount)}</span> · {tx.category || "—"} ·
-                              <span style={{ color: tx.status === "success" ? C.success : tx.status === "failed" ? C.danger : C.warning }}> {tx.status}</span>
-                            </p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </Widget>
-
-                {/* Operations Hub */}
-                <div className="space-y-4">
-                  <motion.div variants={staggerChild}>
-                    <Widget>
-                      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                        <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${C.secondary}12`, border: `1px solid ${C.secondary}20` }}>
-                          <Rocket className="w-4 h-4" style={{ color: C.secondary }} />
-                        </div>
-                        Operations Hub
-                      </h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { label: "Spending Limits", desc: "Set & manage", icon: Target, path: "/admin/spending-limits", color: C.warning },
-                          { label: "Pocket Money", desc: "Schedules", icon: Calendar, path: "/admin/pocket-money", color: C.success },
-                          { label: "Refunds", desc: "Disputes", icon: RefreshCw, path: "/admin/refunds", color: C.danger },
-                          { label: "Audit Logs", desc: "Admin activity", icon: Eye, path: "/admin/audit-log", color: C.info },
-                          { label: "Payouts", desc: "Settlements", icon: DollarSign, path: "/admin/payouts", color: C.primary },
-                          { label: "API Health", desc: "Services", icon: Server, path: "/admin/health", color: C.cyan },
-                        ].map(op => (
-                          <motion.button
-                            key={op.label}
-                            whileTap={{ scale: 0.96 }}
-                            whileHover={{ y: -1 }}
-                            onClick={() => navigate(op.path)}
-                            className="flex items-center gap-3 p-3 rounded-[12px] bg-muted/10 border border-border/20 text-left hover:border-primary/20 transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${op.color}12` }}>
-                              <op.icon className="w-4 h-4" style={{ color: op.color }} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-medium text-foreground font-sora">{op.label}</p>
-                              <p className="text-[9px] text-muted-foreground/40 font-sora">{op.desc}</p>
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </Widget>
-                  </motion.div>
-
-                  <motion.div variants={staggerChild}>
-                    <Widget>
-                      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4 text-foreground font-sora">
-                        <div className="w-8 h-8 rounded-[10px] flex items-center justify-center bg-info/10 border border-info/20">
-                          <MonitorSmartphone className="w-4 h-4" style={{ color: C.info }} />
-                        </div>
-                        Platform Snapshot
-                      </h3>
-                      <div className="space-y-3">
-                        {[
-                          { label: "Total Users", value: stats.totalUsers, color: C.info },
-                          { label: "Active Wallets", value: stats.activeWallets, color: C.success },
-                          { label: "KYC Completion", value: `${stats.totalUsers > 0 ? Math.round(((stats.totalUsers - stats.pendingKyc) / stats.totalUsers) * 100) : 0}%`, color: C.primary },
-                          { label: "Parent-Teen Coverage", value: `${stats.activeLinks} linked`, color: C.secondary },
-                        ].map(item => (
-                          <div key={item.label} className="flex items-center justify-between py-2 px-1 border-b border-border/10">
-                            <span className="text-[11px] text-muted-foreground/60 font-sora">{item.label}</span>
-                            <span className="text-[12px] font-bold font-mono" style={{ color: item.color }}>
-                              {typeof item.value === "number" ? item.value.toLocaleString("en-IN") : item.value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </Widget>
-                  </motion.div>
+            <div className="max-h-[420px] overflow-y-auto">
+              {visibleFeed.length === 0 ? (
+                <div className="py-12 text-center text-[11px] text-white/30 font-sora">
+                  {filterDate ? `No transactions on ${filterDate}.` : "Waiting for activity…"}
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              ) : visibleFeed.map((t, i) => {
+                const w = wallets.find((w) => w.id === t.wallet_id);
+                const u = w ? users.find((u) => u.id === w.user_id) : null;
+                const flash = flashIds.has(t.id);
+                const method = t.merchant_upi_id ? "UPI" : t.razorpay_payment_id ? "Razorpay" : "Wallet";
+                const statusColor = t.status === "success" ? C.success : t.status === "failed" ? C.danger : C.warning;
+                const time = t.created_at
+                  ? new Date(t.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+                  : "—";
+                return (
+                  <div
+                    key={t.id + i}
+                    onClick={() => openTxnInPanel(t)}
+                    className="relative grid grid-cols-[80px_1fr_110px_1fr_80px_70px] gap-3 px-5 py-2.5 text-[11px] cursor-pointer transition-colors hover:bg-white/[0.02]"
+                    style={{
+                      background: i % 2 === 0 ? "rgba(255,255,255,0.005)" : "transparent",
+                      animation: flash ? "feed-row-in 0.5s cubic-bezier(0.22,1,0.36,1) both" : undefined,
+                    }}
+                  >
+                    {flash && (
+                      <span
+                        className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full"
+                        style={{ background: C.primary, boxShadow: `0 0 12px ${C.primary}`, animation: "feed-flash 1.4s ease-out forwards" }}
+                      />
+                    )}
+                    <span className="text-white/40 font-mono">{time}</span>
+                    <span className="text-white/80 truncate font-sora">{u?.full_name || "Unknown"}</span>
+                    <span className={`font-mono font-semibold ${t.type === "credit" ? "" : "text-white"}`} style={{ color: t.type === "credit" ? C.success : undefined }}>
+                      {t.type === "credit" ? "+" : "-"}{fmtPaise(t.amount || 0)}
+                    </span>
+                    <span className="text-white/60 truncate font-sora">{t.merchant_name || t.category || "—"}</span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full font-sora self-center justify-self-start" style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)" }}>{method}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider font-sora self-center justify-self-start" style={{ color: statusColor }}>{t.status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Widget>
+
+          {/* Quick actions */}
+          <div className="space-y-4">
+            {/* Pending KYC */}
+            <Widget>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 font-sora">
+                  <ShieldCheck className="w-4 h-4" style={{ color: C.warning }} />
+                  Pending KYC
+                </h3>
+                <button onClick={() => navigate("/admin/kyc")} className="text-[10px] font-medium" style={{ color: C.primary }}>
+                  All →
+                </button>
+              </div>
+              {pendingKyc.length === 0 ? (
+                <div className="text-center py-4">
+                  <CheckCircle2 className="w-6 h-6 mx-auto mb-1" style={{ color: C.success }} />
+                  <p className="text-[11px] text-white/40 font-sora">All clear</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {pendingKyc.map((kyc) => (
+                    <button
+                      key={kyc.id}
+                      onClick={() => openKycInPanel(kyc)}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-[10px] text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[10px] font-bold shrink-0" style={{ background: "rgba(245,158,11,0.12)", color: C.warning }}>
+                        {(kyc.aadhaar_name || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-white truncate font-sora">{kyc.aadhaar_name || "Unknown"}</p>
+                        <p className="text-[9px] text-white/40 font-sora">{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString("en-IN") : "—"}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Widget>
+
+            {/* Failed Txns */}
+            <Widget>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 font-sora">
+                  <AlertTriangle className="w-4 h-4" style={{ color: C.danger }} />
+                  Failed Transactions
+                </h3>
+                <button onClick={() => navigate("/admin/transactions")} className="text-[10px] font-medium" style={{ color: C.primary }}>
+                  All →
+                </button>
+              </div>
+              {recentFailed.length === 0 ? (
+                <div className="text-center py-4">
+                  <CheckCircle2 className="w-6 h-6 mx-auto mb-1" style={{ color: C.success }} />
+                  <p className="text-[11px] text-white/40 font-sora">No failures</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {recentFailed.map((tx) => (
+                    <button
+                      key={tx.id}
+                      onClick={() => openTxnInPanel(tx)}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-[10px] text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.12)" }}>
+                        <XCircle className="w-3.5 h-3.5" style={{ color: C.danger }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-white truncate font-sora">{tx.merchant_name || "Unknown"}</p>
+                        <p className="text-[9px] text-white/40 font-mono">{fmtPaise(tx.amount || 0)} · {tx.created_at ? new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Widget>
+
+            {/* System Health */}
+            <Widget>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 font-sora">
+                  <Server className="w-4 h-4" style={{ color: C.success }} />
+                  System Health
+                </h3>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full font-sora" style={{ background: "rgba(34,197,94,0.1)", color: C.success }}>OK</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Database", icon: Database, ok: true },
+                  { label: "Auth", icon: ShieldCheck, ok: true },
+                  { label: "Payments", icon: Globe, ok: true },
+                  { label: "Realtime", icon: Wifi, ok: true },
+                ].map((h) => (
+                  <div key={h.label} className="flex items-center gap-1.5 p-2 rounded-[8px]" style={{ background: "rgba(34,197,94,0.04)" }}>
+                    <h.icon className="w-3 h-3" style={{ color: C.success }} />
+                    <span className="text-[10px] text-white/70 font-sora flex-1 truncate">{h.label}</span>
+                    <span className="w-1 h-1 rounded-full" style={{ background: C.success, boxShadow: `0 0 4px ${C.success}` }} />
+                  </div>
+                ))}
+              </div>
+            </Widget>
+
+            {/* Top Merchant */}
+            <Widget>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 font-sora">
+                  <Trophy className="w-4 h-4" style={{ color: C.primary }} />
+                  Top Merchant Today
+                </h3>
+              </div>
+              {topMerchant ? (
+                <div className="rounded-[12px] p-3 border" style={{ background: "rgba(200,149,46,0.04)", borderColor: "rgba(200,149,46,0.18)" }}>
+                  <p className="text-[13px] font-semibold text-white font-sora truncate">{topMerchant.name}</p>
+                  <p className="text-[18px] font-bold font-mono text-white mt-1">{fmtPaise(topMerchant.volume)}</p>
+                  <p className="text-[10px] text-white/40 font-sora mt-0.5">{topMerchant.count} successful transaction{topMerchant.count === 1 ? "" : "s"}</p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-white/30 text-center py-4 font-sora">No merchant data yet</p>
+              )}
+            </Widget>
+          </div>
+        </div>
       </div>
-      <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+
+      {/* keyframes scoped for this page */}
+      <style>{`
+        @keyframes kpi-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes feed-row-in { 0% { opacity: 0; transform: translateY(-12px); background: rgba(200,149,46,0.08); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes feed-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes shimmer-card { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+      `}</style>
     </AdminLayout>
   );
 };
+
+const DetailRow = ({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) => (
+  <div className="flex items-start justify-between gap-3">
+    <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora shrink-0 pt-0.5">{label}</span>
+    <span className={`text-[12px] text-white text-right ${mono ? "font-mono break-all" : "font-sora"}`}>{value}</span>
+  </div>
+);
 
 export default AdminDashboard;
