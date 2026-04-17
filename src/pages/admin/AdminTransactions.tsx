@@ -5,9 +5,10 @@ import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import {
   Search, Download, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, XCircle,
   SlidersHorizontal, Copy, Check, Flag, RefreshCcw, AlertTriangle, ChevronDown,
-  Radio, Play
+  Radio, Play, MessageSquareWarning
 } from "lucide-react";
 import { toast } from "sonner";
+import RequestInfoModal from "@/components/admin/RequestInfoModal";
 
 interface Transaction {
   id: string;
@@ -47,6 +48,7 @@ const AdminTransactions = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
   const [realtimeOn, setRealtimeOn] = useState(true);
+  const [infoTarget, setInfoTarget] = useState<Transaction | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -266,7 +268,7 @@ const AdminTransactions = () => {
     show({
       title: "Transaction Detail",
       subtitle: t.id.slice(0, 16) + "…",
-      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} onRetry={retryTransaction} />,
+      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} onRetry={retryTransaction} onRequestInfo={() => { setInfoTarget(t); hide(); }} />,
     });
   };
 
@@ -479,6 +481,17 @@ const AdminTransactions = () => {
           </div>
         </div>
       </div>
+
+      <RequestInfoModal
+        open={!!infoTarget}
+        onClose={() => setInfoTarget(null)}
+        targetUserId={infoTarget ? wallets[infoTarget.wallet_id]?.user_id || "" : ""}
+        targetName={infoTarget ? wallets[infoTarget.wallet_id]?.full_name || null : null}
+        targetType="transaction"
+        targetId={infoTarget?.id || ""}
+        notificationTitle="ℹ️ More info needed about a transaction"
+        auditAction="transaction_request_more_info"
+      />
     </AdminLayout>
   );
 };
@@ -499,7 +512,7 @@ const FilterChips = ({ label, options, selected, onToggle }: { label: string; op
 
 /* ───────────────────────── Detail Panel ───────────────────────── */
 const DetailPanel = ({
-  t, wallet, all, onFlag, onRefund, onRetry,
+  t, wallet, all, onFlag, onRefund, onRetry, onRequestInfo,
 }: {
   t: Transaction;
   wallet?: WalletInfo;
@@ -507,6 +520,7 @@ const DetailPanel = ({
   onFlag: (t: Transaction) => void;
   onRefund: (t: Transaction) => void;
   onRetry: (t: Transaction) => void;
+  onRequestInfo: () => void;
 }) => {
   const [showJSON, setShowJSON] = useState(false);
   const canRetry = t.status === "failed" || t.status === "pending";
@@ -626,6 +640,9 @@ const DetailPanel = ({
           <Flag className="w-3.5 h-3.5" /> Flag
         </button>
       </div>
+      <button onClick={onRequestInfo} disabled={!wallet?.user_id} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none">
+        <MessageSquareWarning className="w-3.5 h-3.5" /> Request more info from user
+      </button>
     </div>
   );
 };

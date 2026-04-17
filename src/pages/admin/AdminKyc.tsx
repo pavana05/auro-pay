@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
 import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
 import MaskedReveal from "@/components/admin/MaskedReveal";
+import RequestInfoModal from "@/components/admin/RequestInfoModal";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
   ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
-  Image as ImageIcon, Download, Loader2, Maximize2,
+  Image as ImageIcon, Download, Loader2, Maximize2, MessageSquareWarning,
 } from "lucide-react";
 
 const C = {
@@ -58,6 +59,7 @@ const AdminKyc = () => {
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
   const [rejectNote, setRejectNote] = useState("");
   const [detail, setDetail] = useState<KycRow | null>(null);
+  const [infoTarget, setInfoTarget] = useState<KycRow | null>(null);
 
   // Bulk review
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -274,6 +276,7 @@ const AdminKyc = () => {
           onApprove={() => { setApproveTarget(r); ctxPanel.hide(); }}
           onReject={() => { setRejectTarget(r); ctxPanel.hide(); }}
           onMoveReview={() => moveToInReview(r)}
+          onRequestInfo={() => { setInfoTarget(r); ctxPanel.hide(); }}
         />
       ),
     });
@@ -535,6 +538,17 @@ const AdminKyc = () => {
         @keyframes scale-in { 0% { opacity: 0; transform: scale(0.96); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes card-in { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
+
+      <RequestInfoModal
+        open={!!infoTarget}
+        onClose={() => setInfoTarget(null)}
+        targetUserId={infoTarget?.user_id || ""}
+        targetName={infoTarget?.profile?.full_name || infoTarget?.aadhaar_name || null}
+        targetType="kyc"
+        targetId={infoTarget?.id || ""}
+        notificationTitle="ℹ️ More info needed for KYC"
+        auditAction="kyc_request_more_info"
+      />
     </AdminLayout>
   );
 };
@@ -701,7 +715,7 @@ const DetailRow = ({ icon: Icon, label, value, mono = false, last = false }: { i
 
 /* ─────────── Context-panel body ─────────── */
 const KycPanelBody = ({
-  r, maskAadhaar, fmtDate, fmtDateTime, queueTime, onApprove, onReject, onMoveReview,
+  r, maskAadhaar, fmtDate, fmtDateTime, queueTime, onApprove, onReject, onMoveReview, onRequestInfo,
 }: {
   r: KycRow;
   maskAadhaar: (n: string | null) => string;
@@ -711,6 +725,7 @@ const KycPanelBody = ({
   onApprove: () => void;
   onReject: () => void;
   onMoveReview: () => void;
+  onRequestInfo: () => void;
 }) => {
   const q = queueTime(r.submitted_at);
   const status = r.status || "pending";
@@ -747,20 +762,26 @@ const KycPanelBody = ({
 
       {/* Decision actions */}
       {canDecide && (
-        <div className="grid grid-cols-3 gap-2">
-          <button onClick={onApprove} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.success}10`, borderColor: `${C.success}25` }}>
-            <CheckCircle2 className="w-4 h-4" style={{ color: C.success }} />
-            <span className="text-[10px] font-semibold font-sora" style={{ color: C.success }}>Approve</span>
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={onApprove} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.success}10`, borderColor: `${C.success}25` }}>
+              <CheckCircle2 className="w-4 h-4" style={{ color: C.success }} />
+              <span className="text-[10px] font-semibold font-sora" style={{ color: C.success }}>Approve</span>
+            </button>
+            <button onClick={onReject} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.danger}10`, borderColor: `${C.danger}25` }}>
+              <XCircle className="w-4 h-4" style={{ color: C.danger }} />
+              <span className="text-[10px] font-semibold font-sora" style={{ color: C.danger }}>Reject</span>
+            </button>
+            <button onClick={onMoveReview} disabled={status === "in_review"} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: `${C.info}10`, borderColor: `${C.info}25` }}>
+              <Clock className="w-4 h-4" style={{ color: C.info }} />
+              <span className="text-[10px] font-semibold font-sora" style={{ color: C.info }}>In review</span>
+            </button>
+          </div>
+          <button onClick={onRequestInfo} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border transition-all hover:scale-[1.01] active:scale-95" style={{ background: `${C.primary}10`, borderColor: `${C.primary}30` }}>
+            <MessageSquareWarning className="w-3.5 h-3.5" style={{ color: C.primary }} />
+            <span className="text-[11px] font-semibold font-sora" style={{ color: C.primary }}>Request more info</span>
           </button>
-          <button onClick={onReject} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95" style={{ background: `${C.danger}10`, borderColor: `${C.danger}25` }}>
-            <XCircle className="w-4 h-4" style={{ color: C.danger }} />
-            <span className="text-[10px] font-semibold font-sora" style={{ color: C.danger }}>Reject</span>
-          </button>
-          <button onClick={onMoveReview} disabled={status === "in_review"} className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: `${C.info}10`, borderColor: `${C.info}25` }}>
-            <Clock className="w-4 h-4" style={{ color: C.info }} />
-            <span className="text-[10px] font-semibold font-sora" style={{ color: C.info }}>In review</span>
-          </button>
-        </div>
+        </>
       )}
 
       {/* Aadhaar document preview */}
