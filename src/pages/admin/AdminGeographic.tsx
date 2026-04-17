@@ -488,9 +488,10 @@ const AdminGeographic = () => {
                         onMouseLeave={() => setHoverState(null)}
                         className={`border-b border-white/[0.03] transition-colors cursor-pointer ${isHover ? "bg-primary/[0.06]" : "hover:bg-white/[0.02]"}`}>
                         <td className="py-2.5 px-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ background: colorFor(s.users) }} />
-                            <span className="font-medium">{s.node.name}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: colorFor(s.users) }} />
+                            <span className="font-medium truncate">{s.node.name}</span>
+                            <TrustBadge manual={s.manual} inferred={s.inferred} unknown={s.unknown} />
                           </div>
                         </td>
                         <td className="py-2.5 px-2 text-right font-mono">{s.users}</td>
