@@ -4,9 +4,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
-import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
 import MaskedReveal from "@/components/admin/MaskedReveal";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download, CreditCard } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -45,8 +44,6 @@ const AdminWallets = () => {
   const [tab, setTab] = useState<"all" | "frozen">("all");
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
-  const [fundsModal, setFundsModal] = useState<{ wallet: WalletRow; mode: "add" | "deduct" } | null>(null);
-  const [debitConfirm, setDebitConfirm] = useState<WalletRow | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -134,8 +131,6 @@ const AdminWallets = () => {
       body: (
         <WalletPanelBody
           wallet={w}
-          onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
-          onDeduct={() => setDebitConfirm(w)}
           onFreeze={() => toggleFreeze(w)}
         />
       ),
@@ -278,14 +273,6 @@ const AdminWallets = () => {
                       </td>
                       <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => setFundsModal({ wallet: w, mode: "add" })}
-                            className="p-1.5 rounded-lg bg-success/10 hover:bg-success/20 border border-success/20 transition-all" title="Add funds">
-                            <Plus className="w-3.5 h-3.5 text-success" />
-                          </button>
-                          <button onClick={() => setFundsModal({ wallet: w, mode: "deduct" })}
-                            className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 transition-all" title="Deduct funds">
-                            <Minus className="w-3.5 h-3.5 text-destructive" />
-                          </button>
                           <button onClick={() => toggleFreeze(w)}
                             className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
                               w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
@@ -303,30 +290,6 @@ const AdminWallets = () => {
         </div>
       </div>
 
-      {fundsModal && (
-        <FundsModal
-          wallet={fundsModal.wallet}
-          mode={fundsModal.mode}
-          onClose={() => setFundsModal(null)}
-          onDone={() => { setFundsModal(null); fetchWallets(); }}
-        />
-      )}
-
-      <DestructiveConfirm
-        open={!!debitConfirm}
-        title="Force-debit wallet?"
-        warning={debitConfirm
-          ? `You are about to remove funds from ${debitConfirm.profile?.full_name || "this user"}'s wallet (current balance ${formatAmount(debitConfirm.balance || 0)}). This change is logged to the audit trail and cannot be undone without a manual credit.`
-          : ""}
-        confirmPhrase="DEBIT"
-        confirmLabel="Continue to debit form"
-        onCancel={() => setDebitConfirm(null)}
-        onConfirm={() => {
-          const w = debitConfirm!;
-          setDebitConfirm(null);
-          setFundsModal({ wallet: w, mode: "deduct" });
-        }}
-      />
     </AdminLayout>
   );
 };
@@ -367,112 +330,13 @@ const InlineCell = ({
   );
 };
 
-const FundsModal = ({
-  wallet, mode, onClose, onDone,
-}: {
-  wallet: WalletRow;
-  mode: "add" | "deduct";
-  onClose: () => void;
-  onDone: () => void;
-}) => {
-  const [amount, setAmount] = useState("");
-  const [reason, setReason] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const isAdd = mode === "add";
-
-  const submit = async () => {
-    const paise = Math.round(parseFloat(amount) * 100);
-    if (isNaN(paise) || paise <= 0) { toast.error("Enter a valid amount"); return; }
-    if (!reason.trim()) { toast.error("Reason is required"); return; }
-    if (confirm !== "CONFIRM") { toast.error("Type CONFIRM to proceed"); return; }
-    if (!isAdd && (wallet.balance || 0) < paise) { toast.error("Insufficient balance"); return; }
-
-    setLoading(true);
-    const newBalance = (wallet.balance || 0) + (isAdd ? paise : -paise);
-    const { error: wErr } = await supabase.from("wallets").update({ balance: newBalance }).eq("id", wallet.id);
-    if (wErr) { toast.error(wErr.message); setLoading(false); return; }
-
-    await supabase.from("transactions").insert({
-      wallet_id: wallet.id,
-      type: isAdd ? "credit" : "debit",
-      amount: paise,
-      status: "success",
-      category: "admin_manual",
-      description: `Admin ${isAdd ? "credit" : "debit"}: ${reason}`,
-    });
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("audit_logs").insert({
-        admin_user_id: user.id,
-        action: isAdd ? "wallet_funds_added" : "wallet_funds_deducted",
-        target_type: "wallet",
-        target_id: wallet.id,
-        details: { amount: paise, reason, user: wallet.profile?.full_name, old_balance: wallet.balance, new_balance: newBalance },
-      });
-    }
-
-    toast.success(`${isAdd ? "Credited" : "Debited"} ${formatAmount(paise)}`);
-    setLoading(false);
-    onDone();
-  };
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: "rgba(5,6,9,0.7)", backdropFilter: "blur(8px)", animation: "fade-in 0.2s ease-out" }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md p-6 rounded-2xl bg-card border border-white/[0.06] shadow-2xl"
-        style={{ animation: "slide-up-spring 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}>
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h3 className="text-lg font-bold">{isAdd ? "Add Funds" : "Deduct Funds"}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{wallet.profile?.full_name} • Balance {formatAmount(wallet.balance || 0)}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.05]"><X className="w-4 h-4" /></button>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount (₹)</label>
-            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500" autoFocus
-              className="mt-1 w-full h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 text-sm focus:outline-none focus:border-primary/40" />
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Reason (logged to audit)</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
-              placeholder={isAdd ? "Refund for failed transaction…" : "Chargeback recovery…"}
-              className="mt-1 w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2 text-sm focus:outline-none focus:border-primary/40 resize-none" />
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Type CONFIRM to proceed</label>
-            <input value={confirm} onChange={(e) => setConfirm(e.target.value.toUpperCase())} placeholder="CONFIRM"
-              className="mt-1 w-full h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 text-sm font-mono focus:outline-none focus:border-primary/40" />
-          </div>
-        </div>
-
-        <div className="flex gap-2 mt-6">
-          <button onClick={onClose} className="flex-1 h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06]">Cancel</button>
-          <button onClick={submit} disabled={loading || confirm !== "CONFIRM"}
-            className={`flex-1 h-11 rounded-xl text-sm font-semibold transition-all ${
-              isAdd ? "bg-success/15 text-success border border-success/30 hover:bg-success/25" : "bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25"
-            } disabled:opacity-40 disabled:cursor-not-allowed`}>
-            {loading ? "Processing…" : isAdd ? "Add Funds" : "Deduct Funds"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 /* ─────────── Wallet context-panel body ─────────── */
 const G = { primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", danger: "#ef4444", info: "#3b82f6", cyan: "#06b6d4" };
 
 const WalletPanelBody = ({
-  wallet, onAdd, onDeduct, onFreeze,
+  wallet, onFreeze,
 }: {
   wallet: WalletRow;
-  onAdd: () => void;
-  onDeduct: () => void;
   onFreeze: () => void;
 }) => {
   const [recentTx, setRecentTx] = useState<any[]>([]);
@@ -521,10 +385,8 @@ const WalletPanelBody = ({
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-2">
-        <ActionBtn icon={Plus} label="Add" color={G.success} onClick={onAdd} />
-        <ActionBtn icon={Minus} label="Deduct" color={G.danger} onClick={onDeduct} />
-        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze" : "Freeze"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+      <div className="grid grid-cols-1 gap-2">
+        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
       </div>
 
       {/* Limits with progress */}
