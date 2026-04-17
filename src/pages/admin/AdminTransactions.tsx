@@ -49,6 +49,7 @@ const AdminTransactions = () => {
   const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
   const [realtimeOn, setRealtimeOn] = useState(true);
   const [infoTarget, setInfoTarget] = useState<Transaction | null>(null);
+  const [refundTarget, setRefundTarget] = useState<Transaction | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -229,23 +230,25 @@ const AdminTransactions = () => {
     toast.success("Transaction flagged for review");
   };
 
-  const refundTransaction = async (t: Transaction) => {
-    if (!confirm(`Refund ${formatAmount(t.amount)}? This will credit the user wallet.`)) return;
-    const { error } = await supabase.from("transactions").insert({
-      wallet_id: t.wallet_id,
-      type: "credit",
-      amount: t.amount,
-      status: "success",
-      category: "refund",
-      description: `Admin refund for ${t.id}`,
-    });
-    if (error) {
-      toast.error(error.message);
+  // Refund: opens typed-CONFIRM modal; the modal calls the admin-refund-transaction edge fn.
+  const refundTransaction = (t: Transaction) => {
+    if (t.status !== "success") {
+      toast.error("Only successful transactions can be refunded");
       return;
     }
-    await logAudit("transaction_refunded", t);
-    toast.success("Refund issued");
+    if (t.type === "credit") {
+      toast.error("Cannot refund a credit transaction");
+      return;
+    }
+    setRefundTarget(t);
     hide();
+  };
+
+  const onRefundComplete = (txId: string) => {
+    // Refresh: mark refunded visually by refetching that transaction's wallet activity is enough
+    // (the refund row will appear via realtime). We'll also pull the latest status quickly.
+    setRefundTarget(null);
+    toast.success("Refund issued");
   };
 
   const retryTransaction = async (t: Transaction) => {
