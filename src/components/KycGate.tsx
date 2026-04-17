@@ -564,8 +564,39 @@ const AadhaarCard = ({ maskedNumber, name, flipped = false, verified = false }: 
 /* ======================== TUNNEL STAGE ======================== */
 
 const TunnelStage = ({ starting }: { starting: boolean }) => {
+  const audioRef = useRef<TunnelAudio | null>(null);
+  const [muted, setMuted] = useState<boolean>(getTunnelMuted());
+
+  useEffect(() => {
+    const a = createTunnelAudio();
+    audioRef.current = a;
+    a.start();
+    return () => { a.stop(); audioRef.current = null; };
+  }, []);
+
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    audioRef.current?.setMuted(next);
+    haptic.light();
+  };
+
   return (
-    <div className="pt-6 flex flex-col items-center text-center">
+    <div className="pt-6 flex flex-col items-center text-center relative">
+      {/* Mute toggle */}
+      <button
+        onClick={toggleMute}
+        aria-label={muted ? "Unmute tunnel sound" : "Mute tunnel sound"}
+        className="absolute top-0 right-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+        style={{
+          background: "hsl(0 0% 100% / 0.04)",
+          border: "1px solid hsl(0 0% 100% / 0.08)",
+          color: muted ? "hsl(0 0% 100% / 0.4)" : "hsl(42 90% 70%)",
+        }}
+      >
+        {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+      </button>
+
       <div className="text-[10px] font-bold tracking-[0.25em] mb-2" style={{ color: "hsl(42 90% 70%)" }}>
         STEP 2 OF 2
       </div>
