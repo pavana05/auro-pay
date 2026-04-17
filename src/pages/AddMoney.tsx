@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import { startRazorpayPayment } from "@/lib/razorpay";
 import { isAndroidNative, openUpiApp } from "@/lib/upi-intent";
+import KycGate from "@/components/KycGate";
 
 type Phase = "idle" | "processing" | "success";
 type Method = "upi" | "card" | "netbanking";
