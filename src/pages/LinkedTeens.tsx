@@ -128,13 +128,7 @@ const LinkedTeens = () => {
         is_active: true,
       });
       if (error) throw error;
-      // Notify the teen in real-time via notifications insert
-      await supabase.from("notifications").insert({
-        user_id: lookup.profile.id,
-        title: "Parent linked 🎉",
-        body: "Your parent just linked with you on AuroPay 🎉",
-        type: "parent_link",
-      });
+      // Teen is notified server-side via trg_notify_teen_on_parent_link trigger.
       toast.success(`Linked with ${lookup.profile.full_name || "teen"}`);
       await loadLinks(userId);
       closeSheet();
