@@ -12,6 +12,12 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // Emergency freeze check
+    const { data: freezeRow } = await supabase.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
+    if (freezeRow?.value === "true") {
+      return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { order_id, payment_id, signature } = await req.json();
     if (!order_id) return new Response(JSON.stringify({ error: "Missing order_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
