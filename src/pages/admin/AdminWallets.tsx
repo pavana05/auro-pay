@@ -524,10 +524,12 @@ const InlineCell = ({
 const G = { primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", danger: "#ef4444", info: "#3b82f6", cyan: "#06b6d4" };
 
 const WalletPanelBody = ({
-  wallet, onFreeze,
+  wallet, onFreeze, fraudFlagId, onUnlockAccount,
 }: {
   wallet: WalletRow;
   onFreeze: () => void;
+  fraudFlagId?: string | null;
+  onUnlockAccount?: () => void;
 }) => {
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
