@@ -72,6 +72,7 @@ const AdminAuditLog = () => {
   const [detailOf, setDetailOf] = useState<AuditEntry | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [forceActionsOnly, setForceActionsOnly] = useState(false);
+  const [unlocksOnly, setUnlocksOnly] = useState(false);
 
   const fetchLogs = async () => {
     setLoading(true);
