@@ -5,7 +5,7 @@ import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
 import MaskedReveal from "@/components/admin/MaskedReveal";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard, ChevronDown } from "lucide-react";
 import ForceActionConfirmModal, { type ForceActionPayload } from "@/components/admin/ForceActionConfirmModal";
 
 const FORCE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 — must match the edge function
@@ -378,6 +378,7 @@ const WalletPanelBody = ({
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [auditEntries, setAuditEntries] = useState<any[]>([]);
+  const [auditOpen, setAuditOpen] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -494,20 +495,42 @@ const WalletPanelBody = ({
         </div>
       </div>
 
-      {/* Audit log */}
-      {auditEntries.length > 0 && (
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora mb-2 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Recent admin actions</p>
-          <div className="space-y-1 max-h-[160px] overflow-y-auto">
-            {auditEntries.map((a) => (
-              <div key={a.id} className="p-2 rounded-lg text-[10px]" style={{ background: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/80 font-sora">{a.action.replace(/_/g, " ")}</p>
-                <p className="text-white/40 font-mono">{new Date(a.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Audit log — always visible collapsible, even when empty */}
+      <div>
+        <button
+          onClick={() => setAuditOpen((v) => !v)}
+          className="w-full flex items-center justify-between text-[10px] uppercase tracking-wider text-white/40 font-sora mb-2 hover:text-white/70 transition-colors"
+        >
+          <span className="flex items-center gap-1.5">
+            <FileText className="w-3 h-3" /> Recent admin actions on this wallet
+            <span className="text-white/30 normal-case tracking-normal">({auditEntries.length})</span>
+          </span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${auditOpen ? "rotate-180" : ""}`} />
+        </button>
+        {auditOpen && (
+          auditEntries.length === 0 ? (
+            <div className="p-3 rounded-lg text-[11px] text-white/40 text-center" style={{ background: "rgba(255,255,255,0.015)" }}>
+              No admin actions logged for this wallet yet.
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {auditEntries.map((a) => (
+                <div key={a.id} className="p-2 rounded-lg text-[10px]" style={{ background: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/80 font-sora capitalize">{String(a.action || "").replace(/_/g, " ")}</p>
+                  <p className="text-white/40 font-mono">{new Date(a.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                  {a.details && typeof a.details === "object" && (a.details.reason || a.details.amount_paise) && (
+                    <p className="text-white/50 font-sora mt-1 truncate">
+                      {a.details.amount_paise ? `₹${(Number(a.details.amount_paise) / 100).toLocaleString("en-IN")}` : ""}
+                      {a.details.amount_paise && a.details.reason ? " · " : ""}
+                      {a.details.reason || ""}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 };
