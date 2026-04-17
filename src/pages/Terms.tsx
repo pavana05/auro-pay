@@ -20,20 +20,20 @@ const Terms = () => {
       <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-card border border-border">
         <ScrollText className="w-4 h-4 text-primary" />
         <p className="text-[11px] text-muted-foreground">
-          Governing law: India · Jurisdiction: courts at <b>[JURISDICTION_CITY]</b>
+          Governing law: India · Jurisdiction: courts at <b>Bengaluru</b>
         </p>
       </div>
 
       <article className="prose prose-invert max-w-none text-sm leading-relaxed space-y-5 text-muted-foreground">
         <p className="text-xs">
-          <b>Effective date:</b> [EFFECTIVE_DATE] · <b>Last updated:</b> [LAST_UPDATED_DATE]
+          <b>Effective date:</b> 2026-04-17 · <b>Last updated:</b> 2026-04-17
         </p>
 
         <section>
           <h2 className="text-base font-semibold text-foreground">1. Acceptance of terms</h2>
           <p>
             These Terms of Service ("Terms") form a legally binding agreement between you
-            and <b>[COMPANY_NAME]</b> ("AuroPay", "we") governing your use of the AuroPay
+            and <b>Auro Technologies Pvt. Ltd.</b> ("AuroPay", "we") governing your use of the AuroPay
             mobile and web applications and any associated services (the "Service").
             By creating an account or using the Service, you agree to these Terms and to
             our <a href="/privacy" className="text-primary">Privacy Policy</a>.
@@ -134,8 +134,8 @@ const Terms = () => {
           <p>
             These Terms are governed by the laws of India. Any dispute will first be referred
             to our Grievance Officer (see Privacy Policy §10), then to arbitration in
-            <b> [JURISDICTION_CITY]</b> under the Arbitration and Conciliation Act, 1996,
-            and finally to the exclusive jurisdiction of the courts at <b>[JURISDICTION_CITY]</b>.
+            <b> Bengaluru</b> under the Arbitration and Conciliation Act, 1996,
+            and finally to the exclusive jurisdiction of the courts at <b>Bengaluru</b>.
           </p>
         </section>
 
@@ -151,8 +151,8 @@ const Terms = () => {
         <section>
           <h2 className="text-base font-semibold text-foreground">14. Contact</h2>
           <p>
-            <b>[COMPANY_NAME]</b>, <b>[REGISTERED_ADDRESS]</b><br />
-            Grievance Officer: <a className="text-primary" href="mailto:[GRIEVANCE_EMAIL]">[GRIEVANCE_EMAIL]</a> · [GRIEVANCE_PHONE]
+            <b>Auro Technologies Pvt. Ltd.</b>, <b>3CR5+736, Sadashiva Nagara, Nelamangala Town, Nagarur, Karnataka 562123</b><br />
+            Grievance Officer: <a className="text-primary" href="mailto:pavana25t@gmail.com">pavana25t@gmail.com</a> · +91 90360 48950
           </p>
         </section>
       </article>

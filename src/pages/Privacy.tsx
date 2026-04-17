@@ -35,15 +35,15 @@ const Privacy = () => {
 
       <article className="prose prose-invert max-w-none text-sm leading-relaxed space-y-5 text-muted-foreground">
         <p className="text-xs">
-          <b>Effective date:</b> [EFFECTIVE_DATE] · <b>Last updated:</b> [LAST_UPDATED_DATE]
+          <b>Effective date:</b> 2026-04-17 · <b>Last updated:</b> 2026-04-17
         </p>
 
         <section>
           <h2 className="text-base font-semibold text-foreground">1. Who we are</h2>
           <p>
-            This Privacy Policy describes how <b>[COMPANY_NAME]</b>
+            This Privacy Policy describes how <b>Auro Technologies Pvt. Ltd.</b>
             (operating the AuroPay app, "<b>AuroPay</b>", "we", "us") — a company
-            incorporated in India with registered office at <b>[REGISTERED_ADDRESS]</b>
+            incorporated in India with registered office at <b>3CR5+736, Sadashiva Nagara, Nelamangala Town, Nagarur, Karnataka 562123</b>
             — collects, uses, shares, and protects your personal data when you use
             our mobile and web applications (the "Service").
           </p>
@@ -165,11 +165,11 @@ const Privacy = () => {
         <section>
           <h2 className="text-base font-semibold text-foreground">10. Grievance Officer (DPDP Act + RBI)</h2>
           <div className="rounded-xl border border-border bg-card p-4 text-foreground space-y-1 text-sm">
-            <p><b>Name:</b> [GRIEVANCE_OFFICER_NAME]</p>
+            <p><b>Name:</b> Pavan A</p>
             <p><b>Designation:</b> Data Protection & Grievance Officer</p>
-            <p><b>Email:</b> <a className="text-primary" href="mailto:[GRIEVANCE_EMAIL]">[GRIEVANCE_EMAIL]</a></p>
-            <p><b>Phone:</b> [GRIEVANCE_PHONE]</p>
-            <p><b>Address:</b> [REGISTERED_ADDRESS]</p>
+            <p><b>Email:</b> <a className="text-primary" href="mailto:pavana25t@gmail.com">pavana25t@gmail.com</a></p>
+            <p><b>Phone:</b> +91 90360 48950</p>
+            <p><b>Address:</b> 3CR5+736, Sadashiva Nagara, Nelamangala Town, Nagarur, Karnataka 562123</p>
             <p className="text-xs text-muted-foreground pt-2">
               We acknowledge complaints within 48 hours and resolve within 30 days as
               required by RBI's Customer Grievance Redressal framework.
