@@ -375,7 +375,7 @@ const CreateView = ({ me, prefill, onCancel, onCreated }: {
           total_amount: totalPaise,
           created_by: me.id,
           status: "pending",
-          category: "other",
+          category: prefill?.category || "other",
         })
         .select().single();
       if (error || !split) throw error ?? new Error("Failed");
