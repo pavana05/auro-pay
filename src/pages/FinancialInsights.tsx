@@ -19,14 +19,15 @@ interface Tx {
 
 interface CatTotal { category: string; amount: number; pct: number; }
 
+// Gold-family palette + muted neutrals — no off-brand sky/blue/teal/rose accents.
 const CATEGORY_COLORS: Record<string, string> = {
-  food: "hsl(38 75% 58%)",
-  shopping: "hsl(280 60% 65%)",
-  transport: "hsl(200 70% 60%)",
-  entertainment: "hsl(340 70% 62%)",
-  bills: "hsl(160 55% 50%)",
-  education: "hsl(220 70% 65%)",
-  other: "hsl(220 10% 50%)",
+  food: "hsl(42 78% 55%)",       // primary gold
+  shopping: "hsl(32 70% 50%)",   // amber
+  transport: "hsl(48 60% 55%)",  // honey
+  entertainment: "hsl(20 65% 50%)", // copper
+  bills: "hsl(38 50% 45%)",      // bronze
+  education: "hsl(45 80% 60%)",  // light gold
+  other: "hsl(220 10% 50%)",     // muted neutral
 };
 const colorFor = (c: string) => CATEGORY_COLORS[c.toLowerCase()] ?? "hsl(45 80% 55%)";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -339,7 +340,7 @@ export default function FinancialInsights() {
                   <p className="text-sm font-semibold mt-0.5">Spending comparison</p>
                 </div>
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-mono font-semibold ${
-                  wowChangePct > 0 ? "bg-rose-500/10 text-rose-400" : "bg-emerald-500/10 text-emerald-400"
+                  wowChangePct > 0 ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-400"
                 }`}>
                   {wowChangePct > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {wowChangePct > 0 ? "+" : ""}{wowChangePct}%
@@ -365,7 +366,7 @@ export default function FinancialInsights() {
                 }}
               >
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  topCatChangePct > 0 ? "bg-rose-500/15 text-rose-400" : "bg-emerald-500/15 text-emerald-400"
+                  topCatChangePct > 0 ? "bg-destructive/15 text-destructive" : "bg-emerald-500/15 text-emerald-400"
                 }`}>
                   {topCatChangePct > 0 ? <AlertCircle className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                 </div>

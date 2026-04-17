@@ -8,7 +8,7 @@ import {
   ArrowLeft, Search, Plus, X, Send, Check, Shield, UserPlus, Loader2, Pencil, Delete,
   Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles, HandCoins,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
@@ -92,11 +92,21 @@ const Avatar = ({ name, size = 56, emoji }: AvatarProps) => {
 const SendMoney = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const incomingContact = (location.state as any)?.selectedContact as Favorite | undefined;
   const incomingMode = (location.state as any)?.mode as "send" | "request" | undefined;
 
+  // URL-param prefill (from Pay-again etc.) — `?amount=&name=&upi=&phone=&note=&category=&mode=`
+  const qpAmount = searchParams.get("amount");
+  const qpName = searchParams.get("name");
+  const qpUpi = searchParams.get("upi");
+  const qpPhone = searchParams.get("phone");
+  const qpNote = searchParams.get("note");
+  const qpCategory = searchParams.get("category");
+  const qpMode = searchParams.get("mode") as "send" | "request" | null;
+
   // Top-level mode: Send Money or Request Money
-  const [mode, setMode] = useState<"send" | "request">(incomingMode || "send");
+  const [mode, setMode] = useState<"send" | "request">(incomingMode || qpMode || "send");
 
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +158,37 @@ const SendMoney = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingContact]);
 
-  // Recents = top 5 by last_paid_at desc.
+  // If we arrived via URL params (e.g. /quick-pay?amount=&name=&upi=), pre-pick a transient
+  // recipient and prefill the amount/note/category. We try to match an existing favorite
+  // first (by upi or phone) so the recents card highlights correctly.
+  useEffect(() => {
+    if (recipient || loading) return;
+    if (!qpAmount && !qpName && !qpUpi && !qpPhone) return;
+
+    const matched = favorites.find(
+      f => (qpUpi && f.contact_upi_id === qpUpi) || (qpPhone && f.contact_phone === qpPhone)
+    );
+    const target: Favorite = matched || {
+      id: `transient-${Date.now()}`,
+      contact_name: qpName || qpUpi?.split("@")[0] || "Recipient",
+      contact_phone: qpPhone,
+      contact_upi_id: qpUpi,
+      avatar_emoji: "👤",
+      last_paid_at: null,
+    };
+    pickRecipient(target);
+    if (qpAmount) {
+      const cleaned = qpAmount.replace(/[^0-9]/g, "").slice(0, 7);
+      if (cleaned) setAmount(cleaned);
+    }
+    if (qpNote) setNote(qpNote.slice(0, 80));
+    if (qpCategory && CATEGORIES.some(c => c.key === qpCategory)) setCategory(qpCategory);
+
+    // Clear params so a back-out / refresh doesn't re-trigger.
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, favorites, qpAmount, qpName, qpUpi, qpPhone]);
+
   const recents = useMemo(() => {
     return [...favorites]
       .filter(f => !!f.last_paid_at)

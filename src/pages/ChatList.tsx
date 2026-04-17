@@ -223,7 +223,7 @@ const ChatList = () => {
                         {getInitials(c.name)}
                       </div>
                     )}
-                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-[2.5px] border-background shadow-[0_0_6px_hsl(152_60%_45%/0.5)]" />
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary border-[2.5px] border-background shadow-[0_0_6px_hsl(42_78%_55%/0.5)]" />
                   </div>
                   <span className="text-[10px] text-muted-foreground/50 truncate max-w-[56px] font-medium">{c.name.split(" ")[0]}</span>
                 </button>
@@ -299,7 +299,7 @@ const ChatList = () => {
                       {getInitials(chat.recipientName)}
                     </div>
                   )}
-                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-background" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-background" />
                 </div>
 
                 <div className="flex-1 min-w-0 text-left">

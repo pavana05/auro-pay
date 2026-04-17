@@ -1,7 +1,7 @@
 // Screen 20 — Bill Split: create with participants, equal/custom shares,
 // pay via wallet, reminders for unpaid, auto-settle.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import {
@@ -55,11 +55,27 @@ const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { max
 
 const BillSplitPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [me, setMe] = useState<{ id: string; name: string } | null>(null);
   const [splits, setSplits] = useState<BillSplit[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "create" | "detail">("list");
   const [activeSplitId, setActiveSplitId] = useState<string | null>(null);
+
+  // URL-param prefill: /bill-split?title=&amount=&category=
+  const qpTitle = searchParams.get("title") || "";
+  const qpAmount = searchParams.get("amount") || "";
+  const qpCategory = searchParams.get("category") || "";
+  const [prefill, setPrefill] = useState<{ title: string; amount: string; category: string } | null>(null);
+
+  useEffect(() => {
+    if (qpTitle || qpAmount || qpCategory) {
+      setPrefill({ title: qpTitle, amount: qpAmount, category: qpCategory });
+      setView("create");
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -104,8 +120,9 @@ const BillSplitPage = () => {
       {view === "create" && me && (
         <CreateView
           me={me}
-          onCancel={() => setView("list")}
-          onCreated={(id) => { setActiveSplitId(id); setView("detail"); }}
+          prefill={prefill}
+          onCancel={() => { setPrefill(null); setView("list"); }}
+          onCreated={(id) => { setPrefill(null); setActiveSplitId(id); setView("detail"); }}
         />
       )}
       {view === "detail" && activeSplitId && me && (
@@ -229,13 +246,14 @@ const ListView = ({ splits, loading, onCreate, onOpen, onBack }: {
 // ─────────────────────────────────────────────────────────
 // CREATE VIEW
 // ─────────────────────────────────────────────────────────
-const CreateView = ({ me, onCancel, onCreated }: {
+const CreateView = ({ me, prefill, onCancel, onCreated }: {
   me: { id: string; name: string };
+  prefill?: { title: string; amount: string; category: string } | null;
   onCancel: () => void;
   onCreated: (splitId: string) => void;
 }) => {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [title, setTitle] = useState(prefill?.title || "");
+  const [amount, setAmount] = useState(prefill?.amount || "");
   const [mode, setMode] = useState<"equal" | "custom">("equal");
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([
@@ -357,7 +375,7 @@ const CreateView = ({ me, onCancel, onCreated }: {
           total_amount: totalPaise,
           created_by: me.id,
           status: "pending",
-          category: "other",
+          category: prefill?.category || "other",
         })
         .select().single();
       if (error || !split) throw error ?? new Error("Failed");

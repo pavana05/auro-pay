@@ -111,19 +111,19 @@ const categories = [
   },
   {
     key: "water", label: "Water", desc: "Water supply & sewage bills",
-    image: waterImg, gradient: "from-sky-500/20 to-cyan-500/10", borderColor: "border-sky-500/15",
+    image: waterImg, gradient: "from-primary/15 to-amber-500/10", borderColor: "border-primary/15",
   },
   {
     key: "broadband", label: "Broadband", desc: "Internet & fiber connections",
-    image: broadbandImg, gradient: "from-emerald-500/20 to-teal-500/10", borderColor: "border-emerald-500/15",
+    image: broadbandImg, gradient: "from-primary/15 to-yellow-600/10", borderColor: "border-primary/15",
   },
   {
     key: "gas", label: "Gas Cylinder", desc: "LPG & piped gas payments",
-    image: gasImg, gradient: "from-orange-500/20 to-red-500/10", borderColor: "border-orange-500/15",
+    image: gasImg, gradient: "from-amber-600/20 to-primary/10", borderColor: "border-amber-600/15",
   },
   {
     key: "insurance", label: "Insurance", desc: "Life, health & vehicle premiums",
-    image: insuranceImg, gradient: "from-emerald-500/20 to-green-600/10", borderColor: "border-emerald-500/15",
+    image: insuranceImg, gradient: "from-primary/15 to-amber-500/10", borderColor: "border-primary/15",
   },
   {
     key: "education", label: "Education Fees", desc: "School, college & coaching fees",
