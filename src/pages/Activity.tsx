@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import BottomNav from "@/components/BottomNav";
+import SwipeActionRow from "@/components/SwipeActionRow";
 
 interface Txn {
   id: string;
@@ -417,34 +418,43 @@ const Activity = () => {
                 <div className="rounded-[16px] overflow-hidden border border-white/[0.05]"
                   style={{ background: "hsl(220 15% 7%)" }}>
                   {g.items.map((tx, i) => (
-                    <button key={tx.id}
-                      onClick={() => { haptic.light(); setSelected(tx); }}
-                      className="w-full flex items-center gap-3 p-3 text-left active:bg-white/[0.03] transition"
-                      style={{ borderTop: i > 0 ? "1px solid hsl(0 0% 100% / 0.04)" : "none" }}>
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[18px] shrink-0"
-                        style={{ background: "hsl(220 15% 10%)" }}>
-                        {categoryIcon(tx.category, tx.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold truncate text-white/90">
-                          {tx.merchant_name || tx.description || "Transaction"}
-                        </p>
-                        <p className="text-[10px] text-white/40 truncate flex items-center gap-1.5">
-                          <span className="capitalize">{tx.category || "other"}</span>
-                          <span className="text-white/20">·</span>
-                          <span>{new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[13px] font-mono font-bold flex items-center gap-0.5 justify-end"
-                          style={{ color: tx.type === "credit" ? "hsl(152 60% 60%)" : "hsl(0 70% 65%)" }}>
-                          {tx.type === "credit" ? "+" : "−"}{formatINR(tx.amount)}
-                        </p>
-                        {tx.status && tx.status !== "success" && (
-                          <p className="text-[9px] text-white/40 capitalize">{tx.status}</p>
-                        )}
-                      </div>
-                    </button>
+                    <SwipeActionRow
+                      key={tx.id}
+                      onDetails={() => { haptic.light(); setSelected(tx); }}
+                      onDispute={() => { haptic.medium(); navigate("/help"); }}
+                    >
+                      <button
+                        onClick={() => { haptic.light(); setSelected(tx); }}
+                        className="w-full flex items-center gap-3 p-3 text-left active:bg-white/[0.03] transition"
+                        style={{
+                          borderTop: i > 0 ? "1px solid hsl(0 0% 100% / 0.04)" : "none",
+                          background: "hsl(220 15% 7%)",
+                        }}>
+                        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                          style={{ background: "hsl(220 15% 10%)" }}>
+                          {categoryIcon(tx.category, tx.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold truncate text-white/90">
+                            {tx.merchant_name || tx.description || "Transaction"}
+                          </p>
+                          <p className="text-[10px] text-white/40 truncate flex items-center gap-1.5">
+                            <span className="capitalize">{tx.category || "other"}</span>
+                            <span className="text-white/20">·</span>
+                            <span>{new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[13px] font-mono font-bold flex items-center gap-0.5 justify-end"
+                            style={{ color: tx.type === "credit" ? "hsl(152 60% 60%)" : "hsl(0 70% 65%)" }}>
+                            {tx.type === "credit" ? "+" : "−"}{formatINR(tx.amount)}
+                          </p>
+                          {tx.status && tx.status !== "success" && (
+                            <p className="text-[9px] text-white/40 capitalize">{tx.status}</p>
+                          )}
+                        </div>
+                      </button>
+                    </SwipeActionRow>
                   ))}
                 </div>
                 {g.subtotal > 0 && (
