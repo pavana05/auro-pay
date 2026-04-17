@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
+import { optimistic } from "@/lib/optimistic";
+import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
+import MaskedReveal from "@/components/admin/MaskedReveal";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
   ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
@@ -147,42 +150,63 @@ const AdminKyc = () => {
   /* ─────────── Actions ─────────── */
   const moveToInReview = async (r: KycRow) => {
     if (r.status === "in_review") return;
-    setRows((prev) => prev.map((x) => x.id === r.id ? { ...x, status: "in_review" } : x));
-    const { error } = await supabase.from("kyc_requests").update({ status: "in_review" }).eq("id", r.id);
-    if (error) { toast.error(error.message); fetchAll(); return; }
-    await supabase.from("profiles").update({ kyc_status: "in_review" }).eq("id", r.user_id);
-    await logAudit("kyc_in_review", r.id, { user_id: r.user_id });
-    toast.success("Marked as under review");
+    const prev = rows;
+    return optimistic({
+      apply: () => setRows((p) => p.map((x) => x.id === r.id ? { ...x, status: "in_review" } : x)),
+      rollback: () => setRows(prev),
+      mutate: async () => {
+        const u = await supabase.from("kyc_requests").update({ status: "in_review" }).eq("id", r.id);
+        if (u.error) return u;
+        await supabase.from("profiles").update({ kyc_status: "in_review" }).eq("id", r.user_id);
+        await logAudit("kyc_in_review", r.id, { user_id: r.user_id });
+        return u;
+      },
+      successMessage: "Marked as under review",
+    });
   };
 
-  const approveNow = async (r: KycRow) => {
-    const { error } = await supabase.from("kyc_requests").update({ status: "verified", verified_at: new Date().toISOString() }).eq("id", r.id);
-    if (error) { toast.error(error.message); return false; }
-    await supabase.from("profiles").update({ kyc_status: "verified", aadhaar_verified: true }).eq("id", r.user_id);
-    await supabase.from("notifications").insert({
-      user_id: r.user_id,
-      title: "✅ KYC Verified",
-      body: "Your identity verification was approved. You now have full access to PayVibe.",
-      type: "kyc_approved",
+  const approveNow = async (r: KycRow): Promise<boolean> => {
+    const prev = rows;
+    return optimistic({
+      apply: () => setRows((p) => p.map((x) => x.id === r.id ? { ...x, status: "verified", verified_at: new Date().toISOString() } : x)),
+      rollback: () => setRows(prev),
+      mutate: async () => {
+        const u = await supabase.from("kyc_requests").update({ status: "verified", verified_at: new Date().toISOString() }).eq("id", r.id);
+        if (u.error) return u;
+        await supabase.from("profiles").update({ kyc_status: "verified", aadhaar_verified: true }).eq("id", r.user_id);
+        await supabase.from("notifications").insert({
+          user_id: r.user_id,
+          title: "✅ KYC Verified",
+          body: "Your identity verification was approved. You now have full access to PayVibe.",
+          type: "kyc_approved",
+        });
+        await logAudit("kyc_approve", r.id, { user_name: r.aadhaar_name });
+        return u;
+      },
+      successMessage: `KYC approved for ${r.aadhaar_name || "user"} 🎉`,
     });
-    await logAudit("kyc_approve", r.id, { user_name: r.aadhaar_name });
-    toast.success(`KYC approved for ${r.aadhaar_name || "user"} 🎉`);
-    return true;
   };
 
-  const rejectNow = async (r: KycRow, reason: string, note: string) => {
-    const { error } = await supabase.from("kyc_requests").update({ status: "rejected", verified_at: new Date().toISOString() }).eq("id", r.id);
-    if (error) { toast.error(error.message); return false; }
-    await supabase.from("profiles").update({ kyc_status: "rejected" }).eq("id", r.user_id);
-    await supabase.from("notifications").insert({
-      user_id: r.user_id,
-      title: "❌ KYC Rejected",
-      body: `Reason: ${reason}${note ? ` — ${note}` : ""}. Please re-submit your documents.`,
-      type: "kyc_rejected",
+  const rejectNow = async (r: KycRow, reason: string, note: string): Promise<boolean> => {
+    const prev = rows;
+    return optimistic({
+      apply: () => setRows((p) => p.map((x) => x.id === r.id ? { ...x, status: "rejected", verified_at: new Date().toISOString() } : x)),
+      rollback: () => setRows(prev),
+      mutate: async () => {
+        const u = await supabase.from("kyc_requests").update({ status: "rejected", verified_at: new Date().toISOString() }).eq("id", r.id);
+        if (u.error) return u;
+        await supabase.from("profiles").update({ kyc_status: "rejected" }).eq("id", r.user_id);
+        await supabase.from("notifications").insert({
+          user_id: r.user_id,
+          title: "❌ KYC Rejected",
+          body: `Reason: ${reason}${note ? ` — ${note}` : ""}. Please re-submit your documents.`,
+          type: "kyc_rejected",
+        });
+        await logAudit("kyc_reject", r.id, { reason, note, user_name: r.aadhaar_name });
+        return u;
+      },
+      successMessage: "KYC rejected",
     });
-    await logAudit("kyc_reject", r.id, { reason, note, user_name: r.aadhaar_name });
-    toast.success("KYC rejected");
-    return true;
   };
 
   const handleApproveSubmit = async () => {
