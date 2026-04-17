@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { PiggyBank, Target, TrendingUp } from "lucide-react";
 import { useAdminQuery } from "@/hooks/useAdminQuery";
-import { AdminQueryError, AdminQueryLoading } from "@/components/admin/AdminQueryState";
+import { AdminQueryError, AdminQueryLoading, AdminQueryStatus } from "@/components/admin/AdminQueryState";
 
 const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
@@ -12,7 +12,7 @@ interface SavingsData {
 }
 
 const AdminSavingsOversight = () => {
-  const { data, loading, error, refetch } = useAdminQuery<SavingsData>(
+  const { data, loading, error, refetch, lastUpdatedAt } = useAdminQuery<SavingsData>(
     async () => {
       const { data, error } = await supabase
         .from("savings_goals")
@@ -32,7 +32,7 @@ const AdminSavingsOversight = () => {
       const avgRate = rates.length > 0 ? Math.round(rates.reduce((a: number, b: number) => a + b, 0) / rates.length) : 0;
       return { goals: g, stats: { active, totalSaved, completedMonth, avgRate } };
     },
-    { label: "savings goals" }
+    { label: "savings goals", refetchInterval: 30_000 }
   );
 
   const goals = data?.goals ?? [];
@@ -41,7 +41,10 @@ const AdminSavingsOversight = () => {
   return (
     <AdminLayout>
       <div className="p-4 lg:p-8 space-y-6">
-        <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Savings Goals Oversight</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Savings Goals Oversight</h1>
+          <AdminQueryStatus lastUpdatedAt={lastUpdatedAt} loading={loading} onRefresh={() => refetch()} />
+        </div>
 
         {error ? (
           <AdminQueryError error={error} onRetry={refetch} label="savings goals" />

@@ -1,12 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminQuery } from "@/hooks/useAdminQuery";
-import { AdminQueryError, AdminQueryLoading } from "@/components/admin/AdminQueryState";
+import { AdminQueryError, AdminQueryLoading, AdminQueryStatus } from "@/components/admin/AdminQueryState";
 
 const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminSpendingLimits = () => {
-  const { data: limits, loading, error, refetch } = useAdminQuery<any[]>(
+  const { data: limits, loading, error, refetch, lastUpdatedAt } = useAdminQuery<any[]>(
     async () => {
       const { data, error } = await supabase
         .from("spending_limits")
@@ -14,7 +14,7 @@ const AdminSpendingLimits = () => {
       if (error) throw error;
       return data || [];
     },
-    { label: "spending limits" }
+    { label: "spending limits", refetchInterval: 30_000 }
   );
 
   const list = limits ?? [];
@@ -22,7 +22,10 @@ const AdminSpendingLimits = () => {
   return (
     <AdminLayout>
       <div className="p-4 lg:p-8 space-y-6">
-        <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Spending Limits Manager</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Spending Limits Manager</h1>
+          <AdminQueryStatus lastUpdatedAt={lastUpdatedAt} loading={loading} onRefresh={() => refetch()} />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-5 rounded-[16px]" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
