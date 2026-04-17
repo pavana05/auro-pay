@@ -143,6 +143,7 @@ const App = () => (
       <BrowserRouter>
         <DeepLinkHandler />
         <AuthRedirector />
+        <KycEnforcer />
         <RealtimeWrapper>
         <MaintenanceGate>
         <Routes>
