@@ -340,8 +340,8 @@ const AdminKyc = () => {
               const isHot = q.hot && (r.status === "pending" || r.status === "in_review");
               const initials = (r.profile?.full_name || r.aadhaar_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
               return (
-                <div key={r.id} className="group grid grid-cols-1 md:grid-cols-[1.6fr_1fr_120px_140px_120px_100px_140px] gap-3 px-4 py-3 items-center border-b text-[12px] hover:bg-white/[0.025] transition-colors" style={{ borderColor: "rgba(255,255,255,0.025)" }}>
-                  <button onClick={() => setDetail(r)} className="flex items-center gap-2.5 text-left min-w-0">
+                <div key={r.id} onClick={() => openKycPanel(r)} className="group grid grid-cols-1 md:grid-cols-[1.6fr_1fr_120px_140px_120px_100px_140px] gap-3 px-4 py-3 items-center border-b text-[12px] hover:bg-white/[0.025] transition-colors cursor-pointer" style={{ borderColor: "rgba(255,255,255,0.025)" }}>
+                  <button onClick={(e) => { e.stopPropagation(); openKycPanel(r); }} className="flex items-center gap-2.5 text-left min-w-0">
                     {r.profile?.avatar_url ? (
                       <img src={r.profile.avatar_url} alt="" className="w-8 h-8 rounded-[8px] object-cover" />
                     ) : (
