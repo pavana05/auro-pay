@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+// Screen 15 — Notifications: tabs, dual-swipe, detail sheet, per-category empty states.
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { haptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Bell, Settings, X, Trash2, CheckCheck, BellOff } from "lucide-react";
+import { ArrowLeft, CheckCheck, Trash2, Archive, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -14,16 +15,60 @@ interface Notification {
   created_at: string;
 }
 
-const SWIPE_THRESHOLD = 90;
+type TabKey = "all" | "money" | "security" | "offers" | "system";
 
-const typeConfig: Record<string, { icon: string; color: string }> = {
-  payment: { icon: "💳", color: "42 78% 55%" },
-  credit: { icon: "💰", color: "152 60% 45%" },
-  alert: { icon: "⚠️", color: "38 92% 50%" },
-  budget_alert: { icon: "📊", color: "38 92% 50%" },
-  budget_exceeded: { icon: "🚨", color: "0 72% 51%" },
-  kyc: { icon: "🪪", color: "210 80% 55%" },
-  system: { icon: "🔔", color: "270 60% 55%" },
+const SWIPE_THRESHOLD = 80;
+const LONG_PRESS_MS = 550;
+
+// ── Type → category mapping ──
+const categoryOf = (type: string | null): Exclude<TabKey, "all"> => {
+  switch (type) {
+    case "payment": case "credit": case "debit":
+    case "limit_request": case "limit_decision":
+    case "budget_alert": case "budget_exceeded":
+      return "money";
+    case "alert": case "kyc": case "security":
+      return "security";
+    case "offer": case "scratch": case "referral": case "reward":
+      return "offers";
+    default:
+      return "system";
+  }
+};
+
+const typeConfig: Record<string, { icon: string; hsl: string }> = {
+  payment:         { icon: "💸", hsl: "0 70% 55%" },
+  debit:           { icon: "💸", hsl: "0 70% 55%" },
+  credit:          { icon: "💰", hsl: "152 65% 45%" },
+  limit_request:   { icon: "📨", hsl: "42 78% 55%" },
+  limit_decision:  { icon: "📊", hsl: "42 78% 55%" },
+  budget_alert:    { icon: "📊", hsl: "38 92% 55%" },
+  budget_exceeded: { icon: "🚨", hsl: "0 72% 51%" },
+  alert:           { icon: "⚠️", hsl: "210 80% 55%" },
+  kyc:             { icon: "🪪", hsl: "210 80% 55%" },
+  security:        { icon: "🛡️", hsl: "210 80% 55%" },
+  offer:           { icon: "🎁", hsl: "42 78% 55%" },
+  scratch:         { icon: "🎟️", hsl: "42 78% 55%" },
+  referral:        { icon: "🤝", hsl: "42 78% 55%" },
+  reward:          { icon: "🏆", hsl: "42 78% 55%" },
+  system:          { icon: "🔔", hsl: "270 60% 55%" },
+};
+const cfgFor = (n: Notification) => typeConfig[n.type || "system"] || typeConfig.system;
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "money", label: "Money" },
+  { key: "security", label: "Security" },
+  { key: "offers", label: "Offers" },
+  { key: "system", label: "System" },
+];
+
+const EMPTY_STATES: Record<TabKey, { emoji: string; title: string; sub: string }> = {
+  all:      { emoji: "🌙", title: "All caught up",          sub: "Nothing new to read right now." },
+  money:    { emoji: "💸", title: "No money moves yet",     sub: "Payments and credits will land here." },
+  security: { emoji: "🛡️", title: "Your account is calm",   sub: "Security alerts and KYC updates appear here." },
+  offers:   { emoji: "🎁", title: "No offers waiting",      sub: "Rewards and scratch cards will show up here." },
+  system:   { emoji: "🔔", title: "Quiet on the wire",      sub: "App updates and tips will appear here." },
 };
 
 const relativeTime = (date: string) => {
@@ -38,159 +83,180 @@ const relativeTime = (date: string) => {
   return new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 };
 
-const SwipeableNotification = ({
-  n,
-  index,
-  onDismiss,
+// ─── Swipeable row ───
+const Row = ({
+  n, index, onArchive, onMarkRead, onDelete, onOpen,
 }: {
   n: Notification;
   index: number;
-  onDismiss: (id: string) => void;
+  onArchive: (id: string) => void;
+  onMarkRead: (id: string) => void;
+  onDelete: (id: string) => void;
+  onOpen: (n: Notification) => void;
 }) => {
   const startX = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
   const isHorizontal = useRef<boolean | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const moved = useRef(false);
   const [offset, setOffset] = useState(0);
-  const [dismissed, setDismissed] = useState(false);
-  const [height, setHeight] = useState<number | undefined>(undefined);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [exiting, setExiting] = useState<"left" | "right" | null>(null);
+  const [flashRead, setFlashRead] = useState(false);
 
-  const cfg = typeConfig[n.type || "system"] || typeConfig.system;
+  const cfg = cfgFor(n);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  const clearLongPress = () => {
+    if (longPressTimer.current) { window.clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  };
+
+  const handleStart = useCallback((e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
     startY.current = e.touches[0].clientY;
     isDragging.current = true;
     isHorizontal.current = null;
-  }, []);
+    moved.current = false;
+    clearLongPress();
+    longPressTimer.current = window.setTimeout(() => {
+      if (!moved.current) {
+        haptic.heavy();
+        if (window.confirm("Delete this notification permanently?")) onDelete(n.id);
+      }
+    }, LONG_PRESS_MS);
+  }, [n.id, onDelete]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging.current) return;
     const dx = e.touches[0].clientX - startX.current;
     const dy = e.touches[0].clientY - startY.current;
-
-    // Determine direction on first significant move
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { moved.current = true; clearLongPress(); }
     if (isHorizontal.current === null) {
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
         isHorizontal.current = Math.abs(dx) > Math.abs(dy);
-        if (!isHorizontal.current) {
-          isDragging.current = false;
-          return;
-        }
-      } else {
-        return;
-      }
+        if (!isHorizontal.current) { isDragging.current = false; return; }
+      } else return;
     }
-
     if (isHorizontal.current) {
       e.preventDefault();
-      // Add resistance when pulling in positive direction (less common)
-      const resistance = dx > 0 ? 0.4 : 0.8;
-      setOffset(dx * resistance);
+      setOffset(dx * 0.85);
     }
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleEnd = useCallback(() => {
     isDragging.current = false;
     isHorizontal.current = null;
+    clearLongPress();
 
-    if (Math.abs(offset) > SWIPE_THRESHOLD) {
+    if (offset <= -SWIPE_THRESHOLD) {
+      // Left swipe → archive
       haptic.medium();
-      // Measure height before collapsing
-      if (containerRef.current) {
-        setHeight(containerRef.current.offsetHeight);
-      }
-      setDismissed(true);
-      // Wait for slide-out animation, then collapse height, then remove
-      setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.style.height = "0px";
-          containerRef.current.style.marginBottom = "0px";
-          containerRef.current.style.opacity = "0";
-        }
-        setTimeout(() => onDismiss(n.id), 300);
-      }, 250);
+      setExiting("left");
+      window.setTimeout(() => onArchive(n.id), 280);
+    } else if (offset >= SWIPE_THRESHOLD) {
+      // Right swipe → mark read with green flash
+      haptic.success();
+      setFlashRead(true);
+      setOffset(0);
+      window.setTimeout(() => {
+        onMarkRead(n.id);
+        setFlashRead(false);
+      }, 400);
     } else {
       setOffset(0);
     }
-  }, [offset, n.id, onDismiss]);
+  }, [offset, n.id, onArchive, onMarkRead]);
+
+  const handleClick = () => {
+    if (!moved.current) onOpen(n);
+  };
 
   const swipeProgress = Math.min(Math.abs(offset) / SWIPE_THRESHOLD, 1);
-  const isLeftSwipe = offset < 0;
+  const isLeft = offset < 0;
 
   return (
     <div
-      ref={containerRef}
-      className="transition-[height,margin,opacity] duration-300 ease-out overflow-hidden mb-2.5"
-      style={{ height: height !== undefined && dismissed ? height : undefined }}
+      className="overflow-hidden mb-2"
+      style={{
+        animation: exiting
+          ? `notif-exit-${exiting} 0.3s cubic-bezier(0.4, 0, 1, 1) forwards`
+          : `notif-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.03}s both`,
+      }}
     >
-      <div className={`relative rounded-[18px] overflow-hidden ${dismissed ? "pointer-events-none" : ""}`}>
-        {/* Delete background */}
+      <div className="relative rounded-[16px] overflow-hidden">
+        {/* Action background */}
         <div
-          className="absolute inset-0 rounded-[18px] flex items-center transition-all duration-200"
+          className="absolute inset-0 rounded-[16px] flex items-center px-5 transition-colors"
           style={{
-            background: `linear-gradient(${isLeftSwipe ? "90deg" : "270deg"}, hsl(0 72% 51% / ${swipeProgress * 0.12}), transparent)`,
-            justifyContent: isLeftSwipe ? "flex-end" : "flex-start",
-            padding: isLeftSwipe ? "0 20px 0 0" : "0 0 0 20px",
+            background: isLeft
+              ? `linear-gradient(90deg, transparent, hsl(0 70% 50% / ${swipeProgress * 0.18}))`
+              : `linear-gradient(270deg, transparent, hsl(152 65% 40% / ${swipeProgress * 0.22}))`,
+            justifyContent: isLeft ? "flex-end" : "flex-start",
           }}
         >
-          <div className="flex items-center gap-2 transition-all duration-200" style={{
-            transform: `scale(${0.6 + swipeProgress * 0.4})`,
-            opacity: swipeProgress,
-          }}>
-            <Trash2 className="w-5 h-5 text-destructive" />
-            {swipeProgress > 0.7 && (
-              <span className="text-[10px] font-bold text-destructive/70 tracking-wider uppercase"
-                style={{ animation: "fade-in 0.2s ease-out" }}>Delete</span>
+          <div className="flex items-center gap-1.5"
+            style={{ transform: `scale(${0.7 + swipeProgress * 0.4})`, opacity: swipeProgress }}>
+            {isLeft ? (
+              <>
+                <Archive className="w-4 h-4" style={{ color: "hsl(0 80% 70%)" }} />
+                {swipeProgress > 0.7 && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "hsl(0 80% 70%)" }}>
+                    Archive
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" style={{ color: "hsl(152 65% 60%)" }} />
+                {swipeProgress > 0.7 && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "hsl(152 65% 60%)" }}>
+                    Mark read
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* Notification card */}
+        {/* Card */}
         <div
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="relative rounded-[18px] border border-white/[0.04] backdrop-blur-sm touch-pan-y"
+          onTouchStart={handleStart}
+          onTouchMove={handleMove}
+          onTouchEnd={handleEnd}
+          onClick={handleClick}
+          className="relative rounded-[16px] border touch-pan-y cursor-pointer active:scale-[0.995]"
           style={{
-            transform: dismissed
-              ? `translateX(${offset < 0 ? "-120%" : "120%"})`
-              : `translateX(${offset}px)`,
-            transition: isDragging.current && !dismissed ? "none" : "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-            background: n.is_read
-              ? "linear-gradient(135deg, hsl(220 15% 8%), hsl(220 18% 6%))"
-              : `linear-gradient(135deg, hsl(${cfg.color} / 0.04), hsl(220 18% 6%))`,
-            borderColor: n.is_read ? "hsl(220 15% 12%)" : `hsl(${cfg.color} / 0.1)`,
-            animation: `slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04}s both`,
+            transform: `translateX(${offset}px)`,
+            transition: isDragging.current ? "none" : "transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)",
+            background: flashRead
+              ? "linear-gradient(135deg, hsl(152 65% 22% / 0.4), hsl(220 18% 6%))"
+              : n.is_read
+                ? "linear-gradient(135deg, hsl(220 15% 8%), hsl(220 18% 6%))"
+                : `linear-gradient(135deg, hsl(${cfg.hsl} / 0.06), hsl(220 18% 7%))`,
+            borderColor: flashRead
+              ? "hsl(152 65% 45% / 0.4)"
+              : n.is_read ? "hsl(220 15% 12%)" : `hsl(${cfg.hsl} / 0.15)`,
+            borderLeftWidth: !n.is_read ? "3px" : "1px",
+            borderLeftColor: !n.is_read ? `hsl(${cfg.hsl})` : "hsl(220 15% 12%)",
           }}
         >
-          {/* Top accent line for unread */}
-          {!n.is_read && (
-            <div className="absolute top-0 left-4 right-4 h-[1px]"
-              style={{ background: `linear-gradient(90deg, transparent, hsl(${cfg.color} / 0.25), transparent)` }} />
-          )}
-
-          <div className="relative p-4 flex items-start gap-3.5">
-            {/* Icon */}
-            <div className="w-[42px] h-[42px] rounded-[14px] flex items-center justify-center shrink-0 relative"
+          <div className="p-3.5 flex items-start gap-3">
+            <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center shrink-0 relative"
               style={{
-                background: `linear-gradient(135deg, hsl(${cfg.color} / 0.1), hsl(${cfg.color} / 0.03))`,
-                boxShadow: n.is_read ? "none" : `0 4px 12px hsl(${cfg.color} / 0.08)`,
+                background: `linear-gradient(135deg, hsl(${cfg.hsl} / 0.12), hsl(${cfg.hsl} / 0.04))`,
+                border: `1px solid hsl(${cfg.hsl} / 0.18)`,
               }}>
-              <span className="text-[20px]">{cfg.icon}</span>
-              {/* Unread dot */}
+              <span className="text-[18px]">{cfg.icon}</span>
               {!n.is_read && (
-                <div className="absolute -top-1 -right-1 w-[8px] h-[8px] rounded-full bg-primary"
-                  style={{ boxShadow: "0 0 8px hsl(42 78% 55% / 0.5)", animation: "glow-pulse 2s ease-in-out infinite" }} />
+                <div className="absolute -top-1 -right-1 w-[8px] h-[8px] rounded-full"
+                  style={{ background: `hsl(${cfg.hsl})`, boxShadow: `0 0 8px hsl(${cfg.hsl} / 0.6)` }} />
               )}
             </div>
-
-            {/* Content */}
             <div className="flex-1 min-w-0">
-              <p className={`text-[12px] font-semibold leading-snug ${n.is_read ? "text-white/60" : "text-foreground"}`}>{n.title}</p>
-              <p className={`text-[11px] mt-1 leading-relaxed ${n.is_read ? "text-white/25" : "text-white/40"}`}>{n.body}</p>
-              <p className="text-[9px] text-white/15 mt-2 font-medium">{relativeTime(n.created_at)}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className={`text-[12.5px] font-semibold leading-snug ${n.is_read ? "text-white/55" : "text-foreground"}`}>{n.title}</p>
+                <p className="text-[9px] text-white/30 shrink-0 mt-[1px] font-medium">{relativeTime(n.created_at)}</p>
+              </div>
+              <p className={`text-[11px] mt-1 leading-relaxed line-clamp-2 ${n.is_read ? "text-white/25" : "text-white/45"}`}>{n.body}</p>
             </div>
           </div>
         </div>
@@ -199,202 +265,240 @@ const SwipeableNotification = ({
   );
 };
 
+// ─── Detail bottom sheet ───
+const DetailSheet = ({ n, onClose, onDelete }: { n: Notification; onClose: () => void; onDelete: (id: string) => void }) => {
+  const cfg = cfgFor(n);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ animation: "notif-fade 0.2s ease-out" }}>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full rounded-t-[28px] border-t border-white/[0.08] p-6 pb-8 max-h-[85vh] overflow-y-auto"
+        style={{
+          background: "linear-gradient(180deg, hsl(220 20% 9%), hsl(220 22% 5%))",
+          animation: "notif-sheet 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        }}>
+        <div className="w-12 h-1 rounded-full bg-white/15 mx-auto mb-5" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{
+              background: `linear-gradient(135deg, hsl(${cfg.hsl} / 0.18), hsl(${cfg.hsl} / 0.05))`,
+              border: `1px solid hsl(${cfg.hsl} / 0.3)`,
+              boxShadow: `0 4px 20px hsl(${cfg.hsl} / 0.15)`,
+            }}>
+            <span className="text-[24px]">{cfg.icon}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] tracking-[1.5px] uppercase font-semibold mb-0.5"
+              style={{ color: `hsl(${cfg.hsl})` }}>{(n.type || "system").replace(/_/g, " ")}</p>
+            <p className="text-[10px] text-white/30">{new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center active:scale-90">
+            <X className="w-4 h-4 text-white/50" />
+          </button>
+        </div>
+        <h2 className="text-[18px] font-bold tracking-[-0.3px] mb-2">{n.title}</h2>
+        <p className="text-[13px] text-white/65 leading-relaxed mb-6">{n.body}</p>
+        <button onClick={() => { onDelete(n.id); onClose(); }}
+          className="w-full h-[48px] rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 border border-destructive/30 text-destructive active:scale-[0.98]"
+          style={{ background: "hsl(0 70% 50% / 0.08)" }}>
+          <Trash2 className="w-4 h-4" />
+          Delete notification
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main page ───
 const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [archived, setArchived] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [prefs, setPrefs] = useState({ payments: true, credits: true, alerts: true, kyc: true, system: true });
+  const [tab, setTab] = useState<TabKey>("all");
+  const [detail, setDetail] = useState<Notification | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase.from("notifications")
+        .select("*").eq("user_id", user.id)
+        .order("created_at", { ascending: false }).limit(200);
       setNotifications((data || []) as Notification[]);
-      // Mark all as read
-      await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
       setLoading(false);
     };
     load();
   }, []);
 
-  const togglePref = (key: keyof typeof prefs) => {
-    haptic.selection();
-    setPrefs(p => ({ ...p, [key]: !p[key] }));
-  };
+  const visible = useMemo(
+    () => notifications
+      .filter(n => !archived.has(n.id))
+      .filter(n => tab === "all" ? true : categoryOf(n.type) === tab),
+    [notifications, archived, tab]
+  );
 
-  const dismissNotification = useCallback(async (id: string) => {
+  const counts = useMemo(() => {
+    const c: Record<TabKey, number> = { all: 0, money: 0, security: 0, offers: 0, system: 0 };
+    notifications.forEach(n => {
+      if (archived.has(n.id) || n.is_read) return;
+      c.all++;
+      c[categoryOf(n.type)]++;
+    });
+    return c;
+  }, [notifications, archived]);
+
+  const archiveOne = useCallback((id: string) => {
+    setArchived(prev => new Set(prev).add(id));
+    // Soft archive: also mark read so it won't reappear in future load as unread
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    supabase.from("notifications").update({ is_read: true }).eq("id", id).then(() => {});
+    toast.success("Archived");
+  }, []);
+
+  const markRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    supabase.from("notifications").update({ is_read: true }).eq("id", id).then(() => {});
+  }, []);
+
+  const deleteOne = useCallback(async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
     await supabase.from("notifications").delete().eq("id", id);
+    toast.success("Deleted");
   }, []);
 
-  const clearAll = useCallback(async () => {
+  const markAllRead = useCallback(async () => {
     haptic.medium();
-    setNotifications([]);
-    toast.success("All cleared");
+    const ids = visible.filter(n => !n.is_read).map(n => n.id);
+    if (ids.length === 0) { toast("Already up to date"); return; }
+    setNotifications(prev => prev.map(n => ids.includes(n.id) ? { ...n, is_read: true } : n));
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id);
-    }
-  }, []);
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+    if (user) await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).in("id", ids);
+    toast.success(`Marked ${ids.length} as read`);
+  }, [visible]);
 
   return (
     <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-32 -right-32 w-[350px] h-[350px] rounded-full opacity-[0.035] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
-        <div className="absolute bottom-[30%] -left-20 w-[200px] h-[200px] rounded-full opacity-[0.02] blur-[70px]" style={{ background: "hsl(270 60% 55%)" }} />
+        <div className="absolute -top-32 -right-32 w-[350px] h-[350px] rounded-full opacity-[0.04] blur-[100px]"
+          style={{ background: "hsl(var(--primary))" }} />
       </div>
 
       <div className="relative z-10 px-5">
         {/* Header */}
-        <div className="pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+        <div className="pt-4 pb-3" style={{ animation: "notif-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate(-1)} className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]">
+              <button onClick={() => { haptic.light(); navigate(-1); }}
+                className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
+                style={{ background: "hsl(220 15% 8%)" }}>
                 <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
               </button>
               <div>
                 <h1 className="text-[19px] font-bold tracking-[-0.5px]">Notifications</h1>
-                {unreadCount > 0 && (
-                  <p className="text-[10px] text-primary/70 font-medium">{unreadCount} unread</p>
-                )}
+                {counts.all > 0 && <p className="text-[10px] font-medium" style={{ color: "hsl(var(--primary) / 0.85)" }}>{counts.all} unread</p>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {notifications.length > 0 && (
-                <button onClick={clearAll}
-                  className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]">
-                  <CheckCheck className="w-[17px] h-[17px] text-white/40" />
-                </button>
-              )}
-              <button onClick={() => { haptic.light(); setShowSettings(!showSettings); }}
-                className="w-[40px] h-[40px] rounded-[13px] bg-white/[0.025] backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]">
-                <Settings className="w-[17px] h-[17px] text-white/40" />
-              </button>
-            </div>
+            <button onClick={markAllRead}
+              className="h-[36px] px-3.5 rounded-[12px] flex items-center gap-1.5 active:scale-95 border border-white/[0.06] text-[11px] font-semibold text-white/70"
+              style={{ background: "hsl(220 15% 8%)" }}>
+              <CheckCheck className="w-3.5 h-3.5" />
+              Mark all read
+            </button>
           </div>
         </div>
 
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="rounded-[20px] overflow-hidden border border-white/[0.04] mb-5 backdrop-blur-sm"
-            style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))", animation: "slide-up-spring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.1), transparent)" }} />
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[13px] font-bold">Notification Settings</h3>
-                <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center active:scale-90 transition-transform">
-                  <X className="w-3.5 h-3.5 text-white/30" />
-                </button>
-              </div>
-              {[
-                { key: "payments" as const, label: "Payment Alerts", icon: "💳" },
-                { key: "credits" as const, label: "Money Received", icon: "💰" },
-                { key: "alerts" as const, label: "Security Alerts", icon: "⚠️" },
-                { key: "kyc" as const, label: "KYC Updates", icon: "🪪" },
-                { key: "system" as const, label: "System", icon: "🔔" },
-              ].map(item => (
-                <button key={item.key} onClick={() => togglePref(item.key)}
-                  className="w-full flex items-center justify-between py-3.5 px-3 -mx-3 rounded-2xl border-b border-white/[0.02] last:border-0 group transition-all duration-300 active:scale-[0.98]"
-                  style={{
-                    background: prefs[item.key] ? "linear-gradient(135deg, hsl(var(--primary) / 0.06), hsl(var(--primary) / 0.02))" : "transparent",
-                  }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300"
-                      style={{
-                        background: prefs[item.key]
-                          ? "linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))"
-                          : "hsl(220 15% 10%)",
-                        boxShadow: prefs[item.key] ? "0 2px 8px hsl(var(--primary) / 0.1)" : "none",
-                      }}>
-                      <span className="text-[15px]">{item.icon}</span>
-                    </div>
-                    <div>
-                      <span className={`text-[12px] font-semibold tracking-wide transition-colors duration-300 ${prefs[item.key] ? "text-white/80" : "text-white/40"}`}>{item.label}</span>
-                      <p className={`text-[9px] mt-0.5 transition-colors duration-300 ${prefs[item.key] ? "text-primary/50" : "text-white/15"}`}>
-                        {prefs[item.key] ? "Enabled" : "Disabled"}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Premium toggle */}
-                  <div className={`w-[46px] h-[26px] rounded-full transition-all duration-500 flex items-center px-[3px] relative overflow-hidden ${prefs[item.key] ? "" : ""}`}
+        {/* Tabs */}
+        <div className="flex gap-1.5 mb-4 -mx-5 px-5 overflow-x-auto scrollbar-hide"
+          style={{ animation: "notif-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
+          {TABS.map(t => {
+            const active = tab === t.key;
+            const badge = counts[t.key];
+            return (
+              <button key={t.key}
+                onClick={() => { haptic.selection(); setTab(t.key); }}
+                className="shrink-0 h-[34px] px-3.5 rounded-full flex items-center gap-1.5 transition-all active:scale-95 text-[11.5px] font-semibold border"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))"
+                    : "hsl(220 15% 8%)",
+                  borderColor: active ? "hsl(var(--primary) / 0.4)" : "hsl(0 0% 100% / 0.05)",
+                  color: active ? "hsl(220 20% 6%)" : "hsl(0 0% 100% / 0.55)",
+                  boxShadow: active ? "0 4px 14px hsl(var(--primary) / 0.25)" : "none",
+                }}>
+                {t.label}
+                {badge > 0 && (
+                  <span className="text-[9px] font-bold px-1.5 py-px rounded-full min-w-[16px] text-center"
                     style={{
-                      background: prefs[item.key]
-                        ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
-                        : "hsl(220 12% 12%)",
-                      boxShadow: prefs[item.key]
-                        ? "0 0 16px hsl(var(--primary) / 0.3), inset 0 1px 1px hsl(var(--primary) / 0.2)"
-                        : "inset 0 1px 3px rgba(0,0,0,0.3)",
+                      background: active ? "hsl(220 20% 6% / 0.2)" : "hsl(var(--primary) / 0.15)",
+                      color: active ? "hsl(220 20% 6%)" : "hsl(var(--primary))",
                     }}>
-                    {prefs[item.key] && (
-                      <div className="absolute inset-0 opacity-30"
-                        style={{ background: "linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.15), transparent)", animation: "skeleton-shimmer 3s ease-in-out infinite" }} />
-                    )}
-                    <div className={`w-[20px] h-[20px] rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative ${prefs[item.key] ? "translate-x-[20px]" : "translate-x-0"}`}
-                      style={{
-                        background: prefs[item.key]
-                          ? "linear-gradient(135deg, #fff, #f0e6d0)"
-                          : "linear-gradient(135deg, hsl(220 10% 30%), hsl(220 10% 22%))",
-                        boxShadow: prefs[item.key]
-                          ? "0 2px 6px rgba(0,0,0,0.2)"
-                          : "0 1px 3px rgba(0,0,0,0.3)",
-                      }} />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Swipe hint */}
-        {!loading && notifications.length > 0 && (
-          <p className="text-[9px] text-white/15 text-center mb-3 font-medium tracking-wider uppercase"
-            style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}>
-            ← swipe to dismiss →
+        {/* Hint */}
+        {!loading && visible.length > 0 && (
+          <p className="text-[9px] text-white/20 text-center mb-2 font-medium tracking-wider uppercase">
+            ← archive · mark read → · long-press to delete
           </p>
         )}
 
-        {/* Loading shimmer */}
+        {/* List */}
         {loading ? (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {[1,2,3,4].map(i => (
-              <div key={i} className="h-[80px] rounded-[18px] overflow-hidden relative">
+              <div key={i} className="h-[72px] rounded-[16px] overflow-hidden relative">
                 <div className="absolute inset-0" style={{ background: "hsl(220 15% 8%)" }} />
                 <div className="absolute inset-0" style={{
                   background: "linear-gradient(110deg, transparent 30%, hsl(220 15% 12%) 50%, transparent 70%)",
                   backgroundSize: "200% 100%",
-                  animation: "skeleton-shimmer 1.8s ease-in-out infinite",
+                  animation: "notif-shimmer 1.8s ease-in-out infinite",
                 }} />
               </div>
             ))}
-            <style>{`
-              @keyframes skeleton-shimmer {
-                0% { background-position: 200% 0; }
-                100% { background-position: -200% 0; }
-              }
-            `}</style>
           </div>
-        ) : notifications.length === 0 ? (
-          <div className="text-center py-20" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            <div className="w-[72px] h-[72px] rounded-[22px] flex items-center justify-center mx-auto mb-4 border border-white/[0.04]"
-              style={{ background: "linear-gradient(135deg, hsl(220 15% 9%), hsl(220 18% 6%))" }}>
-              <BellOff className="w-8 h-8 text-white/8" />
+        ) : visible.length === 0 ? (
+          <div className="text-center py-16" style={{ animation: "notif-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className="w-[88px] h-[88px] rounded-[26px] flex items-center justify-center mx-auto mb-4 border border-white/[0.05] relative overflow-hidden"
+              style={{ background: "linear-gradient(135deg, hsl(220 18% 10%), hsl(220 22% 5%))" }}>
+              <div className="absolute inset-0 opacity-30"
+                style={{ background: "radial-gradient(circle at 30% 30%, hsl(var(--primary) / 0.15), transparent 60%)" }} />
+              <span className="text-[40px] relative" style={{ filter: "saturate(0.85)" }}>{EMPTY_STATES[tab].emoji}</span>
             </div>
-            <p className="text-[14px] font-semibold text-white/20 mb-1">All caught up</p>
-            <p className="text-[11px] text-white/10">No notifications right now</p>
+            <p className="text-[14px] font-semibold text-white/55 mb-1">{EMPTY_STATES[tab].title}</p>
+            <p className="text-[11px] text-white/25 max-w-[240px] mx-auto leading-relaxed">{EMPTY_STATES[tab].sub}</p>
           </div>
         ) : (
           <div>
-            {notifications.map((n, i) => (
-              <SwipeableNotification key={n.id} n={n} index={i} onDismiss={dismissNotification} />
+            {visible.map((n, i) => (
+              <Row key={n.id} n={n} index={i}
+                onArchive={archiveOne}
+                onMarkRead={markRead}
+                onDelete={deleteOne}
+                onOpen={(notif) => { haptic.light(); setDetail(notif); markRead(notif.id); }}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {detail && <DetailSheet n={detail} onClose={() => setDetail(null)} onDelete={deleteOne} />}
+
+      <style>{`
+        @keyframes notif-in       { 0% { opacity: 0; transform: translateY(14px) scale(0.98); } 100% { opacity: 1; transform: none; } }
+        @keyframes notif-exit-left  { to { opacity: 0; transform: translateX(-110%); max-height: 0; margin-bottom: 0; padding-block: 0; } }
+        @keyframes notif-exit-right { to { opacity: 0; transform: translateX(110%);  max-height: 0; margin-bottom: 0; padding-block: 0; } }
+        @keyframes notif-fade   { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes notif-sheet  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes notif-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { scrollbar-width: none; }
+      `}</style>
     </div>
   );
 };
