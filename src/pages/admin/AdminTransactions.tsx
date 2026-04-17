@@ -1,52 +1,176 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Search, Download, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, XCircle } from "lucide-react";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
+import {
+  Search, Download, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, XCircle,
+  SlidersHorizontal, Copy, Check, Flag, RefreshCcw, AlertTriangle, ChevronDown
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
   type: string;
   amount: number;
   merchant_name: string | null;
+  merchant_upi_id: string | null;
   category: string | null;
   status: string | null;
   created_at: string | null;
   wallet_id: string;
+  description: string | null;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
 }
 
+interface WalletInfo {
+  id: string;
+  user_id: string;
+  full_name?: string | null;
+  phone?: string | null;
+}
+
+const STATUSES = ["success", "pending", "failed"];
+const TYPES = ["credit", "debit"];
+const METHODS = ["razorpay", "upi", "wallet", "card"];
+const ALL_CATEGORIES = ["food", "shopping", "transport", "entertainment", "education", "transfer", "topup", "other"];
+
+const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
 const AdminTransactions = () => {
+  const { show, hide } = useContextPanel();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
+  const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Filters
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [methods, setMethods] = useState<string[]>([]);
+  const [amountMin, setAmountMin] = useState(0);
+  const [amountMax, setAmountMax] = useState(100000);
+
+  // Debounce search
   useEffect(() => {
-    const fetch = async () => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Fetch transactions + wallets/profiles
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoading(true);
-      let query = supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(100);
-      if (statusFilter !== "All") query = query.eq("status", statusFilter.toLowerCase());
-      if (typeFilter !== "All") query = query.eq("type", typeFilter.toLowerCase());
-      const { data } = await query;
-      setTransactions((data || []) as Transaction[]);
+      const { data: tx } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      const txs = (tx || []) as Transaction[];
+
+      const walletIds = Array.from(new Set(txs.map((t) => t.wallet_id)));
+      const map: Record<string, WalletInfo> = {};
+      if (walletIds.length) {
+        const { data: ws } = await supabase.from("wallets").select("id, user_id").in("id", walletIds);
+        const userIds = Array.from(new Set((ws || []).map((w) => w.user_id)));
+        const { data: profs } = await supabase.from("profiles").select("id, full_name, phone").in("id", userIds);
+        const profMap = new Map((profs || []).map((p) => [p.id, p]));
+        (ws || []).forEach((w) => {
+          const p = profMap.get(w.user_id);
+          map[w.id] = { id: w.id, user_id: w.user_id, full_name: p?.full_name, phone: p?.phone };
+        });
+      }
+      if (cancelled) return;
+      setWallets(map);
+      setTransactions(txs);
       setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetch();
-  }, [statusFilter, typeFilter]);
+  }, []);
 
-  const filtered = transactions.filter(
-    (t) => !search || t.id.includes(search) || t.merchant_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Per-user average for anomaly detection
+  const userAverages = useMemo(() => {
+    const sums: Record<string, { total: number; count: number }> = {};
+    for (const t of transactions) {
+      const uid = wallets[t.wallet_id]?.user_id;
+      if (!uid) continue;
+      sums[uid] ||= { total: 0, count: 0 };
+      sums[uid].total += t.amount;
+      sums[uid].count++;
+    }
+    const out: Record<string, number> = {};
+    Object.entries(sums).forEach(([uid, s]) => (out[uid] = s.count ? s.total / s.count : 0));
+    return out;
+  }, [transactions, wallets]);
 
-  const totalVolume = filtered.filter(t => t.status === "success").reduce((s, t) => s + t.amount, 0);
-  const successCount = filtered.filter(t => t.status === "success").length;
-  const failedCount = filtered.filter(t => t.status === "failed").length;
+  const isAnomaly = (t: Transaction) => {
+    const uid = wallets[t.wallet_id]?.user_id;
+    if (!uid) return false;
+    const avg = userAverages[uid];
+    return avg > 0 && t.amount > avg * 3;
+  };
+
+  const guessMethod = (t: Transaction): string => {
+    if (t.razorpay_payment_id || t.razorpay_order_id) return "razorpay";
+    if (t.merchant_upi_id) return "upi";
+    if (t.type === "credit") return "wallet";
+    return "wallet";
+  };
+
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    return transactions.filter((t) => {
+      const w = wallets[t.wallet_id];
+      if (q) {
+        const hit =
+          t.id.toLowerCase().includes(q) ||
+          (t.razorpay_payment_id || "").toLowerCase().includes(q) ||
+          (t.razorpay_order_id || "").toLowerCase().includes(q) ||
+          (t.merchant_name || "").toLowerCase().includes(q) ||
+          (w?.phone || "").includes(q) ||
+          (w?.full_name || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (statuses.length && !statuses.includes(t.status || "")) return false;
+      if (types.length && !types.includes(t.type)) return false;
+      if (categories.length && !categories.includes(t.category || "other")) return false;
+      if (methods.length && !methods.includes(guessMethod(t))) return false;
+      const amtR = t.amount / 100;
+      if (amtR < amountMin || amtR > amountMax) return false;
+      if (dateFrom && t.created_at && new Date(t.created_at) < new Date(dateFrom)) return false;
+      if (dateTo && t.created_at && new Date(t.created_at) > new Date(dateTo + "T23:59:59")) return false;
+      return true;
+    });
+  }, [transactions, wallets, debouncedSearch, statuses, types, categories, methods, amountMin, amountMax, dateFrom, dateTo]);
+
+  const totalVolume = filtered.filter((t) => t.status === "success").reduce((s, t) => s + t.amount, 0);
+  const successCount = filtered.filter((t) => t.status === "success").length;
+  const failedCount = filtered.filter((t) => t.status === "failed").length;
+
+  const copyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    toast.success("Copied");
+    setTimeout(() => setCopiedId(null), 1200);
+  };
 
   const exportCSV = () => {
-    const headers = "ID,Type,Amount,Merchant,Category,Status,Date\n";
-    const rows = filtered.map((t) =>
-      `${t.id},${t.type},${t.amount / 100},${t.merchant_name || ""},${t.category || ""},${t.status},${t.created_at}`
-    ).join("\n");
+    const headers = "ID,Type,Amount,Merchant,Category,Method,Status,Date,User,Phone\n";
+    const rows = filtered.map((t) => {
+      const w = wallets[t.wallet_id];
+      return `${t.id},${t.type},${t.amount / 100},"${t.merchant_name || ""}",${t.category || ""},${guessMethod(t)},${t.status},${t.created_at},"${w?.full_name || ""}",${w?.phone || ""}`;
+    }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -55,143 +179,405 @@ const AdminTransactions = () => {
     a.click();
   };
 
-  const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
+  const logAudit = async (action: string, t: Transaction, details: Record<string, any> = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("audit_logs").insert({
+      admin_user_id: user.id,
+      action,
+      target_type: "transaction",
+      target_id: t.id,
+      details: { amount: t.amount, ...details },
+    });
+  };
+
+  const flagTransaction = async (t: Transaction) => {
+    await logAudit("transaction_flagged", t, { reason: "manual_review" });
+    toast.success("Transaction flagged for review");
+  };
+
+  const refundTransaction = async (t: Transaction) => {
+    if (!confirm(`Refund ${formatAmount(t.amount)}? This will credit the user wallet.`)) return;
+    const { error } = await supabase.from("transactions").insert({
+      wallet_id: t.wallet_id,
+      type: "credit",
+      amount: t.amount,
+      status: "success",
+      category: "refund",
+      description: `Admin refund for ${t.id}`,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await logAudit("transaction_refunded", t);
+    toast.success("Refund issued");
+    hide();
+  };
+
+  const openDetail = (t: Transaction) => {
+    setSelectedId(t.id);
+    const w = wallets[t.wallet_id];
+    show({
+      title: "Transaction Detail",
+      subtitle: t.id.slice(0, 16) + "…",
+      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} />,
+    });
+  };
+
+  const toggle = <T,>(arr: T[], v: T, set: (x: T[]) => void) =>
+    set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   const summaryCards = [
-    { label: "Total Volume", value: formatAmount(totalVolume), icon: DollarSign, color: "text-primary", glow: "shadow-[0_0_30px_hsl(42_78%_55%/0.08)]" },
-    { label: "Successful", value: successCount, icon: TrendingUp, color: "text-success", glow: "shadow-[0_0_30px_hsl(142_71%_45%/0.08)]" },
-    { label: "Failed", value: failedCount, icon: XCircle, color: "text-destructive", glow: "shadow-[0_0_30px_hsl(0_84%_60%/0.08)]" },
+    { label: "Total Volume", value: formatAmount(totalVolume), icon: DollarSign, color: "text-primary" },
+    { label: "Successful", value: successCount, icon: TrendingUp, color: "text-success" },
+    { label: "Failed", value: failedCount, icon: XCircle, color: "text-destructive" },
   ];
 
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 relative">
-        {/* Ambient */}
         <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
 
         {/* Header */}
         <div className="flex items-center justify-between relative z-10" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-            <p className="text-xs text-muted-foreground mt-1">Monitor all platform transactions</p>
+            <p className="text-xs text-muted-foreground mt-1">Deep investigation • {filtered.length} of {transactions.length}</p>
           </div>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 hover:shadow-[0_0_20px_hsl(42_78%_55%/0.08)] transition-all duration-300 active:scale-95">
+          <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-300 active:scale-95">
             <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary */}
         <div className="grid grid-cols-3 gap-3">
           {summaryCards.map((s, i) => (
             <div key={s.label}
-              className={`group p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/15 transition-all duration-500 hover:${s.glow} relative overflow-hidden`}
+              className="group p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-primary/15 transition-all duration-500 relative overflow-hidden"
               style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.08 + i * 0.06}s both` }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center ${s.color} group-hover:scale-110 transition-transform duration-300`}>
-                    <s.icon className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">{s.label}</p>
+              <div className={`w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center ${s.color} mb-2`}>
+                <s.icon className="w-4 h-4" />
               </div>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.25s both" }}>
-          <div className="relative flex-1 min-w-[200px]">
+        {/* Smart Search */}
+        <div className="flex gap-3" style={{ animation: "slide-up-spring 0.5s 0.25s both" }}>
+          <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ID or merchant..."
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search TXN ID, Razorpay ID, merchant, user phone or name…"
               className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-300" />
           </div>
-          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-            {["All", "Success", "Pending", "Failed"].map(f => (
-              <button key={f} onClick={() => setStatusFilter(f)}
-                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === f ? "bg-primary/15 text-primary shadow-[0_0_12px_hsl(42_78%_55%/0.1)]" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"}`}>
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-            {["All", "Credit", "Debit"].map(f => (
-              <button key={f} onClick={() => setTypeFilter(f)}
-                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${typeFilter === f ? "bg-primary/15 text-primary shadow-[0_0_12px_hsl(42_78%_55%/0.1)]" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"}`}>
-                {f}
-              </button>
-            ))}
-          </div>
+          <button onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 px-4 h-11 rounded-xl border text-sm font-medium transition-all ${showFilters ? "bg-primary/15 text-primary border-primary/30" : "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]"}`}>
+            <SlidersHorizontal className="w-4 h-4" /> Filters
+            <ChevronDown className={`w-3 h-3 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+          </button>
         </div>
 
-        {/* Table */}
-        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden backdrop-blur-sm" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {["ID", "Type", "Amount", "Merchant", "Category", "Status", "Date"].map((h) => (
-                  <th key={h} className="text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-b border-white/[0.03]">
-                    <td colSpan={7} className="py-4 px-5">
-                      <div className="h-5 rounded-lg overflow-hidden relative">
-                        <div className="absolute inset-0 bg-white/[0.03]" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-20">
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
-                    <DollarSign className="w-8 h-8 text-muted-foreground/30" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">No transactions found</p>
-                </td></tr>
-              ) : (
-                filtered.map((t, i) => (
-                  <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group"
-                    style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.3)}s both` }}>
-                    <td className="py-3.5 px-5 font-mono text-xs text-muted-foreground">{t.id.slice(0, 8)}…</td>
-                    <td className="py-3.5 px-5">
-                      <span className={`text-xs font-semibold capitalize flex items-center gap-1.5 ${t.type === "credit" ? "text-success" : "text-destructive"}`}>
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${t.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                          {t.type === "credit" ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                        </span>
-                        {t.type}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 font-semibold">{formatAmount(t.amount)}</td>
-                    <td className="py-3.5 px-5 text-muted-foreground text-xs">{t.merchant_name || "—"}</td>
-                    <td className="py-3.5 px-5 capitalize text-muted-foreground text-xs">{t.category || "—"}</td>
-                    <td className="py-3.5 px-5">
-                      <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
-                        t.status === "success" ? "bg-success/10 text-success border border-success/20" :
-                        t.status === "failed" ? "bg-destructive/10 text-destructive border border-destructive/20" :
-                        "bg-warning/10 text-warning border border-warning/20"
-                      }`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-xs text-muted-foreground">
-                      {t.created_at ? new Date(t.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] space-y-4" style={{ animation: "slide-up-spring 0.3s both" }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">From date</label>
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                  className="mt-1 w-full h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 text-sm focus:outline-none focus:border-primary/40" />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">To date</label>
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                  className="mt-1 w-full h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 text-sm focus:outline-none focus:border-primary/40" />
+              </div>
+            </div>
+            <FilterChips label="Status" options={STATUSES} selected={statuses} onToggle={(v) => toggle(statuses, v, setStatuses)} />
+            <FilterChips label="Type" options={TYPES} selected={types} onToggle={(v) => toggle(types, v, setTypes)} />
+            <FilterChips label="Method" options={METHODS} selected={methods} onToggle={(v) => toggle(methods, v, setMethods)} />
+            <FilterChips label="Category" options={ALL_CATEGORIES} selected={categories} onToggle={(v) => toggle(categories, v, setCategories)} />
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount range (₹{amountMin} – ₹{amountMax})</label>
+              <div className="flex items-center gap-3 mt-2">
+                <input type="number" value={amountMin} onChange={(e) => setAmountMin(+e.target.value || 0)}
+                  className="w-24 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2 text-xs focus:outline-none focus:border-primary/40" />
+                <input type="range" min={0} max={100000} step={100} value={amountMax}
+                  onChange={(e) => setAmountMax(+e.target.value)} className="flex-1 accent-primary" />
+                <input type="number" value={amountMax} onChange={(e) => setAmountMax(+e.target.value || 0)}
+                  className="w-24 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2 text-xs focus:outline-none focus:border-primary/40" />
+              </div>
+            </div>
+            <button onClick={() => {
+              setStatuses([]); setTypes([]); setCategories([]); setMethods([]);
+              setAmountMin(0); setAmountMax(100000); setDateFrom(""); setDateTo("");
+            }} className="text-xs text-muted-foreground hover:text-foreground">Reset all filters</button>
+          </div>
+        )}
+
+        {/* Table — frozen first 3 cols via sticky positioning */}
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-hidden backdrop-blur-sm" style={{ animation: "slide-up-spring 0.5s 0.3s both" }}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[1100px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-white/[0.01]">
+                  <th className="sticky left-0 bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-12"></th>
+                  <th className="sticky left-12 bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">TXN ID</th>
+                  <th className="sticky left-[220px] bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                  {["Type", "Amount", "Merchant", "Category", "Method", "Status", "Date", "Actions"].map((h) => (
+                    <th key={h} className="text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="border-b border-white/[0.03]">
+                      <td colSpan={12} className="py-4 px-5">
+                        <div className="h-5 rounded-lg overflow-hidden relative">
+                          <div className="absolute inset-0 bg-white/[0.03]" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={12} className="text-center py-20">
+                    <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                      <DollarSign className="w-8 h-8 text-muted-foreground/30" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No transactions match your filters</p>
+                  </td></tr>
+                ) : (
+                  filtered.map((t, i) => {
+                    const w = wallets[t.wallet_id];
+                    const anomaly = isAnomaly(t);
+                    const isSelected = selectedId === t.id;
+                    const highlight = (val: string) => {
+                      const q = debouncedSearch.toLowerCase();
+                      if (!q || !val.toLowerCase().includes(q)) return val;
+                      const idx = val.toLowerCase().indexOf(q);
+                      return (<>
+                        {val.slice(0, idx)}
+                        <mark className="bg-primary/30 text-primary rounded px-0.5">{val.slice(idx, idx + q.length)}</mark>
+                        {val.slice(idx + q.length)}
+                      </>) as any;
+                    };
+                    return (
+                      <tr key={t.id} onClick={() => openDetail(t)}
+                        className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 group ${isSelected ? "bg-primary/[0.04]" : ""}`}
+                        style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.02, 0.3)}s both` }}>
+                        <td className="sticky left-0 bg-card/95 backdrop-blur z-10 py-3.5 px-5 group-hover:bg-card">
+                          <input type="checkbox" onClick={(e) => e.stopPropagation()} className="accent-primary" />
+                        </td>
+                        <td className="sticky left-12 bg-card/95 backdrop-blur z-10 py-3.5 px-5 font-mono text-xs text-muted-foreground group-hover:bg-card">
+                          <div className="flex items-center gap-2">
+                            <span>{highlight(t.id.slice(0, 12))}…</span>
+                            <button onClick={(e) => copyId(t.id, e)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/[0.06]">
+                              {copiedId === t.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="sticky left-[220px] bg-card/95 backdrop-blur z-10 py-3.5 px-5 group-hover:bg-card">
+                          <div className="text-xs">
+                            <div className="font-medium">{w?.full_name ? highlight(w.full_name) : "—"}</div>
+                            <div className="text-muted-foreground text-[10px]">{w?.phone ? highlight(w.phone) : ""}</div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <span className={`text-xs font-semibold capitalize flex items-center gap-1.5 ${t.type === "credit" ? "text-success" : "text-destructive"}`}>
+                            <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${t.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
+                              {t.type === "credit" ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                            </span>
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-5 font-semibold whitespace-nowrap">
+                          {formatAmount(t.amount)}
+                          {anomaly && (
+                            <span className="ml-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+                              <AlertTriangle className="w-2.5 h-2.5" />Unusual
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-5 text-muted-foreground text-xs whitespace-nowrap">{t.merchant_name ? highlight(t.merchant_name) : "—"}</td>
+                        <td className="py-3.5 px-5 capitalize text-muted-foreground text-xs">{t.category || "—"}</td>
+                        <td className="py-3.5 px-5 text-xs uppercase text-muted-foreground">{guessMethod(t)}</td>
+                        <td className="py-3.5 px-5">
+                          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+                            t.status === "success" ? "bg-success/10 text-success border border-success/20" :
+                            t.status === "failed" ? "bg-destructive/10 text-destructive border border-destructive/20" :
+                            "bg-warning/10 text-warning border border-warning/20"
+                          }`}>{t.status}</span>
+                        </td>
+                        <td className="py-3.5 px-5 text-xs text-muted-foreground whitespace-nowrap">
+                          {t.created_at ? new Date(t.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <button onClick={(e) => { e.stopPropagation(); openDetail(t); }} className="text-xs text-primary hover:underline">View</button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </AdminLayout>
   );
 };
+
+const FilterChips = ({ label, options, selected, onToggle }: { label: string; options: string[]; selected: string[]; onToggle: (v: string) => void }) => (
+  <div>
+    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</label>
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {options.map((o) => (
+        <button key={o} onClick={() => onToggle(o)}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-all capitalize ${selected.includes(o) ? "bg-primary/15 text-primary border-primary/30" : "bg-white/[0.02] border-white/[0.06] text-muted-foreground hover:bg-white/[0.05]"}`}>
+          {o}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+/* ───────────────────────── Detail Panel ───────────────────────── */
+const DetailPanel = ({
+  t, wallet, all, onFlag, onRefund,
+}: {
+  t: Transaction;
+  wallet?: WalletInfo;
+  all: Transaction[];
+  onFlag: (t: Transaction) => void;
+  onRefund: (t: Transaction) => void;
+}) => {
+  const [showJSON, setShowJSON] = useState(false);
+
+  const sameDay = all.filter(
+    (x) =>
+      x.id !== t.id &&
+      x.wallet_id === t.wallet_id &&
+      x.created_at &&
+      t.created_at &&
+      new Date(x.created_at).toDateString() === new Date(t.created_at).toDateString()
+  ).slice(0, 5);
+
+  const timeline = [
+    { label: "Initiated", at: t.created_at, done: true },
+    { label: "Order created", at: t.razorpay_order_id ? t.created_at : null, done: !!t.razorpay_order_id },
+    { label: "Payment captured", at: t.razorpay_payment_id ? t.created_at : null, done: !!t.razorpay_payment_id },
+    { label: t.status === "failed" ? "Failed" : t.status === "success" ? "Settled" : "Pending settlement", at: t.created_at, done: t.status !== "pending" },
+  ];
+
+  const webhook = {
+    id: t.id,
+    razorpay_order_id: t.razorpay_order_id,
+    razorpay_payment_id: t.razorpay_payment_id,
+    amount: t.amount,
+    type: t.type,
+    status: t.status,
+    merchant: { name: t.merchant_name, upi_id: t.merchant_upi_id },
+    category: t.category,
+    description: t.description,
+    created_at: t.created_at,
+    wallet_id: t.wallet_id,
+  };
+
+  return (
+    <div className="space-y-5 text-sm">
+      {/* Hero */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/[0.06] to-transparent border border-primary/15">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</p>
+        <p className={`text-3xl font-bold ${t.type === "credit" ? "text-success" : "text-foreground"}`}>{formatAmount(t.amount)}</p>
+        <p className="text-xs text-muted-foreground mt-1 capitalize">{t.type} • {t.status}</p>
+      </div>
+
+      {/* Meta */}
+      <div className="space-y-2 text-xs">
+        <Row label="Transaction ID" value={t.id} mono />
+        <Row label="User" value={wallet?.full_name || "—"} />
+        <Row label="Phone" value={wallet?.phone || "—"} />
+        <Row label="Merchant" value={t.merchant_name || "—"} />
+        <Row label="UPI ID" value={t.merchant_upi_id || "—"} mono />
+        <Row label="Category" value={t.category || "—"} />
+        <Row label="Razorpay Order" value={t.razorpay_order_id || "—"} mono />
+        <Row label="Razorpay Payment" value={t.razorpay_payment_id || "—"} mono />
+      </div>
+
+      {/* Timeline */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Payment Journey</p>
+        <div className="space-y-3">
+          {timeline.map((s, i) => (
+            <div key={i} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className={`w-3 h-3 rounded-full border-2 ${s.done ? "bg-primary border-primary" : "bg-transparent border-white/20"}`} />
+                {i < timeline.length - 1 && <div className={`w-px flex-1 ${s.done ? "bg-primary/30" : "bg-white/10"}`} />}
+              </div>
+              <div className="pb-2">
+                <p className={`text-xs font-medium ${s.done ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</p>
+                {s.at && <p className="text-[10px] text-muted-foreground">{new Date(s.at).toLocaleString("en-IN")}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Webhook JSON */}
+      <div>
+        <button onClick={() => setShowJSON((v) => !v)} className="w-full flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+          <span>Webhook payload</span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${showJSON ? "rotate-180" : ""}`} />
+        </button>
+        {showJSON && (
+          <pre className="mt-2 p-3 rounded-xl bg-black/40 border border-white/[0.06] overflow-x-auto text-[10px] leading-relaxed font-mono">
+{JSON.stringify(webhook, null, 2).split("\n").map((line, i) => (
+  <div key={i}>
+    <span className="text-primary/80">{line.match(/"[^"]+"\s*:/)?.[0] || ""}</span>
+    <span className="text-muted-foreground">{line.replace(/"[^"]+"\s*:/, "")}</span>
+  </div>
+))}
+          </pre>
+        )}
+      </div>
+
+      {/* Related */}
+      {sameDay.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Related (same wallet, same day)</p>
+          <div className="space-y-1.5">
+            {sameDay.map((r) => (
+              <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                <span className="font-mono text-[10px] text-muted-foreground">{r.id.slice(0, 14)}…</span>
+                <span className={`text-xs font-semibold ${r.type === "credit" ? "text-success" : "text-foreground"}`}>{formatAmount(r.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button onClick={() => onRefund(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all text-xs font-medium">
+          <RefreshCcw className="w-3.5 h-3.5" /> Refund
+        </button>
+        <button onClick={() => onFlag(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all text-xs font-medium">
+          <Flag className="w-3.5 h-3.5" /> Flag
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  <div className="flex justify-between gap-3">
+    <span className="text-muted-foreground shrink-0">{label}</span>
+    <span className={`text-right truncate ${mono ? "font-mono text-[10px]" : ""}`}>{value}</span>
+  </div>
+);
 
 export default AdminTransactions;
