@@ -64,6 +64,10 @@ export default function AnomalySummaryCard() {
   }, [load]);
 
   const totalLast14 = series.reduce((a, b) => a + b, 0);
+  // Tier sparkline color based on sustained anomaly volume over last 14 days.
+  const sparkColor = totalLast14 > 50 ? C.danger : totalLast14 > 20 ? C.warning : C.primary;
+  const tierLabel = totalLast14 > 50 ? "Critical spike" : totalLast14 > 20 ? "Elevated" : "Normal";
+  const tierColor = sparkColor;
 
   return (
     <button
@@ -71,7 +75,7 @@ export default function AnomalySummaryCard() {
       className="text-left rounded-[16px] border p-4 lg:p-5 space-y-3 transition hover:-translate-y-0.5"
       style={{
         background: "rgba(13,14,18,0.85)",
-        borderColor: openCount > 0 ? "rgba(239,68,68,0.22)" : C.border,
+        borderColor: totalLast14 > 50 ? "rgba(239,68,68,0.35)" : totalLast14 > 20 ? "rgba(245,158,11,0.28)" : (openCount > 0 ? "rgba(239,68,68,0.22)" : C.border),
         backdropFilter: "blur(12px)",
       }}
     >
@@ -116,10 +120,16 @@ export default function AnomalySummaryCard() {
       <div>
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-sora" style={{ color: C.muted }}>Flags / day</span>
-          <span className="text-[10px] font-mono" style={{ color: C.muted }}>last 14d</span>
+          <span
+            className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+            style={{ color: tierColor, background: `${tierColor}14`, border: `1px solid ${tierColor}30` }}
+            title={`14d total: ${totalLast14}`}
+          >
+            {tierLabel} · {totalLast14}
+          </span>
         </div>
         <div className="h-12">
-          <Sparkline data={series.length ? series : [0, 0, 0, 0, 0, 0, 0]} color={C.danger} />
+          <Sparkline data={series.length ? series : [0, 0, 0, 0, 0, 0, 0]} color={sparkColor} />
         </div>
       </div>
     </button>

@@ -51,6 +51,9 @@ const AdminWallets = () => {
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [forcePayload, setForcePayload] = useState<ForceActionPayload | null>(null);
   const [freezeGate, setFreezeGate] = useState<{ wallet: WalletRow; next: boolean; payload: HighRiskGatePayload } | null>(null);
+  // Map of wallet_id -> latest confirmed_fraud flag id (used to surface "Unlock account").
+  const [fraudLocks, setFraudLocks] = useState<Map<string, string>>(new Map());
+  const [unlockGate, setUnlockGate] = useState<{ wallet: WalletRow; flagId: string; payload: HighRiskGatePayload } | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -62,6 +65,22 @@ const AdminWallets = () => {
       })
     );
     setWallets(enriched);
+
+    // Pull confirmed_fraud flags for frozen wallets so we can show "Unlock account".
+    const frozenIds = enriched.filter((w) => w.is_frozen).map((w) => w.id);
+    if (frozenIds.length) {
+      const { data: flags } = await (supabase as any)
+        .from("flagged_transactions")
+        .select("id, wallet_id, created_at")
+        .eq("status", "confirmed_fraud")
+        .in("wallet_id", frozenIds)
+        .order("created_at", { ascending: false });
+      const m = new Map<string, string>();
+      (flags || []).forEach((f: any) => { if (!m.has(f.wallet_id)) m.set(f.wallet_id, f.id); });
+      setFraudLocks(m);
+    } else {
+      setFraudLocks(new Map());
+    }
     setLoading(false);
   };
 
@@ -195,7 +214,63 @@ const AdminWallets = () => {
     return performFreezeToggle(w, next);
   };
 
+  // Unlock-account flow specifically for wallets locked by a confirmed_fraud flag.
+  // Requires typed reason, unfreezes, audit-logs, and notifies the user that access is restored.
+  const requestUnlockAccount = (w: WalletRow) => {
+    const flagId = fraudLocks.get(w.id);
+    if (!flagId) {
+      toast.error("No fraud lock found for this wallet");
+      return;
+    }
+    const userLabel = w.profile?.full_name || w.profile?.phone || "this user";
+    setUnlockGate({
+      wallet: w,
+      flagId,
+      payload: {
+        title: "Unlock fraud-locked account",
+        description: `${userLabel} • Wallet was frozen by a confirmed_fraud flag. Document why access is being restored.`,
+        confirmLabel: "Unlock account",
+        destructive: false,
+        minReasonLength: 15,
+        reasonPlaceholder: "e.g. Compliance review #2231 cleared user; charges reversed and identity re-verified on call.",
+      },
+    });
+  };
+
+  const performUnlockAccount = async (w: WalletRow, flagId: string, reason: string) => {
+    return optimistic({
+      apply: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: false } : x)),
+      rollback: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: true } : x)),
+      mutate: async () => {
+        const u = await supabase.from("wallets").update({ is_frozen: false }).eq("id", w.id);
+        if (!u.error) {
+          await logAudit("wallet_account_unlock", w.id, {
+            user: w.profile?.full_name,
+            balance_paise: w.balance || 0,
+            triggered_by_flag_id: flagId,
+            reason,
+            gated: true,
+          });
+          await supabase.from("notifications").insert({
+            user_id: w.user_id,
+            title: "✅ Your account has been restored",
+            body: `Our team has reviewed the recent fraud flag and restored full access to your wallet. Reason: ${reason.slice(0, 160)}`,
+            type: "account_restored",
+          });
+          setFraudLocks((prev) => {
+            const m = new Map(prev);
+            m.delete(w.id);
+            return m;
+          });
+        }
+        return u;
+      },
+      successMessage: "Account unlocked & user notified",
+    });
+  };
+
   const openWalletPanel = (w: WalletRow) => {
+    const fraudFlagId = fraudLocks.get(w.id) || null;
     ctxPanel.show({
       title: w.profile?.full_name || "Wallet",
       subtitle: w.profile?.phone || w.id.slice(0, 18) + "…",
@@ -203,6 +278,8 @@ const AdminWallets = () => {
         <WalletPanelBody
           wallet={w}
           onFreeze={() => toggleFreeze(w)}
+          fraudFlagId={fraudFlagId}
+          onUnlockAccount={fraudFlagId ? () => requestUnlockAccount(w) : undefined}
         />
       ),
     });
@@ -338,18 +415,32 @@ const AdminWallets = () => {
                       <td className="py-3.5 px-5 text-xs text-muted-foreground whitespace-nowrap">{formatAmount(w.spent_today || 0)}</td>
                       <td className="py-3.5 px-5 text-xs text-muted-foreground whitespace-nowrap">{formatAmount(w.spent_this_month || 0)}</td>
                       <td className="py-3.5 px-5">
-                        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                          w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
-                        }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                            w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
+                          }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
+                          {fraudLocks.has(w.id) && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30 whitespace-nowrap" title="Auto-frozen by confirmed_fraud flag">
+                              FRAUD
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => toggleFreeze(w)}
-                            className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
-                              w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
-                            }`}>
-                            {w.is_frozen ? "Unfreeze" : "Freeze"}
-                          </button>
+                          {fraudLocks.has(w.id) ? (
+                            <button onClick={() => requestUnlockAccount(w)}
+                              className="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25">
+                              Unlock account
+                            </button>
+                          ) : (
+                            <button onClick={() => toggleFreeze(w)}
+                              className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
+                                w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
+                              }`}>
+                              {w.is_frozen ? "Unfreeze" : "Freeze"}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -376,6 +467,17 @@ const AdminWallets = () => {
           if (!freezeGate) return;
           await performFreezeToggle(freezeGate.wallet, freezeGate.next, reason);
           setFreezeGate(null);
+        }}
+      />
+
+      <HighRiskConfirmGate
+        open={!!unlockGate}
+        payload={unlockGate?.payload || null}
+        onClose={() => setUnlockGate(null)}
+        onConfirm={async (reason) => {
+          if (!unlockGate) return;
+          await performUnlockAccount(unlockGate.wallet, unlockGate.flagId, reason);
+          setUnlockGate(null);
         }}
       />
     </AdminLayout>
@@ -422,10 +524,12 @@ const InlineCell = ({
 const G = { primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", danger: "#ef4444", info: "#3b82f6", cyan: "#06b6d4" };
 
 const WalletPanelBody = ({
-  wallet, onFreeze,
+  wallet, onFreeze, fraudFlagId, onUnlockAccount,
 }: {
   wallet: WalletRow;
   onFreeze: () => void;
+  fraudFlagId?: string | null;
+  onUnlockAccount?: () => void;
 }) => {
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -475,7 +579,19 @@ const WalletPanelBody = ({
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 gap-2">
-        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+        {fraudFlagId && onUnlockAccount && wallet.is_frozen ? (
+          <>
+            <div className="rounded-xl p-3 border" style={{ background: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.25)" }}>
+              <p className="text-[10px] uppercase tracking-wider font-sora mb-1" style={{ color: G.danger }}>Locked by fraud flag</p>
+              <p className="text-[11px] text-white/70 font-sora">
+                This wallet was auto-frozen by a confirmed_fraud flag. Unlocking will restore access and notify the user.
+              </p>
+            </div>
+            <ActionBtn icon={Snowflake} label="Unlock account (restore access)" color={G.primary} onClick={onUnlockAccount} />
+          </>
+        ) : (
+          <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+        )}
       </div>
 
       {/* Limits with progress */}
