@@ -236,6 +236,25 @@ const AdminGeographic = () => {
 
   const tierTotal = tierStats[1] + tierStats[2] + tierStats[3] || 1;
 
+  // Source/coverage stats — how trustworthy is the map?
+  const sourceStats = useMemo(() => {
+    const counts = { manual: 0, inferred: 0, unknown: 0 };
+    for (const u of users) {
+      const src = (u.state_source || "unknown").toLowerCase();
+      if (src === "manual") counts.manual++;
+      else if (src === "inferred") counts.inferred++;
+      else counts.unknown++;
+    }
+    const total = users.length || 1;
+    return {
+      ...counts,
+      total: users.length,
+      manualPct: Math.round((counts.manual / total) * 100),
+      inferredPct: Math.round((counts.inferred / total) * 100),
+      unknownPct: Math.round((counts.unknown / total) * 100),
+    };
+  }, [users]);
+
   // Color intensity: gold scale
   const colorFor = (count: number) => {
     if (count === 0) return "rgba(200,149,46,0.05)";
@@ -267,6 +286,38 @@ const AdminGeographic = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Coverage chips — show how trustworthy the map is */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2 -mt-2" style={{ animation: "slide-up-spring 0.5s 0.05s both" }}>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">Coverage</span>
+          <CoverageChip
+            label="Manual"
+            count={sourceStats.manual}
+            pct={sourceStats.manualPct}
+            color="#22c55e"
+            hint="User picked their city directly during signup or via admin override — high confidence."
+          />
+          <CoverageChip
+            label="Inferred"
+            count={sourceStats.inferred}
+            pct={sourceStats.inferredPct}
+            color="#c8952e"
+            hint="State guessed from the user's phone-number telecom circle. Usually correct but not authoritative."
+          />
+          <CoverageChip
+            label="Unknown"
+            count={sourceStats.unknown}
+            pct={sourceStats.unknownPct}
+            color="#ef4444"
+            hint="No state info — map falls back to a deterministic hash so the dot still shows. Don't trust these for decisions."
+          />
+          {sourceStats.unknownPct >= 25 && (
+            <span className="ml-1 text-[10px] px-2 py-1 rounded-md font-mono"
+              style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}>
+              ⚠ Low confidence — {sourceStats.unknownPct}% of users have no resolved state
+            </span>
+          )}
         </div>
 
         {/* Map + State table */}
@@ -459,6 +510,20 @@ const AdminGeographic = () => {
     </AdminLayout>
   );
 };
+
+/* ───────── Coverage chip ───────── */
+const CoverageChip = ({ label, count, pct, color, hint }: { label: string; count: number; pct: number; color: string; hint: string }) => (
+  <div
+    title={hint}
+    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border"
+    style={{ background: `${color}10`, borderColor: `${color}30` }}
+  >
+    <div className="w-1.5 h-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+    <span className="text-[10px] font-semibold" style={{ color }}>{label}</span>
+    <span className="text-[10px] font-mono text-white/80">{count.toLocaleString()}</span>
+    <span className="text-[9px] font-mono text-white/40">{pct}%</span>
+  </div>
+);
 
 /* ───────── City horizontal bars ───────── */
 const CityBars = ({ data }: { data: { city: string; users: number; tier: 1 | 2 | 3 }[] }) => {

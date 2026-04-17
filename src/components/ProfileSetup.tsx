@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward } from "lucide-react";
+import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward, MapPin } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
+import { CityAutocomplete } from "@/components/CityAutocomplete";
+import type { IndiaCity } from "@/lib/india-cities";
+
 
 interface Props {
   userId: string;
@@ -26,15 +29,17 @@ const AVATAR_OPTIONS = ["🦄", "🐯", "🦊", "🐼", "🐧", "🦁", "🐨", 
  *  0  Name
  *  1  Role
  *  2  Teen → DOB        |  Parent → Teen lookup
- *  3  Avatar (optional but always shown)
- *  4  Congrats
+ *  3  City (India autocomplete)
+ *  4  Avatar (optional but always shown)
+ *  5  Congrats
  */
 const STEP_NAME = 0;
 const STEP_ROLE = 1;
 const STEP_BRANCH = 2;
-const STEP_AVATAR = 3;
-const STEP_CONGRATS = 4;
-const TOTAL_STEPS = 4; // congrats not counted in stepper
+const STEP_CITY = 3;
+const STEP_AVATAR = 4;
+const STEP_CONGRATS = 5;
+const TOTAL_STEPS = 5; // congrats not counted in stepper
 
 const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   const storageKey = `auropay_setup_progress_${userId}`;
@@ -49,6 +54,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   const [dob, setDob] = useState<Date | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [teenPhone, setTeenPhone] = useState("");
+  const [city, setCity] = useState<IndiaCity | null>(null);
   const [teenLookup, setTeenLookup] = useState<{ status: "idle" | "searching" | "found" | "missing" | "error"; profile?: { id: string; full_name: string | null; avatar_url: string | null } | null }>({ status: "idle" });
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -68,6 +74,9 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
           if (!isNaN(d.getTime())) setDob(d);
         }
         if (typeof s.teenPhone === "string") setTeenPhone(s.teenPhone);
+        if (s.city && typeof s.city === "object" && typeof s.city.name === "string" && typeof s.city.state === "string") {
+          setCity(s.city as IndiaCity);
+        }
       }
     } catch {}
     setHydrated(true);
@@ -87,10 +96,11 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
           role,
           dob: dob ? dob.toISOString() : null,
           teenPhone,
+          city,
         })
       );
     } catch {}
-  }, [hydrated, step, fullName, avatar, role, dob, teenPhone, storageKey]);
+  }, [hydrated, step, fullName, avatar, role, dob, teenPhone, city, storageKey]);
 
   const displayStep = Math.min(step + 1, TOTAL_STEPS);
 
@@ -152,18 +162,29 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
     goNext();
   };
 
+  const handleStepCity = () => {
+    // City is optional — users can skip it
+    goNext();
+  };
+
   /* ---------- Final submit (called from avatar step) ---------- */
   const submitProfile = async () => {
     setLoading(true);
     try {
-      const { error: profileError } = await supabase.from("profiles").insert({
+      const profileInsert: Record<string, any> = {
         id: userId,
         full_name: fullName.trim(),
         phone: phone?.trim() || null,
         role,
         kyc_status: "pending",
         avatar_url: avatar,
-      });
+      };
+      if (city) {
+        profileInsert.city = city.name;
+        profileInsert.state_code = city.state;
+        profileInsert.state_source = "manual";
+      }
+      const { error: profileError } = await supabase.from("profiles").insert(profileInsert as any);
       if (profileError) throw profileError;
 
       const { error: walletError } = await supabase.from("wallets").insert({ user_id: userId });
@@ -294,6 +315,13 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
               lookup={teenLookup}
               onChange={lookupTeen}
               onNext={handleStep2Parent}
+            />
+          )}
+          {step === STEP_CITY && (
+            <CityStep
+              city={city}
+              onChange={setCity}
+              onNext={handleStepCity}
             />
           )}
           {step === STEP_AVATAR && (
@@ -671,6 +699,62 @@ const TeenLookupStep = ({
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
+    </div>
+  );
+};
+
+/* ============= STEP CITY: India city autocomplete ============= */
+
+const CityStep = ({
+  city, onChange, onNext,
+}: {
+  city: IndiaCity | null;
+  onChange: (c: IndiaCity | null) => void;
+  onNext: () => void;
+}) => {
+  return (
+    <div className="flex flex-col">
+      <h2 className="text-[26px] font-black text-white mb-1">Where are you based?</h2>
+      <p className="text-[13px] text-white/50 mb-8">Helps us personalize offers and rewards (optional)</p>
+
+      <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 mb-3 block">CITY</label>
+      <CityAutocomplete value={city} onChange={onChange} placeholder="Start typing your city…" autoFocus />
+
+      {city && (
+        <div
+          className="mt-4 rounded-2xl p-4 flex items-center gap-3"
+          style={{
+            background: "linear-gradient(135deg, hsl(42 78% 55% / 0.1), hsl(42 78% 55% / 0.03))",
+            border: "1.5px solid hsl(42 78% 55% / 0.4)",
+            animation: "lookup-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+              boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
+            }}
+          >
+            <MapPin className="w-5 h-5" style={{ color: "hsl(220 15% 5%)" }} strokeWidth={2.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "hsl(140 60% 65%)" }}>Set as your city</p>
+            <p className="font-bold text-[15px] text-white truncate">{city.name}, {city.stateName}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1" />
+
+      <button
+        onClick={onNext}
+        className="w-full h-11 rounded-full flex items-center justify-center gap-2 text-[12px] font-bold text-white/60 hover:text-white/90 transition-colors mb-3"
+      >
+        <SkipForward className="w-3.5 h-3.5" />
+        Skip — I'll add it later
+      </button>
+      <PrimaryButton onClick={onNext}>Continue<ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></PrimaryButton>
     </div>
   );
 };
