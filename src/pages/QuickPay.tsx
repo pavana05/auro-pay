@@ -665,13 +665,16 @@ const SendMoney = () => {
             <div className="flex items-baseline justify-center gap-1">
               <span className="text-[28px] font-mono font-semibold" style={{ color: "hsl(var(--primary))" }}>₹</span>
               <span
-                className="text-[58px] font-mono font-bold tracking-[-1px] leading-none"
+                className="text-[58px] font-mono font-bold tracking-[-1px] leading-none transition-[text-shadow] duration-300"
                 style={{
                   color: overBalance
                     ? "hsl(0 70% 60%)"
                     : amount
                     ? "hsl(var(--primary))"
                     : "hsl(220 10% 25%)",
+                  textShadow: amount && !overBalance
+                    ? "0 0 24px hsl(42 78% 55% / 0.35), 0 0 48px hsl(42 78% 55% / 0.18)"
+                    : "none",
                 }}
               >
                 {amount || "0"}
