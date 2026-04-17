@@ -246,13 +246,14 @@ const ListView = ({ splits, loading, onCreate, onOpen, onBack }: {
 // ─────────────────────────────────────────────────────────
 // CREATE VIEW
 // ─────────────────────────────────────────────────────────
-const CreateView = ({ me, onCancel, onCreated }: {
+const CreateView = ({ me, prefill, onCancel, onCreated }: {
   me: { id: string; name: string };
+  prefill?: { title: string; amount: string; category: string } | null;
   onCancel: () => void;
   onCreated: (splitId: string) => void;
 }) => {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [title, setTitle] = useState(prefill?.title || "");
+  const [amount, setAmount] = useState(prefill?.amount || "");
   const [mode, setMode] = useState<"equal" | "custom">("equal");
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([
