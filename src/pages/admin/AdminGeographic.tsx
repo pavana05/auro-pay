@@ -562,6 +562,37 @@ const AdminGeographic = () => {
   );
 };
 
+/* ───────── Per-state trust badge ───────── */
+const TrustBadge = ({ manual, inferred, unknown }: { manual: number; inferred: number; unknown: number }) => {
+  const total = manual + inferred + unknown;
+  if (total === 0) return null;
+  const manualPct = Math.round((manual / total) * 100);
+  const inferredPct = Math.round((inferred / total) * 100);
+  // Highest-priority signal: if mostly manual → green; mostly inferred → gold; mostly unknown → red.
+  const dominant: "manual" | "inferred" | "unknown" =
+    manual >= inferred && manual >= unknown ? "manual"
+      : inferred >= unknown ? "inferred"
+      : "unknown";
+  const palette = {
+    manual: { bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)", color: "#22c55e", glyph: "✓" },
+    inferred: { bg: "rgba(200,149,46,0.12)", border: "rgba(200,149,46,0.35)", color: "#e8c060", glyph: "≈" },
+    unknown: { bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)", color: "#ef4444", glyph: "?" },
+  }[dominant];
+  const hint =
+    `${manual} manual · ${inferred} inferred · ${unknown} unknown\n` +
+    `${manualPct}% confirmed by users, ${inferredPct}% guessed from phone`;
+  return (
+    <span
+      title={hint}
+      className="ml-1 inline-flex items-center gap-1 text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: palette.bg, color: palette.color, border: `1px solid ${palette.border}` }}
+    >
+      <span aria-hidden>{palette.glyph}</span>
+      {dominant === "manual" ? `${manualPct}% set` : dominant === "inferred" ? `${inferredPct}% guess` : `${Math.round((unknown / total) * 100)}% ?`}
+    </span>
+  );
+};
+
 /* ───────── Coverage chip ───────── */
 const CoverageChip = ({ label, count, pct, color, hint }: { label: string; count: number; pct: number; color: string; hint: string }) => (
   <div
