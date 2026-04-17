@@ -42,6 +42,7 @@ const STATUSES = ["pending", "in_review", "verified", "rejected"] as const;
 type StatusKey = typeof STATUSES[number];
 
 const AdminKyc = () => {
+  const ctxPanel = useContextPanel();
   const [rows, setRows] = useState<KycRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"kanban" | "table">("kanban");
