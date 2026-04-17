@@ -13,6 +13,9 @@ import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCountUp } from "@/hooks/useCountUp";
+import InlineSearchResults from "@/components/InlineSearchResults";
+import PressTooltip from "@/components/PressTooltip";
+import SwipeActionRow from "@/components/SwipeActionRow";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -102,7 +105,8 @@ const TeenHome = () => {
     }
     if (walletRes.data) {
       setWallet(walletRes.data as WalletData);
-      const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(5);
+      // Fetch more so the inline search + last-amount tooltip have range; UI slices to 5.
+      const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(40);
       if (txns) setTransactions(txns as Transaction[]);
     }
     // Check unread chats
@@ -163,6 +167,18 @@ const TeenHome = () => {
   const moneyIn = transactions.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
   const moneyOut = transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
   const spendPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
+
+  // Recent Activity list shows only 5; full list backs search + last-amount tooltip.
+  const recentForList = transactions.slice(0, 5);
+
+  // Map "merchant name (lowercase)" -> most recent debit amount, for Send Again tooltip.
+  const lastAmountByContact = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "debit") continue;
+    const key = (t.merchant_name || "").trim().toLowerCase();
+    if (!key) continue;
+    if (!lastAmountByContact.has(key)) lastAmountByContact.set(key, t.amount);
+  }
 
   const healthScore = Math.min(100, Math.max(0, 100 - spendPct * 0.4 + (goals.length > 0 ? 15 : 0) + (moneyIn > moneyOut ? 20 : 0)));
   const healthColor = healthScore >= 70 ? "hsl(152 60% 45%)" : healthScore >= 40 ? "hsl(38 92% 50%)" : "hsl(0 72% 51%)";
@@ -334,6 +350,25 @@ const TeenHome = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Inline search results — shown below the header while typing */}
+        {searchOpen && searchQuery.trim() && (
+          <InlineSearchResults
+            query={searchQuery}
+            contacts={favorites.map(f => ({ id: f.id, contact_name: f.contact_name, avatar_emoji: f.avatar_emoji }))}
+            transactions={transactions}
+            onPickContact={(c) => {
+              const fav = favorites.find(f => f.id === c.id);
+              setSearchOpen(false); setSearchQuery("");
+              navigate("/quick-pay", { state: { selectedContact: fav } });
+            }}
+            onPickTransaction={(t) => {
+              setSearchOpen(false); setSearchQuery("");
+              navigate(`/transaction/${t.id}`);
+            }}
+            onClose={() => { setSearchOpen(false); setSearchQuery(""); }}
+          />
+        )}
 
         {/* KYC pending banner */}
         {profile && profile.kyc_status !== "verified" && (
@@ -791,34 +826,42 @@ const TeenHome = () => {
               </button>
             </div>
             <div className="flex gap-3.5 overflow-x-auto px-5 pb-1 scrollbar-hide">
-              {favorites.map((fav, i) => (
-                <motion.button
-                  key={fav.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.45 + i * 0.06, type: "spring", stiffness: 300, damping: 22 }}
-                  whileTap={{ scale: 0.88 }}
-                  onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
-                  className={`flex flex-col items-center gap-2 group ${i === 0 ? "min-w-[66px]" : "min-w-[58px]"}`}
-                >
-                  <div
-                    className={`${i === 0 ? "w-[66px] h-[66px] text-[26px]" : "w-[50px] h-[50px] text-[22px]"} rounded-full flex items-center justify-center transition-all relative`}
-                    style={{
-                      background: "linear-gradient(135deg, hsl(220 18% 11%), hsl(220 20% 7%))",
-                      border: i === 0 ? "1.5px solid hsl(42 78% 55% / 0.55)" : "1px solid hsl(0 0% 100% / 0.06)",
-                      boxShadow: i === 0
-                        ? "0 6px 20px hsl(42 78% 55% / 0.25), 0 0 0 3px hsl(42 78% 55% / 0.08)"
-                        : "0 2px 8px rgba(0,0,0,0.25)",
-                    }}
+              {favorites.map((fav, i) => {
+                const lastAmt = lastAmountByContact.get(fav.contact_name.trim().toLowerCase());
+                return (
+                  <PressTooltip
+                    key={fav.id}
+                    label={lastAmt != null ? `Pay Again ₹${(lastAmt / 100).toLocaleString("en-IN")}` : null}
+                    className={`${i === 0 ? "min-w-[66px]" : "min-w-[58px]"}`}
                   >
-                    {fav.avatar_emoji}
-                    {i === 0 && (
-                      <span className="absolute -top-1 -right-1 px-1.5 py-[1px] rounded-full text-[7px] font-bold tracking-wider gradient-primary text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.4)]">NEW</span>
-                    )}
-                  </div>
-                  <span className={`${i === 0 ? "text-[10px] font-bold text-foreground/85" : "text-[9px] font-medium text-muted-foreground/55"} truncate w-full text-center font-sora`}>{fav.contact_name.split(" ")[0]}</span>
-                </motion.button>
-              ))}
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.45 + i * 0.06, type: "spring", stiffness: 300, damping: 22 }}
+                      whileTap={{ scale: 0.88 }}
+                      onClick={() => { haptic.light(); navigate("/quick-pay", { state: { selectedContact: fav } }); }}
+                      className="flex flex-col items-center gap-2 group w-full"
+                    >
+                      <div
+                        className={`${i === 0 ? "w-[66px] h-[66px] text-[26px]" : "w-[50px] h-[50px] text-[22px]"} rounded-full flex items-center justify-center transition-all relative`}
+                        style={{
+                          background: "linear-gradient(135deg, hsl(220 18% 11%), hsl(220 20% 7%))",
+                          border: i === 0 ? "1.5px solid hsl(42 78% 55% / 0.55)" : "1px solid hsl(0 0% 100% / 0.06)",
+                          boxShadow: i === 0
+                            ? "0 6px 20px hsl(42 78% 55% / 0.25), 0 0 0 3px hsl(42 78% 55% / 0.08)"
+                            : "0 2px 8px rgba(0,0,0,0.25)",
+                        }}
+                      >
+                        {fav.avatar_emoji}
+                        {i === 0 && (
+                          <span className="absolute -top-1 -right-1 px-1.5 py-[1px] rounded-full text-[7px] font-bold tracking-wider gradient-primary text-primary-foreground shadow-[0_2px_8px_hsl(42_78%_55%/0.4)]">NEW</span>
+                        )}
+                      </div>
+                      <span className={`${i === 0 ? "text-[10px] font-bold text-foreground/85" : "text-[9px] font-medium text-muted-foreground/55"} truncate w-full text-center font-sora`}>{fav.contact_name.split(" ")[0]}</span>
+                    </motion.button>
+                  </PressTooltip>
+                );
+              })}
               <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -903,7 +946,7 @@ const TeenHome = () => {
             </button>
           </div>
 
-          {transactions.length === 0 ? (
+          {recentForList.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -921,36 +964,43 @@ const TeenHome = () => {
               boxShadow: "0 8px 32px -8px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.02)"
             }}>
               <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.1) 50%, transparent 90%)" }} />
-              {transactions.map((tx, idx) => (
-                <motion.button
+              {recentForList.map((tx, idx) => (
+                <SwipeActionRow
                   key={tx.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + idx * 0.05, type: "spring", stiffness: 300, damping: 24 }}
-                  whileTap={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.025)" }}
-                  onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200 ${idx < transactions.length - 1 ? "border-b border-border/10" : ""}`}
+                  onDetails={() => navigate(`/transaction/${tx.id}`)}
+                  onDispute={() => navigate("/help")}
+                  className={idx < recentForList.length - 1 ? "border-b border-border/10" : ""}
                 >
-                  <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0 border border-border/10">
-                    {catEmoji[tx.category || "other"] || "💸"}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[11px] font-semibold truncate font-sora">{tx.merchant_name || tx.category || "Transaction"}</p>
-                    <p className="text-[9px] text-muted-foreground/30 capitalize mt-0.5 font-sora">
-                      {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-[12px] font-bold tabular-nums font-mono ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
-                      {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
-                    </p>
-                    <p className={`text-[8px] font-medium mt-0.5 font-sora ${
-                      tx.status === "success" ? "text-success/40" : tx.status === "pending" ? "text-warning/50" : "text-destructive/40"
-                    }`}>
-                      {tx.status === "success" ? "Completed" : tx.status === "pending" ? "Pending" : tx.status}
-                    </p>
-                  </div>
-                </motion.button>
+                  <motion.button
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + idx * 0.05, type: "spring", stiffness: 300, damping: 24 }}
+                    whileTap={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.025)" }}
+                    onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
+                    className="w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200"
+                    style={{ background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))" }}
+                  >
+                    <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0 border border-border/10">
+                      {catEmoji[tx.category || "other"] || "💸"}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[11px] font-semibold truncate font-sora">{tx.merchant_name || tx.category || "Transaction"}</p>
+                      <p className="text-[9px] text-muted-foreground/30 capitalize mt-0.5 font-sora">
+                        {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-[12px] font-bold tabular-nums font-mono ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
+                        {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
+                      </p>
+                      <p className={`text-[8px] font-medium mt-0.5 font-sora ${
+                        tx.status === "success" ? "text-success/40" : tx.status === "pending" ? "text-warning/50" : "text-destructive/40"
+                      }`}>
+                        {tx.status === "success" ? "Completed" : tx.status === "pending" ? "Pending" : tx.status}
+                      </p>
+                    </div>
+                  </motion.button>
+                </SwipeActionRow>
               ))}
             </div>
           )}
