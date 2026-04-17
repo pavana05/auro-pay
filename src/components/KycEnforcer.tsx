@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Routes that must remain reachable even when KYC is not verified.
 const ALLOWED_WITHOUT_KYC = new Set<string>([
   "/",
+  "/auth",
   "/reset-password",
   "/verify-kyc",
   "/profile-setup", // not a real route, but defensive
