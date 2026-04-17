@@ -99,7 +99,7 @@ const LinkedTeens = () => {
       } catch (e: any) {
         setLookup({ status: "error", message: e?.message });
       }
-    }, 350);
+    }, 400);
     return () => clearTimeout(t);
   }, [phone, links]);
 
