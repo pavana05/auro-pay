@@ -625,10 +625,10 @@ const SendMoney = () => {
             </div>
           </div>
 
-          {/* CTA */}
+          {/* CTA — hands off to /pay (cinematic flow) */}
           <div className="px-5 pb-6 pt-2">
             <button
-              onClick={() => { if (canSend) { haptic.medium(); setConfirming(true); } }}
+              onClick={submit}
               disabled={!canSend}
               className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all disabled:scale-100 relative overflow-hidden"
               style={{
@@ -643,7 +643,7 @@ const SendMoney = () => {
               <span className="relative z-10 flex items-center justify-center gap-2">
                 <Send className="w-4 h-4" />
                 {amt > 0
-                  ? `Send ₹${amt.toLocaleString("en-IN")} to ${recipient.contact_name.split(" ")[0]}`
+                  ? `Continue · ₹${amt.toLocaleString("en-IN")}`
                   : "Enter an amount"}
               </span>
             </button>
