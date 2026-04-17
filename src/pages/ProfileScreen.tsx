@@ -417,10 +417,31 @@ const ProfileScreen = () => {
               <div className="flex-1 min-w-0 pt-1">
                 <h1 className="text-[19px] font-bold tracking-[-0.4px] truncate">{profile?.full_name || "Set your name"}</h1>
                 <p className="text-[11px] text-white/40 mt-0.5">{profile?.phone || "—"}</p>
-                <p className="text-[11px] mt-1.5 text-primary/85 truncate"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.02em" }}>
-                  {profile?.upi_id || (profile?.phone ? `${profile.phone}@auropay` : "—")}
-                </p>
+                {(() => {
+                  const upiDisplay = profile?.upi_id || (profile?.phone ? `${profile.phone}@auropay` : "");
+                  const canCopy = !!upiDisplay;
+                  return (
+                    <button
+                      type="button"
+                      disabled={!canCopy}
+                      onClick={async () => {
+                        if (!canCopy) return;
+                        try {
+                          await navigator.clipboard.writeText(upiDisplay);
+                          haptic.light();
+                          toast.success("UPI ID copied");
+                        } catch {
+                          toast.error("Couldn't copy UPI ID");
+                        }
+                      }}
+                      className="text-[11px] mt-1.5 text-primary/85 truncate max-w-full text-left active:scale-[0.97] transition-transform disabled:opacity-60"
+                      style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.02em" }}
+                      aria-label="Copy UPI ID"
+                    >
+                      {upiDisplay || "—"}
+                    </button>
+                  );
+                })()}
                 {profile?.kyc_status === "verified" ? (
                   <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
                     style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
