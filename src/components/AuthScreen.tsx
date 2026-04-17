@@ -312,8 +312,12 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
         if (!data.session) toast.success("Check your email to verify!", { duration: 6000 });
         else { toast.success("Account created!"); onAuth(); }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data.user) {
+          markReturningSession(data.user.id);
+          if (await isBiometricAvailable() && !isBiometricEnabled()) setBiometricEnabled(true);
+        }
         toast.success("Welcome back!");
         onAuth();
       }
