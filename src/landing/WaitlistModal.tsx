@@ -210,14 +210,100 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
                   <Check size={40} strokeWidth={3} className="text-black" />
                 </motion.div>
                 <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "Sora, sans-serif" }}>You're on the list!</h2>
-                <p className="text-sm text-white/60">We'll notify you the moment AuroPay launches in your city.</p>
-                <button
-                  onClick={handleClose}
-                  className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
-                  style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
-                >
-                  Done
-                </button>
+
+                {refCode ? (
+                  <>
+                    <p className="text-sm text-white/60">
+                      Invite friends — you both get <span className="text-amber-200 font-semibold">₹100</span> when they join.
+                    </p>
+
+                    {/* Referral link card */}
+                    <button
+                      onClick={copyLink}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition hover:bg-white/[0.03] group"
+                      style={{
+                        borderColor: "rgba(200,149,46,0.28)",
+                        background: "rgba(200,149,46,0.06)",
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.22em] text-white/45 font-semibold mb-0.5">Your link</div>
+                        <div className="text-[13px] text-white/85 truncate font-mono">{shareUrl.replace(/^https?:\/\//, "")}</div>
+                      </div>
+                      <span
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[11px] font-semibold"
+                        style={{
+                          background: copied ? "rgba(34,197,94,0.18)" : "rgba(200,149,46,0.16)",
+                          color: copied ? "#86efac" : "#e0b048",
+                        }}
+                      >
+                        {copied ? <><Check size={12} strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy</>}
+                      </span>
+                    </button>
+
+                    {/* Share buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={shareWhatsApp}
+                        className="h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.97]"
+                        style={{
+                          background: "linear-gradient(135deg,#25d366,#128c7e)",
+                          color: "#fff",
+                          boxShadow: "0 6px 18px rgba(37,211,102,0.35)",
+                        }}
+                      >
+                        <MessageCircle size={15} fill="#fff" strokeWidth={0} /> WhatsApp
+                      </button>
+                      <button
+                        onClick={shareTwitter}
+                        className="h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.97]"
+                        style={{
+                          background: "linear-gradient(135deg,#1d1d1f,#000)",
+                          color: "#fff",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        <Twitter size={14} fill="#fff" strokeWidth={0} /> Twitter / X
+                      </button>
+                    </div>
+
+                    {typeof navigator !== "undefined" && "share" in navigator && (
+                      <button
+                        onClick={nativeShare}
+                        className="w-full h-11 rounded-xl text-sm font-semibold transition"
+                        style={{
+                          background: "linear-gradient(135deg,#c8952e,#e0b048)",
+                          color: "#0a0a0a",
+                          boxShadow: "0 6px 18px rgba(200,149,46,0.4)",
+                        }}
+                      >
+                        Share via…
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleClose}
+                      className="w-full py-2.5 text-xs text-white/45 hover:text-white/70 transition"
+                    >
+                      Maybe later
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-white/60">We'll notify you the moment AuroPay launches in your city.</p>
+                    <button
+                      onClick={handleClose}
+                      className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
+                      style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
+                    >
+                      Done
+                    </button>
+                  </>
+                )}
+
+                {error && (
+                  <p className="text-[11px] text-amber-300/70">{error}</p>
+                )}
               </motion.div>
             )}
           </motion.div>
