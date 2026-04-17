@@ -279,6 +279,21 @@ const AdminAuditLog = () => {
               className="h-9 px-3 rounded-[10px] text-xs focus:outline-none"
               style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
           </div>
+          {/* Quick filter chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setForceActionsOnly(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{
+                background: forceActionsOnly ? `${C.danger}25` : "rgba(255,255,255,0.04)",
+                color: forceActionsOnly ? C.danger : C.textSecondary,
+                border: `1px solid ${forceActionsOnly ? C.danger + "55" : C.border}`,
+              }}
+              title="Show only wallet_force_credit / wallet_force_debit entries"
+            >
+              <Shield className="w-3 h-3" /> Force actions {forceCount > 0 && <span className="opacity-70">({forceCount})</span>}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5" style={{ color: C.textMuted }} />
@@ -291,7 +306,7 @@ const AdminAuditLog = () => {
                 style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary, colorScheme: "dark" }} />
             </div>
             {hasFilters && (
-              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); }}
+              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); }}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full" style={{ color: C.textSecondary, background: "rgba(255,255,255,0.04)" }}>
                 <X className="w-3 h-3" /> Clear filters
               </button>
