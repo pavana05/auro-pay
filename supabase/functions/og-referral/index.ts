@@ -4,17 +4,23 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
-// @ts-ignore - wasm asset
-import wasm from "npm:@resvg/resvg-wasm@2.6.2/index_bg.wasm" with { type: "bytes" };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
 };
 
+const WASM_URL = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+
 let wasmReady: Promise<void> | null = null;
 function ensureWasm() {
-  if (!wasmReady) wasmReady = initWasm(wasm as unknown as BufferSource);
+  if (!wasmReady) {
+    wasmReady = (async () => {
+      const res = await fetch(WASM_URL);
+      const buf = await res.arrayBuffer();
+      await initWasm(buf);
+    })();
+  }
   return wasmReady;
 }
 
