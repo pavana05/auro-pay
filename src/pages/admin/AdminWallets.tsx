@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
 import MaskedReveal from "@/components/admin/MaskedReveal";
 import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard } from "lucide-react";
+import ForceActionConfirmModal, { type ForceActionPayload } from "@/components/admin/ForceActionConfirmModal";
+
+const FORCE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 — must match the edge function
 
 interface WalletRow {
   id: string;
@@ -44,6 +47,7 @@ const AdminWallets = () => {
   const [tab, setTab] = useState<"all" | "frozen">("all");
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
+  const [forcePayload, setForcePayload] = useState<ForceActionPayload | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -100,6 +104,21 @@ const AdminWallets = () => {
     const w = wallets.find((x) => x.id === edit.walletId);
     if (!w) return;
     const oldVal = (w[edit.field] as number) || 0;
+
+    // High-risk gate: balance changes whose delta >= ₹10,000 must go through OTP+reason flow.
+    if (edit.field === "balance") {
+      const delta = valuePaise - oldVal;
+      if (Math.abs(delta) >= FORCE_THRESHOLD_PAISE) {
+        setForcePayload({
+          wallet_id: w.id,
+          kind: delta > 0 ? "credit" : "debit",
+          amount_paise: Math.abs(delta),
+          user_label: w.profile?.full_name || w.profile?.phone || "this wallet",
+        });
+        return; // modal will run the mutation server-side
+      }
+    }
+
     const update: Record<string, number> = { [edit.field]: valuePaise };
     const { error } = await supabase.from("wallets").update(update as any).eq("id", edit.walletId);
     if (error) { toast.error(error.message); return; }
@@ -107,6 +126,17 @@ const AdminWallets = () => {
     setSavedFlash(`${edit.walletId}-${edit.field}`);
     setTimeout(() => setSavedFlash(null), 1500);
     setEdit(null);
+    fetchWallets();
+  };
+
+  // Called by ForceActionConfirmModal once the server has applied + logged the change.
+  const handleForceSuccess = (newBalance: number) => {
+    if (!forcePayload) return;
+    setWallets((prev) => prev.map((x) => x.id === forcePayload.wallet_id ? { ...x, balance: newBalance } : x));
+    setSavedFlash(`${forcePayload.wallet_id}-balance`);
+    setTimeout(() => setSavedFlash(null), 1500);
+    setEdit(null);
+    setForcePayload(null);
     fetchWallets();
   };
 
@@ -290,6 +320,12 @@ const AdminWallets = () => {
         </div>
       </div>
 
+      <ForceActionConfirmModal
+        open={!!forcePayload}
+        payload={forcePayload}
+        onClose={() => setForcePayload(null)}
+        onSuccess={handleForceSuccess}
+      />
     </AdminLayout>
   );
 };
