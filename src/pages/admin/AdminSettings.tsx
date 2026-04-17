@@ -105,16 +105,29 @@ const AdminSettings = () => {
   /* Load all settings + ensure defaults exist locally */
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("app_settings").select("*");
-      const map: Record<string, string> = {};
-      (data || []).forEach((s: any) => { map[s.key] = s.value; });
-      // fill defaults for missing keys
-      Object.entries(SETTING_DEFS).forEach(([k, def]) => {
-        if (map[k] === undefined) map[k] = def.default;
-      });
-      setSettings(map);
-      setOriginalSettings(map);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.from("app_settings").select("*");
+        if (error) {
+          console.error("[AdminSettings] load error:", error);
+          toast.error(`Failed to load settings: ${error.message}`);
+        }
+        const map: Record<string, string> = {};
+        (data || []).forEach((s: any) => { map[s.key] = s.value; });
+        Object.entries(SETTING_DEFS).forEach(([k, def]) => {
+          if (map[k] === undefined) map[k] = def.default;
+        });
+        setSettings(map);
+        setOriginalSettings(map);
+      } catch (e: any) {
+        console.error("[AdminSettings] load exception:", e);
+        toast.error(e?.message || "Failed to load settings");
+        const map: Record<string, string> = {};
+        Object.entries(SETTING_DEFS).forEach(([k, def]) => { map[k] = def.default; });
+        setSettings(map);
+        setOriginalSettings(map);
+      } finally {
+        setLoading(false);
+      }
     })();
     return () => { Object.values(debounceTimers.current).forEach(clearTimeout); };
   }, []);
@@ -122,17 +135,26 @@ const AdminSettings = () => {
   /* Persist a single setting (upsert) */
   const persist = async (key: string, value: string) => {
     setSavingKey(key);
-    const { data: existing } = await supabase.from("app_settings").select("id").eq("key", key).maybeSingle();
-    if (existing) {
-      await supabase.from("app_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key);
-    } else {
-      await supabase.from("app_settings").insert({ key, value });
+    try {
+      const { data: existing, error: selErr } = await supabase.from("app_settings").select("id").eq("key", key).maybeSingle();
+      if (selErr) throw selErr;
+      if (existing) {
+        const { error } = await supabase.from("app_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("app_settings").insert({ key, value });
+        if (error) throw error;
+      }
+      setSavedAt(Date.now());
+      setOriginalSettings(prev => ({ ...prev, [key]: value }));
+      setRecentlySavedKeys(prev => new Set(prev).add(key));
+      setTimeout(() => setRecentlySavedKeys(prev => { const n = new Set(prev); n.delete(key); return n; }), 1500);
+    } catch (e: any) {
+      console.error("[AdminSettings] persist error:", e);
+      toast.error(`Failed to save ${key}: ${e?.message || "unknown error"}`);
+    } finally {
+      setSavingKey(null);
     }
-    setSavingKey(null);
-    setSavedAt(Date.now());
-    setOriginalSettings(prev => ({ ...prev, [key]: value }));
-    setRecentlySavedKeys(prev => new Set(prev).add(key));
-    setTimeout(() => setRecentlySavedKeys(prev => { const n = new Set(prev); n.delete(key); return n; }), 1500);
   };
 
   /* Update value with 600ms debounce */
