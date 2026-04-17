@@ -351,6 +351,25 @@ const TeenHome = () => {
           </div>
         </motion.div>
 
+        {/* Inline search results — shown below the header while typing */}
+        {searchOpen && searchQuery.trim() && (
+          <InlineSearchResults
+            query={searchQuery}
+            contacts={favorites.map(f => ({ id: f.id, contact_name: f.contact_name, avatar_emoji: f.avatar_emoji }))}
+            transactions={transactions}
+            onPickContact={(c) => {
+              const fav = favorites.find(f => f.id === c.id);
+              setSearchOpen(false); setSearchQuery("");
+              navigate("/quick-pay", { state: { selectedContact: fav } });
+            }}
+            onPickTransaction={(t) => {
+              setSearchOpen(false); setSearchQuery("");
+              navigate(`/transaction/${t.id}`);
+            }}
+            onClose={() => { setSearchOpen(false); setSearchQuery(""); }}
+          />
+        )}
+
         {/* KYC pending banner */}
         {profile && profile.kyc_status !== "verified" && (
           <motion.button
