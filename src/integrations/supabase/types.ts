@@ -726,6 +726,7 @@ export type Database = {
         Row: {
           aadhaar_verified: boolean | null
           avatar_url: string | null
+          city: string | null
           created_at: string | null
           full_name: string | null
           haptics_enabled: boolean
@@ -735,11 +736,14 @@ export type Database = {
           pin_hash: string | null
           pin_set_at: string | null
           role: string | null
+          state_code: string | null
+          state_source: string
           upi_id: string | null
         }
         Insert: {
           aadhaar_verified?: boolean | null
           avatar_url?: string | null
+          city?: string | null
           created_at?: string | null
           full_name?: string | null
           haptics_enabled?: boolean
@@ -749,11 +753,14 @@ export type Database = {
           pin_hash?: string | null
           pin_set_at?: string | null
           role?: string | null
+          state_code?: string | null
+          state_source?: string
           upi_id?: string | null
         }
         Update: {
           aadhaar_verified?: boolean | null
           avatar_url?: string | null
+          city?: string | null
           created_at?: string | null
           full_name?: string | null
           haptics_enabled?: boolean
@@ -763,6 +770,8 @@ export type Database = {
           pin_hash?: string | null
           pin_set_at?: string | null
           role?: string | null
+          state_code?: string | null
+          state_source?: string
           upi_id?: string | null
         }
         Relationships: []
@@ -1399,6 +1408,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      infer_state_from_phone: { Args: { _phone: string }; Returns: string }
       is_conversation_member: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
