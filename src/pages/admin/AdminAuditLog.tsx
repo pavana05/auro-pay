@@ -40,13 +40,18 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
   wallet_balance_updated: { icon: Wallet, color: C.primary, bg: `${C.primary}15`, label: "Balance Updated" },
   wallet_funds_added: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Funds Added" },
   wallet_funds_deducted: { icon: Wallet, color: C.danger, bg: `${C.danger}15`, label: "Funds Deducted" },
+  wallet_force_credit: { icon: Wallet, color: C.success, bg: `${C.success}25`, label: "Force Credit" },
+  wallet_force_debit: { icon: Wallet, color: C.danger, bg: `${C.danger}25`, label: "Force Debit" },
   kyc_approve: { icon: Shield, color: C.success, bg: `${C.success}15`, label: "KYC Approved" },
   kyc_reject: { icon: Shield, color: C.danger, bg: `${C.danger}15`, label: "KYC Rejected" },
   user_delete: { icon: Trash2, color: C.danger, bg: `${C.danger}15`, label: "User Deleted" },
   transaction_refund: { icon: RefreshCw, color: C.warning, bg: `${C.warning}15`, label: "Refund Issued" },
+  transaction_refunded: { icon: RefreshCw, color: C.warning, bg: `${C.warning}15`, label: "Refund Issued" },
   transaction_flag: { icon: Shield, color: C.warning, bg: `${C.warning}15`, label: "Transaction Flagged" },
   default: { icon: FileText, color: C.textSecondary, bg: "rgba(255,255,255,0.05)", label: "Action" },
 };
+
+const FORCE_ACTIONS = new Set(["wallet_force_credit", "wallet_force_debit"]);
 
 const humanize = (a: string) => actionMeta[a]?.label || a.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
