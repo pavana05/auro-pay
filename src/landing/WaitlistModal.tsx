@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Loader2 } from "lucide-react";
+import { X, Check, Loader2, Copy, MessageCircle, Twitter } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { getReferrerId } from "@/landing/referral";
 
 type Role = "teen" | "parent" | "both";
+
+const SUPABASE_FUNCTIONS_URL = "https://mkduupshubnzjwefptcw.functions.supabase.co";
+const SITE_URL = "https://auro-pay.lovable.app";
 
 export default function WaitlistModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [phone, setPhone] = useState("");
@@ -15,9 +18,50 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refCode, setRefCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = refCode ? `${SITE_URL}/?ref=${refCode}` : SITE_URL;
+  const ogImageUrl = refCode ? `${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${refCode}` : "";
+  const shareText = refCode
+    ? `I just joined the AuroPay waitlist — India's first scan-and-pay app for teens 💛 Use my link and we both get ₹100: ${shareUrl}`
+    : `Join the AuroPay waitlist — India's first scan-and-pay app for teens 💛 ${shareUrl}`;
 
   const reset = () => {
-    setPhone(""); setEmail(""); setName(""); setRole("teen"); setDone(false); setError(null);
+    setPhone(""); setEmail(""); setName(""); setRole("teen");
+    setDone(false); setError(null); setRefCode(null); setCopied(false);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      setError("Couldn't copy. Long-press the link to copy manually.");
+    }
+  };
+
+  const shareWhatsApp = () => {
+    // Pre-warm the OG cache so the first WhatsApp preview is instant
+    if (ogImageUrl) fetch(ogImageUrl, { mode: "no-cors" }).catch(() => {});
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  };
+
+  const shareTwitter = () => {
+    if (ogImageUrl) fetch(ogImageUrl, { mode: "no-cors" }).catch(() => {});
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
+      "_blank",
+      "noopener"
+    );
+  };
+
+  const nativeShare = async () => {
+    if (!navigator.share) { copyLink(); return; }
+    try {
+      await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl });
+    } catch { /* user cancelled */ }
   };
 
   const handleClose = () => { reset(); onClose(); };
