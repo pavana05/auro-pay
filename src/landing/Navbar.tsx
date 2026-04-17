@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Menu, X, ArrowUpRight } from "lucide-react";
+import MagneticCTA from "./MagneticCTA";
 
 export default function Navbar({ onCTA }: { onCTA: () => void }) {
   const [scrolled, setScrolled] = useState(false);
@@ -103,20 +104,15 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onCTA}
-              className="hidden sm:inline-flex h-10 pl-4 pr-2 rounded-full text-[13px] font-semibold text-black items-center gap-1.5 transition hover:scale-[1.04] active:scale-[0.97] lux-shimmer"
-              style={{
-                background: "linear-gradient(135deg,#c8952e,#e0b048,#c8952e)",
-                boxShadow: "0 6px 24px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
-              }}
-            >
-              Early Access
-              <span className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(0,0,0,0.18)" }}>
-                <ArrowUpRight size={13} strokeWidth={2.5} />
-              </span>
-            </button>
+            <div className="hidden sm:inline-flex">
+              <MagneticCTA onClick={onCTA} className="h-10 pl-4 pr-2 text-[13px]" radius={120}>
+                Early Access
+                <span className="w-7 h-7 rounded-full flex items-center justify-center ml-1"
+                  style={{ background: "rgba(0,0,0,0.18)" }}>
+                  <ArrowUpRight size={13} strokeWidth={2.5} />
+                </span>
+              </MagneticCTA>
+            </div>
             <button onClick={() => setOpen(true)} className="md:hidden text-white p-2.5" aria-label="Menu">
               <Menu size={20} />
             </button>

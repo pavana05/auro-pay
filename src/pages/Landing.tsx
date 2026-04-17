@@ -7,6 +7,7 @@ import WaitlistModal from "@/landing/WaitlistModal";
 import StickyCTA from "@/landing/StickyCTA";
 import ScrollProgress from "@/landing/ScrollProgress";
 import PremiumCursor from "@/landing/PremiumCursor";
+import ParticleField from "@/landing/ParticleField";
 import Hero from "@/landing/sections/Hero";
 import PressStrip from "@/landing/sections/PressStrip";
 import Stats from "@/landing/sections/Stats";
@@ -66,6 +67,7 @@ export default function Landing() {
       <ScrollProgress />
       <PremiumCursor />
       <ThreeBackground />
+      <ParticleField />
 
       {/* Subtle radial gold glow over scene */}
       <div className="fixed inset-0 -z-[5] pointer-events-none"

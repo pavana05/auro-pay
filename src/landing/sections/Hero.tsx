@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Sparkles, Play, ChevronRight } from "lucide-react";
 import PhoneMockup from "../PhoneMockup";
+import MagneticCTA from "../MagneticCTA";
 import heroIllustration from "@/assets/hero-illustration.png";
 
 import { Wallet, ScanLine, Target, Users2 } from "lucide-react";
@@ -134,22 +135,11 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           {/* CTAs */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.9 }}
             className="flex flex-wrap gap-3 pt-1">
-            <button onClick={onCTA}
-              className="group relative overflow-hidden px-7 h-14 py-3.5 rounded-full font-semibold text-base text-black transition hover:scale-[1.02] active:scale-[0.98] inline-flex items-center gap-2"
-              style={{
-                background: "linear-gradient(135deg,#c8952e,#e0b048)",
-                boxShadow: "0 8px 32px rgba(200,149,46,0.45)",
-              }}>
-              <Sparkles size={18} className="relative z-10" />
-              <span className="relative z-10">Get Early Access</span>
-              <ChevronRight size={18} className="relative z-10 transition group-hover:translate-x-0.5" />
-              <motion.div
-                className="absolute inset-0"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)" }}
-                animate={{ x: ["-100%", "200%"] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              />
-            </button>
+            <MagneticCTA onClick={onCTA} className="px-7 h-14 text-base">
+              <Sparkles size={18} />
+              <span>Get Early Access</span>
+              <ChevronRight size={18} />
+            </MagneticCTA>
             <button className="px-6 h-14 py-3.5 rounded-full font-medium text-base text-white border transition hover:bg-white/5 inline-flex items-center gap-2"
               style={{ borderColor: "rgba(255,255,255,0.18)" }}>
               <Play size={16} fill="currentColor" /> Watch 60s demo
