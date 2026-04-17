@@ -70,13 +70,33 @@ Deno.serve(async (req) => {
     const enc = new TextEncoder();
     const a = enc.encode(password);
     const b = enc.encode(expected);
-    let ok = a.length === b.length;
     const len = Math.max(a.length, b.length);
     let diff = a.length ^ b.length;
     for (let i = 0; i < len; i++) {
       diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
     }
-    ok = diff === 0;
+    const ok = diff === 0;
+
+    // Audit log (use service role to bypass RLS check on admin_user_id)
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      null;
+    const userAgent = req.headers.get("user-agent") || null;
+
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    await adminClient.from("audit_logs").insert({
+      admin_user_id: userId,
+      action: ok ? "admin_unlock_success" : "admin_unlock_failed",
+      target_type: "admin_panel",
+      target_id: userId,
+      ip_address: ip,
+      details: { user_agent: userAgent },
+    });
 
     return new Response(JSON.stringify({ ok }), {
       status: 200,
