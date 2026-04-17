@@ -431,36 +431,20 @@ const AdminKyc = () => {
         </Modal>
       )}
 
-      {/* ─────────── Approve modal ─────────── */}
-      {approveTarget && (
-        <Modal onClose={() => { setApproveTarget(null); setApproveText(""); }} title="Confirm KYC Approval" accent={C.success}>
-          <div className="rounded-xl p-3 border mb-3" style={{ background: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.2)" }}>
-            <p className="text-[12px] text-white font-sora">
-              You are approving KYC for <span className="font-semibold" style={{ color: C.success }}>{approveTarget.aadhaar_name || approveTarget.profile?.full_name || "this user"}</span>.
-            </p>
-            <p className="text-[11px] text-white/60 font-sora mt-1">This grants full platform access including payments, transfers and card usage.</p>
-          </div>
-          <label className="text-[10px] uppercase tracking-wider text-white/40 font-sora block mb-1">Type APPROVE to confirm</label>
-          <input
-            type="text" value={approveText} onChange={(e) => setApproveText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && approveText.trim().toUpperCase() === "APPROVE") handleApproveSubmit(); }}
-            placeholder="APPROVE" autoFocus
-            className="w-full h-10 px-3 rounded-[10px] text-[13px] font-mono font-bold text-white tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-success/40"
-            style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}
-          />
-          <div className="flex gap-2 mt-4">
-            <button onClick={() => { setApproveTarget(null); setApproveText(""); }} className="flex-1 h-10 rounded-[10px] border border-white/10 text-[12px] font-medium text-white/70 hover:bg-white/5 font-sora">Cancel</button>
-            <button
-              onClick={handleApproveSubmit}
-              disabled={approveText.trim().toUpperCase() !== "APPROVE"}
-              className="flex-1 h-10 rounded-[10px] text-[12px] font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed font-sora"
-              style={{ background: `linear-gradient(135deg, ${C.success}, #16a34a)` }}
-            >
-              ✓ Approve KYC
-            </button>
-          </div>
-        </Modal>
-      )}
+      {/* ─────────── Approve gate (typed CONFIRM + reason) ─────────── */}
+      <HighRiskConfirmGate
+        open={!!approveTarget}
+        payload={approveTarget ? {
+          title: "Approve KYC manually",
+          description: `${approveTarget.aadhaar_name || approveTarget.profile?.full_name || "this user"} • grants full platform access`,
+          confirmLabel: "Approve KYC",
+          destructive: false,
+          minReasonLength: 10,
+          reasonPlaceholder: "e.g. Aadhaar matches profile, document clear, DOB consistent.",
+        } : null}
+        onClose={() => { setApproveTarget(null); setApproveText(""); }}
+        onConfirm={handleApproveSubmit}
+      />
 
       {/* ─────────── Reject modal ─────────── */}
       {rejectTarget && (
