@@ -38,6 +38,7 @@ const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
 const TeenHome = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -84,6 +85,7 @@ const TeenHome = () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setUserId(user.id);
     const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
       supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", user.id).single(),
       supabase.from("wallets").select("*").eq("user_id", user.id).single(),
