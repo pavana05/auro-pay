@@ -184,21 +184,9 @@ const AdminGeographic = () => {
 
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [{ data: us }, { data: tx }, { data: ws }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone, role, created_at, state_code, city, state_source"),
-        supabase.from("transactions").select("amount, status, created_at, wallet_id").eq("status", "success").limit(5000),
-        supabase.from("wallets").select("id, user_id"),
-      ]);
-      const map: Record<string, string> = {};
-      (ws || []).forEach((w: any) => (map[w.id] = w.user_id));
-      setWalletToUser(map);
-      setUsers((us || []) as UserRow[]);
-      setTxns((tx || []) as Tx[]);
-      setLoading(false);
-    })();
+    loadAll();
   }, []);
+
 
   const cutoffMs = useMemo(() => {
     const r = RANGES.find((x) => x.v === range);
