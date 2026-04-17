@@ -651,6 +651,7 @@ export type Database = {
           pin_hash: string | null
           pin_set_at: string | null
           role: string | null
+          upi_id: string | null
         }
         Insert: {
           aadhaar_verified?: boolean | null
@@ -664,6 +665,7 @@ export type Database = {
           pin_hash?: string | null
           pin_set_at?: string | null
           role?: string | null
+          upi_id?: string | null
         }
         Update: {
           aadhaar_verified?: boolean | null
@@ -677,6 +679,7 @@ export type Database = {
           pin_hash?: string | null
           pin_set_at?: string | null
           role?: string | null
+          upi_id?: string | null
         }
         Relationships: []
       }
