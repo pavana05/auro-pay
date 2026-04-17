@@ -74,6 +74,7 @@ export const AdminShortcutsHelp = forwardRef<HTMLDivElement>((_props, _ref) => {
       </div>
     </div>
   );
-};
+});
+AdminShortcutsHelp.displayName = "AdminShortcutsHelp";
 
 export default AdminShortcutsHelp;

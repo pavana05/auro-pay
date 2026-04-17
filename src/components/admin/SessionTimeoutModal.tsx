@@ -108,6 +108,7 @@ export const SessionTimeoutModal = forwardRef<HTMLDivElement, Props>(({
       </div>
     </div>
   );
-};
+});
+SessionTimeoutModal.displayName = "SessionTimeoutModal";
 
 export default SessionTimeoutModal;
