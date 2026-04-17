@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import { z } from "zod";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const phoneSchema = z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian phone");
 
@@ -39,6 +49,9 @@ const LinkedTeens = () => {
   const [phone, setPhone] = useState("");
   const [lookup, setLookup] = useState<LookupState>({ status: "idle" });
   const [linking, setLinking] = useState(false);
+
+  // Pause confirm dialog
+  const [pauseTarget, setPauseTarget] = useState<TeenLink | null>(null);
 
   const loadLinks = async (uid: string) => {
     const { data } = await supabase.from("parent_teen_links").select("*").eq("parent_id", uid);
@@ -112,6 +125,13 @@ const LinkedTeens = () => {
         is_active: true,
       });
       if (error) throw error;
+      // Notify the teen in real-time via notifications insert
+      await supabase.from("notifications").insert({
+        user_id: lookup.profile.id,
+        title: "Parent linked 🎉",
+        body: "Your parent just connected with you on AuroPay 🎉",
+        type: "parent_link",
+      });
       toast.success(`Linked with ${lookup.profile.full_name || "teen"}`);
       await loadLinks(userId);
       closeSheet();
@@ -122,7 +142,7 @@ const LinkedTeens = () => {
     }
   };
 
-  const handleToggle = async (link: TeenLink) => {
+  const performToggle = async (link: TeenLink) => {
     const { error } = await supabase
       .from("parent_teen_links")
       .update({ is_active: !link.is_active })
@@ -130,6 +150,14 @@ const LinkedTeens = () => {
     if (error) { toast.error(error.message); return; }
     toast.success(link.is_active ? "Paused" : "Reactivated");
     if (userId) await loadLinks(userId);
+  };
+
+  const handleToggle = (link: TeenLink) => {
+    if (link.is_active) {
+      setPauseTarget(link);
+    } else {
+      performToggle(link);
+    }
   };
 
   const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
@@ -345,6 +373,31 @@ const LinkedTeens = () => {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!pauseTarget} onOpenChange={(o) => !o && setPauseTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-primary" />
+              Pause {pauseTarget?.teen_name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              While paused, scheduled pocket money transfers will be suspended and won't be sent until you resume the link. You can resume at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep active</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pauseTarget) performToggle(pauseTarget);
+                setPauseTarget(null);
+              }}
+            >
+              Pause link
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
 
