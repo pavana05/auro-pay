@@ -47,6 +47,18 @@ export const useRealtimeNotifications = () => {
         toast("💬 Support reply", { description: "You got a response from support" });
         insertNotification(userId, "Support Reply", "You received a reply on your support ticket", "support");
       })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${userId}`,
+      }, (payload: any) => {
+        const n = payload.new || {};
+        // Skip notifications already toast-ed by other channels above.
+        if (["friend_request", "chore", "support"].includes(n.type)) return;
+        haptic.light();
+        toast(n.title || "Notification", { description: n.body || undefined });
+      })
       .subscribe();
 
     return () => {
