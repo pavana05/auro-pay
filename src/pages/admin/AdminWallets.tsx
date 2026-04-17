@@ -270,6 +270,7 @@ const AdminWallets = () => {
   };
 
   const openWalletPanel = (w: WalletRow) => {
+    const fraudFlagId = fraudLocks.get(w.id) || null;
     ctxPanel.show({
       title: w.profile?.full_name || "Wallet",
       subtitle: w.profile?.phone || w.id.slice(0, 18) + "…",
@@ -277,6 +278,8 @@ const AdminWallets = () => {
         <WalletPanelBody
           wallet={w}
           onFreeze={() => toggleFreeze(w)}
+          fraudFlagId={fraudFlagId}
+          onUnlockAccount={fraudFlagId ? () => requestUnlockAccount(w) : undefined}
         />
       ),
     });
