@@ -76,6 +76,21 @@ export default function AnomalySummaryCard() {
   const tierLabel = totalLast14 > 50 ? "Critical spike" : totalLast14 > 20 ? "Elevated" : "Normal";
   const tierColor = sparkColor;
 
+  // Trend delta vs prior 14d window. If prior is 0, show "new" when current > 0.
+  let deltaLabel = "";
+  let deltaColor = C.muted;
+  if (priorTotal === 0 && totalLast14 === 0) {
+    deltaLabel = "no change";
+  } else if (priorTotal === 0) {
+    deltaLabel = `+${totalLast14} new vs prior 14d`;
+    deltaColor = C.danger;
+  } else {
+    const pct = Math.round(((totalLast14 - priorTotal) / priorTotal) * 100);
+    const sign = pct > 0 ? "+" : "";
+    deltaLabel = `${sign}${pct}% vs prior 14d`;
+    deltaColor = pct >= 25 ? C.danger : pct >= 10 ? C.warning : pct <= -10 ? "#22c55e" : C.muted;
+  }
+
   return (
     <button
       onClick={() => nav("/admin/flagged")}
