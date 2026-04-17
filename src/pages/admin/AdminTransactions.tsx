@@ -101,6 +101,34 @@ const AdminTransactions = () => {
     };
   }, []);
 
+  // Realtime: prepend new transactions and flash
+  useEffect(() => {
+    if (!realtimeOn) return;
+    const ch = supabase
+      .channel("admin-tx-rt")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, async (payload) => {
+        const newTx = payload.new as Transaction;
+        // Hydrate wallet info if missing
+        if (!wallets[newTx.wallet_id]) {
+          const { data: w } = await supabase.from("wallets").select("id, user_id").eq("id", newTx.wallet_id).maybeSingle();
+          if (w) {
+            const { data: p } = await supabase.from("profiles").select("full_name, phone").eq("id", w.user_id).maybeSingle();
+            setWallets((prev) => ({ ...prev, [w.id]: { id: w.id, user_id: w.user_id, full_name: p?.full_name, phone: p?.phone } }));
+          }
+        }
+        setTransactions((prev) => prev.some((t) => t.id === newTx.id) ? prev : [newTx, ...prev]);
+        setFlashedIds((prev) => new Set(prev).add(newTx.id));
+        setTimeout(() => setFlashedIds((prev) => { const n = new Set(prev); n.delete(newTx.id); return n; }), 2200);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "transactions" }, (payload) => {
+        const upd = payload.new as Transaction;
+        setTransactions((prev) => prev.map((t) => t.id === upd.id ? upd : t));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [realtimeOn, wallets]);
+
+
   // Per-user average for anomaly detection
   const userAverages = useMemo(() => {
     const sums: Record<string, { total: number; count: number }> = {};
