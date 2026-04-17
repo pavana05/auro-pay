@@ -421,6 +421,25 @@ const AdminAuditLog = () => {
                                   </div>
                                 </div>
                               )}
+                              {log.action === UNLOCK_ACTION && (log.details?.reason || log.details?.triggered_by_flag_id) && (
+                                <div className="mt-2.5 rounded-[10px] p-2.5 border flex items-start gap-2"
+                                  style={{ background: `${C.success}10`, borderColor: `${C.success}33` }}>
+                                  <Wallet className="w-3 h-3 mt-0.5 shrink-0" style={{ color: C.success }} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: C.success }}>
+                                      Account restored
+                                      {log.details?.triggered_by_flag_id && (
+                                        <span className="ml-1.5 font-mono normal-case tracking-normal" style={{ color: C.textMuted }}>
+                                          · flag <code className="px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: C.primary }}>{String(log.details.triggered_by_flag_id).slice(0, 8)}…</code>
+                                        </span>
+                                      )}
+                                    </p>
+                                    {log.details?.reason && (
+                                      <p className="text-[11px] mt-0.5" style={{ color: C.textPrimary }}>{log.details.reason}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                               {log.details && Object.keys(log.details).length > 0 && (
                                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                                   {Object.entries(log.details).slice(0, 4).map(([k, v]) => (
