@@ -176,6 +176,7 @@ const App = () => (
             <Route path="/admin/health" element={<PageTransition><AdminHealth /></PageTransition>} />
             <Route path="/admin/geographic" element={<PageTransition><AdminGeographic /></PageTransition>} />
             <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
+            <Route path="/admin/waitlist" element={<PageTransition><AdminWaitlist /></PageTransition>} />
 
             {/* Public landing page — full-bleed, no mobile container */}
             <Route path="/landing" element={<Landing />} />
