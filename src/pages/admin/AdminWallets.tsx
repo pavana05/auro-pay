@@ -220,7 +220,7 @@ const AdminWallets = () => {
                   </td></tr>
                 ) : (
                   filtered.map((w, i) => (
-                    <tr key={w.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group"
+                    <tr key={w.id} onClick={() => openWalletPanel(w)} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all duration-200 group cursor-pointer"
                       style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.03, 0.3)}s both` }}>
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
@@ -243,7 +243,7 @@ const AdminWallets = () => {
                           w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
                         }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => setFundsModal({ wallet: w, mode: "add" })}
                             className="p-1.5 rounded-lg bg-success/10 hover:bg-success/20 border border-success/20 transition-all" title="Add funds">
