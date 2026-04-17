@@ -133,6 +133,8 @@ const AdminDashboard = () => {
 
   /* Snapshot state */
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(new Date());
   const [profile, setProfile] = useState<any>(null);
@@ -172,26 +174,61 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchAll = useCallback(async () => {
-    const [usersRes, walletsRes, txnsRes, kycRes, linksRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, role, created_at, phone").order("created_at", { ascending: false }),
-      supabase.from("wallets").select("id, user_id, balance, is_frozen"),
-      supabase.from("transactions").select("id, type, amount, status, merchant_name, merchant_upi_id, category, created_at, wallet_id, razorpay_payment_id").order("created_at", { ascending: false }).limit(1000),
-      supabase.from("kyc_requests").select("id, user_id, aadhaar_name, submitted_at, status").eq("status", "pending").order("submitted_at", { ascending: false }).limit(5),
-      supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
-    ]);
+    // Use Promise.allSettled so a single failed query (RLS, network) doesn't
+    // wipe the entire dashboard or trap us on the skeleton screen.
+    try {
+      const results = await Promise.allSettled([
+        supabase.from("profiles").select("id, full_name, role, created_at, phone").order("created_at", { ascending: false }),
+        supabase.from("wallets").select("id, user_id, balance, is_frozen"),
+        supabase.from("transactions").select("id, type, amount, status, merchant_name, merchant_upi_id, category, created_at, wallet_id, razorpay_payment_id").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("kyc_requests").select("id, user_id, aadhaar_name, submitted_at, status").eq("status", "pending").order("submitted_at", { ascending: false }).limit(5),
+        supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
+      ]);
 
-    const allUsers = usersRes.data || [];
-    const allWallets = walletsRes.data || [];
-    const txns = txnsRes.data || [];
-    setUsers(allUsers);
-    setWallets(allWallets);
-    setAllTxns(txns);
-    setPendingKyc(kycRes.data || []);
-    setActiveLinks(linksRes.count || 0);
-    setSystemBalance(allWallets.reduce((s: number, w: any) => s + (w.balance || 0), 0));
-    setRecentFailed(txns.filter((t: any) => t.status === "failed").slice(0, 5));
-    setFeed(txns.slice(0, 30));
-    setLoading(false);
+      const [usersRes, walletsRes, txnsRes, kycRes, linksRes] = results;
+      const errs: string[] = [];
+      const pick = <T,>(r: PromiseSettledResult<any>, label: string, fallback: T): T => {
+        if (r.status === "rejected") { errs.push(`${label}: ${r.reason?.message || r.reason}`); return fallback; }
+        if (r.value?.error) { errs.push(`${label}: ${r.value.error.message}`); return fallback; }
+        return (r.value?.data ?? fallback) as T;
+      };
+      const allUsers = pick<any[]>(usersRes, "users", []);
+      const allWallets = pick<any[]>(walletsRes, "wallets", []);
+      const txns = pick<any[]>(txnsRes, "transactions", []);
+      const kyc = pick<any[]>(kycRes, "kyc", []);
+      const linksCount =
+        linksRes.status === "fulfilled" && !linksRes.value?.error
+          ? (linksRes.value.count || 0)
+          : (errs.push(`links: ${linksRes.status === "rejected" ? linksRes.reason?.message : linksRes.value?.error?.message}`), 0);
+
+      setUsers(allUsers);
+      setWallets(allWallets);
+      setAllTxns(txns);
+      setPendingKyc(kyc);
+      setActiveLinks(linksCount);
+      setSystemBalance(allWallets.reduce((s: number, w: any) => s + (w.balance || 0), 0));
+      setRecentFailed(txns.filter((t: any) => t.status === "failed").slice(0, 5));
+      setFeed(txns.slice(0, 30));
+
+      if (errs.length === results.length) {
+        // Everything failed — surface the error to the user.
+        setLoadError(errs.join(" · "));
+        toast.error(`Failed to load dashboard: ${errs[0]}`);
+      } else {
+        setLoadError(null);
+        if (errs.length > 0) {
+          console.warn("[AdminDashboard] partial load failures:", errs);
+        }
+        setLastUpdatedAt(Date.now());
+      }
+    } catch (e: any) {
+      console.error("[AdminDashboard] fetchAll exception:", e);
+      setLoadError(e?.message || "Unknown error");
+      toast.error(`Failed to load dashboard: ${e?.message || e}`);
+    } finally {
+      // ALWAYS clear loading so the page never gets stuck on the skeleton.
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
