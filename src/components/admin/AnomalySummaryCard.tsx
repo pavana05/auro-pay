@@ -120,10 +120,16 @@ export default function AnomalySummaryCard() {
       <div>
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-sora" style={{ color: C.muted }}>Flags / day</span>
-          <span className="text-[10px] font-mono" style={{ color: C.muted }}>last 14d</span>
+          <span
+            className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+            style={{ color: tierColor, background: `${tierColor}14`, border: `1px solid ${tierColor}30` }}
+            title={`14d total: ${totalLast14}`}
+          >
+            {tierLabel} · {totalLast14}
+          </span>
         </div>
         <div className="h-12">
-          <Sparkline data={series.length ? series : [0, 0, 0, 0, 0, 0, 0]} color={C.danger} />
+          <Sparkline data={series.length ? series : [0, 0, 0, 0, 0, 0, 0]} color={sparkColor} />
         </div>
       </div>
     </button>
