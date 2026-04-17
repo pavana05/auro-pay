@@ -1145,6 +1145,10 @@ export type Database = {
       wallets: {
         Row: {
           balance: number | null
+          card_atm_enabled: boolean
+          card_contactless_enabled: boolean
+          card_international_enabled: boolean
+          card_online_enabled: boolean
           created_at: string | null
           daily_limit: number | null
           id: string
@@ -1156,6 +1160,10 @@ export type Database = {
         }
         Insert: {
           balance?: number | null
+          card_atm_enabled?: boolean
+          card_contactless_enabled?: boolean
+          card_international_enabled?: boolean
+          card_online_enabled?: boolean
           created_at?: string | null
           daily_limit?: number | null
           id?: string
@@ -1167,6 +1175,10 @@ export type Database = {
         }
         Update: {
           balance?: number | null
+          card_atm_enabled?: boolean
+          card_contactless_enabled?: boolean
+          card_international_enabled?: boolean
+          card_online_enabled?: boolean
           created_at?: string | null
           daily_limit?: number | null
           id?: string
