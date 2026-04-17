@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, Mail, Phone, ChevronLeft } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon } from "lucide-react";
 import { z } from "zod";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile");
 
@@ -14,6 +15,8 @@ const RESEND_SECONDS = 30;
 const OTP_LENGTH = 6;
 
 const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
+  const { isOn } = useAppSettings();
+  const signupsDisabled = isOn("disable_new_signups");
   const [mode, setMode] = useState<Mode>("phone");
   const [phone, setPhone] = useState("");
   const [phoneFocused, setPhoneFocused] = useState(false);
@@ -229,6 +232,11 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     setEmailLoading(true);
     try {
       if (isSignUp) {
+        if (signupsDisabled) {
+          toast.error("New signups are temporarily disabled. Please try again later.");
+          setEmailLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/` },
@@ -312,6 +320,18 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
           Money freedom for teens
         </p>
       </div>
+
+      {signupsDisabled && (
+        <div
+          className="relative z-10 mb-4 max-w-sm w-full px-4 py-2.5 rounded-[12px] flex items-center gap-2"
+          style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)" }}
+        >
+          <LockIcon className="w-3.5 h-3.5 shrink-0" style={{ color: "#f59e0b" }} />
+          <span className="text-[11px] text-white/80">
+            New signups are paused. Existing users can still log in.
+          </span>
+        </div>
+      )}
 
       {/* Frosted glass card */}
       <div
@@ -598,7 +618,13 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                 </button>
               )}
               <button
-                onClick={() => { setForgotMode(false); setIsSignUp(!isSignUp); }}
+                onClick={() => {
+                  if (signupsDisabled && !isSignUp) {
+                    toast.error("New signups are temporarily disabled.");
+                    return;
+                  }
+                  setForgotMode(false); setIsSignUp(!isSignUp);
+                }}
                 className="ml-auto text-white/50 hover:text-white/80 transition"
               >
                 {isSignUp ? "Have an account? Log in" : "New here? Sign up"}

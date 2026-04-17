@@ -3,7 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download } from "lucide-react";
+import { optimistic } from "@/lib/optimistic";
+import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
+import MaskedReveal from "@/components/admin/MaskedReveal";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download, CreditCard } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -15,6 +18,9 @@ interface WalletRow {
   spent_this_month: number | null;
   is_frozen: boolean | null;
   created_at: string | null;
+  card_number?: string | null;
+  card_expiry_month?: number | null;
+  card_expiry_year?: number | null;
   profile?: { full_name: string | null; phone: string | null; role: string | null };
 }
 
@@ -40,6 +46,7 @@ const AdminWallets = () => {
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [fundsModal, setFundsModal] = useState<{ wallet: WalletRow; mode: "add" | "deduct" } | null>(null);
+  const [debitConfirm, setDebitConfirm] = useState<WalletRow | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -107,10 +114,17 @@ const AdminWallets = () => {
   };
 
   const toggleFreeze = async (w: WalletRow) => {
-    await supabase.from("wallets").update({ is_frozen: !w.is_frozen }).eq("id", w.id);
-    await logAudit(w.is_frozen ? "wallet_unfreeze" : "wallet_freeze", w.id, { user: w.profile?.full_name });
-    toast.success(w.is_frozen ? "Wallet unfrozen" : "Wallet frozen");
-    fetchWallets();
+    const next = !w.is_frozen;
+    return optimistic({
+      apply: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: next } : x)),
+      rollback: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: w.is_frozen } : x)),
+      mutate: async () => {
+        const u = await supabase.from("wallets").update({ is_frozen: next }).eq("id", w.id);
+        if (!u.error) await logAudit(next ? "wallet_freeze" : "wallet_unfreeze", w.id, { user: w.profile?.full_name });
+        return u;
+      },
+      successMessage: next ? "Wallet frozen" : "Wallet unfrozen",
+    });
   };
 
   const openWalletPanel = (w: WalletRow) => {
@@ -121,7 +135,7 @@ const AdminWallets = () => {
         <WalletPanelBody
           wallet={w}
           onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
-          onDeduct={() => setFundsModal({ wallet: w, mode: "deduct" })}
+          onDeduct={() => setDebitConfirm(w)}
           onFreeze={() => toggleFreeze(w)}
         />
       ),
@@ -297,6 +311,22 @@ const AdminWallets = () => {
           onDone={() => { setFundsModal(null); fetchWallets(); }}
         />
       )}
+
+      <DestructiveConfirm
+        open={!!debitConfirm}
+        title="Force-debit wallet?"
+        warning={debitConfirm
+          ? `You are about to remove funds from ${debitConfirm.profile?.full_name || "this user"}'s wallet (current balance ${formatAmount(debitConfirm.balance || 0)}). This change is logged to the audit trail and cannot be undone without a manual credit.`
+          : ""}
+        confirmPhrase="DEBIT"
+        confirmLabel="Continue to debit form"
+        onCancel={() => setDebitConfirm(null)}
+        onConfirm={() => {
+          const w = debitConfirm!;
+          setDebitConfirm(null);
+          setFundsModal({ wallet: w, mode: "deduct" });
+        }}
+      />
     </AdminLayout>
   );
 };
@@ -509,6 +539,25 @@ const WalletPanelBody = ({
         <MiniStat k="Success" v={successCount.toString()} color={G.success} />
         <MiniStat k="Failed" v={failedCount.toString()} color={G.danger} />
       </div>
+
+      {/* Card number */}
+      {wallet.card_number && (
+        <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+          <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5">
+            <CreditCard className="w-3 h-3" /> Card on file
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-white/70">
+            <span className="font-sora">Number</span>
+            <MaskedReveal value={wallet.card_number} kind="card" targetUserId={wallet.user_id} />
+          </div>
+          {wallet.card_expiry_month && wallet.card_expiry_year && (
+            <div className="flex items-center justify-between text-[11px] text-white/70">
+              <span className="font-sora">Expiry</span>
+              <span className="font-mono">{String(wallet.card_expiry_month).padStart(2, "0")}/{String(wallet.card_expiry_year).slice(-2)}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Wallet metadata */}
       <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>

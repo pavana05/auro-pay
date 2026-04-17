@@ -53,6 +53,15 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Emergency freeze check
+    const { data: freezeRow } = await adminClient.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
+    if (freezeRow?.value === "true") {
+      return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Verify the favorite belongs to this user
     const { data: fav, error: favError } = await adminClient
       .from("quick_pay_favorites")
