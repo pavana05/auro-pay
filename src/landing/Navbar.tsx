@@ -58,7 +58,6 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/auth")} className="hidden sm:block text-sm text-white/70 hover:text-white transition">Log In</button>
             <motion.button
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 2 }}
@@ -95,7 +94,7 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
                   {l.label}
                 </button>
               ))}
-              <button onClick={() => { setOpen(false); navigate("/auth"); }} className="text-2xl text-white/60">Log In</button>
+              
             </div>
             <div className="p-6">
               <button onClick={() => { setOpen(false); onCTA(); }}
