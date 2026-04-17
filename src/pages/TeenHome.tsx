@@ -1074,7 +1074,7 @@ const TeenHome = () => {
                 key={f.label}
                 variants={stagger.item}
                 whileTap={{ scale: 0.88 }}
-                onClick={() => { haptic.light(); navigate(f.path); }}
+                onClick={() => { haptic.light(); navigate(f.path, (f as any).state ? { state: (f as any).state } : undefined); }}
                 className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-muted/10 border border-border/15 group"
               >
                 <span className="text-[22px] group-active:scale-110 transition-transform duration-200">{f.emoji}</span>
