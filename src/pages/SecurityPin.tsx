@@ -119,19 +119,21 @@ const SecurityPin = () => {
         </div>
 
         <div className="space-y-3">
-          <div className="relative">
-            <input
-              type={showCurrent ? "text" : "password"}
-              value={currentPin}
-              onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="Current PIN"
-              className="input-auro w-full pr-10"
-              maxLength={4}
-            />
-            <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
+          {!isSetupMode && (
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={currentPin}
+                onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="Current PIN"
+                className="input-auro w-full pr-10"
+                maxLength={4}
+              />
+              <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
           <div className="relative">
             <input
               type={showNew ? "text" : "password"}
