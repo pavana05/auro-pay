@@ -492,15 +492,17 @@ const FilterChips = ({ label, options, selected, onToggle }: { label: string; op
 
 /* ───────────────────────── Detail Panel ───────────────────────── */
 const DetailPanel = ({
-  t, wallet, all, onFlag, onRefund,
+  t, wallet, all, onFlag, onRefund, onRetry,
 }: {
   t: Transaction;
   wallet?: WalletInfo;
   all: Transaction[];
   onFlag: (t: Transaction) => void;
   onRefund: (t: Transaction) => void;
+  onRetry: (t: Transaction) => void;
 }) => {
   const [showJSON, setShowJSON] = useState(false);
+  const canRetry = t.status === "failed" || t.status === "pending";
 
   const sameDay = all.filter(
     (x) =>
