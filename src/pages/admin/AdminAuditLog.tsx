@@ -4,8 +4,9 @@ import AdminLayout from "@/components/AdminLayout";
 import {
   FileText, Clock, Filter, User, Shield, Wallet, Trash2, RefreshCw,
   Search, Download, X, ChevronDown, Lock, Eye, Calendar, Layers,
-  TableIcon, GitBranch, Globe,
+  TableIcon, GitBranch, Globe, Zap,
 } from "lucide-react";
+import VirtualTable, { VirtualColumn } from "@/components/admin/VirtualTable";
 import { toast } from "sonner";
 
 interface AuditEntry {
