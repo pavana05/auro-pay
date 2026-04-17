@@ -39,6 +39,15 @@ export default function Landing() {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "India's first scan-and-pay app for teens. Aadhaar-only signup, no PAN. Parental controls, savings goals, and instant UPI — built for Gen Z.");
 
+    // If visited with ?ref=AURO-XXX-1234, swap OG image to the personalized one
+    // so when the visitor re-shares the URL, the share preview shows the inviter's name.
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref && /^AURO-[A-Z]{3}-\d{4}$/i.test(ref)) {
+      const url = `https://mkduupshubnzjwefptcw.functions.supabase.co/og-referral?ref=${encodeURIComponent(ref.toUpperCase())}`;
+      document.querySelector('meta[property="og:image"]')?.setAttribute("content", url);
+      document.querySelector('meta[name="twitter:image"]')?.setAttribute("content", url);
+    }
+
     const id = "auropay-landing-fonts";
     if (!document.getElementById(id)) {
       const link = document.createElement("link");
