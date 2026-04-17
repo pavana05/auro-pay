@@ -40,13 +40,18 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
   wallet_balance_updated: { icon: Wallet, color: C.primary, bg: `${C.primary}15`, label: "Balance Updated" },
   wallet_funds_added: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Funds Added" },
   wallet_funds_deducted: { icon: Wallet, color: C.danger, bg: `${C.danger}15`, label: "Funds Deducted" },
+  wallet_force_credit: { icon: Wallet, color: C.success, bg: `${C.success}25`, label: "Force Credit" },
+  wallet_force_debit: { icon: Wallet, color: C.danger, bg: `${C.danger}25`, label: "Force Debit" },
   kyc_approve: { icon: Shield, color: C.success, bg: `${C.success}15`, label: "KYC Approved" },
   kyc_reject: { icon: Shield, color: C.danger, bg: `${C.danger}15`, label: "KYC Rejected" },
   user_delete: { icon: Trash2, color: C.danger, bg: `${C.danger}15`, label: "User Deleted" },
   transaction_refund: { icon: RefreshCw, color: C.warning, bg: `${C.warning}15`, label: "Refund Issued" },
+  transaction_refunded: { icon: RefreshCw, color: C.warning, bg: `${C.warning}15`, label: "Refund Issued" },
   transaction_flag: { icon: Shield, color: C.warning, bg: `${C.warning}15`, label: "Transaction Flagged" },
   default: { icon: FileText, color: C.textSecondary, bg: "rgba(255,255,255,0.05)", label: "Action" },
 };
+
+const FORCE_ACTIONS = new Set(["wallet_force_credit", "wallet_force_debit"]);
 
 const humanize = (a: string) => actionMeta[a]?.label || a.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
@@ -63,6 +68,7 @@ const AdminAuditLog = () => {
   const [view, setView] = useState<"timeline" | "table" | "compact">("timeline");
   const [detailOf, setDetailOf] = useState<AuditEntry | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [forceActionsOnly, setForceActionsOnly] = useState(false);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -88,11 +94,12 @@ const AdminAuditLog = () => {
 
   useEffect(() => { fetchLogs(); /* eslint-disable-next-line */ }, [actionFilter, adminFilter, dateFrom, dateTo, targetUser]);
 
-  /* Search across all fields client-side */
+  /* Search across all fields client-side + force-actions quick filter */
   const filtered = useMemo(() => {
-    if (!search.trim()) return logs;
+    let base = forceActionsOnly ? logs.filter(l => FORCE_ACTIONS.has(l.action)) : logs;
+    if (!search.trim()) return base;
     const s = search.toLowerCase();
-    return logs.filter(l =>
+    return base.filter(l =>
       l.action.toLowerCase().includes(s) ||
       l.target_type.toLowerCase().includes(s) ||
       (l.target_id || "").toLowerCase().includes(s) ||
@@ -100,7 +107,7 @@ const AdminAuditLog = () => {
       JSON.stringify(l.details || {}).toLowerCase().includes(s) ||
       (l.ip_address || "").includes(s)
     );
-  }, [logs, search, adminNames]);
+  }, [logs, search, adminNames, forceActionsOnly]);
 
   const adminList = useMemo(() => {
     const m = new Map<string, string>();
@@ -189,7 +196,8 @@ const AdminAuditLog = () => {
   };
 
   const knownActions = useMemo(() => Array.from(new Set(logs.map(l => l.action))), [logs]);
-  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all");
+  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all" || forceActionsOnly);
+  const forceCount = useMemo(() => logs.filter(l => FORCE_ACTIONS.has(l.action)).length, [logs]);
 
   return (
     <AdminLayout>
@@ -271,6 +279,21 @@ const AdminAuditLog = () => {
               className="h-9 px-3 rounded-[10px] text-xs focus:outline-none"
               style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
           </div>
+          {/* Quick filter chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setForceActionsOnly(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{
+                background: forceActionsOnly ? `${C.danger}25` : "rgba(255,255,255,0.04)",
+                color: forceActionsOnly ? C.danger : C.textSecondary,
+                border: `1px solid ${forceActionsOnly ? C.danger + "55" : C.border}`,
+              }}
+              title="Show only wallet_force_credit / wallet_force_debit entries"
+            >
+              <Shield className="w-3 h-3" /> Force actions {forceCount > 0 && <span className="opacity-70">({forceCount})</span>}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5" style={{ color: C.textMuted }} />
@@ -283,7 +306,7 @@ const AdminAuditLog = () => {
                 style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary, colorScheme: "dark" }} />
             </div>
             {hasFilters && (
-              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); }}
+              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); }}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full" style={{ color: C.textSecondary, background: "rgba(255,255,255,0.04)" }}>
                 <X className="w-3 h-3" /> Clear filters
               </button>
@@ -367,6 +390,18 @@ const AdminAuditLog = () => {
                                   </button>
                                 </div>
                               </div>
+                              {FORCE_ACTIONS.has(log.action) && log.details?.reason && (
+                                <div className="mt-2.5 rounded-[10px] p-2.5 border flex items-start gap-2"
+                                  style={{ background: `${C.danger}10`, borderColor: `${C.danger}33` }}>
+                                  <Shield className="w-3 h-3 mt-0.5 shrink-0" style={{ color: C.danger }} />
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: C.danger }}>
+                                      Reason {log.details.amount_paise ? `· ₹${(Number(log.details.amount_paise)/100).toLocaleString("en-IN")}` : ""}
+                                    </p>
+                                    <p className="text-[11px] mt-0.5" style={{ color: C.textPrimary }}>{log.details.reason}</p>
+                                  </div>
+                                </div>
+                              )}
                               {log.details && Object.keys(log.details).length > 0 && (
                                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                                   {Object.entries(log.details).slice(0, 4).map(([k, v]) => (

@@ -7,8 +7,10 @@ import { optimistic } from "@/lib/optimistic";
 import MaskedReveal from "@/components/admin/MaskedReveal";
 import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard, ChevronDown } from "lucide-react";
 import ForceActionConfirmModal, { type ForceActionPayload } from "@/components/admin/ForceActionConfirmModal";
+import HighRiskConfirmGate, { type HighRiskGatePayload } from "@/components/admin/HighRiskConfirmGate";
 
 const FORCE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 — must match the edge function
+const FREEZE_GATE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 balance triggers reason+CONFIRM gate
 
 interface WalletRow {
   id: string;
@@ -48,6 +50,7 @@ const AdminWallets = () => {
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [forcePayload, setForcePayload] = useState<ForceActionPayload | null>(null);
+  const [freezeGate, setFreezeGate] = useState<{ wallet: WalletRow; next: boolean; payload: HighRiskGatePayload } | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -140,18 +143,56 @@ const AdminWallets = () => {
     fetchWallets();
   };
 
-  const toggleFreeze = async (w: WalletRow) => {
-    const next = !w.is_frozen;
+  const performFreezeToggle = async (w: WalletRow, next: boolean, reason?: string) => {
     return optimistic({
       apply: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: next } : x)),
       rollback: () => setWallets((prev) => prev.map((x) => x.id === w.id ? { ...x, is_frozen: w.is_frozen } : x)),
       mutate: async () => {
         const u = await supabase.from("wallets").update({ is_frozen: next }).eq("id", w.id);
-        if (!u.error) await logAudit(next ? "wallet_freeze" : "wallet_unfreeze", w.id, { user: w.profile?.full_name });
+        if (!u.error) {
+          await logAudit(next ? "wallet_freeze" : "wallet_unfreeze", w.id, {
+            user: w.profile?.full_name,
+            balance_paise: w.balance || 0,
+            ...(reason ? { reason, gated: true } : {}),
+          });
+          if (reason) {
+            await supabase.from("notifications").insert({
+              user_id: w.user_id,
+              title: next ? "🔒 Wallet frozen" : "🔓 Wallet unfrozen",
+              body: `An admin ${next ? "froze" : "unfroze"} your wallet. Reason: ${reason.slice(0, 140)}`,
+              type: "admin_action",
+            });
+          }
+        }
         return u;
       },
       successMessage: next ? "Wallet frozen" : "Wallet unfrozen",
     });
+  };
+
+  const toggleFreeze = async (w: WalletRow) => {
+    const next = !w.is_frozen;
+    const balance = w.balance || 0;
+    const userLabel = w.profile?.full_name || w.profile?.phone || "this wallet";
+    // High-risk gate: wallets with balance > ₹10,000 require typed reason + CONFIRM.
+    if (balance > FREEZE_GATE_THRESHOLD_PAISE) {
+      setFreezeGate({
+        wallet: w,
+        next,
+        payload: {
+          title: `${next ? "Freeze" : "Unfreeze"} high-balance wallet`,
+          description: `${userLabel} • Balance ${formatAmount(balance)}`,
+          confirmLabel: next ? "Freeze wallet" : "Unfreeze wallet",
+          destructive: next,
+          minReasonLength: 10,
+          reasonPlaceholder: next
+            ? "e.g. Suspected account takeover — flagged ticket #4471"
+            : "e.g. User verified identity over phone, dispute resolved",
+        },
+      });
+      return;
+    }
+    return performFreezeToggle(w, next);
   };
 
   const openWalletPanel = (w: WalletRow) => {
@@ -325,6 +366,17 @@ const AdminWallets = () => {
         payload={forcePayload}
         onClose={() => setForcePayload(null)}
         onSuccess={handleForceSuccess}
+      />
+
+      <HighRiskConfirmGate
+        open={!!freezeGate}
+        payload={freezeGate?.payload || null}
+        onClose={() => setFreezeGate(null)}
+        onConfirm={async (reason) => {
+          if (!freezeGate) return;
+          await performFreezeToggle(freezeGate.wallet, freezeGate.next, reason);
+          setFreezeGate(null);
+        }}
       />
     </AdminLayout>
   );
