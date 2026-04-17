@@ -236,6 +236,25 @@ const AdminGeographic = () => {
 
   const tierTotal = tierStats[1] + tierStats[2] + tierStats[3] || 1;
 
+  // Source/coverage stats — how trustworthy is the map?
+  const sourceStats = useMemo(() => {
+    const counts = { manual: 0, inferred: 0, unknown: 0 };
+    for (const u of users) {
+      const src = (u.state_source || "unknown").toLowerCase();
+      if (src === "manual") counts.manual++;
+      else if (src === "inferred") counts.inferred++;
+      else counts.unknown++;
+    }
+    const total = users.length || 1;
+    return {
+      ...counts,
+      total: users.length,
+      manualPct: Math.round((counts.manual / total) * 100),
+      inferredPct: Math.round((counts.inferred / total) * 100),
+      unknownPct: Math.round((counts.unknown / total) * 100),
+    };
+  }, [users]);
+
   // Color intensity: gold scale
   const colorFor = (count: number) => {
     if (count === 0) return "rgba(200,149,46,0.05)";
