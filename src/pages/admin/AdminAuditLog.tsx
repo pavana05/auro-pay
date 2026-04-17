@@ -94,11 +94,12 @@ const AdminAuditLog = () => {
 
   useEffect(() => { fetchLogs(); /* eslint-disable-next-line */ }, [actionFilter, adminFilter, dateFrom, dateTo, targetUser]);
 
-  /* Search across all fields client-side */
+  /* Search across all fields client-side + force-actions quick filter */
   const filtered = useMemo(() => {
-    if (!search.trim()) return logs;
+    let base = forceActionsOnly ? logs.filter(l => FORCE_ACTIONS.has(l.action)) : logs;
+    if (!search.trim()) return base;
     const s = search.toLowerCase();
-    return logs.filter(l =>
+    return base.filter(l =>
       l.action.toLowerCase().includes(s) ||
       l.target_type.toLowerCase().includes(s) ||
       (l.target_id || "").toLowerCase().includes(s) ||
@@ -106,7 +107,7 @@ const AdminAuditLog = () => {
       JSON.stringify(l.details || {}).toLowerCase().includes(s) ||
       (l.ip_address || "").includes(s)
     );
-  }, [logs, search, adminNames]);
+  }, [logs, search, adminNames, forceActionsOnly]);
 
   const adminList = useMemo(() => {
     const m = new Map<string, string>();
