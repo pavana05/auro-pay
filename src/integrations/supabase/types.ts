@@ -926,6 +926,11 @@ export type Database = {
       }
       savings_goals: {
         Row: {
+          autosave_amount: number
+          autosave_enabled: boolean
+          autosave_frequency: string
+          autosave_last_run_at: string | null
+          autosave_next_run_at: string | null
           color: string | null
           created_at: string | null
           current_amount: number | null
@@ -938,6 +943,11 @@ export type Database = {
           title: string
         }
         Insert: {
+          autosave_amount?: number
+          autosave_enabled?: boolean
+          autosave_frequency?: string
+          autosave_last_run_at?: string | null
+          autosave_next_run_at?: string | null
           color?: string | null
           created_at?: string | null
           current_amount?: number | null
@@ -950,6 +960,11 @@ export type Database = {
           title: string
         }
         Update: {
+          autosave_amount?: number
+          autosave_enabled?: boolean
+          autosave_frequency?: string
+          autosave_last_run_at?: string | null
+          autosave_next_run_at?: string | null
           color?: string | null
           created_at?: string | null
           current_amount?: number | null
