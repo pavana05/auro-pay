@@ -76,6 +76,7 @@ import ManageRecurring from "./pages/ManageRecurring.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 import DeepLinkHandler from "./components/DeepLinkHandler";
 import ErrorBoundary from "./components/ErrorBoundary";
+import MaintenanceGate from "./components/MaintenanceGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -138,6 +139,7 @@ const App = () => (
         <DeepLinkHandler />
         <AuthRedirector />
         <RealtimeWrapper>
+        <MaintenanceGate>
         <Routes>
             {/* Admin routes */}
             <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
@@ -219,6 +221,7 @@ const App = () => (
               </div>
             } />
           </Routes>
+        </MaintenanceGate>
         </RealtimeWrapper>
       </BrowserRouter>
     </TooltipProvider>
