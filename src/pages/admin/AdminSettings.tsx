@@ -237,13 +237,13 @@ const AdminSettings = () => {
           </div>
         )}
 
-        {error && Object.keys(settings).length === 0 && (
+        {error && !lastUpdatedAt && (
           <div className="relative z-10">
             <AdminQueryError error={error} onRetry={refetch} label="app settings" />
           </div>
         )}
 
-        {loading && Object.keys(settings).length === 0 ? (
+        {loading && !lastUpdatedAt ? (
           <div className="space-y-4 relative z-10">
             {[1,2,3].map(i => <div key={i} className="h-40 rounded-[16px] animate-pulse" style={{ background: "rgba(255,255,255,0.02)" }} />)}
           </div>
