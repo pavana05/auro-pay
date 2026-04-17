@@ -54,11 +54,16 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
     slideStartTime.current = Date.now();
   }, []);
 
+  const finish = useCallback(() => {
+    try { localStorage.setItem("auropay_onboarded", "1"); } catch {}
+    onComplete();
+  }, [onComplete]);
+
   const next = useCallback(() => {
     haptic.light();
     if (current < slides.length - 1) goTo(current + 1);
-    else onComplete();
-  }, [current, goTo, onComplete]);
+    else finish();
+  }, [current, goTo, finish]);
 
   const prev = useCallback(() => {
     if (current > 0) goTo(current - 1);
@@ -116,11 +121,11 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
       if (pct >= 1) {
         clearInterval(tick);
         if (current < slides.length - 1) goTo(current + 1);
-        else onComplete();
+        else finish();
       }
     }, 30);
     return () => clearInterval(tick);
-  }, [current, paused, goTo, onComplete]);
+  }, [current, paused, goTo, finish]);
 
   // Keyboard
   useEffect(() => {
@@ -206,7 +211,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
         </div>
         {current < slides.length - 1 && (
           <button
-            onClick={onComplete}
+            onClick={finish}
             className="text-[11px] font-medium text-white/50 hover:text-white/90 transition-colors px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md"
           >
             Skip

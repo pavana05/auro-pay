@@ -154,6 +154,45 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     sendOtp();
   };
 
+  /* -------- WEB OTP API: auto-fill OTP from SMS on Android Chrome / Capacitor WebView --------
+     Works when the SMS contains the line: "Your code is 123456 @<origin> #<otp>"
+     For native/Capacitor builds this still works via Chrome WebView when the origin is bound
+     in the SMS message. Silently no-ops where unsupported.
+  */
+  useEffect(() => {
+    if (mode !== "otp") return;
+    if (typeof window === "undefined") return;
+    const w = window as any;
+    if (!("OTPCredential" in w)) return;
+
+    const ac = new AbortController();
+    // Cancel after 2 minutes — match typical OTP TTL
+    const cancelTimer = setTimeout(() => ac.abort(), 120000);
+
+    navigator.credentials
+      .get({
+        // @ts-expect-error: WebOTP is not in TS lib yet
+        otp: { transport: ["sms"] },
+        signal: ac.signal,
+      })
+      .then((cred: any) => {
+        const code: string | undefined = cred?.code;
+        if (!code) return;
+        const digits = code.replace(/\D/g, "").slice(0, OTP_LENGTH);
+        if (digits.length !== OTP_LENGTH) return;
+        const next = digits.split("");
+        setOtp(next);
+        setOtpFlash("success");
+        setTimeout(() => verifyOtp(digits), OTP_LENGTH * 60 + 100);
+      })
+      .catch(() => { /* user dismissed / unsupported / aborted */ });
+
+    return () => {
+      clearTimeout(cancelTimer);
+      ac.abort();
+    };
+  }, [mode, verifyOtp]);
+
   /* -------- EMAIL FALLBACK FLOW (kept) -------- */
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -388,8 +427,9 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                   otpFlash === "success" ? `0 0 16px hsl(140 65% 50% / 0.6)` :
                   otpFlash === "error" ? `0 0 16px hsl(0 75% 55% / 0.6)` :
                   digit ? `0 0 12px hsl(42 78% 55% / 0.5)` : "none";
+                const isCurrent = !digit && otp.findIndex((d) => !d) === i;
                 return (
-                  <div key={i} className="relative flex-1" style={{
+                  <div key={i} className="relative flex-1 h-14" style={{
                     animationDelay: otpFlash === "success" ? `${i * 60}ms` : "0ms",
                     animation: otpFlash === "success" ? "auth-otp-flash 0.5s ease forwards" : undefined,
                   }}>
@@ -397,18 +437,46 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                       ref={(el) => { otpRefs.current[i] = el; }}
                       type="tel"
                       inputMode="numeric"
+                      autoComplete={i === 0 ? "one-time-code" : "off"}
                       maxLength={1}
+                      // Hide native value — render animated overlay instead
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
                       onPaste={handleOtpPaste}
                       disabled={verifying || otpFlash === "success"}
-                      className="w-full h-14 text-center text-[24px] font-bold text-white bg-white/[0.04] rounded-xl outline-none transition-all"
+                      className="absolute inset-0 w-full h-full text-center text-[24px] font-bold text-transparent caret-transparent bg-white/[0.04] rounded-xl outline-none transition-all"
                       style={{
                         border: `1.5px solid ${flashColor}`,
                         boxShadow: flashGlow,
                       }}
                     />
+                    {/* Animated digit overlay — slides up from below + scales in for premium feel */}
+                    <div
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl"
+                    >
+                      {digit ? (
+                        <span
+                          key={`d-${i}-${digit}`}
+                          className="text-[24px] font-bold text-white"
+                          style={{
+                            animation: "otp-digit-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both",
+                            textShadow: "0 2px 12px hsl(42 78% 55% / 0.5)",
+                          }}
+                        >
+                          {digit}
+                        </span>
+                      ) : isCurrent ? (
+                        <span
+                          className="block w-[2px] h-6 rounded-full"
+                          style={{
+                            background: "hsl(42 90% 70%)",
+                            animation: "otp-caret-blink 1s ease-in-out infinite",
+                            boxShadow: "0 0 8px hsl(42 78% 55% / 0.7)",
+                          }}
+                        />
+                      ) : null}
+                    </div>
                     {/* Subtle gold underline */}
                     <div
                       className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all"
@@ -568,6 +636,15 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
           25% { transform: translate(20px, -30px); }
           50% { transform: translate(-15px, -50px); }
           75% { transform: translate(-25px, -20px); }
+        }
+        @keyframes otp-digit-rise {
+          0% { opacity: 0; transform: translateY(14px) scale(0.7); filter: blur(4px); }
+          60% { opacity: 1; transform: translateY(-2px) scale(1.08); filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes otp-caret-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
       `}</style>
     </div>
