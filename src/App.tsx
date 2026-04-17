@@ -51,6 +51,7 @@ import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
 import ExpenseAnalytics from "./pages/ExpenseAnalytics.tsx";
+import FinancialInsights from "./pages/FinancialInsights.tsx";
 import BillSplitPage from "./pages/BillSplit.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import QuickPay from "./pages/QuickPay.tsx";
@@ -146,6 +147,7 @@ const App = () => (
                     <Route path="/rewards/:id" element={<RewardDetail />} />
                     <Route path="/transaction/:id" element={<TransactionDetailPage />} />
                     <Route path="/analytics" element={<ExpenseAnalytics />} />
+                    <Route path="/insights" element={<FinancialInsights />} />
                     <Route path="/bill-split" element={<BillSplitPage />} />
                     <Route path="/budget" element={<BudgetPlanner />} />
                     <Route path="/quick-pay" element={<QuickPay />} />
