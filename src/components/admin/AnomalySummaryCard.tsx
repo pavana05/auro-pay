@@ -26,31 +26,38 @@ export default function AnomalySummaryCard() {
   const [openCount, setOpenCount] = useState(0);
   const [highCount, setHighCount] = useState(0);
   const [series, setSeries] = useState<number[]>([]);
+  const [priorTotal, setPriorTotal] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    // Pull 28 days so we can compute the prior 14d window for trend delta.
+    const since28 = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await (supabase as any)
       .from("flagged_transactions")
       .select("id, status, severity, created_at")
-      .gte("created_at", since)
-      .limit(2000);
+      .gte("created_at", since28)
+      .limit(4000);
 
     const rows: FlagRow[] = data || [];
+    // Open/high counts are point-in-time across the full lookback (open flags don't expire daily).
     setOpenCount(rows.filter((r) => r.status === "open").length);
     setHighCount(rows.filter((r) => r.severity === "high" && r.status === "open").length);
 
-    // Bucket per day for last 14 days
+    // Bucket per day for last 14 days; track prior 14d (days 14–27) for delta comparison.
     const buckets = new Array(14).fill(0);
+    let prior = 0;
     const startDay = new Date(); startDay.setHours(0, 0, 0, 0);
     rows.forEach((r) => {
       const d = new Date(r.created_at); d.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((startDay.getTime() - d.getTime()) / 86400000);
       if (diffDays >= 0 && diffDays < 14) {
         buckets[13 - diffDays] += 1;
+      } else if (diffDays >= 14 && diffDays < 28) {
+        prior += 1;
       }
     });
     setSeries(buckets);
+    setPriorTotal(prior);
     setLoading(false);
   }, []);
 
@@ -68,6 +75,21 @@ export default function AnomalySummaryCard() {
   const sparkColor = totalLast14 > 50 ? C.danger : totalLast14 > 20 ? C.warning : C.primary;
   const tierLabel = totalLast14 > 50 ? "Critical spike" : totalLast14 > 20 ? "Elevated" : "Normal";
   const tierColor = sparkColor;
+
+  // Trend delta vs prior 14d window. If prior is 0, show "new" when current > 0.
+  let deltaLabel = "";
+  let deltaColor = C.muted;
+  if (priorTotal === 0 && totalLast14 === 0) {
+    deltaLabel = "no change";
+  } else if (priorTotal === 0) {
+    deltaLabel = `+${totalLast14} new vs prior 14d`;
+    deltaColor = C.danger;
+  } else {
+    const pct = Math.round(((totalLast14 - priorTotal) / priorTotal) * 100);
+    const sign = pct > 0 ? "+" : "";
+    deltaLabel = `${sign}${pct}% vs prior 14d`;
+    deltaColor = pct >= 25 ? C.danger : pct >= 10 ? C.warning : pct <= -10 ? "#22c55e" : C.muted;
+  }
 
   return (
     <button
@@ -89,7 +111,9 @@ export default function AnomalySummaryCard() {
           </div>
           <div>
             <h3 className="text-[13px] font-semibold font-sora" style={{ color: C.text }}>Anomalies · 14d</h3>
-            <p className="text-[10px] font-sora" style={{ color: C.muted }}>{totalLast14} flagged</p>
+            <p className="text-[10px] font-sora" style={{ color: C.muted }}>
+              {totalLast14} flagged · <span style={{ color: deltaColor, fontWeight: 600 }}>{deltaLabel}</span>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: C.muted }}>

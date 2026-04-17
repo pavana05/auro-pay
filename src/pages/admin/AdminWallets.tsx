@@ -244,11 +244,34 @@ const AdminWallets = () => {
       mutate: async () => {
         const u = await supabase.from("wallets").update({ is_frozen: false }).eq("id", w.id);
         if (!u.error) {
+          // Auto-resolve any remaining open flags on this wallet as reviewed_safe,
+          // so compliance doesn't see stale alerts on an account that was cleared.
+          const { data: openFlags } = await (supabase as any)
+            .from("flagged_transactions")
+            .select("id")
+            .eq("wallet_id", w.id)
+            .eq("status", "open");
+          const resolvedIds: string[] = (openFlags || []).map((f: any) => f.id);
+          if (resolvedIds.length) {
+            const { data: { user } } = await supabase.auth.getUser();
+            await (supabase as any)
+              .from("flagged_transactions")
+              .update({
+                status: "reviewed_safe",
+                resolved_at: new Date().toISOString(),
+                resolved_by: user?.id || null,
+                resolution_note: `Auto-resolved by account unlock (triggered by flag ${flagId.slice(0, 8)}…). Reason: ${reason.slice(0, 200)}`,
+              })
+              .in("id", resolvedIds);
+          }
+
           await logAudit("wallet_account_unlock", w.id, {
             user: w.profile?.full_name,
             balance_paise: w.balance || 0,
             triggered_by_flag_id: flagId,
             reason,
+            auto_resolved_flag_count: resolvedIds.length,
+            auto_resolved_flag_ids: resolvedIds,
             gated: true,
           });
           await supabase.from("notifications").insert({

@@ -37,6 +37,8 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
   role_change: { icon: Shield, color: C.primary, bg: `${C.primary}15`, label: "Role Change" },
   wallet_freeze: { icon: Wallet, color: C.warning, bg: `${C.warning}15`, label: "Wallet Frozen" },
   wallet_unfreeze: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Wallet Unfrozen" },
+  wallet_auto_freeze: { icon: Lock, color: C.danger, bg: `${C.danger}25`, label: "Wallet Auto-Frozen (Fraud)" },
+  wallet_account_unlock: { icon: Wallet, color: C.success, bg: `${C.success}25`, label: "Account Unlocked" },
   wallet_balance_updated: { icon: Wallet, color: C.primary, bg: `${C.primary}15`, label: "Balance Updated" },
   wallet_funds_added: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Funds Added" },
   wallet_funds_deducted: { icon: Wallet, color: C.danger, bg: `${C.danger}15`, label: "Funds Deducted" },
@@ -52,6 +54,7 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
 };
 
 const FORCE_ACTIONS = new Set(["wallet_force_credit", "wallet_force_debit"]);
+const UNLOCK_ACTION = "wallet_account_unlock";
 
 const humanize = (a: string) => actionMeta[a]?.label || a.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
@@ -69,6 +72,7 @@ const AdminAuditLog = () => {
   const [detailOf, setDetailOf] = useState<AuditEntry | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [forceActionsOnly, setForceActionsOnly] = useState(false);
+  const [unlocksOnly, setUnlocksOnly] = useState(false);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -94,9 +98,11 @@ const AdminAuditLog = () => {
 
   useEffect(() => { fetchLogs(); /* eslint-disable-next-line */ }, [actionFilter, adminFilter, dateFrom, dateTo, targetUser]);
 
-  /* Search across all fields client-side + force-actions quick filter */
+  /* Search across all fields client-side + force-actions / unlocks quick filters */
   const filtered = useMemo(() => {
-    let base = forceActionsOnly ? logs.filter(l => FORCE_ACTIONS.has(l.action)) : logs;
+    let base = logs;
+    if (forceActionsOnly) base = base.filter(l => FORCE_ACTIONS.has(l.action));
+    if (unlocksOnly) base = base.filter(l => l.action === UNLOCK_ACTION);
     if (!search.trim()) return base;
     const s = search.toLowerCase();
     return base.filter(l =>
@@ -107,7 +113,7 @@ const AdminAuditLog = () => {
       JSON.stringify(l.details || {}).toLowerCase().includes(s) ||
       (l.ip_address || "").includes(s)
     );
-  }, [logs, search, adminNames, forceActionsOnly]);
+  }, [logs, search, adminNames, forceActionsOnly, unlocksOnly]);
 
   const adminList = useMemo(() => {
     const m = new Map<string, string>();
@@ -196,8 +202,9 @@ const AdminAuditLog = () => {
   };
 
   const knownActions = useMemo(() => Array.from(new Set(logs.map(l => l.action))), [logs]);
-  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all" || forceActionsOnly);
+  const hasFilters = !!(search || dateFrom || dateTo || targetUser || actionFilter !== "all" || adminFilter !== "all" || forceActionsOnly || unlocksOnly);
   const forceCount = useMemo(() => logs.filter(l => FORCE_ACTIONS.has(l.action)).length, [logs]);
+  const unlockCount = useMemo(() => logs.filter(l => l.action === UNLOCK_ACTION).length, [logs]);
 
   return (
     <AdminLayout>
@@ -293,6 +300,18 @@ const AdminAuditLog = () => {
             >
               <Shield className="w-3 h-3" /> Force actions {forceCount > 0 && <span className="opacity-70">({forceCount})</span>}
             </button>
+            <button
+              onClick={() => setUnlocksOnly(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{
+                background: unlocksOnly ? `${C.success}25` : "rgba(255,255,255,0.04)",
+                color: unlocksOnly ? C.success : C.textSecondary,
+                border: `1px solid ${unlocksOnly ? C.success + "55" : C.border}`,
+              }}
+              title="Show only wallet_account_unlock entries (fraud-locked accounts that were restored)"
+            >
+              <Wallet className="w-3 h-3" /> Unlocked accounts {unlockCount > 0 && <span className="opacity-70">({unlockCount})</span>}
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -306,7 +325,7 @@ const AdminAuditLog = () => {
                 style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary, colorScheme: "dark" }} />
             </div>
             {hasFilters && (
-              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); }}
+              <button onClick={() => { setSearch(""); setActionFilter("all"); setAdminFilter("all"); setDateFrom(""); setDateTo(""); setTargetUser(""); setForceActionsOnly(false); setUnlocksOnly(false); }}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full" style={{ color: C.textSecondary, background: "rgba(255,255,255,0.04)" }}>
                 <X className="w-3 h-3" /> Clear filters
               </button>
@@ -399,6 +418,25 @@ const AdminAuditLog = () => {
                                       Reason {log.details.amount_paise ? `· ₹${(Number(log.details.amount_paise)/100).toLocaleString("en-IN")}` : ""}
                                     </p>
                                     <p className="text-[11px] mt-0.5" style={{ color: C.textPrimary }}>{log.details.reason}</p>
+                                  </div>
+                                </div>
+                              )}
+                              {log.action === UNLOCK_ACTION && (log.details?.reason || log.details?.triggered_by_flag_id) && (
+                                <div className="mt-2.5 rounded-[10px] p-2.5 border flex items-start gap-2"
+                                  style={{ background: `${C.success}10`, borderColor: `${C.success}33` }}>
+                                  <Wallet className="w-3 h-3 mt-0.5 shrink-0" style={{ color: C.success }} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: C.success }}>
+                                      Account restored
+                                      {log.details?.triggered_by_flag_id && (
+                                        <span className="ml-1.5 font-mono normal-case tracking-normal" style={{ color: C.textMuted }}>
+                                          · flag <code className="px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: C.primary }}>{String(log.details.triggered_by_flag_id).slice(0, 8)}…</code>
+                                        </span>
+                                      )}
+                                    </p>
+                                    {log.details?.reason && (
+                                      <p className="text-[11px] mt-0.5" style={{ color: C.textPrimary }}>{log.details.reason}</p>
+                                    )}
                                   </div>
                                 </div>
                               )}
