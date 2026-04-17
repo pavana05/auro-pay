@@ -18,11 +18,14 @@ const nameSchema = z.string().trim().min(2, "Name is too short").max(60, "Name i
 
 type Direction = 1 | -1;
 
+const AVATAR_OPTIONS = ["🦄", "🐯", "🦊", "🐼", "🐧", "🦁", "🐨", "🐸", "🦉", "🐙"];
+
 const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
-  const [step, setStep] = useState(0); // 0=name, 1=role, 2=dob (teen only), 3=done
+  const [step, setStep] = useState(0); // 0=name+avatar, 1=role, 2=dob (teen only), 3=done
   const [dir, setDir] = useState<Direction>(1);
   const [fullName, setFullName] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
+  const [avatar, setAvatar] = useState<string>(AVATAR_OPTIONS[0]);
   const [role, setRole] = useState<"teen" | "parent" | "">("");
   const [pulseRole, setPulseRole] = useState<"teen" | "parent" | "">("");
   const [dob, setDob] = useState<Date | undefined>();
