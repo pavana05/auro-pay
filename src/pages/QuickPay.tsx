@@ -8,7 +8,7 @@ import {
   ArrowLeft, Search, Plus, X, Send, Check, Shield, UserPlus, Loader2, Pencil, Delete,
   Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles, HandCoins,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
