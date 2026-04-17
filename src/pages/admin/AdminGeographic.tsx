@@ -288,6 +288,38 @@ const AdminGeographic = () => {
           </div>
         </div>
 
+        {/* Coverage chips — show how trustworthy the map is */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2 -mt-2" style={{ animation: "slide-up-spring 0.5s 0.05s both" }}>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">Coverage</span>
+          <CoverageChip
+            label="Manual"
+            count={sourceStats.manual}
+            pct={sourceStats.manualPct}
+            color="#22c55e"
+            hint="User picked their city directly during signup or via admin override — high confidence."
+          />
+          <CoverageChip
+            label="Inferred"
+            count={sourceStats.inferred}
+            pct={sourceStats.inferredPct}
+            color="#c8952e"
+            hint="State guessed from the user's phone-number telecom circle. Usually correct but not authoritative."
+          />
+          <CoverageChip
+            label="Unknown"
+            count={sourceStats.unknown}
+            pct={sourceStats.unknownPct}
+            color="#ef4444"
+            hint="No state info — map falls back to a deterministic hash so the dot still shows. Don't trust these for decisions."
+          />
+          {sourceStats.unknownPct >= 25 && (
+            <span className="ml-1 text-[10px] px-2 py-1 rounded-md font-mono"
+              style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}>
+              ⚠ Low confidence — {sourceStats.unknownPct}% of users have no resolved state
+            </span>
+          )}
+        </div>
+
         {/* Map + State table */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Map */}
