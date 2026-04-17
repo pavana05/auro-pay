@@ -40,11 +40,32 @@ const banks = [
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const LS_KEY = "auropay_addmoney_method";
+
 const AddMoney = () => {
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<Method>("upi");
-  const [selectedUpi, setSelectedUpi] = useState<string>("gpay");
-  const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  // Restore last-used method + sub-selection from localStorage on first render.
+  const [method, setMethod] = useState<Method>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if (saved?.method && ["upi", "card", "netbanking"].includes(saved.method)) return saved.method;
+    } catch {}
+    return "upi";
+  });
+  const [selectedUpi, setSelectedUpi] = useState<string>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if (saved?.upi && upiApps.some(a => a.id === saved.upi)) return saved.upi;
+    } catch {}
+    return "gpay";
+  });
+  const [selectedBank, setSelectedBank] = useState<string | null>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if (saved?.bank && banks.some(b => b.code === saved.bank)) return saved.bank;
+    } catch {}
+    return null;
+  });
   const [showBankSheet, setShowBankSheet] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -57,6 +78,13 @@ const AddMoney = () => {
   const [showFallback, setShowFallback] = useState<{ appLabel: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Persist whenever method or sub-selection changes.
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ method, upi: selectedUpi, bank: selectedBank }));
+    } catch {}
+  }, [method, selectedUpi, selectedBank]);
 
   const amt = parseFloat(amount) || 0;
   const MIN = 10, MAX = 100000;
@@ -783,6 +811,24 @@ const AddMoney = () => {
                 : "Enter an amount"}
             </span>
           </button>
+          {/* Fee preview — exact breakdown of what user pays vs. what hits the wallet */}
+          {amt > 0 && (
+            <div className="mt-3 rounded-xl px-3.5 py-2.5 flex items-center justify-between text-[11px]"
+              style={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 15% 12%)" }}>
+              <span className="text-white/45">
+                Fee:{" "}
+                <span className="text-white/75 font-semibold">
+                  {method === "upi" ? "₹0 (Free)" : method === "card" ? `0.9% · ₹${fee}` : `Flat ₹${fee}`}
+                </span>
+              </span>
+              <span className="text-white/45">
+                Wallet credit:{" "}
+                <span className="font-semibold" style={{ color: "hsl(var(--primary))" }}>
+                  ₹{amt.toLocaleString("en-IN")}
+                </span>
+              </span>
+            </div>
+          )}
           <p className="text-center text-[10px] text-white/25 mt-2.5 flex items-center justify-center gap-1">
             <Shield className="w-2.5 h-2.5" /> Secured by Razorpay · RBI authorised
           </p>
