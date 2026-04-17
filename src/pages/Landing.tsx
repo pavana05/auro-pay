@@ -8,6 +8,8 @@ import Hero from "@/landing/sections/Hero";
 import Features from "@/landing/sections/Features";
 import HowItWorks from "@/landing/sections/HowItWorks";
 import Stats from "@/landing/sections/Stats";
+import WhyNeeded from "@/landing/sections/WhyNeeded";
+import Comparison from "@/landing/sections/Comparison";
 import Security from "@/landing/sections/Security";
 import DualPerspective from "@/landing/sections/DualPerspective";
 import Testimonials from "@/landing/sections/Testimonials";
@@ -27,7 +29,7 @@ export default function Landing() {
   // entry animation never fires onDone (e.g. tab was backgrounded).
   useEffect(() => {
     if (reduceMotion) { setEntryDone(true); return; }
-    const t = setTimeout(() => setEntryDone(true), 2500);
+    const t = setTimeout(() => setEntryDone(true), 3000);
     return () => clearTimeout(t);
   }, [reduceMotion]);
 
@@ -58,11 +60,13 @@ export default function Landing() {
 
       <Navbar onCTA={() => setModalOpen(true)} />
 
-      <main style={{ opacity: entryDone ? 1 : 0, transition: "opacity 0.4s" }}>
+      <main style={{ opacity: entryDone ? 1 : 0, transition: "opacity 0.6s ease-out" }}>
         <Hero onCTA={() => setModalOpen(true)} />
+        <Stats />
+        <WhyNeeded />
         <Features />
         <div id="how"><HowItWorks /></div>
-        <Stats />
+        <Comparison />
         <div id="security"><Security /></div>
         <DualPerspective onCTA={() => setModalOpen(true)} />
         <Testimonials />
