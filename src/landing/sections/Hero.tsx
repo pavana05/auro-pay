@@ -193,7 +193,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 2.4, duration: 0.8, type: "spring", stiffness: 60, damping: 16 }}
             style={{ perspective: 1200 }}
-            className="relative"
+            className="relative z-10"
           >
             <motion.div
               animate={{ y: [0, -14, 0] }}
