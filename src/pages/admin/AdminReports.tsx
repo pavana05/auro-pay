@@ -268,7 +268,10 @@ function DollarSignAlias(props: any) {
 }
 
 /* ───────────────────── Custom builder fields ───────────────────── */
-const BUILDER_TABLES = {
+type BuilderField = { key: string; label: string; isMoney?: boolean; isDate?: boolean };
+type BuilderTableDef = { label: string; fields: BuilderField[] };
+
+const BUILDER_TABLES: Record<string, BuilderTableDef> = {
   profiles: {
     label: "Users (Profiles)",
     fields: [
@@ -291,8 +294,8 @@ const BUILDER_TABLES = {
       { key: "created_at", label: "Date", isDate: true },
     ],
   },
-} as const;
-type BuilderTable = keyof typeof BUILDER_TABLES;
+};
+type BuilderTable = "profiles" | "wallets" | "transactions";
 
 /* ───────────────────── Component ───────────────────── */
 const AdminReports = () => {
@@ -342,9 +345,9 @@ const AdminReports = () => {
     if (selectedFields.length === 0) { toast.error("Select at least one field"); return; }
     setBuilderRunning(true); setBuilderResult(null);
     try {
-      let q = supabase.from(builderTable).select(selectedFields.join(",")).limit(10);
+      let q: any = supabase.from(builderTable as any).select(selectedFields.join(",")).limit(10);
       if (filterStatus && BUILDER_TABLES[builderTable].fields.find((f) => f.key === "status")) {
-        q = q.eq("status" as any, filterStatus);
+        q = q.eq("status", filterStatus);
       }
       if (filterDays && BUILDER_TABLES[builderTable].fields.find((f) => f.key === "created_at")) {
         const since = new Date(); since.setDate(since.getDate() - Number(filterDays));
