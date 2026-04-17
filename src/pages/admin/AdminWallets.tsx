@@ -469,6 +469,17 @@ const AdminWallets = () => {
           setFreezeGate(null);
         }}
       />
+
+      <HighRiskConfirmGate
+        open={!!unlockGate}
+        payload={unlockGate?.payload || null}
+        onClose={() => setUnlockGate(null)}
+        onConfirm={async (reason) => {
+          if (!unlockGate) return;
+          await performUnlockAccount(unlockGate.wallet, unlockGate.flagId, reason);
+          setUnlockGate(null);
+        }}
+      />
     </AdminLayout>
   );
 };
