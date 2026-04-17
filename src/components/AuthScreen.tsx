@@ -3,9 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon, Fingerprint } from "lucide-react";
 import { z } from "zod";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import {
+  authenticateBiometric,
+  hasReturningSession,
+  isBiometricAvailable,
+  isBiometricEnabled,
+  markReturningSession,
+  setBiometricEnabled,
+} from "@/lib/biometric";
 
 const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile");
 
