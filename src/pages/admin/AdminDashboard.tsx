@@ -231,7 +231,13 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    // Hard safety: if the supabase client hangs (e.g. session not yet ready),
+    // never trap the user on the skeleton — clear loading after 8s.
+    const t = setTimeout(() => setLoading((l) => (l ? false : l)), 8000);
+    return () => clearTimeout(t);
+  }, [fetchAll]);
 
   /* Realtime: live feed insert */
   useEffect(() => {
