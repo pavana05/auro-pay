@@ -129,7 +129,7 @@ const LinkedTeens = () => {
       await supabase.from("notifications").insert({
         user_id: lookup.profile.id,
         title: "Parent linked 🎉",
-        body: "Your parent just connected with you on AuroPay 🎉",
+        body: "Your parent just linked with you on AuroPay 🎉",
         type: "parent_link",
       });
       toast.success(`Linked with ${lookup.profile.full_name || "teen"}`);
