@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2,
   XCircle, AlertCircle, Copy, Check, Share2, MapPin, Tag, Receipt,
-  Download, FileText, Image, Shield,
+  Download, FileText, Image, Shield, RotateCw, Users, Gift,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
@@ -109,6 +109,7 @@ const TransactionDetailPage = () => {
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
+  const [scratchCard, setScratchCard] = useState<{ id: string; is_scratched: boolean; reward_value: number | null } | null>(null);
 
   // Memoize random values so they don't regenerate on re-render
   const particles = useMemo(() => ({
@@ -135,13 +136,22 @@ const TransactionDetailPage = () => {
   }), []);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       const { data } = await supabase.from("transactions").select("*").eq("id", id).single();
       if (data) setTx(data as unknown as TransactionDetail);
+      // Fetch scratch card if any
+      if (id) {
+        const { data: sc } = await supabase
+          .from("scratch_cards")
+          .select("id,is_scratched,reward_value")
+          .eq("transaction_id", id)
+          .maybeSingle();
+        if (sc) setScratchCard(sc as any);
+      }
       setLoading(false);
       setTimeout(() => setMounted(true), 50);
     };
-    fetch();
+    fetchData();
   }, [id]);
 
   const copyId = () => {
