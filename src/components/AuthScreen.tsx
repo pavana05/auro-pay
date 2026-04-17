@@ -3,9 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Phone, ChevronLeft, Lock as LockIcon, Fingerprint } from "lucide-react";
 import { z } from "zod";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import {
+  authenticateBiometric,
+  hasReturningSession,
+  isBiometricAvailable,
+  isBiometricEnabled,
+  markReturningSession,
+  setBiometricEnabled,
+} from "@/lib/biometric";
 
 const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile");
 
@@ -53,6 +61,54 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
     return () => clearInterval(t);
   }, [mode, resendIn]);
 
+  /* -------- BIOMETRIC UNLOCK FOR RETURNING USERS -------- */
+  const [biometricAvailable, setBiometricAvailableState] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(isBiometricEnabled());
+  const [unlocking, setUnlocking] = useState(false);
+  const isReturning = hasReturningSession();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = await isBiometricAvailable();
+      if (!cancelled) setBiometricAvailableState(ok);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const tryBiometricUnlock = useCallback(async () => {
+    setUnlocking(true);
+    try {
+      const ok = await authenticateBiometric("Unlock AuroPay");
+      if (!ok) {
+        toast.error("Biometric not recognised — use PIN/OTP");
+        return;
+      }
+      // Check if a Supabase session is already cached locally
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.success("Welcome back!");
+        onAuth();
+      } else {
+        toast.message("Biometric verified — please complete sign-in", {
+          description: "Your session expired. Enter your number to receive an OTP.",
+        });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Biometric unlock failed");
+    } finally {
+      setUnlocking(false);
+    }
+  }, [onAuth]);
+
+  // Auto-prompt biometric on mount when enabled + available + returning user
+  useEffect(() => {
+    if (biometricAvailable && biometricEnabled && isReturning && mode === "phone") {
+      tryBiometricUnlock();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biometricAvailable, biometricEnabled]);
+
   const fullPhone = `+91${phone}`;
 
   /* -------- PHONE OTP FLOW -------- */
@@ -86,12 +142,16 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
   const verifyOtp = useCallback(async (code: string) => {
     setVerifying(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone: fullPhone,
         token: code,
         type: "sms",
       });
       if (error) throw error;
+      if (data.user) {
+        markReturningSession(data.user.id);
+        if (await isBiometricAvailable() && !isBiometricEnabled()) setBiometricEnabled(true);
+      }
       setOtpFlash("success");
       toast.success("Welcome to AuroPay!");
       setTimeout(() => onAuth(), 600);
@@ -252,8 +312,12 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
         if (!data.session) toast.success("Check your email to verify!", { duration: 6000 });
         else { toast.success("Account created!"); onAuth(); }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data.user) {
+          markReturningSession(data.user.id);
+          if (await isBiometricAvailable() && !isBiometricEnabled()) setBiometricEnabled(true);
+        }
         toast.success("Welcome back!");
         onAuth();
       }
@@ -349,6 +413,22 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
           <div className="flex flex-col" style={{ animation: "auth-fade-in 0.4s ease-out" }}>
             <h2 className="text-[20px] font-bold text-white mb-1">Enter your mobile</h2>
             <p className="text-[12px] text-white/50 mb-6">We'll send a 6-digit OTP</p>
+
+            {biometricAvailable && isReturning && (
+              <button
+                onClick={tryBiometricUnlock}
+                disabled={unlocking}
+                className="mb-5 w-full h-12 rounded-full flex items-center justify-center gap-2 font-semibold text-[13px] active:scale-[0.97] transition disabled:opacity-50"
+                style={{
+                  background: "hsl(42 78% 55% / 0.12)",
+                  border: "1px solid hsl(42 78% 55% / 0.4)",
+                  color: "hsl(42 90% 75%)",
+                }}
+              >
+                {unlocking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
+                {unlocking ? "Verifying…" : "Unlock with biometrics"}
+              </button>
+            )}
 
             <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 mb-2 block">MOBILE NUMBER</label>
             <div

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, ShieldAlert, TrendingUp, XCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, ShieldAlert, Snowflake, TrendingUp, XCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface FlagRow {
   wallet_id: string;
@@ -20,6 +21,32 @@ const FAILED_TXN_THRESHOLD = 5; // 5+ failed txns in 1h
 export default function FraudDetectionPanel() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [freezing, setFreezing] = useState<string | null>(null);
+  const [frozenWallets, setFrozenWallets] = useState<Set<string>>(new Set());
+
+  const freezeWallet = useCallback(async (f: FlagRow) => {
+    if (!confirm(`Freeze wallet for ${f.full_name || "this user"}?\n\nReason: ${f.reason}\n\nThis will block all transactions and resolve open flags. The user will be notified.`)) {
+      return;
+    }
+    setFreezing(f.wallet_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-freeze-wallet", {
+        body: {
+          wallet_id: f.wallet_id,
+          user_id: f.user_id,
+          reason: `${f.reason} — ${f.detail}`,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`Wallet frozen · ${(data as any)?.flags_resolved ?? 0} flag(s) resolved`);
+      setFrozenWallets((s) => new Set(s).add(f.wallet_id));
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to freeze wallet");
+    } finally {
+      setFreezing(null);
+    }
+  }, []);
 
   const scan = useCallback(async () => {
     setLoading(true);
@@ -168,7 +195,7 @@ export default function FraudDetectionPanel() {
                 <div className="text-[11px] text-white/70 font-sora">{f.reason}</div>
                 <div className="text-[10px] text-white/50 font-sora mt-0.5">{f.detail}</div>
               </div>
-              <div className="text-right shrink-0">
+              <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
                 {f.amount ? (
                   <div className="text-[11px] font-bold text-white font-mono flex items-center gap-1">
                     <TrendingUp className="w-3 h-3 text-[#ef4444]" />
@@ -177,6 +204,24 @@ export default function FraudDetectionPanel() {
                 ) : (
                   <div className="text-[11px] font-bold text-[#f59e0b] font-mono">{f.count}×</div>
                 )}
+                <button
+                  onClick={() => freezeWallet(f)}
+                  disabled={freezing === f.wallet_id || frozenWallets.has(f.wallet_id)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: frozenWallets.has(f.wallet_id) ? "rgba(34,197,94,0.15)" : "rgba(59,130,246,0.15)",
+                    border: `1px solid ${frozenWallets.has(f.wallet_id) ? "rgba(34,197,94,0.4)" : "rgba(59,130,246,0.4)"}`,
+                    color: frozenWallets.has(f.wallet_id) ? "#22c55e" : "#60a5fa",
+                  }}
+                  aria-label="Freeze wallet"
+                >
+                  {freezing === f.wallet_id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Snowflake className="w-3 h-3" />
+                  )}
+                  {frozenWallets.has(f.wallet_id) ? "Frozen" : "Freeze"}
+                </button>
               </div>
             </div>
           ))}
