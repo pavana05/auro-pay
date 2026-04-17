@@ -54,7 +54,7 @@ const CardScreen = () => {
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [showLimitEditor, setShowLimitEditor] = useState(false);
   const [limitDraft, setLimitDraft] = useState<string>("");
-  const [pinModal, setPinModal] = useState<null | "cvv" | "details">(null);
+  const [pinModal, setPinModal] = useState<null | "cvv" | "details" | "freeze">(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
   const [verifying, setVerifying] = useState(false);
