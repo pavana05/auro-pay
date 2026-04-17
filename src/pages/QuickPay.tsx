@@ -340,7 +340,9 @@ const SendMoney = () => {
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
           </button>
           <div className="flex-1">
-            <h1 className="text-[19px] font-bold tracking-[-0.5px]">Send Money</h1>
+            <h1 className="text-[19px] font-bold tracking-[-0.5px]">
+              {mode === "send" ? "Send Money" : "Request Money"}
+            </h1>
             <p className="text-[10px] text-white/30 font-medium flex items-center gap-1">
               <Shield className="w-2.5 h-2.5" /> End-to-end secured
             </p>
@@ -354,6 +356,48 @@ const SendMoney = () => {
               ₹{(balance / 100).toLocaleString("en-IN")}
             </span>
           </div>
+        </div>
+
+        {/* MODE TABS — Send / Request */}
+        <div
+          className="mt-4 p-1 rounded-[14px] flex gap-1 border border-white/[0.05]"
+          style={{ background: "hsl(220 15% 7%)" }}
+          role="tablist"
+          aria-label="Quick pay mode"
+        >
+          {([
+            { key: "send", label: "Send Money", Icon: Send },
+            { key: "request", label: "Request Money", Icon: HandCoins },
+          ] as const).map(t => {
+            const active = mode === t.key;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  if (mode === t.key) return;
+                  haptic.selection();
+                  setMode(t.key);
+                  // reset amount stage when switching modes
+                  setRecipient(null);
+                  setAmount(""); setNote(""); setCategory("other");
+                  setSuccess(false); setConfirming(false);
+                }}
+                className="flex-1 h-[40px] rounded-[11px] flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all active:scale-[0.98]"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))"
+                    : "transparent",
+                  color: active ? "hsl(220 20% 6%)" : "hsl(0 0% 100% / 0.55)",
+                  boxShadow: active ? "0 4px 14px hsl(var(--primary) / 0.25)" : "none",
+                }}
+              >
+                <t.Icon className="w-3.5 h-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
