@@ -233,29 +233,25 @@ const SendMoney = () => {
     pickRecipient(data as Favorite);
   };
 
-  // ---- SUBMIT ----
-  const submit = async () => {
+  // ---- SUBMIT — hand off to the cinematic /pay flow ----
+  // Every payment in the app now flows through PaymentConfirm so users see
+  // the same review → PIN → processing → success animation.
+  const submit = () => {
     if (!recipient || !canSend) return;
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("p2p-transfer", {
-        body: { favorite_id: recipient.id, amount: amtPaise, note: note || undefined, category },
-      });
-      if (error) throw error;
-      if (data?.error) { toast.error(data.error); setSending(false); return; }
-      haptic.success();
-      setFavorites(prev => prev.map(f =>
-        f.id === recipient.id ? { ...f, last_paid_at: new Date().toISOString() } : f
-      ));
-      setBalance(b => b - amtPaise);
-      setJustSentId(recipient.id);
-      setSuccess(true);
-      setConfirming(false);
-      setTimeout(() => setJustSentId(null), 1800);
-    } catch (err: any) {
-      toast.error(err?.message || "Transfer failed");
-    }
-    setSending(false);
+    haptic.medium();
+    // Mark the favorite as just-paid for the recents jump animation on return.
+    setJustSentId(recipient.id);
+    setTimeout(() => setJustSentId(null), 1800);
+    navigate("/pay", {
+      state: {
+        upi_id: recipient.contact_upi_id || recipient.contact_phone || `${recipient.contact_name.toLowerCase().replace(/\s+/g, "")}@auropay`,
+        payee_name: recipient.contact_name,
+        amount: amt,
+        amount_locked: false,
+        note: note || undefined,
+        category,
+      },
+    });
   };
 
   const closeRecipient = () => {
@@ -629,10 +625,10 @@ const SendMoney = () => {
             </div>
           </div>
 
-          {/* CTA */}
+          {/* CTA — hands off to /pay (cinematic flow) */}
           <div className="px-5 pb-6 pt-2">
             <button
-              onClick={() => { if (canSend) { haptic.medium(); setConfirming(true); } }}
+              onClick={submit}
               disabled={!canSend}
               className="w-full h-[54px] rounded-2xl font-semibold text-[14px] tracking-wide active:scale-[0.97] transition-all disabled:scale-100 relative overflow-hidden"
               style={{
@@ -647,7 +643,7 @@ const SendMoney = () => {
               <span className="relative z-10 flex items-center justify-center gap-2">
                 <Send className="w-4 h-4" />
                 {amt > 0
-                  ? `Send ₹${amt.toLocaleString("en-IN")} to ${recipient.contact_name.split(" ")[0]}`
+                  ? `Continue · ₹${amt.toLocaleString("en-IN")}`
                   : "Enter an amount"}
               </span>
             </button>

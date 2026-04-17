@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
+import ForgotPinModal from "@/components/ForgotPinModal";
 
 type Stage = "review" | "pin" | "processing" | "success" | "failure";
 
@@ -56,6 +57,7 @@ const PaymentConfirm = () => {
   const [txMeta, setTxMeta] = useState<{ id?: string; reference?: string; time?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [recentContacts, setRecentContacts] = useState<Array<{ id: string; name: string; emoji: string | null; upi: string | null }>>([]);
+  const [showForgotPin, setShowForgotPin] = useState(false);
   const procTimerRef = useRef<ReturnType<typeof setInterval>>();
 
   const upi = state.upi_id || "";
@@ -386,8 +388,19 @@ const PaymentConfirm = () => {
           <h1 className="text-[34px] font-bold tabular-nums font-mono mb-6">₹{numericAmount}</h1>
           <p className="text-[13px] text-muted-foreground mb-7">Enter your 4-digit payment PIN</p>
           <PinDots count={pin.length} error={pinError} />
+          <button
+            onClick={() => { haptic.light(); setShowForgotPin(true); }}
+            className="mt-6 text-[12px] font-semibold text-primary hover:text-primary/80 transition py-1.5 px-3"
+          >
+            Forgot PIN?
+          </button>
         </div>
         <NumPad onPress={onPinKey} />
+        <ForgotPinModal
+          open={showForgotPin}
+          onClose={() => setShowForgotPin(false)}
+          onSuccess={() => { setPin(""); toast.success("PIN reset — enter your new PIN"); }}
+        />
       </div>
     );
   }
