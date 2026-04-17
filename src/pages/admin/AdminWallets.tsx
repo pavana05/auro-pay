@@ -7,8 +7,10 @@ import { optimistic } from "@/lib/optimistic";
 import MaskedReveal from "@/components/admin/MaskedReveal";
 import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard, ChevronDown } from "lucide-react";
 import ForceActionConfirmModal, { type ForceActionPayload } from "@/components/admin/ForceActionConfirmModal";
+import HighRiskConfirmGate, { type HighRiskGatePayload } from "@/components/admin/HighRiskConfirmGate";
 
 const FORCE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 — must match the edge function
+const FREEZE_GATE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 balance triggers reason+CONFIRM gate
 
 interface WalletRow {
   id: string;
