@@ -744,36 +744,54 @@ export type Database = {
         Row: {
           amount: number
           created_at: string | null
-          favorite_id: string
+          day_of_month: number | null
+          day_of_week: number | null
+          favorite_id: string | null
           frequency: string
           id: string
           is_active: boolean | null
+          kind: string
+          last_run_at: string | null
+          last_status: string | null
           next_run_at: string
           note: string | null
+          run_count: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
           amount: number
           created_at?: string | null
-          favorite_id: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          favorite_id?: string | null
           frequency?: string
           id?: string
           is_active?: boolean | null
+          kind?: string
+          last_run_at?: string | null
+          last_status?: string | null
           next_run_at: string
           note?: string | null
+          run_count?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string | null
-          favorite_id?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          favorite_id?: string | null
           frequency?: string
           id?: string
           is_active?: boolean | null
+          kind?: string
+          last_run_at?: string | null
+          last_status?: string | null
           next_run_at?: string
           note?: string | null
+          run_count?: number
           updated_at?: string | null
           user_id?: string
         }

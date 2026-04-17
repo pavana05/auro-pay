@@ -72,6 +72,7 @@ import Referrals from "./pages/Referrals.tsx";
 import FinancialEducation from "./pages/FinancialEducation.tsx";
 import ChatList from "./pages/ChatList.tsx";
 import ChatRoom from "./pages/ChatRoom.tsx";
+import ManageRecurring from "./pages/ManageRecurring.tsx";
 import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 import DeepLinkHandler from "./components/DeepLinkHandler";
 
@@ -210,6 +211,7 @@ const App = () => (
                     <Route path="/learn" element={<FinancialEducation />} />
                     <Route path="/chats" element={<ChatList />} />
                     <Route path="/chat/:conversationId" element={<ChatRoom />} />
+                    <Route path="/recurring" element={<ManageRecurring />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </PageTransition>
