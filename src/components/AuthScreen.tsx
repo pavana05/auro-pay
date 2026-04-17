@@ -406,6 +406,22 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
             <h2 className="text-[20px] font-bold text-white mb-1">Enter your mobile</h2>
             <p className="text-[12px] text-white/50 mb-6">We'll send a 6-digit OTP</p>
 
+            {biometricAvailable && isReturning && (
+              <button
+                onClick={tryBiometricUnlock}
+                disabled={unlocking}
+                className="mb-5 w-full h-12 rounded-full flex items-center justify-center gap-2 font-semibold text-[13px] active:scale-[0.97] transition disabled:opacity-50"
+                style={{
+                  background: "hsl(42 78% 55% / 0.12)",
+                  border: "1px solid hsl(42 78% 55% / 0.4)",
+                  color: "hsl(42 90% 75%)",
+                }}
+              >
+                {unlocking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
+                {unlocking ? "Verifying…" : "Unlock with biometrics"}
+              </button>
+            )}
+
             <label className="text-[10px] font-bold tracking-[0.2em] text-white/40 mb-2 block">MOBILE NUMBER</label>
             <div
               className="flex items-center gap-2 pb-2 transition-colors"
