@@ -135,18 +135,13 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
 
     setTeenLookup({ status: "searching" });
     try {
-      // Profiles RLS won't return other users yet (we're not a parent linked to them),
-      // so do a narrow lookup via the only readable surface: profiles by phone.
-      // Note: this will simply return nothing if RLS blocks — handle gracefully.
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url, role, phone")
-        .eq("phone", cleaned)
-        .eq("role", "teen")
-        .maybeSingle();
+      // Use the SECURITY DEFINER RPC: returns only id, full_name, avatar_url
+      // for a matching teen — no other profile fields are exposed.
+      const { data, error } = await (supabase.rpc as any)("lookup_teen_by_phone", { _phone: cleaned });
       if (error) throw error;
-      if (!data) { setTeenLookup({ status: "missing" }); return; }
-      setTeenLookup({ status: "found", profile: { id: data.id, full_name: data.full_name, avatar_url: data.avatar_url } });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) { setTeenLookup({ status: "missing" }); return; }
+      setTeenLookup({ status: "found", profile: { id: row.id, full_name: row.full_name, avatar_url: row.avatar_url } });
     } catch (e: any) {
       setTeenLookup({ status: "error" });
     }
