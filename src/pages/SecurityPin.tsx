@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -8,6 +8,8 @@ import ForgotPinModal from "@/components/ForgotPinModal";
 
 const SecurityPin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSetupMode = searchParams.get("setup") === "1";
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -15,6 +17,16 @@ const SecurityPin = () => {
   const [showNew, setShowNew] = useState(false);
   const [changing, setChanging] = useState(false);
   const [showForgotPin, setShowForgotPin] = useState(false);
+
+  useEffect(() => {
+    if (isSetupMode) {
+      toast.info("Set up your 4-digit Payment PIN to continue", { duration: 5000 });
+      // Scroll to PIN section
+      setTimeout(() => {
+        document.getElementById("pin-setup-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [isSetupMode]);
 
   const handleChangePin = () => {
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
