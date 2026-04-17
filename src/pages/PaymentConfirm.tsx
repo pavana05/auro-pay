@@ -125,6 +125,14 @@ const PaymentConfirm = () => {
 
   // ---- PIN PAD HANDLERS ----
   const onPinKey = (k: string) => {
+    if (hasPinSet !== true) {
+      if (hasPinSet === false) {
+        setPin("");
+        setStage("review");
+        toast.info("Set up your Payment PIN to continue");
+      }
+      return;
+    }
     haptic.light();
     if (k === "del") { setPin((p) => p.slice(0, -1)); setPinError(false); return; }
     if (pin.length >= 4) return;
