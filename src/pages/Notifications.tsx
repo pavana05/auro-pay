@@ -318,6 +318,8 @@ const Notifications = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
@@ -326,8 +328,33 @@ const Notifications = () => {
         .order("created_at", { ascending: false }).limit(200);
       setNotifications((data || []) as Notification[]);
       setLoading(false);
+
+      // Realtime: prepend new notifications & reflect updates/deletes live.
+      channel = supabase
+        .channel(`notifications-${user.id}`)
+        .on("postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const n = payload.new as Notification;
+            setNotifications(prev => prev.some(x => x.id === n.id) ? prev : [n, ...prev]);
+            haptic.light();
+          })
+        .on("postgres_changes",
+          { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const n = payload.new as Notification;
+            setNotifications(prev => prev.map(x => x.id === n.id ? n : x));
+          })
+        .on("postgres_changes",
+          { event: "DELETE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const id = (payload.old as { id: string }).id;
+            setNotifications(prev => prev.filter(x => x.id !== id));
+          })
+        .subscribe();
     };
     load();
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
   const visible = useMemo(

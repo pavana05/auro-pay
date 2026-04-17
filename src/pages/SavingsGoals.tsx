@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft, Plus, X, Trash2, ArrowDownToLine, Check, ChevronLeft, ChevronRight, Sparkles,
+  ArrowLeft, Plus, X, Trash2, ArrowDownToLine, Check, ChevronLeft, ChevronRight, Sparkles, Repeat,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,10 @@ interface Goal {
   icon: string | null;
   color: string | null;
   is_completed: boolean;
+  autosave_enabled?: boolean;
+  autosave_amount?: number;
+  autosave_frequency?: string;
+  autosave_next_run_at?: string | null;
 }
 
 const EMOJIS = [
@@ -242,6 +246,30 @@ const SavingsGoals = () => {
     else { toast.success("Goal deleted"); fetchGoals(); }
   };
 
+  // ─── Toggle / configure auto-save for a goal ───
+  const setAutoSave = async (goal: Goal, enabled: boolean, amount?: number, frequency?: string) => {
+    haptic.light();
+    const amt = amount ?? goal.autosave_amount ?? 100;
+    const freq = frequency ?? goal.autosave_frequency ?? "weekly";
+    if (enabled && (!amt || amt < 1)) { toast.error("Set a valid amount first"); return; }
+
+    const next = new Date();
+    if (freq === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
+    else if (freq === "daily") next.setUTCDate(next.getUTCDate() + 1);
+    else next.setUTCDate(next.getUTCDate() + 7);
+
+    const { error } = await supabase.from("savings_goals").update({
+      autosave_enabled: enabled,
+      autosave_amount: amt,
+      autosave_frequency: freq,
+      autosave_next_run_at: enabled ? next.toISOString() : null,
+    }).eq("id", goal.id);
+    if (error) { toast.error(error.message); return; }
+
+    toast.success(enabled ? `Auto-save on: ₹${amt} ${freq}` : "Auto-save off");
+    fetchGoals();
+  };
+
   // ─── Wizard steps config ───
   const stepLabels = ["Name & Icon", "Target", "Deadline", "Color", "Preview"];
   const canAdvance = (s: number) => {
@@ -328,6 +356,7 @@ const SavingsGoals = () => {
                 onAddSubmit={() => handleAdd(goal)}
                 onWithdrawSubmit={() => handleWithdraw(goal)}
                 onCancelAction={() => { setActionFor(null); setActionAmount(""); }}
+                onSetAutoSave={(enabled, amt, freq) => setAutoSave(goal, enabled, amt, freq)}
               />
             ))}
           </div>
@@ -537,13 +566,18 @@ const SavingsGoals = () => {
 const GoalCard = ({
   goal, index, pct, onDelete, onAddClick, onWithdrawClick,
   actionMode, actionAmount, setActionAmount, onAddSubmit, onWithdrawSubmit, onCancelAction,
+  onSetAutoSave,
 }: {
   goal: Goal; index: number; pct: number;
   onDelete: () => void; onAddClick: () => void; onWithdrawClick: () => void;
   actionMode: "add" | "withdraw" | null;
   actionAmount: string; setActionAmount: (v: string) => void;
   onAddSubmit: () => void; onWithdrawSubmit: () => void; onCancelAction: () => void;
+  onSetAutoSave: (enabled: boolean, amount?: number, frequency?: string) => void;
 }) => {
+  const [autosaveOpen, setAutosaveOpen] = useState(false);
+  const [draftAmount, setDraftAmount] = useState(String(goal.autosave_amount || 100));
+  const [draftFreq, setDraftFreq] = useState<string>(goal.autosave_frequency || "weekly");
   const color = goal.color || "40 90% 60%";
   const accent = goal.is_completed ? "152 65% 50%" : color;
   const daysLeft = goal.deadline ? Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000)) : null;
@@ -680,6 +714,76 @@ const GoalCard = ({
               style={{ background: "hsl(220 15% 8%)", border: "1px solid hsl(0 0% 100% / 0.05)" }}>
               <Trash2 className="w-3.5 h-3.5 text-white/25" />
             </button>
+          </div>
+        )}
+
+        {/* Auto-save rule */}
+        {!goal.is_completed && (
+          <div className="mt-3 pt-3 border-t border-white/[0.04]">
+            <button
+              onClick={() => { haptic.light(); setAutosaveOpen(o => !o); }}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-[28px] h-[28px] rounded-[9px] flex items-center justify-center"
+                  style={{
+                    background: goal.autosave_enabled
+                      ? `linear-gradient(135deg, hsl(${accent} / 0.22), hsl(${accent} / 0.08))`
+                      : "hsl(220 15% 8%)",
+                    border: `1px solid hsl(${accent} / ${goal.autosave_enabled ? 0.35 : 0.08})`,
+                  }}>
+                  <Repeat className="w-3.5 h-3.5" style={{ color: goal.autosave_enabled ? `hsl(${accent})` : "hsl(0 0% 100% / 0.3)" }} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-white/70">Auto-save</p>
+                  <p className="text-[9.5px] text-white/35">
+                    {goal.autosave_enabled
+                      ? `₹${goal.autosave_amount} every ${goal.autosave_frequency || "week"}`
+                      : "Hands-off saving"}
+                  </p>
+                </div>
+              </div>
+              {/* Toggle pill */}
+              <div
+                onClick={(e) => { e.stopPropagation(); onSetAutoSave(!goal.autosave_enabled, parseInt(draftAmount, 10) || 100, draftFreq); }}
+                className="w-[36px] h-[20px] rounded-full relative transition-colors cursor-pointer"
+                style={{ background: goal.autosave_enabled ? `hsl(${accent})` : "hsl(220 15% 14%)" }}
+              >
+                <div className="absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white transition-all"
+                  style={{ left: goal.autosave_enabled ? "18px" : "2px" }} />
+              </div>
+            </button>
+
+            {autosaveOpen && (
+              <div className="mt-3 flex gap-2 items-center" style={{ animation: "fade-in 0.2s" }}>
+                <span className="text-[11px] text-white/45">₹</span>
+                <input
+                  value={draftAmount}
+                  onChange={e => setDraftAmount(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  placeholder="100"
+                  className="w-[80px] h-[34px] rounded-lg px-2 text-[12px] font-mono outline-none"
+                  style={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 15% 12%)", color: "white" }}
+                />
+                <select
+                  value={draftFreq}
+                  onChange={e => setDraftFreq(e.target.value)}
+                  className="h-[34px] rounded-lg px-2 text-[12px] outline-none"
+                  style={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 15% 12%)", color: "white" }}
+                >
+                  <option value="weekly">weekly</option>
+                  <option value="monthly">monthly</option>
+                  <option value="daily">daily</option>
+                </select>
+                <button
+                  onClick={() => { onSetAutoSave(true, parseInt(draftAmount, 10) || 100, draftFreq); setAutosaveOpen(false); }}
+                  className="ml-auto h-[34px] px-3 rounded-lg text-[11px] font-bold active:scale-95 transition"
+                  style={{ background: `hsl(${accent})`, color: "hsl(220 22% 6%)" }}
+                >
+                  Save rule
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
