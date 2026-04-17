@@ -1,22 +1,23 @@
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Target, Shield } from "lucide-react";
+import { useAdminQuery } from "@/hooks/useAdminQuery";
+import { AdminQueryError, AdminQueryLoading } from "@/components/admin/AdminQueryState";
 
 const C = { cardBg: "rgba(13,14,18,0.7)", border: "rgba(200,149,46,0.10)", primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", warning: "#f59e0b", textPrimary: "#ffffff", textSecondary: "rgba(255,255,255,0.55)", textMuted: "rgba(255,255,255,0.3)" };
 
 const AdminSpendingLimits = () => {
-  const [limits, setLimits] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: limits, loading, error, refetch } = useAdminQuery<any[]>(
+    async () => {
+      const { data, error } = await supabase
+        .from("spending_limits")
+        .select("*, wallet:wallets!spending_limits_teen_wallet_id_fkey(user_id, balance), parent:profiles!spending_limits_set_by_parent_id_fkey(full_name)");
+      if (error) throw error;
+      return data || [];
+    },
+    { label: "spending limits" }
+  );
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase.from("spending_limits").select("*, wallet:wallets!spending_limits_teen_wallet_id_fkey(user_id, balance), parent:profiles!spending_limits_set_by_parent_id_fkey(full_name)");
-      setLimits(data || []);
-      setLoading(false);
-    };
-    fetch();
-  }, []);
+  const list = limits ?? [];
 
   return (
     <AdminLayout>
@@ -51,14 +52,16 @@ const AdminSpendingLimits = () => {
         </div>
 
         <div className="rounded-[16px] p-5" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: C.textPrimary }}>Per-User Overrides ({limits.length})</h3>
-          {loading ? (
-            <p className="text-sm text-center py-8" style={{ color: C.textMuted }}>Loading...</p>
-          ) : limits.length === 0 ? (
+          <h3 className="text-sm font-semibold mb-4" style={{ color: C.textPrimary }}>Per-User Overrides ({list.length})</h3>
+          {error ? (
+            <AdminQueryError error={error} onRetry={refetch} label="spending limits" />
+          ) : loading ? (
+            <AdminQueryLoading rows={4} />
+          ) : list.length === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: C.textMuted }}>No custom spending limits set</p>
           ) : (
             <div className="space-y-2">
-              {limits.map((l: any) => (
+              {list.map((l: any) => (
                 <div key={l.id} className="flex items-center justify-between p-3 rounded-[10px]" style={{ background: "rgba(200,149,46,0.04)" }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{l.category || "All"}</p>
