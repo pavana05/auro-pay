@@ -74,6 +74,7 @@ const navSections: NavSection[] = [
     { path: "/admin/revenue", icon: TrendingUp, label: "Revenue" },
     { path: "/admin/geographic", icon: BarChart3, label: "Geographic" },
     { path: "/admin/rewards", icon: Gift, label: "Rewards" },
+    { path: "/admin/waitlist", icon: Sparkles, label: "Waitlist" },
   ]},
   { title: "System", items: [
     { path: "/admin/settings", icon: Settings, label: "App Settings" },
