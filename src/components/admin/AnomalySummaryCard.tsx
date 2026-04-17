@@ -111,7 +111,9 @@ export default function AnomalySummaryCard() {
           </div>
           <div>
             <h3 className="text-[13px] font-semibold font-sora" style={{ color: C.text }}>Anomalies · 14d</h3>
-            <p className="text-[10px] font-sora" style={{ color: C.muted }}>{totalLast14} flagged</p>
+            <p className="text-[10px] font-sora" style={{ color: C.muted }}>
+              {totalLast14} flagged · <span style={{ color: deltaColor, fontWeight: 600 }}>{deltaLabel}</span>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: C.muted }}>
