@@ -81,6 +81,57 @@ const AddMoney = () => {
     return () => { clearTimeout(i1); clearTimeout(i2); };
   }, [phase]);
 
+  const createAutoPay = async (uid: string) => {
+    if (!autoPay) return;
+    try {
+      const next = new Date();
+      if (autoFreq === "weekly") {
+        const delta = (autoDay - next.getUTCDay() + 7) % 7 || 7;
+        next.setUTCDate(next.getUTCDate() + delta);
+      } else {
+        next.setUTCMonth(next.getUTCMonth() + 1);
+        next.setUTCDate(Math.min(autoDay, 28));
+      }
+      await supabase.from("recurring_payments").insert({
+        user_id: uid,
+        amount: amt * 100,
+        frequency: autoFreq,
+        next_run_at: next.toISOString(),
+        kind: "topup",
+        day_of_week: autoFreq === "weekly" ? autoDay : null,
+        day_of_month: autoFreq === "monthly" ? autoDay : null,
+        note: `Auto top-up · ₹${amt}`,
+        favorite_id: null,
+      } as any);
+      toast.success(`Auto-Pay set: ₹${amt} ${autoFreq === "weekly" ? `every ${DAY_LABELS[autoDay]}` : `on the ${autoDay}${["st","nd","rd"][autoDay-1]||"th"}`}`);
+    } catch (e: any) {
+      toast.error("Couldn't save Auto-Pay: " + (e.message || "unknown"));
+    }
+  };
+
+  const tryUpiIntent = async (): Promise<boolean> => {
+    if (method !== "upi" || !isAndroidNative()) return false;
+    const app = upiApps.find(a => a.id === selectedUpi);
+    if (!app) return false;
+    // Use AuroPay's master VPA (sandbox-friendly placeholder).
+    const handled = await openUpiApp(selectedUpi, {
+      pa: "auropay@upi",
+      pn: "AuroPay Wallet",
+      am: total,
+      tn: `Add money`,
+      tr: `AP${Date.now()}`,
+    });
+    if (!handled) {
+      setShowFallback({ appLabel: app.label });
+      return true; // we handled (showed sheet)
+    }
+    // We can't programmatically confirm payment, so move to a pending state and wait
+    // for the user to return. On return, ask backend if anything succeeded — for now
+    // we optimistically show success after a short delay (sandbox).
+    setTimeout(() => setPhase("success"), 1500);
+    return true;
+  };
+
   const handlePay = async () => {
     if (!canPay) {
       if (method === "netbanking" && !selectedBank) { toast.error("Pick a bank to continue"); return; }
@@ -89,6 +140,11 @@ const AddMoney = () => {
     }
 
     haptic.medium();
+
+    // Try Android UPI intent first
+    const used = await tryUpiIntent();
+    if (used) return;
+
     setPhase("processing");
 
     try {
@@ -111,8 +167,8 @@ const AddMoney = () => {
           contact: profile?.phone || undefined,
         },
         onSuccess: async () => {
-          // Min animation duration so users see the tunnel
           await new Promise(r => setTimeout(r, 1400));
+          if (user) await createAutoPay(user.id);
           setPhase("success");
           haptic.success();
         },
