@@ -97,7 +97,10 @@ const LinkedTeens = () => {
         }
         setLookup({ status: "found", profile: { id: row.id, full_name: row.full_name, avatar_url: row.avatar_url } });
       } catch (e: any) {
-        setLookup({ status: "error", message: e?.message });
+        const msg = /too many/i.test(e?.message || "")
+          ? "Too many lookups. Please wait a minute and try again."
+          : e?.message;
+        setLookup({ status: "error", message: msg });
       }
     }, 400);
     return () => clearTimeout(t);
