@@ -3,14 +3,14 @@
 // Returns a 1200x630 PNG with the referrer's name baked in.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
+import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2?bundle";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
 };
 
-const WASM_URL = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+const WASM_URL = "https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
 
 let wasmReady: Promise<void> | null = null;
 function ensureWasm() {
