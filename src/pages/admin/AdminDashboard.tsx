@@ -538,6 +538,36 @@ const AdminDashboard = () => {
     );
   }
 
+  /* ─────────── Hard error shell (every query failed) ─────────── */
+  if (loadError && users.length === 0 && wallets.length === 0 && allTxns.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="p-4 lg:p-8">
+          <div className="max-w-2xl mx-auto rounded-[18px] p-6 flex flex-col gap-4"
+               style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                   style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: C.danger }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Could not load dashboard data</p>
+                <p className="text-xs text-white/55 mt-1 break-words">{loadError}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setLoading(true); fetchAll(); }}
+              className="self-start text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2"
+              style={{ background: C.primary, color: "#0a0c0f" }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   /* ─────────── KPI definitions ─────────── */
   const kpis: Kpi[] = [
     { label: "Total Users", value: users.length, icon: Users, color: C.info, spark: sparkUsers,
