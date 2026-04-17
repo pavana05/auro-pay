@@ -16,11 +16,11 @@ interface Friend {
 
 const AVATAR_COLORS = [
   "from-amber-500 to-orange-600",
-  "from-emerald-400 to-teal-500",
-  "from-violet-500 to-fuchsia-500",
-  "from-sky-400 to-blue-500",
-  "from-rose-400 to-pink-500",
+  "from-yellow-500 to-amber-600",
   "from-primary to-amber-600",
+  "from-amber-400 to-yellow-500",
+  "from-orange-400 to-primary",
+  "from-primary to-yellow-500",
 ];
 
 const getColor = (name: string) => {
