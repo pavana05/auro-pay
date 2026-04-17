@@ -697,7 +697,11 @@ const RefundConfirmModal = ({
 
   if (!target) return null;
 
-  const canSubmit = confirmText === "CONFIRM" && reason.trim().length >= 5 && !submitting;
+  // High-risk gate: refunds > ₹10,000 require a longer justification (≥20 chars).
+  const HIGH_RISK_PAISE = 10_000 * 100;
+  const isHighRisk = target.amount > HIGH_RISK_PAISE;
+  const minReasonChars = isHighRisk ? 20 : 5;
+  const canSubmit = confirmText === "CONFIRM" && reason.trim().length >= minReasonChars && !submitting;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -724,6 +728,11 @@ const RefundConfirmModal = ({
           <div className="flex items-center gap-2 mb-1">
             <RefreshCcw className="w-4 h-4 text-primary" />
             <h3 className="text-base font-bold">Refund transaction</h3>
+            {isHighRisk && (
+              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+                HIGH-VALUE
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             Server-side, audit-logged. The user's wallet is credited and they're notified.
@@ -737,9 +746,17 @@ const RefundConfirmModal = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Reason (visible to user, min 5 chars)</label>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+            <span>Reason (visible to user, min {minReasonChars} chars)</span>
+            <span className={`text-[10px] font-mono ${reason.trim().length >= minReasonChars ? "text-success" : "text-muted-foreground"}`}>
+              {reason.trim().length}/{minReasonChars}
+            </span>
+          </label>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)}
-            rows={3} placeholder="e.g. Duplicate charge confirmed by Razorpay support ticket #123"
+            rows={isHighRisk ? 4 : 3}
+            placeholder={isHighRisk
+              ? "Required for refunds > ₹10,000 — reference dispute ticket, supervisor approval, root cause."
+              : "e.g. Duplicate charge confirmed by Razorpay support ticket #123"}
             className="w-full rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-xs focus:outline-none focus:border-primary/40 resize-none" />
         </div>
 
