@@ -946,7 +946,7 @@ const TeenHome = () => {
             </button>
           </div>
 
-          {transactions.length === 0 ? (
+          {recentForList.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -964,36 +964,43 @@ const TeenHome = () => {
               boxShadow: "0 8px 32px -8px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.02)"
             }}>
               <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.1) 50%, transparent 90%)" }} />
-              {transactions.map((tx, idx) => (
-                <motion.button
+              {recentForList.map((tx, idx) => (
+                <SwipeActionRow
                   key={tx.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + idx * 0.05, type: "spring", stiffness: 300, damping: 24 }}
-                  whileTap={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.025)" }}
-                  onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200 ${idx < transactions.length - 1 ? "border-b border-border/10" : ""}`}
+                  onDetails={() => navigate(`/transaction/${tx.id}`)}
+                  onDispute={() => navigate("/help")}
+                  className={idx < recentForList.length - 1 ? "border-b border-border/10" : ""}
                 >
-                  <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0 border border-border/10">
-                    {catEmoji[tx.category || "other"] || "💸"}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[11px] font-semibold truncate font-sora">{tx.merchant_name || tx.category || "Transaction"}</p>
-                    <p className="text-[9px] text-muted-foreground/30 capitalize mt-0.5 font-sora">
-                      {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-[12px] font-bold tabular-nums font-mono ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
-                      {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
-                    </p>
-                    <p className={`text-[8px] font-medium mt-0.5 font-sora ${
-                      tx.status === "success" ? "text-success/40" : tx.status === "pending" ? "text-warning/50" : "text-destructive/40"
-                    }`}>
-                      {tx.status === "success" ? "Completed" : tx.status === "pending" ? "Pending" : tx.status}
-                    </p>
-                  </div>
-                </motion.button>
+                  <motion.button
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + idx * 0.05, type: "spring", stiffness: 300, damping: 24 }}
+                    whileTap={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.025)" }}
+                    onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
+                    className="w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200"
+                    style={{ background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))" }}
+                  >
+                    <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0 border border-border/10">
+                      {catEmoji[tx.category || "other"] || "💸"}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[11px] font-semibold truncate font-sora">{tx.merchant_name || tx.category || "Transaction"}</p>
+                      <p className="text-[9px] text-muted-foreground/30 capitalize mt-0.5 font-sora">
+                        {tx.category || "other"} · {new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-[12px] font-bold tabular-nums font-mono ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
+                        {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
+                      </p>
+                      <p className={`text-[8px] font-medium mt-0.5 font-sora ${
+                        tx.status === "success" ? "text-success/40" : tx.status === "pending" ? "text-warning/50" : "text-destructive/40"
+                      }`}>
+                        {tx.status === "success" ? "Completed" : tx.status === "pending" ? "Pending" : tx.status}
+                      </p>
+                    </div>
+                  </motion.button>
+                </SwipeActionRow>
               ))}
             </div>
           )}
