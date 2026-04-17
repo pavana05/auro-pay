@@ -163,6 +163,8 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
             <NameStep
               value={fullName}
               focused={nameFocused}
+              avatar={avatar}
+              onAvatarChange={setAvatar}
               onFocus={() => setNameFocused(true)}
               onBlur={() => setNameFocused(false)}
               onChange={setFullName}
