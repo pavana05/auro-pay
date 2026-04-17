@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Premium cursor: small gold dot + trailing ring.
  * Desktop + fine-pointer only. Disabled on touch / coarse pointers / reduced motion.
- * Expands the ring when hovering interactive elements.
+ *
+ * Ring grows on interactive elements. To avoid the "ring flying in" look,
+ * we instantly snap the ring's eased position to the cursor at the exact
+ * moment hover-state flips, then let the easing resume.
  */
 export default function PremiumCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const [enabled, setEnabled] = useState(false);
-  const [hovering, setHovering] = useState(false);
 
   useEffect(() => {
     const fine = window.matchMedia("(pointer: fine)").matches;
@@ -23,6 +25,13 @@ export default function PremiumCursor() {
     let ry = my;
     let raf = 0;
 
+    // Track hover via ref so handlers always see latest value without re-binding
+    let hovering = false;
+    // Animated size with easing (decoupled from CSS transition to avoid offset glitches)
+    let curSize = 32;
+    const SIZE_IDLE = 32;
+    const SIZE_HOVER = 56;
+
     const onMove = (e: MouseEvent) => {
       mx = e.clientX;
       my = e.clientY;
@@ -30,22 +39,35 @@ export default function PremiumCursor() {
         dotRef.current.style.transform = `translate3d(${mx - 4}px, ${my - 4}px, 0)`;
       }
       const target = e.target as HTMLElement | null;
-      const interactive = !!target?.closest(
+      const isInteractive = !!target?.closest(
         'a, button, [role="button"], input, textarea, select, [data-cursor="hover"]'
       );
-      setHovering(interactive);
+      if (isInteractive !== hovering) {
+        hovering = isInteractive;
+        // Snap ring to cursor so the size morph happens centered on the pointer,
+        // not from wherever the trailing ring happened to be.
+        rx = mx;
+        ry = my;
+        if (ringRef.current) {
+          ringRef.current.style.opacity = isInteractive ? "1" : "0.7";
+        }
+      }
     };
 
     const tick = () => {
-      // ease ring toward dot
-      rx += (mx - rx) * 0.18;
-      ry += (my - ry) * 0.18;
+      // Ease ring position toward cursor (faster when hovering for tighter feel)
+      const ease = hovering ? 0.32 : 0.18;
+      rx += (mx - rx) * ease;
+      ry += (my - ry) * ease;
+
+      // Ease size toward target — animated in JS so it stays centered on cursor
+      const targetSize = hovering ? SIZE_HOVER : SIZE_IDLE;
+      curSize += (targetSize - curSize) * 0.22;
+
       if (ringRef.current) {
-        const size = hovering ? 56 : 32;
-        ringRef.current.style.transform = `translate3d(${rx - size / 2}px, ${ry - size / 2}px, 0)`;
-        ringRef.current.style.width = `${size}px`;
-        ringRef.current.style.height = `${size}px`;
-        ringRef.current.style.opacity = hovering ? "1" : "0.7";
+        ringRef.current.style.transform = `translate3d(${rx - curSize / 2}px, ${ry - curSize / 2}px, 0)`;
+        ringRef.current.style.width = `${curSize}px`;
+        ringRef.current.style.height = `${curSize}px`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -56,7 +78,7 @@ export default function PremiumCursor() {
     };
     const onEnter = () => {
       if (dotRef.current) dotRef.current.style.opacity = "1";
-      if (ringRef.current) ringRef.current.style.opacity = "0.7";
+      if (ringRef.current) ringRef.current.style.opacity = hovering ? "1" : "0.7";
     };
 
     window.addEventListener("mousemove", onMove);
@@ -64,7 +86,7 @@ export default function PremiumCursor() {
     document.addEventListener("mouseenter", onEnter);
     raf = requestAnimationFrame(tick);
 
-    // Hide native cursor for premium feel — but only on desktop
+    // Hide native cursor for premium feel — desktop only
     document.documentElement.style.cursor = "none";
     const style = document.createElement("style");
     style.id = "premium-cursor-style";
@@ -79,7 +101,7 @@ export default function PremiumCursor() {
       document.documentElement.style.cursor = "";
       document.getElementById("premium-cursor-style")?.remove();
     };
-  }, [hovering]);
+  }, []);
 
   if (!enabled) return null;
 
@@ -108,7 +130,8 @@ export default function PremiumCursor() {
           background:
             "radial-gradient(circle, rgba(200,149,46,0.06) 0%, transparent 70%)",
           backdropFilter: "blur(2px)",
-          transition: "width 0.25s cubic-bezier(0.16,1,0.3,1), height 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.25s ease",
+          // NOTE: no width/height transition — size is animated in JS so the ring stays centered on the cursor.
+          transition: "opacity 0.2s ease",
           willChange: "transform, width, height",
         }}
       />
