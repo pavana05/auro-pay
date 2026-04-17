@@ -321,6 +321,18 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
         </p>
       </div>
 
+      {signupsDisabled && (
+        <div
+          className="relative z-10 mb-4 max-w-sm w-full px-4 py-2.5 rounded-[12px] flex items-center gap-2"
+          style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)" }}
+        >
+          <LockIcon className="w-3.5 h-3.5 shrink-0" style={{ color: "#f59e0b" }} />
+          <span className="text-[11px] text-white/80">
+            New signups are paused. Existing users can still log in.
+          </span>
+        </div>
+      )}
+
       {/* Frosted glass card */}
       <div
         className="relative z-10 w-full max-w-sm rounded-[24px] p-6 overflow-hidden"
@@ -606,7 +618,13 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                 </button>
               )}
               <button
-                onClick={() => { setForgotMode(false); setIsSignUp(!isSignUp); }}
+                onClick={() => {
+                  if (signupsDisabled && !isSignUp) {
+                    toast.error("New signups are temporarily disabled.");
+                    return;
+                  }
+                  setForgotMode(false); setIsSignUp(!isSignUp);
+                }}
                 className="ml-auto text-white/50 hover:text-white/80 transition"
               >
                 {isSignUp ? "Have an account? Log in" : "New here? Sign up"}
