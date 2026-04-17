@@ -347,7 +347,7 @@ const ProfileScreen = () => {
     { icon: Gauge, label: "Spending Limits", path: "/spending-limits", desc: dailyLimit ? `Daily limit ₹${(dailyLimit / 100).toLocaleString("en-IN")}` : "Set limits" },
     { icon: Bell, label: "Notifications", path: "/notifications", desc: "Alert preferences", badge: unreadNotif > 0 ? unreadNotif : undefined },
     { icon: Gift, label: "Referral Program", path: "/referrals", desc: "Earn ₹50 per referral" },
-    { icon: Headphones, label: "Help & Support", path: "/support", desc: "Tickets, FAQs" },
+    { icon: Headphones, label: "Help & Support", path: "/support-chat", desc: "Chat with AI assistant" },
     { icon: FileText, label: "Privacy Policy", path: "/about", desc: "How we handle your data" },
     { icon: Info, label: "About AuroPay", path: "/about", desc: `Version ${APP_VERSION}` },
     { icon: LogOut, label: "Log Out", danger: true, onClick: () => setShowLogout(true) },
