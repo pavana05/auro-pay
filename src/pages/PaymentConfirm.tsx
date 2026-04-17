@@ -180,6 +180,12 @@ const PaymentConfirm = () => {
 
   // ---- SUBMIT ----
   const submitPayment = async (pinValue: string) => {
+    if (hasPinSet !== true) {
+      setPin("");
+      setStage("review");
+      toast.info("Set up your Payment PIN to continue");
+      return;
+    }
     setStage("processing");
     haptic.medium();
     try {
@@ -193,9 +199,9 @@ const PaymentConfirm = () => {
           pin: pinValue,
         },
       });
+      const errCode = (data as any)?.code;
       const errMsg = (data as any)?.error || error?.message;
-      // PIN not set on backend → flip back to setup flow instead of failing
-      if (errMsg && /pin not set/i.test(errMsg)) {
+      if (errCode === "PIN_NOT_SET" || (errMsg && /pin not set/i.test(errMsg))) {
         setHasPinSet(false);
         setPin("");
         setStage("review");

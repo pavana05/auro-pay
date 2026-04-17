@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     // Verify PIN against stored hash
     const { data: profile } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).single();
     if (!profile?.pin_hash) {
-      return new Response(JSON.stringify({ error: "Payment PIN not set" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: false, code: "PIN_NOT_SET", error: "Payment PIN not set" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const pinData = new TextEncoder().encode(`${user.id}:${pin}`);
     const pinHashBuf = await crypto.subtle.digest("SHA-256", pinData);
