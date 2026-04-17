@@ -290,9 +290,16 @@ const AdminTransactions = () => {
             <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
             <p className="text-xs text-muted-foreground mt-1">Deep investigation • {filtered.length} of {transactions.length}</p>
           </div>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-300 active:scale-95">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setRealtimeOn((v) => !v)}
+              className={`flex items-center gap-2 px-3 h-10 rounded-xl border text-xs font-medium transition-all ${realtimeOn ? "bg-success/10 text-success border-success/30" : "bg-white/[0.03] text-muted-foreground border-white/[0.06]"}`}
+              title={realtimeOn ? "Realtime on — new transactions appear instantly" : "Realtime paused"}>
+              <Radio className={`w-3.5 h-3.5 ${realtimeOn ? "animate-pulse" : ""}`} /> {realtimeOn ? "Live" : "Paused"}
+            </button>
+            <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-300 active:scale-95">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Summary */}
