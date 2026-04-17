@@ -28,6 +28,13 @@ const DeepLinkHandler = () => {
             ? `/${[url.host, url.pathname.replace(/^\/+/, "")].filter(Boolean).join("/")}`
             : url.pathname;
 
+          // Special-case the KYC callback so the gate can replay its success animation.
+          // We dispatch a window event regardless of which screen the user is on.
+          if (/^\/kyc\/callback\/?$/.test(path)) {
+            window.dispatchEvent(new CustomEvent("auropay:kyc-callback", { detail: { url: event.url } }));
+            return;
+          }
+
           if (path && path !== "/") {
             navigate(path + url.search, { replace: false });
           }
