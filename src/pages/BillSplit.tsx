@@ -1,7 +1,7 @@
 // Screen 20 — Bill Split: create with participants, equal/custom shares,
 // pay via wallet, reminders for unpaid, auto-settle.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import {
