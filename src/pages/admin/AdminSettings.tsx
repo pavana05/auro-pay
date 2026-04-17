@@ -199,7 +199,7 @@ const AdminSettings = () => {
               Full control panel · changes auto-save with debounce
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {savingKey ? (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px]" style={{ background: `${C.primary}15`, color: C.primary, border: `1px solid ${C.primary}33` }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.primary }} />
@@ -211,6 +211,7 @@ const AdminSettings = () => {
                 {savedLabel}
               </div>
             )}
+            <AdminQueryStatus lastUpdatedAt={lastUpdatedAt} loading={loading} onRefresh={() => refetch()} />
           </div>
         </div>
 
@@ -229,7 +230,13 @@ const AdminSettings = () => {
           </div>
         )}
 
-        {loading ? (
+        {error && Object.keys(settings).length === 0 && (
+          <div className="relative z-10">
+            <AdminQueryError error={error} onRetry={refetch} label="app settings" />
+          </div>
+        )}
+
+        {loading && Object.keys(settings).length === 0 ? (
           <div className="space-y-4 relative z-10">
             {[1,2,3].map(i => <div key={i} className="h-40 rounded-[16px] animate-pulse" style={{ background: "rgba(255,255,255,0.02)" }} />)}
           </div>
