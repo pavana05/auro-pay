@@ -676,7 +676,7 @@ const BulkBtn = ({ icon: Icon, label, onClick }: { icon: any; label: string; onC
 
 /* ─────────── Context Panel Body with tabs ─────────── */
 const UserPanelBody = ({ row, wallets, txns, onChange }: { row: UserRow; wallets: any[]; txns: any[]; onChange: () => void }) => {
-  const [tab, setTab] = useState<"overview" | "transactions" | "limits" | "notes" | "audit">("overview");
+  const [tab, setTab] = useState<"overview" | "transactions" | "limits" | "location" | "notes" | "audit">("overview");
   const wallet = wallets.find((w) => w.user_id === row.id);
 
   return (
@@ -699,7 +699,7 @@ const UserPanelBody = ({ row, wallets, txns, onChange }: { row: UserRow; wallets
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
-        {(["overview","transactions","limits","notes","audit"] as const).map((t) => (
+        {(["overview","transactions","limits","location","notes","audit"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider font-sora transition-all" style={{ background: tab === t ? `linear-gradient(135deg, ${C.primary}, ${C.secondary})` : "transparent", color: tab === t ? "#fff" : "rgba(255,255,255,0.5)" }}>
             {t}
           </button>
@@ -709,6 +709,7 @@ const UserPanelBody = ({ row, wallets, txns, onChange }: { row: UserRow; wallets
       {tab === "overview" && <OverviewTab row={row} wallet={wallet} />}
       {tab === "transactions" && <TransactionsTab row={row} wallet={wallet} txns={txns} />}
       {tab === "limits" && <LimitsTab wallet={wallet} onChange={onChange} />}
+      {tab === "location" && <LocationTab userId={row.id} onChange={onChange} />}
       {tab === "notes" && <NotesTab userId={row.id} />}
       {tab === "audit" && <AuditTab userId={row.id} />}
     </div>
