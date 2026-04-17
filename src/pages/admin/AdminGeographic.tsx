@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { MapPin, TrendingUp, TrendingDown, Building2, Globe2 } from "lucide-react";
+import { INDIA_STATES, type IndiaState } from "@/lib/india-states";
 
 /* ──────────────────────────────────────────────────────────────
  * Geographic intelligence — India map.
