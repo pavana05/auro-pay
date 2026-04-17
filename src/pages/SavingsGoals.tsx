@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft, Plus, X, Trash2, ArrowDownToLine, Check, ChevronLeft, ChevronRight, Sparkles,
+  ArrowLeft, Plus, X, Trash2, ArrowDownToLine, Check, ChevronLeft, ChevronRight, Sparkles, Repeat,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,10 @@ interface Goal {
   icon: string | null;
   color: string | null;
   is_completed: boolean;
+  autosave_enabled?: boolean;
+  autosave_amount?: number;
+  autosave_frequency?: string;
+  autosave_next_run_at?: string | null;
 }
 
 const EMOJIS = [
