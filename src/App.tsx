@@ -55,6 +55,7 @@ import AdminRevenue from "./pages/admin/AdminRevenue.tsx";
 import AdminHealth from "./pages/admin/AdminHealth.tsx";
 import AdminGeographic from "./pages/admin/AdminGeographic.tsx";
 import AdminReports from "./pages/admin/AdminReports.tsx";
+import AdminWaitlist from "./pages/admin/AdminWaitlist.tsx";
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
