@@ -320,6 +320,12 @@ const AdminWallets = () => {
         </div>
       </div>
 
+      <ForceActionConfirmModal
+        open={!!forcePayload}
+        payload={forcePayload}
+        onClose={() => setForcePayload(null)}
+        onSuccess={handleForceSuccess}
+      />
     </AdminLayout>
   );
 };
