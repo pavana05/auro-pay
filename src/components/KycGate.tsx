@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ShieldCheck, Lock, Eye, BadgeCheck, ArrowRight, Loader2, Check, X } from "lucide-react";
+import { Shield, ShieldCheck, Lock, Eye, BadgeCheck, ArrowRight, Loader2, Check, X, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startKyc } from "@/lib/kyc";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import { Browser } from "@capacitor/browser";
+import { createTunnelAudio, getTunnelMuted, type TunnelAudio } from "@/lib/kyc-audio";
 
 interface KycGateProps {
   children: React.ReactNode;
@@ -41,13 +42,32 @@ const KycGate = ({ children, feature }: KycGateProps) => {
   const [name, setName] = useState("");
   const [starting, setStarting] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Re-check KYC status from DB; if verified, replay the success stamp before unlocking.
+  const recheckAndCelebrate = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("kyc_status")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data?.kyc_status === "verified") {
+      haptic.success();
+      setStage("success");
+      // Hold the green stamp for a beat, then unlock by flipping status.
+      setTimeout(() => setStatus("verified"), 1800);
+    }
+  };
 
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus("pending"); return; }
+      setUserId(user.id);
       const { data } = await supabase
         .from("profiles")
         .select("kyc_status, full_name")
@@ -61,6 +81,34 @@ const KycGate = ({ children, feature }: KycGateProps) => {
     };
     check();
   }, []);
+
+  /* --- Deep-link callback from Digio + realtime fallback --- */
+  useEffect(() => {
+    if (status !== "pending" || !userId) return;
+
+    // 1) Deep link triggers an immediate re-poll
+    const onCallback = () => { recheckAndCelebrate(); };
+    window.addEventListener("auropay:kyc-callback", onCallback);
+
+    // 2) Realtime subscription on this user's profile row as fallback
+    const channel = supabase
+      .channel(`kyc-status-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+        (payload: any) => {
+          if (payload?.new?.kyc_status === "verified") {
+            recheckAndCelebrate();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("auropay:kyc-callback", onCallback);
+      supabase.removeChannel(channel);
+    };
+  }, [status, userId]);
 
   const aadhaarDigits = aadhaar.replace(/\s/g, "");
   const aadhaarValid = aadhaarDigits.length === 12;
