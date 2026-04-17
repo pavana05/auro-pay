@@ -540,6 +540,25 @@ const WalletPanelBody = ({
         <MiniStat k="Failed" v={failedCount.toString()} color={G.danger} />
       </div>
 
+      {/* Card number */}
+      {wallet.card_number && (
+        <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+          <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5">
+            <CreditCard className="w-3 h-3" /> Card on file
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-white/70">
+            <span className="font-sora">Number</span>
+            <MaskedReveal value={wallet.card_number} kind="card" targetUserId={wallet.user_id} />
+          </div>
+          {wallet.card_expiry_month && wallet.card_expiry_year && (
+            <div className="flex items-center justify-between text-[11px] text-white/70">
+              <span className="font-sora">Expiry</span>
+              <span className="font-mono">{String(wallet.card_expiry_month).padStart(2, "0")}/{String(wallet.card_expiry_year).slice(-2)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Wallet metadata */}
       <div className="rounded-xl p-3 border space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
         <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora">Wallet info</p>
