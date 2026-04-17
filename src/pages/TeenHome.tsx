@@ -373,6 +373,9 @@ const TeenHome = () => {
           />
         )}
 
+        {/* Pending payment requests — banner if 1, list if 2+ */}
+        {userId && <PaymentRequestPill userId={userId} />}
+
         {/* KYC pending banner */}
         {profile && profile.kyc_status !== "verified" && (
           <motion.button
