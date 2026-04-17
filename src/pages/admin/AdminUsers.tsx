@@ -11,6 +11,7 @@ import {
   CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, ArrowUp, ArrowDown,
   Bookmark, Plus as PlusIcon, Star,
 } from "lucide-react";
+import MaskedReveal from "@/components/admin/MaskedReveal";
 
 const C = {
   primary: "#c8952e", secondary: "#d4a84b",
@@ -514,11 +515,15 @@ const AdminUsers = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="text-white font-medium truncate font-sora">{r.full_name || "Unnamed"}</p>
-                    <p className="text-[10px] text-white/40 font-mono truncate md:hidden">{r.phone || "—"}</p>
+                    <span className="text-[10px] text-white/40 truncate md:hidden block">
+                      {r.phone ? <MaskedReveal value={r.phone} kind="phone" targetUserId={r.id} /> : "—"}
+                    </span>
                   </div>
                 </button>
 
-                <span className="text-white/70 font-mono truncate hidden md:block">{r.phone || "—"}</span>
+                <span className="text-white/70 truncate hidden md:block" onClick={(e) => e.stopPropagation()}>
+                  {r.phone ? <MaskedReveal value={r.phone} kind="phone" targetUserId={r.id} /> : "—"}
+                </span>
 
                 <span className="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider w-fit" style={{ background: r.role === "parent" ? "rgba(34,197,94,0.1)" : r.role === "teen" ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.04)", color: r.role === "parent" ? C.success : r.role === "teen" ? C.info : "rgba(255,255,255,0.6)" }}>
                   {r.role || "user"}
@@ -685,7 +690,9 @@ const UserPanelBody = ({ row, wallets, txns, onChange }: { row: UserRow; wallets
             </div>}
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-semibold text-white truncate font-sora">{row.full_name || "Unnamed"}</p>
-            <p className="text-[11px] text-white/50 font-mono truncate">{row.phone || row.id}</p>
+            <span className="text-[11px] text-white/50 truncate block">
+              {row.phone ? <MaskedReveal value={row.phone} kind="phone" targetUserId={row.id} /> : <span className="font-mono">{row.id}</span>}
+            </span>
           </div>
         </div>
       </div>
