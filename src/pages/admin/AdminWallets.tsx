@@ -334,11 +334,9 @@ const InlineCell = ({
 const G = { primary: "#c8952e", secondary: "#d4a84b", success: "#22c55e", danger: "#ef4444", info: "#3b82f6", cyan: "#06b6d4" };
 
 const WalletPanelBody = ({
-  wallet, onAdd, onDeduct, onFreeze,
+  wallet, onFreeze,
 }: {
   wallet: WalletRow;
-  onAdd: () => void;
-  onDeduct: () => void;
   onFreeze: () => void;
 }) => {
   const [recentTx, setRecentTx] = useState<any[]>([]);
@@ -387,10 +385,8 @@ const WalletPanelBody = ({
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-2">
-        <ActionBtn icon={Plus} label="Add" color={G.success} onClick={onAdd} />
-        <ActionBtn icon={Minus} label="Deduct" color={G.danger} onClick={onDeduct} />
-        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze" : "Freeze"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+      <div className="grid grid-cols-1 gap-2">
+        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
       </div>
 
       {/* Limits with progress */}
