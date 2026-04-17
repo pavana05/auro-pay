@@ -115,6 +115,36 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     if (saved === "true") setIsAuthenticated(true);
   }, []);
 
+  /* Global async-error visibility — surface silent fetch failures so admin
+     pages never get stuck on a skeleton without telling the user why. */
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const reason: any = e.reason;
+      const msg =
+        reason?.message ||
+        reason?.error_description ||
+        reason?.hint ||
+        (typeof reason === "string" ? reason : "Background request failed");
+      // Skip auth-redirect noise and aborted fetches
+      if (/abort|cancel|jwt|not authenticated/i.test(String(msg))) return;
+      console.error("[AdminLayout] unhandled rejection:", reason);
+      toast.error(msg, {
+        description: "An admin page request failed. Try reloading.",
+        duration: 6000,
+      });
+    };
+    const onError = (e: ErrorEvent) => {
+      if (!e.error) return;
+      console.error("[AdminLayout] window error:", e.error);
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
