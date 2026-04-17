@@ -8,7 +8,8 @@ import {
   Search, Snowflake, ShieldCheck, Flag, Bell, KeyRound, Trash2, FileText,
   MoreHorizontal, Download, Filter, X, Users as UsersIcon, Eye,
   ArrowLeftRight, Shield, Wallet, Clock, RefreshCw, ChevronDown,
-  CheckCircle2, AlertCircle, ChevronLeft, ChevronRight,
+  CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, ArrowUp, ArrowDown,
+  Bookmark, Plus as PlusIcon, Star,
 } from "lucide-react";
 
 const C = {
@@ -63,6 +64,66 @@ const AdminUsers = () => {
   const [balMax, setBalMax] = useState("");
   const [txnMin, setTxnMin] = useState("");
   const [lastActiveDays, setLastActiveDays] = useState<string>("any");
+
+  // Sort
+  type SortKey = "name" | "balance" | "txnCount" | "lastActiveAt" | "created_at";
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir(k === "name" ? "asc" : "desc"); }
+    setPage(0);
+  };
+
+  // Presets
+  type Preset = { id: string; name: string; built?: boolean; filters: any };
+  const BUILT_IN_PRESETS: Preset[] = [
+    { id: "p-hv-frozen", name: "High-value frozen", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"frozen", dateFrom:"", dateTo:"", balMin:"5000", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"balance", sortDir:"desc" } },
+    { id: "p-pending-7d", name: "Pending KYC > 7 days", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"pending", statusFilter:"all", dateFrom:"", dateTo: new Date(Date.now() - 7*86400000).toISOString().slice(0,10), balMin:"", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"created_at", sortDir:"asc" } },
+    { id: "p-new-today", name: "New today", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom: new Date().toISOString().slice(0,10), dateTo:"", balMin:"", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"created_at", sortDir:"desc" } },
+    { id: "p-inactive-30d", name: "Inactive 30+ days", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom:"", dateTo:"", balMin:"", balMax:"", txnMin:"1", lastActiveDays:"any", sortKey:"lastActiveAt", sortDir:"asc" } },
+    { id: "p-power", name: "Power users (50+ txns)", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom:"", dateTo:"", balMin:"", balMax:"", txnMin:"50", lastActiveDays:"any", sortKey:"txnCount", sortDir:"desc" } },
+  ];
+
+  const [userPresets, setUserPresets] = useState<Preset[]>(() => {
+    try { return JSON.parse(localStorage.getItem("admin-user-presets") || "[]"); } catch { return []; }
+  });
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
+  const applyPreset = (p: Preset) => {
+    const f = p.filters;
+    setSearch(f.search ?? ""); setRoleFilter(f.roleFilter ?? "all"); setKycFilter(f.kycFilter ?? "all");
+    setStatusFilter(f.statusFilter ?? "all"); setDateFrom(f.dateFrom ?? ""); setDateTo(f.dateTo ?? "");
+    setBalMin(f.balMin ?? ""); setBalMax(f.balMax ?? ""); setTxnMin(f.txnMin ?? "");
+    setLastActiveDays(f.lastActiveDays ?? "any");
+    if (f.sortKey) setSortKey(f.sortKey); if (f.sortDir) setSortDir(f.sortDir);
+    setPage(0); setActivePresetId(p.id);
+    toast.success(`Applied "${p.name}"`);
+  };
+  const saveCurrentAsPreset = () => {
+    const name = window.prompt("Name this filter preset:");
+    if (!name) return;
+    const p: Preset = {
+      id: `u-${Date.now()}`, name,
+      filters: { search, roleFilter, kycFilter, statusFilter, dateFrom, dateTo, balMin, balMax, txnMin, lastActiveDays, sortKey, sortDir },
+    };
+    const next = [...userPresets, p];
+    setUserPresets(next);
+    localStorage.setItem("admin-user-presets", JSON.stringify(next));
+    setActivePresetId(p.id);
+    toast.success(`Preset "${name}" saved`);
+  };
+  const deletePreset = (id: string) => {
+    const next = userPresets.filter((p) => p.id !== id);
+    setUserPresets(next);
+    localStorage.setItem("admin-user-presets", JSON.stringify(next));
+    if (activePresetId === id) setActivePresetId(null);
+  };
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -170,8 +231,28 @@ const AdminUsers = () => {
     });
   }, [rows, debouncedSearch, roleFilter, kycFilter, statusFilter, dateFrom, dateTo, balMin, balMax, txnMin, lastActiveDays]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // Sort
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "name": av = (a.full_name || "").toLowerCase(); bv = (b.full_name || "").toLowerCase(); break;
+        case "balance": av = a.balance; bv = b.balance; break;
+        case "txnCount": av = a.txnCount; bv = b.txnCount; break;
+        case "lastActiveAt": av = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0; bv = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0; break;
+        case "created_at":
+        default: av = a.created_at ? new Date(a.created_at).getTime() : 0; bv = b.created_at ? new Date(b.created_at).getTime() : 0; break;
+      }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const resetFilters = () => {
     setSearch(""); setRoleFilter("all"); setKycFilter("all"); setStatusFilter("all");
@@ -314,6 +395,24 @@ const AdminUsers = () => {
           </div>
         </div>
 
+        {/* Presets bar */}
+        <div className="rounded-[14px] border p-2.5 flex items-center gap-2 overflow-x-auto" style={{ background: "rgba(13,14,18,0.55)", borderColor: "rgba(255,255,255,0.04)" }}>
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5 shrink-0 pr-1">
+            <Bookmark className="w-3 h-3" /> Presets
+          </span>
+          {BUILT_IN_PRESETS.map((p) => (
+            <PresetChip key={p.id} active={activePresetId === p.id} onClick={() => applyPreset(p)} icon={Star} label={p.name} built />
+          ))}
+          {userPresets.map((p) => (
+            <PresetChip key={p.id} active={activePresetId === p.id} onClick={() => applyPreset(p)} label={p.name}
+              onDelete={() => deletePreset(p.id)} />
+          ))}
+          <button onClick={saveCurrentAsPreset} title="Save current filters as preset"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-[8px] text-[10px] font-medium font-sora text-primary border border-primary/25 hover:bg-primary/10 shrink-0">
+            <PlusIcon className="w-3 h-3" /> Save current
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="rounded-[16px] border p-3 lg:p-4 space-y-3" style={{ background: "rgba(13,14,18,0.7)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.05)" }}>
           <div className="flex flex-wrap items-center gap-2">
@@ -378,7 +477,15 @@ const AdminUsers = () => {
           {/* Header */}
           <div className="hidden md:grid grid-cols-[36px_1.6fr_1fr_80px_90px_120px_70px_120px_80px_60px] gap-3 px-4 h-11 items-center border-b text-[9px] uppercase tracking-wider text-white/30 font-sora" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             <input type="checkbox" checked={allChecked} onChange={toggleAllPage} className="rounded accent-primary" />
-            <span>User</span><span>Phone</span><span>Role</span><span>KYC</span><span>Balance</span><span>Txns</span><span>Last active</span><span>Status</span><span></span>
+            <SortHeader label="User" k="name" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <span>Phone</span>
+            <span>Role</span>
+            <span>KYC</span>
+            <SortHeader label="Balance" k="balance" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <SortHeader label="Txns" k="txnCount" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <SortHeader label="Last active" k="lastActiveAt" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+            <span>Status</span>
+            <span></span>
           </div>
 
           {loading ? (
@@ -518,6 +625,39 @@ const FilterField = ({ label, children }: { label: string; children: React.React
     {children}
   </div>
 );
+
+const SortHeader = ({ label, k, sortKey, sortDir, onClick }: { label: string; k: string; sortKey: string; sortDir: "asc" | "desc"; onClick: (k: any) => void }) => {
+  const active = sortKey === k;
+  return (
+    <button onClick={() => onClick(k)} className={`flex items-center gap-1 text-left transition-colors ${active ? "text-primary" : "text-white/30 hover:text-white/70"}`}>
+      <span>{label}</span>
+      {active && (sortDir === "asc" ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />)}
+    </button>
+  );
+};
+
+const PresetChip = ({ active, onClick, label, icon: Icon, built, onDelete }: { active: boolean; onClick: () => void; label: string; icon?: any; built?: boolean; onDelete?: () => void }) => (
+  <div className="relative group shrink-0">
+    <button onClick={onClick} className="flex items-center gap-1 h-7 pl-2.5 pr-2.5 rounded-[8px] text-[10px] font-medium font-sora transition-all"
+      style={{
+        background: active ? "rgba(200,149,46,0.18)" : "rgba(255,255,255,0.03)",
+        color: active ? C.primary : "rgba(255,255,255,0.7)",
+        border: `1px solid ${active ? "rgba(200,149,46,0.35)" : "rgba(255,255,255,0.06)"}`,
+      }}>
+      {Icon && <Icon className="w-2.5 h-2.5" />}
+      {label}
+      {built && <span className="ml-1 text-[8px] uppercase tracking-wider opacity-60">built-in</span>}
+    </button>
+    {onDelete && (
+      <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete preset "${label}"?`)) onDelete(); }}
+        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center"
+        style={{ background: "rgba(239,68,68,0.9)" }}>
+        <X className="w-2 h-2 text-white" />
+      </button>
+    )}
+  </div>
+);
+
 const ActionItem = ({ icon: Icon, label, onClick, danger = false, disabled = false }: { icon: any; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) => (
   <button onClick={onClick} disabled={disabled} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-sora text-left transition-colors disabled:opacity-30 disabled:pointer-events-none" style={{ color: danger ? C.danger : "rgba(255,255,255,0.75)" }} onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = danger ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
     <Icon className="w-3.5 h-3.5" /> {label}

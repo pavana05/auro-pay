@@ -4,7 +4,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import {
   Search, Download, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, XCircle,
-  SlidersHorizontal, Copy, Check, Flag, RefreshCcw, AlertTriangle, ChevronDown
+  SlidersHorizontal, Copy, Check, Flag, RefreshCcw, AlertTriangle, ChevronDown,
+  Radio, Play
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,8 @@ const AdminTransactions = () => {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
+  const [realtimeOn, setRealtimeOn] = useState(true);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -97,6 +100,34 @@ const AdminTransactions = () => {
       cancelled = true;
     };
   }, []);
+
+  // Realtime: prepend new transactions and flash
+  useEffect(() => {
+    if (!realtimeOn) return;
+    const ch = supabase
+      .channel("admin-tx-rt")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, async (payload) => {
+        const newTx = payload.new as Transaction;
+        // Hydrate wallet info if missing
+        if (!wallets[newTx.wallet_id]) {
+          const { data: w } = await supabase.from("wallets").select("id, user_id").eq("id", newTx.wallet_id).maybeSingle();
+          if (w) {
+            const { data: p } = await supabase.from("profiles").select("full_name, phone").eq("id", w.user_id).maybeSingle();
+            setWallets((prev) => ({ ...prev, [w.id]: { id: w.id, user_id: w.user_id, full_name: p?.full_name, phone: p?.phone } }));
+          }
+        }
+        setTransactions((prev) => prev.some((t) => t.id === newTx.id) ? prev : [newTx, ...prev]);
+        setFlashedIds((prev) => new Set(prev).add(newTx.id));
+        setTimeout(() => setFlashedIds((prev) => { const n = new Set(prev); n.delete(newTx.id); return n; }), 2200);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "transactions" }, (payload) => {
+        const upd = payload.new as Transaction;
+        setTransactions((prev) => prev.map((t) => t.id === upd.id ? upd : t));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [realtimeOn, wallets]);
+
 
   // Per-user average for anomaly detection
   const userAverages = useMemo(() => {
@@ -215,13 +246,27 @@ const AdminTransactions = () => {
     hide();
   };
 
+  const retryTransaction = async (t: Transaction) => {
+    if (t.status !== "failed" && t.status !== "pending") {
+      toast.error("Only failed or pending transactions can be retried");
+      return;
+    }
+    if (!confirm(`Retry transaction for ${formatAmount(t.amount)}?`)) return;
+    const { error } = await supabase.from("transactions").update({ status: "success" }).eq("id", t.id);
+    if (error) { toast.error(error.message); return; }
+    await logAudit("transaction_retried", t, { previous_status: t.status });
+    toast.success("Transaction marked as success");
+    setTransactions((prev) => prev.map((x) => x.id === t.id ? { ...x, status: "success" } : x));
+    hide();
+  };
+
   const openDetail = (t: Transaction) => {
     setSelectedId(t.id);
     const w = wallets[t.wallet_id];
     show({
       title: "Transaction Detail",
       subtitle: t.id.slice(0, 16) + "…",
-      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} />,
+      body: <DetailPanel t={t} wallet={w} all={transactions} onFlag={flagTransaction} onRefund={refundTransaction} onRetry={retryTransaction} />,
     });
   };
 
@@ -245,9 +290,16 @@ const AdminTransactions = () => {
             <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
             <p className="text-xs text-muted-foreground mt-1">Deep investigation • {filtered.length} of {transactions.length}</p>
           </div>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-300 active:scale-95">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setRealtimeOn((v) => !v)}
+              className={`flex items-center gap-2 px-3 h-10 rounded-xl border text-xs font-medium transition-all ${realtimeOn ? "bg-success/10 text-success border-success/30" : "bg-white/[0.03] text-muted-foreground border-white/[0.06]"}`}
+              title={realtimeOn ? "Realtime on — new transactions appear instantly" : "Realtime paused"}>
+              <Radio className={`w-3.5 h-3.5 ${realtimeOn ? "animate-pulse" : ""}`} /> {realtimeOn ? "Live" : "Paused"}
+            </button>
+            <button onClick={exportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-300 active:scale-95">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Summary */}
@@ -367,7 +419,7 @@ const AdminTransactions = () => {
                     };
                     return (
                       <tr key={t.id} onClick={() => openDetail(t)}
-                        className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 group ${isSelected ? "bg-primary/[0.04]" : ""}`}
+                        className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 group ${isSelected ? "bg-primary/[0.04]" : ""} ${flashedIds.has(t.id) ? "tx-flash" : ""}`}
                         style={{ animation: `slide-up-spring 0.4s cubic-bezier(0.34,1.56,0.64,1) ${Math.min(i * 0.02, 0.3)}s both` }}>
                         <td className="sticky left-0 bg-card/95 backdrop-blur z-10 py-3.5 px-5 group-hover:bg-card">
                           <input type="checkbox" onClick={(e) => e.stopPropagation()} className="accent-primary" />
@@ -447,15 +499,17 @@ const FilterChips = ({ label, options, selected, onToggle }: { label: string; op
 
 /* ───────────────────────── Detail Panel ───────────────────────── */
 const DetailPanel = ({
-  t, wallet, all, onFlag, onRefund,
+  t, wallet, all, onFlag, onRefund, onRetry,
 }: {
   t: Transaction;
   wallet?: WalletInfo;
   all: Transaction[];
   onFlag: (t: Transaction) => void;
   onRefund: (t: Transaction) => void;
+  onRetry: (t: Transaction) => void;
 }) => {
   const [showJSON, setShowJSON] = useState(false);
+  const canRetry = t.status === "failed" || t.status === "pending";
 
   const sameDay = all.filter(
     (x) =>
@@ -561,9 +615,12 @@ const DetailPanel = ({
       )}
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button onClick={() => onRefund(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all text-xs font-medium">
+      <div className="grid grid-cols-3 gap-2 pt-2">
+        <button onClick={() => onRefund(t)} disabled={t.status !== "success"} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all text-xs font-medium disabled:opacity-30 disabled:pointer-events-none">
           <RefreshCcw className="w-3.5 h-3.5" /> Refund
+        </button>
+        <button onClick={() => onRetry(t)} disabled={!canRetry} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all text-xs font-medium disabled:opacity-30 disabled:pointer-events-none">
+          <Play className="w-3.5 h-3.5" /> Retry
         </button>
         <button onClick={() => onFlag(t)} className="flex items-center justify-center gap-2 h-10 rounded-xl bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all text-xs font-medium">
           <Flag className="w-3.5 h-3.5" /> Flag
@@ -580,4 +637,16 @@ const Row = ({ label, value, mono }: { label: string; value: string; mono?: bool
   </div>
 );
 
-export default AdminTransactions;
+const TxFlashStyles = () => (
+  <style>{`
+    @keyframes tx-flash-anim {
+      0% { background: hsl(var(--success) / 0.25); box-shadow: inset 3px 0 0 hsl(var(--success)); }
+      100% { background: transparent; box-shadow: inset 0 0 0 transparent; }
+    }
+    .tx-flash { animation: tx-flash-anim 2.2s ease-out; }
+  `}</style>
+);
+
+const AdminTransactionsWithStyles = () => (<><TxFlashStyles /><AdminTransactions /></>);
+
+export default AdminTransactionsWithStyles;
