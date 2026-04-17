@@ -21,8 +21,8 @@ const rewardEmojis: Record<string, string> = {
 const rewardColors: Record<string, string> = {
   coins: "from-yellow-500/30 to-amber-600/20",
   cashback: "from-emerald-500/30 to-green-600/20",
-  points: "from-blue-500/30 to-indigo-600/20",
-  bonus: "from-pink-500/30 to-rose-600/20",
+  points: "from-primary/30 to-amber-600/20",
+  bonus: "from-amber-500/30 to-primary/20",
 };
 
 // Canvas scratch component

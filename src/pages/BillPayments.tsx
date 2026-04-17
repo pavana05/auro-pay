@@ -127,7 +127,7 @@ const categories = [
   },
   {
     key: "education", label: "Education Fees", desc: "School, college & coaching fees",
-    image: educationImg, gradient: "from-blue-500/20 to-indigo-500/10", borderColor: "border-blue-500/15",
+    image: educationImg, gradient: "from-primary/15 to-amber-600/10", borderColor: "border-primary/15",
   },
   {
     key: "creditcard", label: "Credit Card", desc: "Pay credit card bills instantly",
@@ -135,7 +135,7 @@ const categories = [
   },
   {
     key: "tax", label: "Municipal Tax", desc: "Property, water & municipal taxes",
-    image: taxImg, gradient: "from-fuchsia-500/20 to-pink-500/10", borderColor: "border-fuchsia-500/15",
+    image: taxImg, gradient: "from-amber-500/20 to-primary/10", borderColor: "border-amber-500/15",
   },
 ];
 
