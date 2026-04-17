@@ -579,7 +579,19 @@ const WalletPanelBody = ({
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 gap-2">
-        <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+        {fraudFlagId && onUnlockAccount && wallet.is_frozen ? (
+          <>
+            <div className="rounded-xl p-3 border" style={{ background: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.25)" }}>
+              <p className="text-[10px] uppercase tracking-wider font-sora mb-1" style={{ color: G.danger }}>Locked by fraud flag</p>
+              <p className="text-[11px] text-white/70 font-sora">
+                This wallet was auto-frozen by a confirmed_fraud flag. Unlocking will restore access and notify the user.
+              </p>
+            </div>
+            <ActionBtn icon={Snowflake} label="Unlock account (restore access)" color={G.primary} onClick={onUnlockAccount} />
+          </>
+        ) : (
+          <ActionBtn icon={Snowflake} label={wallet.is_frozen ? "Unfreeze wallet" : "Freeze wallet"} color={wallet.is_frozen ? G.success : G.info} onClick={onFreeze} />
+        )}
       </div>
 
       {/* Limits with progress */}
