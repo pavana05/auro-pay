@@ -415,18 +415,32 @@ const AdminWallets = () => {
                       <td className="py-3.5 px-5 text-xs text-muted-foreground whitespace-nowrap">{formatAmount(w.spent_today || 0)}</td>
                       <td className="py-3.5 px-5 text-xs text-muted-foreground whitespace-nowrap">{formatAmount(w.spent_this_month || 0)}</td>
                       <td className="py-3.5 px-5">
-                        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                          w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
-                        }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                            w.is_frozen ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-success/10 text-success border border-success/20"
+                          }`}>{w.is_frozen ? "🔒 Frozen" : "● Active"}</span>
+                          {fraudLocks.has(w.id) && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30 whitespace-nowrap" title="Auto-frozen by confirmed_fraud flag">
+                              FRAUD
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => toggleFreeze(w)}
-                            className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
-                              w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
-                            }`}>
-                            {w.is_frozen ? "Unfreeze" : "Freeze"}
-                          </button>
+                          {fraudLocks.has(w.id) ? (
+                            <button onClick={() => requestUnlockAccount(w)}
+                              className="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25">
+                              Unlock account
+                            </button>
+                          ) : (
+                            <button onClick={() => toggleFreeze(w)}
+                              className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
+                                w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
+                              }`}>
+                              {w.is_frozen ? "Unfreeze" : "Freeze"}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
