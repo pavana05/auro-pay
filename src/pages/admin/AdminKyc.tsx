@@ -212,9 +212,9 @@ const AdminKyc = () => {
     });
   };
 
-  const handleApproveSubmit = async () => {
-    if (!approveTarget || approveText.trim().toUpperCase() !== "APPROVE") return;
-    const ok = await approveNow(approveTarget);
+  const handleApproveSubmit = async (reason: string) => {
+    if (!approveTarget) return;
+    const ok = await approveNow(approveTarget, reason);
     if (ok) { setApproveTarget(null); setApproveText(""); fetchAll(); }
   };
   const handleRejectSubmit = async () => {
