@@ -1,10 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
-import { Search, Eye, Snowflake, ArrowLeft, Calendar, Phone, Shield, Wallet, ArrowLeftRight, Clock, User, X, Mail, Award, Link2, Trash2, AlertTriangle, Download } from "lucide-react";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
+import { Sparkline } from "@/components/admin/charts";
 import { toast } from "sonner";
+import {
+  Search, Snowflake, ShieldCheck, Flag, Bell, KeyRound, Trash2, FileText,
+  MoreHorizontal, Download, Filter, X, Users as UsersIcon, Eye,
+  ArrowLeftRight, Shield, Wallet, Clock, RefreshCw, ChevronDown,
+  CheckCircle2, AlertCircle, ChevronLeft, ChevronRight,
+} from "lucide-react";
 
-interface UserProfile {
+const C = {
+  primary: "#c8952e", secondary: "#d4a84b",
+  success: "#22c55e", danger: "#ef4444", warning: "#f59e0b",
+  info: "#3b82f6", cyan: "#06b6d4",
+};
+
+const fmtPaise = (p: number) =>
+  p >= 10000000 ? `₹${(p / 10000000).toFixed(2)}Cr` :
+  p >= 100000 ? `₹${(p / 100000).toFixed(2)}L` :
+  p >= 1000 ? `₹${(p / 100).toLocaleString("en-IN")}` :
+  `₹${(p / 100).toFixed(2)}`;
+
+const PAGE_SIZE = 25;
+
+interface UserRow {
   id: string;
   full_name: string | null;
   phone: string | null;
@@ -12,688 +33,697 @@ interface UserProfile {
   kyc_status: string | null;
   created_at: string | null;
   avatar_url: string | null;
-  aadhaar_verified: boolean | null;
-}
-
-interface UserWallet {
-  id: string;
-  balance: number | null;
-  is_frozen: boolean | null;
-  daily_limit: number | null;
-  monthly_limit: number | null;
-  spent_today: number | null;
-  spent_this_month: number | null;
-  created_at: string | null;
-}
-
-interface KycInfo {
-  id: string;
-  status: string | null;
-  aadhaar_name: string | null;
-  aadhaar_number: string | null;
-  date_of_birth: string | null;
-  submitted_at: string | null;
-  verified_at: string | null;
-  digio_request_id: string | null;
-}
-
-interface TransactionInfo {
-  id: string;
-  type: string;
-  amount: number;
-  merchant_name: string | null;
-  status: string | null;
-  created_at: string | null;
-  category: string | null;
-}
-
-interface DetailedUser extends UserProfile {
-  wallet?: UserWallet;
-  txCount: number;
-  kyc?: KycInfo;
-  recentTxns: TransactionInfo[];
-  appRoles: string[];
-  savingsGoals: number;
-  parentLinks: number;
+  // joined
+  balance: number;
+  walletId: string | null;
+  isFrozen: boolean;
+  txnCount: number;
+  lastActiveAt: string | null;
+  totalVolume: number;
+  spark: number[];
 }
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState<(UserProfile & { wallet?: { balance: number | null; is_frozen: boolean | null }; txCount: number })[]>([]);
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [kycFilter, setKycFilter] = useState("All");
+  const ctxPanel = useContextPanel();
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [txns, setTxns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<DetailedUser | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailTab, setDetailTab] = useState<"info" | "kyc" | "wallet" | "transactions">("info");
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [kycFilter, setKycFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [advOpen, setAdvOpen] = useState(false);
+  const [balMin, setBalMin] = useState("");
+  const [balMax, setBalMax] = useState("");
+  const [txnMin, setTxnMin] = useState("");
+  const [lastActiveDays, setLastActiveDays] = useState<string>("any");
+
+  // Selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
-  const pageSize = 25;
-  
-  // Delete user state - 2-step verification
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [actionsRowId, setActionsRowId] = useState<string | null>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
 
-  const fetchUsers = async () => {
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search.trim().toLowerCase()); setPage(0); }, 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const fetchAll = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (roleFilter !== "All") query = query.eq("role", roleFilter.toLowerCase());
-    if (kycFilter !== "All") query = query.eq("kyc_status", kycFilter.toLowerCase());
-
-    const { data } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
-    const profiles = (data || []) as UserProfile[];
-
-    const enriched = await Promise.all(
-      profiles.map(async (p) => {
-        const { data: w } = await supabase.from("wallets").select("id, balance, is_frozen").eq("user_id", p.id).single();
-        const walletId = (w as any)?.id;
-        const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", walletId || "");
-        return { ...p, wallet: w as { balance: number | null; is_frozen: boolean | null } | undefined, txCount: txns?.length || 0 };
-      })
-    );
-
-    setUsers(enriched);
+    const [p, w, t] = await Promise.all([
+      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("wallets").select("id, user_id, balance, is_frozen"),
+      supabase.from("transactions").select("id, wallet_id, amount, status, created_at, type").order("created_at", { ascending: false }).limit(2000),
+    ]);
+    setProfiles(p.data || []);
+    setWallets(w.data || []);
+    setTxns(t.data || []);
     setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Realtime
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-users-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [fetchAll]);
+
+  // Click outside actions menu
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setActionsRowId(null);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  // Build joined rows
+  const rows: UserRow[] = useMemo(() => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    return profiles.map((p) => {
+      const w = wallets.find((w) => w.user_id === p.id);
+      const userTxns = w ? txns.filter((t) => t.wallet_id === w.id) : [];
+      const lastActiveAt = userTxns[0]?.created_at || p.created_at;
+      const totalVolume = userTxns.filter((t) => t.status === "success").reduce((s, t) => s + (t.amount || 0), 0);
+
+      // 7-day sparkline of txn counts
+      const spark: number[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today.getTime() - i * 86400000);
+        const next = new Date(d.getTime() + 86400000);
+        spark.push(userTxns.filter((t) => t.created_at && new Date(t.created_at) >= d && new Date(t.created_at) < next).length);
+      }
+      return {
+        id: p.id,
+        full_name: p.full_name,
+        phone: p.phone,
+        role: p.role,
+        kyc_status: p.kyc_status,
+        created_at: p.created_at,
+        avatar_url: p.avatar_url,
+        balance: w?.balance || 0,
+        walletId: w?.id || null,
+        isFrozen: !!w?.is_frozen,
+        txnCount: userTxns.length,
+        lastActiveAt,
+        totalVolume,
+        spark,
+      };
+    });
+  }, [profiles, wallets, txns]);
+
+  // Filter
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    return rows.filter((r) => {
+      if (debouncedSearch) {
+        const hay = `${r.full_name || ""} ${r.phone || ""} ${r.id}`.toLowerCase();
+        if (!hay.includes(debouncedSearch)) return false;
+      }
+      if (roleFilter !== "all" && (r.role || "user") !== roleFilter) return false;
+      if (kycFilter !== "all" && (r.kyc_status || "pending") !== kycFilter) return false;
+      if (statusFilter === "frozen" && !r.isFrozen) return false;
+      if (statusFilter === "active" && r.isFrozen) return false;
+      if (dateFrom && r.created_at && new Date(r.created_at) < new Date(dateFrom)) return false;
+      if (dateTo && r.created_at && new Date(r.created_at) > new Date(`${dateTo}T23:59:59`)) return false;
+      if (balMin && r.balance < parseInt(balMin, 10) * 100) return false;
+      if (balMax && r.balance > parseInt(balMax, 10) * 100) return false;
+      if (txnMin && r.txnCount < parseInt(txnMin, 10)) return false;
+      if (lastActiveDays !== "any" && r.lastActiveAt) {
+        const days = parseInt(lastActiveDays, 10);
+        if (now - new Date(r.lastActiveAt).getTime() > days * 86400000) return false;
+      }
+      return true;
+    });
+  }, [rows, debouncedSearch, roleFilter, kycFilter, statusFilter, dateFrom, dateTo, balMin, balMax, txnMin, lastActiveDays]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const resetFilters = () => {
+    setSearch(""); setRoleFilter("all"); setKycFilter("all"); setStatusFilter("all");
+    setDateFrom(""); setDateTo(""); setBalMin(""); setBalMax(""); setTxnMin("");
+    setLastActiveDays("any"); setPage(0);
   };
 
-  useEffect(() => { fetchUsers(); }, [roleFilter, kycFilter, page]);
+  const exportCsv = () => {
+    const header = ["id","name","phone","role","kyc_status","balance_paise","txn_count","frozen","joined","last_active"];
+    const data = filtered.map((r) => [r.id, r.full_name || "", r.phone || "", r.role || "user", r.kyc_status || "pending", r.balance, r.txnCount, r.isFrozen, r.created_at || "", r.lastActiveAt || ""]);
+    const csv = [header, ...data].map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `users-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} users`);
+  };
 
-  const filtered = users.filter(
-    (u) => !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.phone?.includes(search)
-  );
+  // Selection helpers
+  const allChecked = paged.length > 0 && paged.every((r) => selected.has(r.id));
+  const toggleAllPage = () => {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (allChecked) paged.forEach((r) => n.delete(r.id));
+      else paged.forEach((r) => n.add(r.id));
+      return n;
+    });
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
 
-  const logAuditAction = async (action: string, targetType: string, targetId: string, details: Record<string, any> = {}) => {
+  /* ─────────── Row actions ─────────── */
+  const freezeUser = async (r: UserRow, freeze: boolean) => {
+    if (!r.walletId) { toast.error("No wallet"); return; }
+    const { error } = await supabase.from("wallets").update({ is_frozen: freeze }).eq("id", r.walletId);
+    if (error) toast.error(error.message);
+    else { toast.success(freeze ? "Wallet frozen" : "Wallet unfrozen"); fetchAll(); }
+    setActionsRowId(null);
+  };
+  const verifyKyc = async (r: UserRow) => {
+    const { error } = await supabase.from("profiles").update({ kyc_status: "verified", aadhaar_verified: true }).eq("id", r.id);
+    if (error) toast.error(error.message);
+    else { toast.success("KYC verified"); fetchAll(); }
+    setActionsRowId(null);
+  };
+  const sendNotification = async (r: UserRow) => {
+    const body = window.prompt(`Send notification to ${r.full_name || "user"}:`);
+    if (!body) { setActionsRowId(null); return; }
+    const { error } = await supabase.from("notifications").insert({ user_id: r.id, title: "Message from admin", body, type: "admin_message" });
+    if (error) toast.error(error.message); else toast.success("Notification sent");
+    setActionsRowId(null);
+  };
+  const flagAccount = async (r: UserRow) => {
+    const reason = window.prompt(`Flag ${r.full_name || "user"} – reason:`);
+    if (!reason) { setActionsRowId(null); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("audit_logs").insert({
-      admin_user_id: user.id,
-      action,
-      target_type: targetType,
-      target_id: targetId,
-      details,
+    await supabase.from("audit_logs").insert({ admin_user_id: user.id, target_type: "user", target_id: r.id, action: "flag_account", details: { reason } });
+    toast.success("Account flagged in audit log");
+    setActionsRowId(null);
+  };
+  const resetPin = async (r: UserRow) => {
+    const { error } = await supabase.from("profiles").update({ pin_hash: null, pin_set_at: null }).eq("id", r.id);
+    if (error) toast.error(error.message); else toast.success("PIN reset – user must set a new one");
+    setActionsRowId(null);
+  };
+  const deleteAccount = async (r: UserRow) => {
+    if (!window.confirm(`Permanently delete ${r.full_name || "this user"}? This cannot be undone.`)) { setActionsRowId(null); return; }
+    const { error } = await supabase.functions.invoke("delete-user", { body: { user_id: r.id } });
+    if (error) toast.error(error.message); else { toast.success("User deleted"); fetchAll(); }
+    setActionsRowId(null);
+  };
+
+  /* ─────────── Bulk ─────────── */
+  const bulk = async (action: "freeze" | "unfreeze" | "verify_kyc" | "notify") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (action === "freeze" || action === "unfreeze") {
+      const walletIds = wallets.filter((w) => ids.includes(w.user_id)).map((w) => w.id);
+      const { error } = await supabase.from("wallets").update({ is_frozen: action === "freeze" }).in("id", walletIds);
+      if (error) toast.error(error.message); else { toast.success(`${ids.length} wallets ${action === "freeze" ? "frozen" : "unfrozen"}`); fetchAll(); }
+    } else if (action === "verify_kyc") {
+      const { error } = await supabase.from("profiles").update({ kyc_status: "verified", aadhaar_verified: true }).in("id", ids);
+      if (error) toast.error(error.message); else { toast.success(`${ids.length} users verified`); fetchAll(); }
+    } else if (action === "notify") {
+      const body = window.prompt(`Send notification to ${ids.length} users:`);
+      if (!body) return;
+      const inserts = ids.map((id) => ({ user_id: id, title: "Message from admin", body, type: "admin_message" }));
+      const { error } = await supabase.from("notifications").insert(inserts);
+      if (error) toast.error(error.message); else toast.success("Notifications sent");
+    }
+    setSelected(new Set());
+  };
+  const bulkExport = () => {
+    const ids = selected;
+    const rowsExp = filtered.filter((r) => ids.has(r.id));
+    if (rowsExp.length === 0) return;
+    const header = ["id","name","phone","role","kyc_status","balance_paise","txn_count","frozen"];
+    const data = rowsExp.map((r) => [r.id, r.full_name || "", r.phone || "", r.role || "user", r.kyc_status || "pending", r.balance, r.txnCount, r.isFrozen]);
+    const csv = [header, ...data].map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `users-selected-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rowsExp.length} users`);
+  };
+
+  /* ─────────── Context panel ─────────── */
+  const openUserPanel = (r: UserRow) => {
+    ctxPanel.show({
+      title: r.full_name || "Unknown",
+      subtitle: r.phone || r.id,
+      body: <UserPanelBody row={r} wallets={wallets} txns={txns} onChange={fetchAll} />,
     });
   };
 
-  const toggleFreeze = async (userId: string, currentFrozen: boolean) => {
-    const { data: w } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
-    if (w) {
-      await supabase.from("wallets").update({ is_frozen: !currentFrozen }).eq("id", w.id);
-      await logAuditAction(currentFrozen ? "wallet_unfreeze" : "wallet_freeze", "wallet", w.id, { user_id: userId });
-      toast.success(currentFrozen ? "Wallet unfrozen" : "Wallet frozen");
-      fetchUsers();
-    }
-  };
-
-  const startDelete = (userId: string, userName: string) => {
-    setDeleteTarget({ id: userId, name: userName });
-    setDeleteStep(1);
-    setDeleteConfirmText("");
-  };
-
-  const cancelDelete = () => {
-    setDeleteTarget(null);
-    setDeleteStep(1);
-    setDeleteConfirmText("");
-  };
-
-  const executeDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("delete-user", {
-        body: { user_id: deleteTarget.id },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      await logAuditAction("user_delete", "user", deleteTarget.id, { name: deleteTarget.name });
-      toast.success(`User "${deleteTarget.name}" deleted successfully`);
-      cancelDelete();
-      fetchUsers();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to delete user");
-    }
-    setDeleteLoading(false);
-  };
-
-  const openUserDetail = async (user: UserProfile & { wallet?: { balance: number | null; is_frozen: boolean | null }; txCount: number }) => {
-    setSelectedUser(null);
-    setDetailLoading(true);
-    setDetailTab("info");
-
-    const { data: walletData } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
-    const { data: kycData } = await supabase.from("kyc_requests").select("*").eq("user_id", user.id).order("submitted_at", { ascending: false }).limit(1).single();
-    const walletId = (walletData as any)?.id;
-    const { data: txnData } = walletId
-      ? await supabase.from("transactions").select("*").eq("wallet_id", walletId).order("created_at", { ascending: false }).limit(20)
-      : { data: [] };
-    const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const { data: savingsData } = await supabase.from("savings_goals").select("id").eq("teen_id", user.id);
-    const { data: linksData } = await supabase.from("parent_teen_links").select("id").or(`parent_id.eq.${user.id},teen_id.eq.${user.id}`);
-
-    const detailedUser: DetailedUser = {
-      ...user,
-      wallet: walletData as UserWallet | undefined,
-      txCount: user.txCount,
-      kyc: kycData as KycInfo | undefined,
-      recentTxns: (txnData || []) as TransactionInfo[],
-      appRoles: (rolesData || []).map((r: any) => r.role),
-      savingsGoals: savingsData?.length || 0,
-      parentLinks: linksData?.length || 0,
-    };
-
-    setSelectedUser(detailedUser);
-    setDetailLoading(false);
-  };
-
-  const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
-  const formatDateTime = (d: string | null) => d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
-  const maskAadhaar = (num: string | null) => num ? `XXXX XXXX ${num.slice(-4)}` : "—";
-
-  const exportUsersCSV = () => {
-    const headers = "Name,Phone,Role,KYC Status,Balance,Transactions,Joined\n";
-    const rows = filtered.map((u) =>
-      `"${u.full_name || ""}",${u.phone || ""},${u.role || ""},${u.kyc_status || ""},${u.wallet ? (u.wallet.balance || 0) / 100 : 0},${u.txCount},${u.created_at || ""}`
-    ).join("\n");
-    const blob = new Blob([headers + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `users_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportUserTransactionsCSV = async (user: DetailedUser) => {
-    const headers = "ID,Type,Amount,Merchant,Category,Status,Date\n";
-    const rows = user.recentTxns.map((t) =>
-      `${t.id},${t.type},${t.amount / 100},${t.merchant_name || ""},${t.category || ""},${t.status},${t.created_at || ""}`
-    ).join("\n");
-    const blob = new Blob([headers + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transactions_${user.full_name?.replace(/\s/g, "_") || user.id}_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Full-screen detail view
-  if (selectedUser || detailLoading) {
-    return (
-      <AdminLayout>
-        <div className="min-h-screen">
-          {detailLoading ? (
-            <div className="p-8 space-y-4">
-              <div className="h-8 w-32 bg-muted rounded animate-pulse" />
-              <div className="h-24 bg-muted rounded-xl animate-pulse" />
-              {[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />)}
-            </div>
-          ) : selectedUser && (
-            <div className="animate-fade-in-up">
-              {/* Top bar */}
-              <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <button onClick={() => setSelectedUser(null)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Back to Users
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => startDelete(selectedUser.id, selectedUser.full_name || "Unknown")}
-                      className="text-xs px-3 py-1.5 rounded-pill font-medium border border-destructive text-destructive hover:bg-destructive/5 transition-colors mr-2"
-                    >
-                      <Trash2 className="w-3 h-3 inline mr-1" /> Delete User
-                    </button>
-                    {selectedUser.recentTxns.length > 0 && (
-                      <button
-                        onClick={() => exportUserTransactionsCSV(selectedUser)}
-                        className="text-xs px-3 py-1.5 rounded-pill font-medium border border-primary/30 text-primary hover:bg-primary/5 transition-colors mr-2"
-                      >
-                        <Download className="w-3 h-3 inline mr-1" /> Export Txns
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { toggleFreeze(selectedUser.id, selectedUser.wallet?.is_frozen || false); setSelectedUser(null); }}
-                      className={`text-xs px-3 py-1.5 rounded-pill font-medium transition-colors ${
-                        selectedUser.wallet?.is_frozen ? "border border-success text-success hover:bg-success/5" : "border border-destructive text-destructive hover:bg-destructive/5"
-                      }`}
-                    >
-                      {selectedUser.wallet?.is_frozen ? "Unfreeze" : "Freeze"} Wallet
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Profile hero */}
-              <div className="px-6 py-8 relative">
-                <div className="absolute inset-0 opacity-[0.03]" style={{ background: "radial-gradient(ellipse at top, hsl(42 78% 55%), transparent 70%)" }} />
-                <div className="relative flex items-start gap-5">
-                  {selectedUser.avatar_url ? (
-                    <img src={selectedUser.avatar_url} alt="" className="w-20 h-20 rounded-2xl object-cover border-2 border-primary/20" />
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center text-2xl font-bold text-primary-foreground shimmer-border">
-                      {selectedUser.full_name?.charAt(0)?.toUpperCase() || "?"}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h1 className="text-2xl font-bold mb-1">{selectedUser.full_name || "Unknown User"}</h1>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 mb-3">
-                      <Phone className="w-3.5 h-3.5" /> {selectedUser.phone || "No phone"}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${
-                        selectedUser.kyc_status === "verified" ? "bg-success/20 text-success" :
-                        selectedUser.kyc_status === "rejected" ? "bg-destructive/20 text-destructive" :
-                        "bg-warning/20 text-warning"
-                      }`}>KYC: {selectedUser.kyc_status}</span>
-                      <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground capitalize">{selectedUser.role}</span>
-                      {selectedUser.appRoles.map(r => (
-                        <span key={r} className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${
-                          r === "admin" ? "badge-premium" : r === "moderator" ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"
-                        }`}>{r}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick stats */}
-                <div className="grid grid-cols-4 gap-3 mt-6">
-                  {[
-                    { label: "Balance", value: formatAmount(selectedUser.wallet?.balance || 0), icon: Wallet },
-                    { label: "Transactions", value: `${selectedUser.txCount}`, icon: ArrowLeftRight },
-                    { label: "Savings Goals", value: `${selectedUser.savingsGoals}`, icon: Award },
-                    { label: "Links", value: `${selectedUser.parentLinks}`, icon: Link2 },
-                  ].map(s => (
-                    <div key={s.label} className="p-3 rounded-xl bg-card border border-border card-glow text-center">
-                      <s.icon className="w-4 h-4 text-primary mx-auto mb-1" />
-                      <p className="text-sm font-bold">{s.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="px-6">
-                <div className="flex gap-1 p-1 bg-muted/20 rounded-xl mb-6">
-                  {([
-                    { key: "info", label: "Account Info", icon: User },
-                    { key: "kyc", label: "KYC Details", icon: Shield },
-                    { key: "wallet", label: "Wallet", icon: Wallet },
-                    { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
-                  ] as const).map(tab => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setDetailTab(tab.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                        detailTab === tab.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <tab.icon className="w-3.5 h-3.5" />
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Info Tab */}
-                {detailTab === "info" && (
-                  <div className="space-y-0 rounded-xl bg-card border border-border card-glow overflow-hidden animate-scale-in">
-                    {[
-                      { label: "User ID", value: selectedUser.id },
-                      { label: "Full Name", value: selectedUser.full_name || "—" },
-                      { label: "Phone", value: selectedUser.phone || "—" },
-                      { label: "Profile Role", value: selectedUser.role || "—" },
-                      { label: "System Roles", value: selectedUser.appRoles.length > 0 ? selectedUser.appRoles.join(", ") : "None" },
-                      { label: "KYC Status", value: selectedUser.kyc_status || "—" },
-                      { label: "Aadhaar Verified", value: selectedUser.aadhaar_verified ? "Yes ✓" : "No" },
-                      { label: "Avatar", value: selectedUser.avatar_url ? "Set" : "Not set" },
-                      { label: "Savings Goals", value: `${selectedUser.savingsGoals}` },
-                      { label: "Parent/Teen Links", value: `${selectedUser.parentLinks}` },
-                      { label: "Total Transactions", value: `${selectedUser.txCount}` },
-                      { label: "Account Created", value: formatDateTime(selectedUser.created_at) },
-                    ].map((item, idx) => (
-                      <div key={item.label} className={`flex justify-between items-center px-5 py-3.5 ${idx < 11 ? "border-b border-border/30" : ""}`}>
-                        <span className="text-xs text-muted-foreground">{item.label}</span>
-                        <span className="text-xs font-medium text-right max-w-[50%] break-all">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* KYC Tab */}
-                {detailTab === "kyc" && (
-                  <div className="animate-scale-in">
-                    {selectedUser.kyc ? (
-                      <div className="space-y-4">
-                        <div className="rounded-xl bg-card border border-border card-glow overflow-hidden">
-                          {[
-                            { label: "KYC ID", value: selectedUser.kyc.id },
-                            { label: "Status", value: selectedUser.kyc.status || "—" },
-                            { label: "Aadhaar Name", value: selectedUser.kyc.aadhaar_name || "—" },
-                            { label: "Aadhaar Number", value: maskAadhaar(selectedUser.kyc.aadhaar_number) },
-                            { label: "Date of Birth", value: selectedUser.kyc.date_of_birth || "—" },
-                            { label: "Digio Request ID", value: selectedUser.kyc.digio_request_id || "—" },
-                            { label: "Submitted At", value: formatDateTime(selectedUser.kyc.submitted_at) },
-                            { label: "Verified At", value: formatDateTime(selectedUser.kyc.verified_at) },
-                          ].map((item, idx) => (
-                            <div key={item.label} className={`flex justify-between items-center px-5 py-3.5 ${idx < 7 ? "border-b border-border/30" : ""}`}>
-                              <span className="text-xs text-muted-foreground">{item.label}</span>
-                              <span className="text-xs font-medium text-right max-w-[50%] break-all">{item.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Timeline */}
-                        <div className="rounded-xl bg-card border border-border card-glow p-5">
-                          <h5 className="text-xs font-medium text-muted-foreground tracking-wider mb-4">VERIFICATION TIMELINE</h5>
-                          <div className="space-y-4 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-border">
-                            {[
-                              { event: "KYC Submitted", date: selectedUser.kyc.submitted_at, color: "bg-primary" },
-                              ...(selectedUser.kyc.verified_at ? [{ event: "KYC Verified", date: selectedUser.kyc.verified_at, color: "bg-success" }] : []),
-                              ...(selectedUser.kyc.status === "rejected" ? [{ event: "KYC Rejected", date: selectedUser.kyc.submitted_at, color: "bg-destructive" }] : []),
-                            ].map((item, i) => (
-                              <div key={i} className="flex items-start gap-3 pl-0">
-                                <div className={`w-3.5 h-3.5 rounded-full ${item.color} mt-0.5 relative z-10 ring-2 ring-card`} />
-                                <div>
-                                  <p className="text-xs font-medium">{item.event}</p>
-                                  <p className="text-[10px] text-muted-foreground">{formatDateTime(item.date)}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16 rounded-xl bg-card border border-border card-glow">
-                        <Shield className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No KYC request submitted</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Wallet Tab */}
-                {detailTab === "wallet" && (
-                  <div className="animate-scale-in">
-                    {selectedUser.wallet ? (
-                      <div className="space-y-4">
-                        <div className="p-6 rounded-xl bg-card border border-border card-premium shimmer-border">
-                          <p className="text-[10px] text-muted-foreground tracking-wider mb-1">CURRENT BALANCE</p>
-                          <p className="text-3xl font-bold mb-2">{formatAmount(selectedUser.wallet.balance || 0)}</p>
-                          <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${
-                            selectedUser.wallet.is_frozen ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success"
-                          }`}>
-                            {selectedUser.wallet.is_frozen ? "🔒 Frozen" : "● Active"}
-                          </span>
-                        </div>
-                        <div className="rounded-xl bg-card border border-border card-glow overflow-hidden">
-                          {[
-                            { label: "Wallet ID", value: selectedUser.wallet.id },
-                            { label: "Daily Limit", value: formatAmount(selectedUser.wallet.daily_limit || 0) },
-                            { label: "Monthly Limit", value: formatAmount(selectedUser.wallet.monthly_limit || 0) },
-                            { label: "Spent Today", value: formatAmount(selectedUser.wallet.spent_today || 0) },
-                            { label: "Spent This Month", value: formatAmount(selectedUser.wallet.spent_this_month || 0) },
-                            { label: "Wallet Created", value: formatDateTime(selectedUser.wallet.created_at) },
-                          ].map((item, idx) => (
-                            <div key={item.label} className={`flex justify-between items-center px-5 py-3.5 ${idx < 5 ? "border-b border-border/30" : ""}`}>
-                              <span className="text-xs text-muted-foreground">{item.label}</span>
-                              <span className="text-xs font-medium">{item.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16 rounded-xl bg-card border border-border card-glow">
-                        <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No wallet created</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Transactions Tab */}
-                {detailTab === "transactions" && (
-                  <div className="animate-scale-in">
-                    <p className="text-xs text-muted-foreground mb-3">Showing {selectedUser.recentTxns.length} recent transactions</p>
-                    {selectedUser.recentTxns.length === 0 ? (
-                      <div className="text-center py-16 rounded-xl bg-card border border-border card-glow">
-                        <ArrowLeftRight className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No transactions found</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedUser.recentTxns.map((tx) => (
-                          <div key={tx.id} className="p-4 rounded-xl bg-card border border-border card-glow hover:border-primary/10 transition-all">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-semibold capitalize px-2 py-0.5 rounded-full ${tx.type === "credit" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>
-                                  {tx.type}
-                                </span>
-                                <span className="text-xs text-muted-foreground">{tx.merchant_name || tx.category || "—"}</span>
-                              </div>
-                              <span className="text-sm font-bold">{formatAmount(tx.amount)}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                                tx.status === "success" ? "bg-success/20 text-success" :
-                                tx.status === "failed" ? "bg-destructive/20 text-destructive" :
-                                "bg-warning/20 text-warning"
-                              }`}>{tx.status}</span>
-                              <span className="text-[10px] text-muted-foreground">{formatDateTime(tx.created_at)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom spacer */}
-              <div className="h-8" />
-            </div>
-          )}
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6 relative">
-        {/* Ambient */}
-        <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-primary/[0.03] blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-primary/[0.02] blur-[100px] pointer-events-none" />
-
-        <div className="flex items-center justify-between relative z-10">
+      <div className="p-4 lg:p-6 space-y-4 min-h-full pb-32 relative">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-            <p className="text-xs text-muted-foreground mt-1">{users.length} users loaded</p>
+            <h1 className="text-xl lg:text-[22px] font-bold text-white font-sora flex items-center gap-2">
+              <UsersIcon className="w-5 h-5" style={{ color: C.primary }} /> Users
+            </h1>
+            <p className="text-[11px] text-white/40 font-sora mt-0.5">{filtered.length.toLocaleString("en-IN")} of {rows.length.toLocaleString("en-IN")} matching</p>
           </div>
-          <button onClick={exportUsersCSV} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-medium hover:bg-white/[0.06] hover:border-white/[0.1] transition-all duration-200 active:scale-95">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={fetchAll} className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] border border-white/[0.06]" title="Refresh">
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={exportCsv}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11px] font-medium text-white border border-primary/20"
+              style={{ background: "rgba(200,149,46,0.12)", color: C.primary }}
+            >
+              <Download className="w-3.5 h-3.5" /> Export {filtered.length}
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or phone..."
-              className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] pl-11 pr-4 text-sm focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.08)] transition-all duration-200" />
+        <div className="rounded-[16px] border p-3 lg:p-4 space-y-3" style={{ background: "rgba(13,14,18,0.7)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.05)" }}>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <input
+                type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, phone, ID…"
+                className="w-full h-9 pl-9 pr-8 rounded-[10px] text-[12px] text-white placeholder:text-white/30 focus:outline-none font-sora"
+                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <FilterSelect value={roleFilter} onChange={(v) => { setRoleFilter(v); setPage(0); }} options={[
+              { v: "all", l: "All roles" }, { v: "teen", l: "Teen" }, { v: "parent", l: "Parent" }, { v: "user", l: "User" },
+            ]} />
+            <FilterSelect value={kycFilter} onChange={(v) => { setKycFilter(v); setPage(0); }} options={[
+              { v: "all", l: "All KYC" }, { v: "verified", l: "Verified" }, { v: "pending", l: "Pending" }, { v: "rejected", l: "Rejected" },
+            ]} />
+            <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(0); }} options={[
+              { v: "all", l: "All status" }, { v: "active", l: "Active" }, { v: "frozen", l: "Frozen" },
+            ]} />
+            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="h-9 px-2.5 rounded-[10px] text-[11px] text-white font-sora focus:outline-none" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", colorScheme: "dark" }} title="Joined from" />
+            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="h-9 px-2.5 rounded-[10px] text-[11px] text-white font-sora focus:outline-none" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", colorScheme: "dark" }} title="Joined to" />
+
+            <button
+              onClick={() => setAdvOpen((o) => !o)}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11px] font-medium font-sora"
+              style={{ background: advOpen ? "rgba(200,149,46,0.12)" : "rgba(255,255,255,0.025)", color: advOpen ? C.primary : "rgba(255,255,255,0.7)", border: `1px solid ${advOpen ? "rgba(200,149,46,0.2)" : "rgba(255,255,255,0.06)"}` }}
+            >
+              <Filter className="w-3 h-3" /> Advanced <ChevronDown className={`w-3 h-3 transition-transform ${advOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            <button onClick={resetFilters} className="h-9 px-3 rounded-[10px] text-[11px] font-medium font-sora text-white/50 hover:text-white">Reset</button>
           </div>
-          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-            {["All", "Teen", "Parent", "Admin"].map(f => (
-              <button key={f} onClick={() => setRoleFilter(f)}
-                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${roleFilter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1 p-1 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-            {["All", "Verified", "Pending", "Rejected"].map(f => (
-              <button key={f} onClick={() => setKycFilter(f)}
-                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${kycFilter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                {f}
-              </button>
-            ))}
-          </div>
+
+          {advOpen && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.04)", animation: "kpi-in 0.2s ease-out" }}>
+              <FilterField label="Min balance (₹)"><input type="number" value={balMin} onChange={(e) => { setBalMin(e.target.value); setPage(0); }} className="filter-input" placeholder="0" /></FilterField>
+              <FilterField label="Max balance (₹)"><input type="number" value={balMax} onChange={(e) => { setBalMax(e.target.value); setPage(0); }} className="filter-input" placeholder="∞" /></FilterField>
+              <FilterField label="Min transactions"><input type="number" value={txnMin} onChange={(e) => { setTxnMin(e.target.value); setPage(0); }} className="filter-input" placeholder="0" /></FilterField>
+              <FilterField label="Last active">
+                <select value={lastActiveDays} onChange={(e) => { setLastActiveDays(e.target.value); setPage(0); }} className="filter-input">
+                  <option value="any">Any time</option>
+                  <option value="1">Today</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                </select>
+              </FilterField>
+            </div>
+          )}
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.04] overflow-x-auto backdrop-blur-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.04]">
-                {["Name", "Phone", "Role", "KYC", "Balance", "Txns", "Joined", "Actions"].map((h) => (
-                  <th key={h} className="text-left py-3.5 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={8} className="py-4 px-5"><div className="h-5 bg-white/[0.03] rounded-lg animate-pulse" /></td></tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-16 text-muted-foreground text-sm">No users found</td></tr>
-              ) : (
-                filtered.map((u, i) => (
-                  <tr key={u.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => openUserDetail(u)}
-                    style={{ animation: `slide-up-spring 0.3s ease ${Math.min(i * 0.03, 0.2)}s both` }}>
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-2.5">
-                        {u.avatar_url ? (
-                          <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-xl object-cover border border-white/[0.06]" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary">
-                            {u.full_name?.charAt(0)?.toUpperCase() || "?"}
-                          </div>
-                        )}
-                        <span className="font-medium">{u.full_name || "—"}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-5 text-muted-foreground text-xs">{u.phone || "—"}</td>
-                    <td className="py-3.5 px-5 capitalize text-xs">{u.role || "—"}</td>
-                    <td className="py-3.5 px-5">
-                      <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
-                        u.kyc_status === "verified" ? "bg-success/10 text-success" :
-                        u.kyc_status === "rejected" ? "bg-destructive/10 text-destructive" :
-                        "bg-warning/10 text-warning"
-                      }`}>{u.kyc_status}</span>
-                    </td>
-                    <td className="py-3.5 px-5 font-semibold text-xs">{u.wallet ? formatAmount(u.wallet.balance || 0) : "—"}</td>
-                    <td className="py-3.5 px-5 text-xs">{u.txCount}</td>
-                    <td className="py-3.5 px-5 text-xs text-muted-foreground">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN") : "—"}
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => openUserDetail(u)} className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-90" title="View Details">
-                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        <button onClick={() => toggleFreeze(u.id, u.wallet?.is_frozen || false)} className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-90" title="Freeze/Unfreeze">
-                          <Snowflake className={`w-3.5 h-3.5 ${u.wallet?.is_frozen ? "text-primary" : "text-muted-foreground"}`} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="rounded-[16px] border overflow-hidden" style={{ background: "rgba(13,14,18,0.7)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.05)" }}>
+          {/* Header */}
+          <div className="hidden md:grid grid-cols-[36px_1.6fr_1fr_80px_90px_120px_70px_120px_80px_60px] gap-3 px-4 h-11 items-center border-b text-[9px] uppercase tracking-wider text-white/30 font-sora" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+            <input type="checkbox" checked={allChecked} onChange={toggleAllPage} className="rounded accent-primary" />
+            <span>User</span><span>Phone</span><span>Role</span><span>KYC</span><span>Balance</span><span>Txns</span><span>Last active</span><span>Status</span><span></span>
+          </div>
+
+          {loading ? (
+            <div className="py-16 text-center"><div className="w-8 h-8 mx-auto rounded-full border-2 border-primary/20 border-t-primary animate-spin" /></div>
+          ) : paged.length === 0 ? (
+            <div className="py-16 text-center text-[12px] text-white/40 font-sora">No users match your filters.</div>
+          ) : paged.map((r) => {
+            const isSel = selected.has(r.id);
+            const initials = (r.full_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+            return (
+              <div key={r.id} className="group relative grid grid-cols-1 md:grid-cols-[36px_1.6fr_1fr_80px_90px_120px_70px_120px_80px_60px] gap-3 px-4 py-3 items-center border-b text-[12px] hover:bg-white/[0.025] transition-colors" style={{ borderColor: "rgba(255,255,255,0.025)", background: isSel ? "rgba(200,149,46,0.04)" : "transparent" }}>
+                <input type="checkbox" checked={isSel} onChange={() => toggleOne(r.id)} onClick={(e) => e.stopPropagation()} className="rounded accent-primary" />
+
+                <button onClick={() => openUserPanel(r)} className="flex items-center gap-2.5 text-left min-w-0 group/avatar relative">
+                  <div className="relative shrink-0">
+                    {r.avatar_url ? (
+                      <img src={r.avatar_url} alt={r.full_name || ""} className="w-8 h-8 rounded-[8px] object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[10px] font-bold text-white" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>{initials}</div>
+                    )}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2" style={{ background: r.isFrozen ? C.danger : C.success, borderColor: "#0d0e12" }} />
+                    <span className="absolute left-full ml-2 top-0 hidden group-hover/avatar:block z-20 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap font-sora pointer-events-none" style={{ background: "rgba(20,22,28,0.98)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", boxShadow: "0 8px 20px rgba(0,0,0,0.5)" }}>
+                      {r.full_name || "Unnamed"}<br />
+                      <span className="text-white/50">{r.phone || r.id}</span>
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-medium truncate font-sora">{r.full_name || "Unnamed"}</p>
+                    <p className="text-[10px] text-white/40 font-mono truncate md:hidden">{r.phone || "—"}</p>
+                  </div>
+                </button>
+
+                <span className="text-white/70 font-mono truncate hidden md:block">{r.phone || "—"}</span>
+
+                <span className="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider w-fit" style={{ background: r.role === "parent" ? "rgba(34,197,94,0.1)" : r.role === "teen" ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.04)", color: r.role === "parent" ? C.success : r.role === "teen" ? C.info : "rgba(255,255,255,0.6)" }}>
+                  {r.role || "user"}
+                </span>
+
+                <span className="hidden md:inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider w-fit" style={{
+                  background: r.kyc_status === "verified" ? "rgba(34,197,94,0.1)" : r.kyc_status === "rejected" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
+                  color: r.kyc_status === "verified" ? C.success : r.kyc_status === "rejected" ? C.danger : C.warning,
+                }}>{r.kyc_status || "pending"}</span>
+
+                <span className="hidden md:block text-white font-mono font-semibold">{fmtPaise(r.balance)}</span>
+                <span className="hidden md:block text-white/60 font-mono">{r.txnCount}</span>
+                <span className="hidden md:block text-[10px] text-white/40 font-mono truncate">{r.lastActiveAt ? new Date(r.lastActiveAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}</span>
+
+                <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-semibold w-fit" style={{ color: r.isFrozen ? C.danger : C.success }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: r.isFrozen ? C.danger : C.success, boxShadow: `0 0 4px ${r.isFrozen ? C.danger : C.success}` }} />
+                  {r.isFrozen ? "Frozen" : "Active"}
+                </span>
+
+                <div className="relative" ref={actionsRowId === r.id ? actionsRef : undefined}>
+                  <button onClick={(e) => { e.stopPropagation(); setActionsRowId(actionsRowId === r.id ? null : r.id); }} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 ml-auto block">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {actionsRowId === r.id && (
+                    <div className="absolute right-0 top-full mt-1 w-[200px] rounded-xl border overflow-hidden z-30 shadow-[0_20px_50px_rgba(0,0,0,0.5)]" style={{ background: "rgba(20,22,28,0.98)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.08)", animation: "scale-in 0.15s ease-out" }}>
+                      <ActionItem icon={Eye} label="View profile" onClick={() => { openUserPanel(r); setActionsRowId(null); }} />
+                      <ActionItem icon={Snowflake} label={r.isFrozen ? "Unfreeze wallet" : "Freeze wallet"} onClick={() => freezeUser(r, !r.isFrozen)} />
+                      <ActionItem icon={ShieldCheck} label="Verify KYC" onClick={() => verifyKyc(r)} disabled={r.kyc_status === "verified"} />
+                      <ActionItem icon={Flag} label="Flag account" onClick={() => flagAccount(r)} />
+                      <ActionItem icon={Bell} label="Send notification" onClick={() => sendNotification(r)} />
+                      <ActionItem icon={KeyRound} label="Reset PIN" onClick={() => resetPin(r)} />
+                      <ActionItem icon={FileText} label="Add admin note" onClick={() => { openUserPanel(r); setActionsRowId(null); setTimeout(() => document.getElementById("admin-note-input")?.focus(), 350); }} />
+                      <ActionItem icon={Trash2} label="Delete account" danger onClick={() => deleteAccount(r)} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile sparkline */}
+                <div className="md:hidden mt-2 col-span-full -mx-1">
+                  <Sparkline data={r.spark} color={C.primary} height={20} />
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Pagination */}
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 text-[11px] font-sora" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+              <span className="text-white/40">Page {page + 1} of {totalPages} · {paged.length} on this page</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.04] disabled:opacity-30 disabled:pointer-events-none">
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.04] disabled:opacity-30 disabled:pointer-events-none">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center">
-          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-            className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium disabled:opacity-30 hover:bg-white/[0.06] transition-all">
-            Previous
-          </button>
-          <span className="text-xs text-muted-foreground">Page {page + 1}</span>
-          <button onClick={() => setPage(page + 1)} disabled={filtered.length < pageSize}
-            className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-medium disabled:opacity-30 hover:bg-white/[0.06] transition-all">
-            Next
-          </button>
-        </div>
-
-        {/* 2-Step Delete Confirmation Modal */}
-        {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md mx-4 bg-card rounded-2xl border border-border p-6 animate-scale-in shadow-2xl">
-              {deleteStep === 1 ? (
-                <>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-destructive" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Delete User</h3>
-                      <p className="text-xs text-muted-foreground">Step 1 of 2 — Confirm intent</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    You are about to permanently delete <span className="font-semibold text-foreground">{deleteTarget.name}</span>. 
-                    This will remove all their data including wallet, transactions, KYC, and settings.
-                  </p>
-                  <p className="text-xs text-destructive font-medium mb-6">⚠️ This action cannot be undone.</p>
-                  <div className="flex gap-3">
-                    <button onClick={cancelDelete} className="flex-1 h-11 rounded-xl border border-border text-sm font-medium hover:bg-muted/10 transition-colors">
-                      Cancel
-                    </button>
-                    <button onClick={() => setDeleteStep(2)} className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
-                      Continue to Step 2
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
-                      <Trash2 className="w-6 h-6 text-destructive" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Final Verification</h3>
-                      <p className="text-xs text-muted-foreground">Step 2 of 2 — Type to confirm</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Type <span className="font-mono font-bold text-destructive">DELETE</span> to confirm permanent deletion of <span className="font-semibold text-foreground">{deleteTarget.name}</span>.
-                  </p>
-                  <input
-                    type="text"
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    placeholder="Type DELETE"
-                    className="w-full h-11 rounded-xl bg-background border border-border px-4 text-sm font-mono focus:outline-none focus:border-destructive/50 mb-4"
-                    autoFocus
-                  />
-                  <div className="flex gap-3">
-                    <button onClick={() => setDeleteStep(1)} className="flex-1 h-11 rounded-xl border border-border text-sm font-medium hover:bg-muted/10 transition-colors">
-                      Back
-                    </button>
-                    <button
-                      onClick={executeDelete}
-                      disabled={deleteConfirmText !== "DELETE" || deleteLoading}
-                      className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                    >
-                      {deleteLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
-                          Deleting...
-                        </span>
-                      ) : "Permanently Delete"}
-                    </button>
-                  </div>
-                </>
-              )}
+        {/* Bulk action bar */}
+        {selected.size > 0 && (
+          <div
+            className="fixed left-1/2 bottom-4 -translate-x-1/2 z-40 max-w-[calc(100vw-32px)]"
+            style={{ animation: "bulk-up 0.3s cubic-bezier(0.22,1,0.36,1) both" }}
+          >
+            <div
+              className="flex items-center gap-1 rounded-2xl border p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex-wrap"
+              style={{ background: "rgba(15,17,22,0.98)", backdropFilter: "blur(24px)", borderColor: "rgba(200,149,46,0.2)" }}
+            >
+              <span className="text-[11px] font-semibold text-white px-3 py-1.5 font-sora">{selected.size} selected</span>
+              <span className="w-px h-6 bg-white/10 mx-1" />
+              <BulkBtn icon={Snowflake} onClick={() => bulk("freeze")} label="Freeze" />
+              <BulkBtn icon={ShieldCheck} onClick={() => bulk("unfreeze")} label="Unfreeze" />
+              <BulkBtn icon={Bell} onClick={() => bulk("notify")} label="Notify" />
+              <BulkBtn icon={CheckCircle2} onClick={() => bulk("verify_kyc")} label="Verify KYC" />
+              <BulkBtn icon={Download} onClick={bulkExport} label="Export" />
+              <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 text-[11px] font-medium text-white/60 hover:text-white font-sora">
+                Clear
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes kpi-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes bulk-up { 0% { opacity: 0; transform: translate(-50%, 100%); } 100% { opacity: 1; transform: translate(-50%, 0); } }
+        .filter-input { width: 100%; height: 32px; padding: 0 10px; border-radius: 8px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); color: #fff; font-size: 11px; font-family: 'Sora', sans-serif; outline: none; color-scheme: dark; }
+      `}</style>
     </AdminLayout>
   );
 };
+
+const FilterSelect = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)} className="h-9 px-2.5 pr-7 rounded-[10px] text-[11px] text-white font-sora focus:outline-none cursor-pointer" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", colorScheme: "dark" }}>
+    {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+  </select>
+);
+const FilterField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div>
+    <label className="text-[9px] uppercase tracking-wider text-white/40 font-sora block mb-1">{label}</label>
+    {children}
+  </div>
+);
+const ActionItem = ({ icon: Icon, label, onClick, danger = false, disabled = false }: { icon: any; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) => (
+  <button onClick={onClick} disabled={disabled} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-sora text-left transition-colors disabled:opacity-30 disabled:pointer-events-none" style={{ color: danger ? C.danger : "rgba(255,255,255,0.75)" }} onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = danger ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+    <Icon className="w-3.5 h-3.5" /> {label}
+  </button>
+);
+const BulkBtn = ({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) => (
+  <button onClick={onClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors font-sora">
+    <Icon className="w-3 h-3" /> <span className="hidden sm:inline">{label}</span>
+  </button>
+);
+
+/* ─────────── Context Panel Body with tabs ─────────── */
+const UserPanelBody = ({ row, wallets, txns, onChange }: { row: UserRow; wallets: any[]; txns: any[]; onChange: () => void }) => {
+  const [tab, setTab] = useState<"overview" | "transactions" | "limits" | "notes" | "audit">("overview");
+  const wallet = wallets.find((w) => w.user_id === row.id);
+
+  return (
+    <div className="space-y-4">
+      {/* Header card */}
+      <div className="rounded-2xl p-4 border" style={{ background: `linear-gradient(135deg, rgba(200,149,46,0.08), rgba(255,255,255,0.01))`, borderColor: "rgba(200,149,46,0.18)" }}>
+        <div className="flex items-center gap-3">
+          {row.avatar_url ? <img src={row.avatar_url} alt="" className="w-12 h-12 rounded-xl object-cover" /> :
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>
+              {(row.full_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+            </div>}
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold text-white truncate font-sora">{row.full_name || "Unnamed"}</p>
+            <p className="text-[11px] text-white/50 font-mono truncate">{row.phone || row.id}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+        {(["overview","transactions","limits","notes","audit"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider font-sora transition-all" style={{ background: tab === t ? `linear-gradient(135deg, ${C.primary}, ${C.secondary})` : "transparent", color: tab === t ? "#fff" : "rgba(255,255,255,0.5)" }}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && <OverviewTab row={row} wallet={wallet} />}
+      {tab === "transactions" && <TransactionsTab row={row} wallet={wallet} txns={txns} />}
+      {tab === "limits" && <LimitsTab wallet={wallet} onChange={onChange} />}
+      {tab === "notes" && <NotesTab userId={row.id} />}
+      {tab === "audit" && <AuditTab userId={row.id} />}
+    </div>
+  );
+};
+
+const OverviewTab = ({ row, wallet }: { row: UserRow; wallet: any }) => (
+  <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-2">
+      <Stat k="Balance" v={fmtPaise(row.balance)} color={C.primary} />
+      <Stat k="Total volume" v={fmtPaise(row.totalVolume)} color={C.success} />
+      <Stat k="Transactions" v={row.txnCount.toString()} color={C.info} />
+      <Stat k="Joined" v={row.created_at ? new Date(row.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} color={C.cyan} />
+    </div>
+    <div className="rounded-xl p-3 border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.04)" }}>
+      <p className="text-[10px] uppercase tracking-wider text-white/40 font-sora mb-2">Activity (7d)</p>
+      <Sparkline data={row.spark} color={C.primary} height={50} />
+    </div>
+    <div className="space-y-1.5">
+      <Detail k="Wallet" v={wallet?.id || "—"} mono />
+      <Detail k="Status" v={wallet?.is_frozen ? "Frozen" : "Active"} />
+      <Detail k="KYC" v={row.kyc_status || "pending"} />
+      <Detail k="Role" v={row.role || "user"} />
+    </div>
+  </div>
+);
+
+const TransactionsTab = ({ row, wallet, txns }: { row: UserRow; wallet: any; txns: any[] }) => {
+  const [q, setQ] = useState("");
+  const userTxns = wallet ? txns.filter((t) => t.wallet_id === wallet.id) : [];
+  const filtered = userTxns.filter((t) => !q || (t.merchant_name || "").toLowerCase().includes(q.toLowerCase()) || String(t.amount / 100).includes(q));
+  return (
+    <div className="space-y-2">
+      <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search merchant or amount…" className="w-full h-9 px-3 rounded-[10px] text-[11px] text-white placeholder:text-white/30 focus:outline-none font-sora" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }} />
+      <div className="max-h-[400px] overflow-y-auto space-y-1">
+        {filtered.length === 0 ? <p className="text-[11px] text-white/30 text-center py-6 font-sora">No transactions</p> :
+          filtered.slice(0, 100).map((t) => (
+            <div key={t.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.015)" }}>
+              <div className="min-w-0">
+                <p className="text-[11px] text-white truncate font-sora">{t.merchant_name || t.type}</p>
+                <p className="text-[9px] text-white/40 font-mono">{t.created_at ? new Date(t.created_at).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—"}</p>
+              </div>
+              <p className="text-[11px] font-mono font-semibold shrink-0 ml-2" style={{ color: t.type === "credit" ? C.success : "#fff" }}>
+                {t.type === "credit" ? "+" : "-"}{fmtPaise(t.amount || 0)}
+              </p>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+const LimitsTab = ({ wallet, onChange }: { wallet: any; onChange: () => void }) => {
+  const [daily, setDaily] = useState(wallet?.daily_limit ? String(wallet.daily_limit / 100) : "");
+  const [monthly, setMonthly] = useState(wallet?.monthly_limit ? String(wallet.monthly_limit / 100) : "");
+
+  const save = async (field: "daily_limit" | "monthly_limit", value: string) => {
+    if (!wallet?.id) return;
+    const paise = Math.round(parseFloat(value || "0") * 100);
+    const { error } = await supabase.from("wallets").update({ [field]: paise }).eq("id", wallet.id);
+    if (error) toast.error(error.message); else { toast.success("Limit updated"); onChange(); }
+  };
+
+  if (!wallet) return <p className="text-[11px] text-white/30 text-center py-6 font-sora">No wallet</p>;
+  return (
+    <div className="space-y-3">
+      <LimitField label="Daily limit (₹)" value={daily} onChange={setDaily} onSave={() => save("daily_limit", daily)} />
+      <LimitField label="Monthly limit (₹)" value={monthly} onChange={setMonthly} onSave={() => save("monthly_limit", monthly)} />
+      <p className="text-[10px] text-white/40 font-sora">Press Enter to save each field.</p>
+    </div>
+  );
+};
+const LimitField = ({ label, value, onChange, onSave }: { label: string; value: string; onChange: (v: string) => void; onSave: () => void }) => (
+  <div>
+    <label className="text-[10px] uppercase tracking-wider text-white/40 font-sora block mb-1">{label}</label>
+    <input type="number" value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onSave(); } }} onBlur={onSave} className="w-full h-10 px-3 rounded-[10px] text-[12px] text-white font-mono focus:outline-none focus:ring-2 focus:ring-primary/40" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }} />
+  </div>
+);
+
+const NotesTab = ({ userId }: { userId: string }) => {
+  const [notes, setNotes] = useState<any[]>([]);
+  const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("admin_user_notes").select("*").eq("target_user_id", userId).order("created_at", { ascending: false });
+    setNotes(data || []);
+  }, [userId]);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!text.trim()) return;
+    setAdding(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAdding(false); return; }
+    const { error } = await supabase.from("admin_user_notes").insert({ target_user_id: userId, admin_user_id: user.id, note: text.trim() });
+    if (error) toast.error(error.message); else { toast.success("Note added"); setText(""); load(); }
+    setAdding(false);
+  };
+  const del = async (id: string) => {
+    const { error } = await supabase.from("admin_user_notes").delete().eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Note deleted"); load(); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <textarea id="admin-note-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Add an internal note about this user…" rows={3} className="w-full p-3 rounded-[10px] text-[11px] text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/40 font-sora resize-none" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }} />
+        <button onClick={add} disabled={!text.trim() || adding} className="w-full h-9 rounded-[10px] text-[11px] font-semibold text-white disabled:opacity-50" style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}>{adding ? "Saving…" : "Add note"}</button>
+      </div>
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        {notes.length === 0 ? <p className="text-[11px] text-white/30 text-center py-6 font-sora">No notes yet</p> :
+          notes.map((n) => (
+            <div key={n.id} className="p-3 rounded-[10px] border" style={{ background: "rgba(255,255,255,0.015)", borderColor: "rgba(255,255,255,0.04)" }}>
+              <p className="text-[11px] text-white/85 font-sora whitespace-pre-wrap">{n.note}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[9px] text-white/40 font-mono">{new Date(n.created_at).toLocaleString("en-IN")}</p>
+                <button onClick={() => del(n.id)} className="text-[9px] text-white/40 hover:text-destructive">Delete</button>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+const AuditTab = ({ userId }: { userId: string }) => {
+  const [logs, setLogs] = useState<any[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("audit_logs").select("*").eq("target_id", userId).order("created_at", { ascending: false }).limit(100);
+      setLogs(data || []);
+    })();
+  }, [userId]);
+  return (
+    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+      {logs.length === 0 ? <p className="text-[11px] text-white/30 text-center py-6 font-sora">No admin actions on this user</p> :
+        logs.map((l) => (
+          <div key={l.id} className="p-2.5 rounded-[10px] border flex items-start gap-2" style={{ background: "rgba(255,255,255,0.015)", borderColor: "rgba(255,255,255,0.04)" }}>
+            <Clock className="w-3 h-3 text-white/40 mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-white font-sora">{l.action}</p>
+              {l.details && <p className="text-[9px] text-white/50 font-mono break-all">{JSON.stringify(l.details)}</p>}
+              <p className="text-[9px] text-white/40 font-mono mt-0.5">{new Date(l.created_at).toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+};
+
+const Stat = ({ k, v, color }: { k: string; v: string; color: string }) => (
+  <div className="rounded-xl p-3 border" style={{ background: `${color}06`, borderColor: `${color}20` }}>
+    <p className="text-[9px] uppercase tracking-wider text-white/40 font-sora">{k}</p>
+    <p className="text-[14px] font-bold font-mono text-white mt-0.5 truncate">{v}</p>
+  </div>
+);
+const Detail = ({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) => (
+  <div className="flex items-start justify-between gap-3 px-1">
+    <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora shrink-0 pt-0.5">{k}</span>
+    <span className={`text-[11px] text-white text-right ${mono ? "font-mono break-all" : "font-sora"}`}>{v}</span>
+  </div>
+);
 
 export default AdminUsers;
