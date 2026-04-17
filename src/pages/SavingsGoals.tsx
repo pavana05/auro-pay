@@ -566,13 +566,18 @@ const SavingsGoals = () => {
 const GoalCard = ({
   goal, index, pct, onDelete, onAddClick, onWithdrawClick,
   actionMode, actionAmount, setActionAmount, onAddSubmit, onWithdrawSubmit, onCancelAction,
+  onSetAutoSave,
 }: {
   goal: Goal; index: number; pct: number;
   onDelete: () => void; onAddClick: () => void; onWithdrawClick: () => void;
   actionMode: "add" | "withdraw" | null;
   actionAmount: string; setActionAmount: (v: string) => void;
   onAddSubmit: () => void; onWithdrawSubmit: () => void; onCancelAction: () => void;
+  onSetAutoSave: (enabled: boolean, amount?: number, frequency?: string) => void;
 }) => {
+  const [autosaveOpen, setAutosaveOpen] = useState(false);
+  const [draftAmount, setDraftAmount] = useState(String(goal.autosave_amount || 100));
+  const [draftFreq, setDraftFreq] = useState<string>(goal.autosave_frequency || "weekly");
   const color = goal.color || "40 90% 60%";
   const accent = goal.is_completed ? "152 65% 50%" : color;
   const daysLeft = goal.deadline ? Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000)) : null;
