@@ -577,10 +577,11 @@ const AddMoney = () => {
             { id: "netbanking", label: "Net Bank", icon: Building2, fee: "₹15" },
           ] as const).map((t) => {
             const active = method === t.id;
+            const isLastUsed = restoredMethod === t.id && active;
             return (
               <button key={t.id}
                 onClick={() => { haptic.selection(); setMethod(t.id); }}
-                className="flex flex-col items-center justify-center gap-1.5 h-[78px] rounded-[16px] border transition-all active:scale-[0.97]"
+                className="relative flex flex-col items-center justify-center gap-1.5 h-[78px] rounded-[16px] border transition-all active:scale-[0.97]"
                 style={{
                   background: active
                     ? "linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(220 18% 6%))"
@@ -588,6 +589,18 @@ const AddMoney = () => {
                   borderColor: active ? "hsl(var(--primary) / 0.35)" : "hsl(220 15% 11%)",
                   boxShadow: active ? "0 4px 20px hsl(var(--primary) / 0.12)" : "none",
                 }}>
+                {isLastUsed && (
+                  <span
+                    className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-[2px] rounded-full text-[8.5px] font-semibold tracking-wide uppercase whitespace-nowrap"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(var(--primary)), hsl(38 85% 45%))",
+                      color: "hsl(220 30% 6%)",
+                      boxShadow: "0 2px 8px hsl(var(--primary) / 0.4)",
+                    }}
+                  >
+                    Last used
+                  </span>
+                )}
                 <t.icon className="w-[18px] h-[18px]"
                   style={{ color: active ? "hsl(var(--primary))" : "hsl(220 10% 40%)" }} />
                 <p className="text-[12px] font-semibold"
