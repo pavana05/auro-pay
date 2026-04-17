@@ -1172,6 +1172,24 @@ export type Database = {
         }
         Relationships: []
       }
+      teen_lookup_log: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ticket_messages: {
         Row: {
           created_at: string | null
