@@ -55,6 +55,7 @@ const PaymentConfirm = () => {
   const [shake, setShake] = useState(false);
   const [txMeta, setTxMeta] = useState<{ id?: string; reference?: string; time?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [recentContacts, setRecentContacts] = useState<Array<{ id: string; name: string; emoji: string | null; upi: string | null }>>([]);
   const procTimerRef = useRef<ReturnType<typeof setInterval>>();
 
   const upi = state.upi_id || "";
@@ -80,6 +81,20 @@ const PaymentConfirm = () => {
       ]);
       setWalletBalance(wallet?.balance || 0);
       setHasPinSet(!!pinStatus?.data?.is_set || !!(pinStatus as any)?.is_set);
+
+      // Last 3 paid contacts for the quick-switch row
+      const { data: recents } = await supabase
+        .from("quick_pay_favorites")
+        .select("id, contact_name, avatar_emoji, contact_upi_id, last_paid_at")
+        .eq("user_id", user.id)
+        .not("last_paid_at", "is", null)
+        .order("last_paid_at", { ascending: false })
+        .limit(3);
+      setRecentContacts(
+        (recents || []).map((r: any) => ({
+          id: r.id, name: r.contact_name, emoji: r.avatar_emoji, upi: r.contact_upi_id,
+        }))
+      );
     })();
   }, []);
 
