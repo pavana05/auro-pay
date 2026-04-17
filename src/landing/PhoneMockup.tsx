@@ -240,7 +240,7 @@ function AnalyticsScreen() {
         ))}
       </div>
       <div className="flex justify-between text-[9px] text-white/40">
-        {["M", "T", "W", "T", "F", "S", "S"].map(d => <span key={d}>{d}</span>)}
+        {["M", "T", "W", "Th", "F", "Sa", "Su"].map((d) => <span key={d}>{d}</span>)}
       </div>
     </div>
   );

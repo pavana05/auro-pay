@@ -21,7 +21,15 @@ import Footer from "@/landing/sections/Footer";
 export default function Landing() {
   const reduceMotion = useReducedMotion();
   const [modalOpen, setModalOpen] = useState(false);
-  const [entryDone, setEntryDone] = useState(reduceMotion ?? false);
+  const [entryDone, setEntryDone] = useState(false);
+
+  // Safety net: ensure the page is always visible after 2.5s even if the
+  // entry animation never fires onDone (e.g. tab was backgrounded).
+  useEffect(() => {
+    if (reduceMotion) { setEntryDone(true); return; }
+    const t = setTimeout(() => setEntryDone(true), 2500);
+    return () => clearTimeout(t);
+  }, [reduceMotion]);
 
   useEffect(() => {
     document.title = "AuroPay — Teen Payments Reimagined";
