@@ -184,7 +184,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
         profileInsert.state_code = city.state;
         profileInsert.state_source = "manual";
       }
-      const { error: profileError } = await supabase.from("profiles").insert(profileInsert);
+      const { error: profileError } = await supabase.from("profiles").insert(profileInsert as any);
       if (profileError) throw profileError;
 
       const { error: walletError } = await supabase.from("wallets").insert({ user_id: userId });
