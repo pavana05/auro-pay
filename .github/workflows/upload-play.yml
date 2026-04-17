@@ -1,0 +1,173 @@
+name: Upload AAB to Google Play (Internal Testing)
+
+# Two triggers:
+#   1. Auto: after the "Build Signed Release AAB" workflow finishes successfully
+#      on a v*.*.* tag — fully hands-off pipeline.
+#   2. Manual: workflow_dispatch lets you upload an arbitrary AAB version
+#      from the Actions tab (re-uploads, ad-hoc internal builds, etc.).
+#
+# Required GitHub Actions secrets:
+#   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+#     Full JSON of a Google Play service account with "Release manager" or
+#     "Service account" role. Created in Google Cloud → IAM → Service accounts,
+#     then linked in Play Console → Setup → API access.
+#
+# All other AAB-build secrets are already configured for release-aab.yml.
+
+on:
+  workflow_run:
+    workflows: ["Build Signed Release AAB"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name to upload (e.g. 1.2.3) — must match an existing tagged build."
+        required: true
+        default: ""
+      track:
+        description: "Play track"
+        required: true
+        default: "internal"
+        type: choice
+        options:
+          - internal
+
+permissions:
+  contents: read
+  actions: read   # needed to download artifacts from the upstream workflow
+
+jobs:
+  upload-to-play:
+    name: Upload to Google Play (internal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # On workflow_run, only proceed if the upstream build succeeded AND was
+    # triggered by a v*.*.* tag (we never auto-upload from manual dispatches
+    # of release-aab.yml — those are dev builds).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+
+    steps:
+      # ────────────────────────────────────────────────
+      # 1. Checkout (we need the fastlane config files)
+      # ────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # ────────────────────────────────────────────────
+      # 2. Resolve which version we are uploading
+      # ────────────────────────────────────────────────
+      - name: Resolve version name
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version_name }}"
+          else
+            # workflow_run — head_branch is the tag (e.g. v1.2.3); strip leading v
+            VERSION="${{ github.event.workflow_run.head_branch }}"
+            VERSION="${VERSION#v}"
+          fi
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not resolve version name."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Will upload AuroPay v$VERSION to Play (internal track)"
+
+      # ────────────────────────────────────────────────
+      # 3. Download the AAB artifact from the upstream
+      #    Build Signed Release AAB run.
+      # ────────────────────────────────────────────────
+      - name: Download AAB from upstream workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: auropay-aab-${{ steps.version.outputs.version }}
+          path: ./play-upload
+          # When triggered by workflow_run, pull from that run; otherwise
+          # the action falls back to the current run's artifacts.
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify AAB present
+        id: aab
+        run: |
+          AAB_PATH=$(find ./play-upload -name "*.aab" | head -n 1)
+          if [ -z "$AAB_PATH" ]; then
+            echo "::error::No AAB found in downloaded artifact."
+            ls -la ./play-upload || true
+            exit 1
+          fi
+          echo "path=$AAB_PATH" >> "$GITHUB_OUTPUT"
+          echo "Found AAB: $AAB_PATH ($(du -h "$AAB_PATH" | cut -f1))"
+
+      # ────────────────────────────────────────────────
+      # 4. Decode the Play Console service account JSON
+      # ────────────────────────────────────────────────
+      - name: Write service account JSON
+        env:
+          SA_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing."
+            echo "Create one in Google Cloud → IAM → Service Accounts (JSON key),"
+            echo "then grant it 'Release manager' in Play Console → Setup → API access,"
+            echo "and paste the full JSON into Settings → Secrets → Actions."
+            exit 1
+          fi
+          mkdir -p ./fastlane
+          printf '%s' "$SA_JSON" > ./fastlane/play-service-account.json
+          # Basic sanity check — must be valid JSON
+          if ! python3 -c "import json,sys;json.load(open('./fastlane/play-service-account.json'))"; then
+            echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is not valid JSON."
+            exit 1
+          fi
+          echo "Service account JSON written ($(stat -c%s ./fastlane/play-service-account.json) bytes)."
+
+      # ────────────────────────────────────────────────
+      # 5. Set up Ruby + fastlane
+      # ────────────────────────────────────────────────
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: false
+
+      - name: Install fastlane
+        run: gem install fastlane -NV
+
+      # ────────────────────────────────────────────────
+      # 6. Upload to Play (internal track) via supply
+      #
+      #    --skip_upload_changelogs avoids needing per-locale txt files.
+      #    --release_status draft creates a draft release on the internal
+      #    track that you can review and roll out from Play Console.
+      # ────────────────────────────────────────────────
+      - name: Upload AAB to Play Console (internal)
+        env:
+          # Replace this with your real applicationId from android/app/build.gradle
+          # if it ever changes. Capacitor default is app.lovable.<projectId>.
+          PLAY_PACKAGE_NAME: app.lovable.cbd25e4a769a42d6835afcaa159bbcc4
+        run: |
+          fastlane supply \
+            --package_name "$PLAY_PACKAGE_NAME" \
+            --aab "${{ steps.aab.outputs.path }}" \
+            --track internal \
+            --release_status draft \
+            --json_key ./fastlane/play-service-account.json \
+            --skip_upload_metadata true \
+            --skip_upload_changelogs true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true
+
+      # ────────────────────────────────────────────────
+      # 7. Cleanup decoded credentials
+      # ────────────────────────────────────────────────
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f ./fastlane/play-service-account.json
