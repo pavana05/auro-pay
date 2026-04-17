@@ -637,6 +637,15 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
           50% { transform: translate(-15px, -50px); }
           75% { transform: translate(-25px, -20px); }
         }
+        @keyframes otp-digit-rise {
+          0% { opacity: 0; transform: translateY(14px) scale(0.7); filter: blur(4px); }
+          60% { opacity: 1; transform: translateY(-2px) scale(1.08); filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes otp-caret-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
       `}</style>
     </div>
   );
