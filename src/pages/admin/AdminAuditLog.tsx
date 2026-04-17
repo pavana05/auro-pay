@@ -390,6 +390,18 @@ const AdminAuditLog = () => {
                                   </button>
                                 </div>
                               </div>
+                              {FORCE_ACTIONS.has(log.action) && log.details?.reason && (
+                                <div className="mt-2.5 rounded-[10px] p-2.5 border flex items-start gap-2"
+                                  style={{ background: `${C.danger}10`, borderColor: `${C.danger}33` }}>
+                                  <Shield className="w-3 h-3 mt-0.5 shrink-0" style={{ color: C.danger }} />
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: C.danger }}>
+                                      Reason {log.details.amount_paise ? `· ₹${(Number(log.details.amount_paise)/100).toLocaleString("en-IN")}` : ""}
+                                    </p>
+                                    <p className="text-[11px] mt-0.5" style={{ color: C.textPrimary }}>{log.details.reason}</p>
+                                  </div>
+                                </div>
+                              )}
                               {log.details && Object.keys(log.details).length > 0 && (
                                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                                   {Object.entries(log.details).slice(0, 4).map(([k, v]) => (
