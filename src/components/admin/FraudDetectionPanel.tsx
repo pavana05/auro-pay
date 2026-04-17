@@ -21,6 +21,32 @@ const FAILED_TXN_THRESHOLD = 5; // 5+ failed txns in 1h
 export default function FraudDetectionPanel() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [freezing, setFreezing] = useState<string | null>(null);
+  const [frozenWallets, setFrozenWallets] = useState<Set<string>>(new Set());
+
+  const freezeWallet = useCallback(async (f: FlagRow) => {
+    if (!confirm(`Freeze wallet for ${f.full_name || "this user"}?\n\nReason: ${f.reason}\n\nThis will block all transactions and resolve open flags. The user will be notified.`)) {
+      return;
+    }
+    setFreezing(f.wallet_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-freeze-wallet", {
+        body: {
+          wallet_id: f.wallet_id,
+          user_id: f.user_id,
+          reason: `${f.reason} — ${f.detail}`,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`Wallet frozen · ${(data as any)?.flags_resolved ?? 0} flag(s) resolved`);
+      setFrozenWallets((s) => new Set(s).add(f.wallet_id));
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to freeze wallet");
+    } finally {
+      setFreezing(null);
+    }
+  }, []);
 
   const scan = useCallback(async () => {
     setLoading(true);
