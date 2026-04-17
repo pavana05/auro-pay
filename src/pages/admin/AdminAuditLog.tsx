@@ -300,6 +300,18 @@ const AdminAuditLog = () => {
             >
               <Shield className="w-3 h-3" /> Force actions {forceCount > 0 && <span className="opacity-70">({forceCount})</span>}
             </button>
+            <button
+              onClick={() => setUnlocksOnly(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{
+                background: unlocksOnly ? `${C.success}25` : "rgba(255,255,255,0.04)",
+                color: unlocksOnly ? C.success : C.textSecondary,
+                border: `1px solid ${unlocksOnly ? C.success + "55" : C.border}`,
+              }}
+              title="Show only wallet_account_unlock entries (fraud-locked accounts that were restored)"
+            >
+              <Wallet className="w-3 h-3" /> Unlocked accounts {unlockCount > 0 && <span className="opacity-70">({unlockCount})</span>}
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
