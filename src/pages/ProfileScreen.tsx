@@ -1,196 +1,372 @@
-import { useEffect, useState } from "react";
+// Screen 16 — Profile: hero, count-up stats, weekly mini-chart, menu.
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  User, Shield, ShieldCheck, Wallet, Users, Target, Bell, HelpCircle, Info, LogOut,
-  ChevronRight, Trophy, Star, Flame, Zap, Crown, Copy, Check, Gem,
-  Award, TrendingUp, Gift, Tag, Clock, Sun, Moon,
+  User, Shield, Users, Gauge, Bell, Gift, Headphones, FileText, Info, LogOut,
+  ChevronRight, Pencil, BadgeCheck, Camera as CameraIcon, Image as ImageIcon, X, TrendingDown, TrendingUp,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
+import { useCountUp } from "@/hooks/useCountUp";
+import { Capacitor } from "@capacitor/core";
 
-const SlotMachineText = ({ text }: { text: string }) => {
-  const [revealed, setRevealed] = useState(false);
-  const [slots, setSlots] = useState<string[]>(text.split("").map(() => " "));
+interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  kyc_status: string | null;
+  upi_id: string | null;
+  created_at: string | null;
+}
 
-  useEffect(() => {
-    const chars = text.split("");
-    const timers: NodeJS.Timeout[] = [];
-    
-    // Scramble phase — each character cycles through random chars
-    chars.forEach((_, i) => {
-      const scrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let count = 0;
-      const maxCycles = 6 + i * 3; // Later chars spin longer
-      const interval = setInterval(() => {
-        setSlots(prev => {
-          const next = [...prev];
-          next[i] = scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
-          return next;
-        });
-        count++;
-        if (count >= maxCycles) {
-          clearInterval(interval);
-          // Land on final character
-          setSlots(prev => {
-            const next = [...prev];
-            next[i] = chars[i];
-            return next;
-          });
-          if (i === chars.length - 1) setRevealed(true);
-        }
-      }, 60);
-      timers.push(interval as unknown as NodeJS.Timeout);
-    });
+interface DailyTotal { day: string; total: number; }
 
-    return () => timers.forEach(t => clearInterval(t));
-  }, [text]);
+const APP_VERSION = "1.0.0";
 
+// ─── Count-up stat tile ───
+const StatTile = ({ label, value, prefix = "", suffix = "", delay, ready }: {
+  label: string; value: number; prefix?: string; suffix?: string; delay: number; ready: boolean;
+}) => {
+  const animated = useCountUp(ready ? value : 0, 1100, ready);
   return (
-    <p className="text-lg font-bold tracking-[0.15em] text-primary flex">
-      {slots.map((char, i) => (
-        <span
-          key={i}
-          className="inline-block transition-all duration-200"
-          style={{
-            animation: revealed && slots[i] === text[i] ? `slide-up-spring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.04}s both` : undefined,
-            minWidth: "0.7em",
-            textAlign: "center",
-          }}
-        >
-          {char}
-        </span>
-      ))}
-    </p>
+    <div
+      className="rounded-[16px] p-3 border border-white/[0.04] text-center"
+      style={{
+        background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+        animation: `prof-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s both`,
+      }}
+    >
+      <p className="text-[14px] font-bold tracking-[-0.3px]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {prefix}{animated.toLocaleString("en-IN")}{suffix}
+      </p>
+      <p className="text-[9px] text-white/30 font-medium mt-0.5 uppercase tracking-wider">{label}</p>
+    </div>
   );
 };
 
-interface RedeemedReward {
-  id: string;
-  redeemed_at: string;
-  reward: {
-    title: string;
-    coupon_code: string;
-    discount_type: string;
-    discount_value: number;
-    category: string | null;
-    image_url: string | null;
-  } | null;
-}
+// ─── Weekly mini bar chart ───
+const WeeklyChart = ({ data }: { data: DailyTotal[] }) => {
+  const max = Math.max(1, ...data.map(d => d.total));
+  return (
+    <div className="flex items-end gap-1.5 h-[44px]">
+      {data.map((d, i) => {
+        const h = (d.total / max) * 100;
+        const isToday = i === data.length - 1;
+        return (
+          <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+            <div className="w-full flex-1 flex items-end">
+              <div
+                className="w-full rounded-t-[3px] transition-all"
+                style={{
+                  height: `${Math.max(h, 4)}%`,
+                  background: isToday
+                    ? "linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
+                    : "linear-gradient(180deg, hsl(var(--primary) / 0.45), hsl(var(--primary) / 0.18))",
+                  animation: `bar-grow 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.2 + i * 0.05}s both`,
+                  transformOrigin: "bottom",
+                }}
+              />
+            </div>
+            <span className="text-[8px] text-white/25 font-medium">{d.day}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Avatar source picker sheet ───
+const SourceSheet = ({ onPick, onClose }: { onPick: (src: "camera" | "gallery") => void; onClose: () => void }) => (
+  <div className="fixed inset-0 z-50 flex items-end" style={{ animation: "prof-fade 0.2s ease-out" }}>
+    <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+    <div className="relative w-full rounded-t-[28px] border-t border-white/[0.08] p-6 pb-8"
+      style={{
+        background: "linear-gradient(180deg, hsl(220 20% 9%), hsl(220 22% 5%))",
+        animation: "prof-sheet 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+      }}>
+      <div className="w-12 h-1 rounded-full bg-white/15 mx-auto mb-5" />
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[16px] font-bold">Change photo</h3>
+        <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
+          <X className="w-4 h-4 text-white/50" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => onPick("camera")}
+          className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/[0.06] active:scale-95 transition-transform"
+          style={{ background: "linear-gradient(160deg, hsl(var(--primary) / 0.08), hsl(220 18% 7%))" }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{ background: "hsl(var(--primary) / 0.12)" }}>
+            <CameraIcon className="w-5 h-5 text-primary" />
+          </div>
+          <span className="text-[12px] font-semibold">Camera</span>
+        </button>
+        <button onClick={() => onPick("gallery")}
+          className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/[0.06] active:scale-95 transition-transform"
+          style={{ background: "linear-gradient(160deg, hsl(var(--primary) / 0.08), hsl(220 18% 7%))" }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{ background: "hsl(var(--primary) / 0.12)" }}>
+            <ImageIcon className="w-5 h-5 text-primary" />
+          </div>
+          <span className="text-[12px] font-semibold">Gallery</span>
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Logout confirmation modal ───
+const LogoutModal = ({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ animation: "prof-fade 0.2s ease-out" }}>
+    <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
+    <div className="relative w-full max-w-sm rounded-[24px] border border-white/[0.08] p-6"
+      style={{
+        background: "linear-gradient(180deg, hsl(220 20% 10%), hsl(220 22% 6%))",
+        animation: "prof-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+      }}>
+      <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center border border-destructive/30"
+        style={{ background: "hsl(0 70% 50% / 0.1)" }}>
+        <LogOut className="w-6 h-6 text-destructive" />
+      </div>
+      <h3 className="text-[17px] font-bold text-center mb-1.5">Log out?</h3>
+      <p className="text-[12px] text-white/50 text-center mb-5">You'll need to sign in again to access your account.</p>
+      <div className="flex gap-2.5">
+        <button onClick={onClose}
+          className="flex-1 h-[46px] rounded-2xl text-[13px] font-semibold border border-white/[0.08] active:scale-[0.98]"
+          style={{ background: "hsl(220 15% 10%)" }}>
+          Cancel
+        </button>
+        <button onClick={onConfirm}
+          className="flex-1 h-[46px] rounded-2xl text-[13px] font-bold text-destructive border border-destructive/30 active:scale-[0.98]"
+          style={{ background: "hsl(0 70% 50% / 0.12)" }}>
+          Log out
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const ProfileScreen = () => {
-  const [profile, setProfile] = useState<any>(null);
-  const [wallet, setWallet] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [txCount, setTxCount] = useState(0);
   const [goalCount, setGoalCount] = useState(0);
-  const [rewardCount, setRewardCount] = useState(0);
-  const [redeemedRewards, setRedeemedRewards] = useState<RedeemedReward[]>([]);
+  const [memberMonths, setMemberMonths] = useState(0);
+  const [dailyLimit, setDailyLimit] = useState(0);
+  const [unreadNotif, setUnreadNotif] = useState(0);
+  const [parentName, setParentName] = useState<string | null>(null);
+  const [weekly, setWeekly] = useState<DailyTotal[]>([]);
+  const [thisWeekTotal, setThisWeekTotal] = useState(0);
+  const [lastWeekTotal, setLastWeekTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [copiedReferral, setCopiedReferral] = useState(false);
-  const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
+  const [showSource, setShowSource] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const [p, w, g, rr] = await Promise.all([
+      if (!user) { setLoading(false); return; }
+
+      const [pRes, wRes, gRes, nRes, ptlRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("wallets").select("*").eq("user_id", user.id).single(),
         supabase.from("savings_goals").select("id").eq("teen_id", user.id),
-        supabase.from("reward_redemptions").select("id, redeemed_at, reward:rewards(title, coupon_code, discount_type, discount_value, category, image_url)").eq("user_id", user.id).order("redeemed_at", { ascending: false }),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
+        supabase.from("parent_teen_links").select("parent_id").eq("teen_id", user.id).eq("is_active", true).maybeSingle(),
       ]);
-      setProfile(p.data);
-      setWallet(w.data);
-      setGoalCount(g.data?.length || 0);
-      const rrData = (rr.data || []) as unknown as RedeemedReward[];
-      setRedeemedRewards(rrData);
-      setRewardCount(rrData.length);
-      if (w.data) {
-        const { data: txns } = await supabase.from("transactions").select("id").eq("wallet_id", w.data.id);
-        setTxCount(txns?.length || 0);
+
+      const p = pRes.data as Profile | null;
+      // Backfill upi_id locally if missing but phone present
+      if (p && !p.upi_id && p.phone) {
+        const upi = `${p.phone}@auropay`;
+        await supabase.from("profiles").update({ upi_id: upi }).eq("id", p.id);
+        p.upi_id = upi;
       }
+      setProfile(p);
+      setWalletBalance(wRes.data?.balance || 0);
+      setDailyLimit(wRes.data?.daily_limit || 0);
+      setGoalCount(gRes.data?.length || 0);
+      setUnreadNotif(nRes.count || 0);
+
+      if (p?.created_at) {
+        const months = Math.max(0, Math.floor((Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+        setMemberMonths(months);
+      }
+
+      if (ptlRes.data?.parent_id) {
+        const { data: parent } = await supabase.from("profiles").select("full_name").eq("id", ptlRes.data.parent_id).single();
+        setParentName(parent?.full_name || null);
+      }
+
+      if (wRes.data?.id) {
+        const { data: txns } = await supabase
+          .from("transactions")
+          .select("amount, type, created_at")
+          .eq("wallet_id", wRes.data.id)
+          .eq("type", "debit")
+          .gte("created_at", new Date(Date.now() - 14 * 86400000).toISOString());
+
+        const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("wallet_id", wRes.data.id);
+        setTxCount(count || 0);
+
+        // Build last 7 days bucket
+        const days: DailyTotal[] = [];
+        const labels = ["S", "M", "T", "W", "T", "F", "S"];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          d.setHours(0, 0, 0, 0);
+          days.push({ day: labels[d.getDay()], total: 0 });
+        }
+        let weekTotal = 0;
+        let prevWeekTotal = 0;
+        const now = Date.now();
+        (txns || []).forEach(tx => {
+          const ts = new Date(tx.created_at!).getTime();
+          const ageDays = Math.floor((now - ts) / 86400000);
+          if (ageDays < 7) {
+            weekTotal += tx.amount;
+            const idx = 6 - ageDays;
+            if (idx >= 0 && idx < 7) days[idx].total += tx.amount;
+          } else if (ageDays < 14) {
+            prevWeekTotal += tx.amount;
+          }
+        });
+        setWeekly(days);
+        setThisWeekTotal(weekTotal);
+        setLastWeekTotal(prevWeekTotal);
+      }
+
       setLoading(false);
     };
-    fetch();
+    load();
   }, []);
 
+  const initials = useMemo(() =>
+    profile?.full_name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?",
+  [profile?.full_name]);
+
+  const uploadAvatar = async (file: File | Blob, ext: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setUploading(true);
+    try {
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: `image/${ext}` });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: updErr } = await supabase.from("profiles").update({ avatar_url: pub.publicUrl }).eq("id", user.id);
+      if (updErr) throw updErr;
+      setProfile(prev => prev ? { ...prev, avatar_url: pub.publicUrl } : prev);
+      toast.success("Photo updated");
+      haptic.success();
+    } catch (e: any) {
+      toast.error(e.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const pickFromCamera = async () => {
+    setShowSource(false);
+    if (!Capacitor.isNativePlatform()) {
+      // Web fallback: use input with capture
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.capture = "user";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (file) await uploadAvatar(file, file.name.split(".").pop() || "jpg");
+      };
+      input.click();
+      return;
+    }
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const photo = await Camera.getPhoto({
+        quality: 80, allowEditing: true, resultType: CameraResultType.Base64, source: CameraSource.Camera,
+      });
+      if (photo.base64String) {
+        const blob = await (await fetch(`data:image/${photo.format};base64,${photo.base64String}`)).blob();
+        await uploadAvatar(blob, photo.format || "jpg");
+      }
+    } catch (e: any) {
+      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.error("Camera unavailable");
+    }
+  };
+
+  const pickFromGallery = async () => {
+    setShowSource(false);
+    if (!Capacitor.isNativePlatform()) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (file) await uploadAvatar(file, file.name.split(".").pop() || "jpg");
+      };
+      input.click();
+      return;
+    }
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const photo = await Camera.getPhoto({
+        quality: 80, allowEditing: true, resultType: CameraResultType.Base64, source: CameraSource.Photos,
+      });
+      if (photo.base64String) {
+        const blob = await (await fetch(`data:image/${photo.format};base64,${photo.base64String}`)).blob();
+        await uploadAvatar(blob, photo.format || "jpg");
+      }
+    } catch (e: any) {
+      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.error("Gallery unavailable");
+    }
+  };
+
   const handleLogout = async () => {
+    setShowLogout(false);
     haptic.medium();
     await supabase.auth.signOut();
     navigate("/");
     toast.success("Logged out");
   };
 
-  const initials = profile?.full_name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
-  const formatAmount = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
-  const referralCode = profile?.phone ? `AURO${profile.phone.slice(-4)}` : "AURO0000";
+  const weekDelta = thisWeekTotal - lastWeekTotal;
+  const weekDeltaAbs = Math.abs(weekDelta);
 
-  const xp = (txCount * 10) + (goalCount * 25) + (rewardCount * 15) + (profile?.kyc_status === "verified" ? 100 : 0);
-  const levels = [
-    { name: "Starter", minXP: 0, icon: Star, color: "hsl(220 15% 50%)" },
-    { name: "Explorer", minXP: 50, icon: Zap, color: "hsl(210 80% 55%)" },
-    { name: "Pro", minXP: 150, icon: Gem, color: "hsl(270 70% 60%)" },
-    { name: "Elite", minXP: 500, icon: Crown, color: "hsl(42 78% 55%)" },
-    { name: "Legend", minXP: 1000, icon: Trophy, color: "hsl(340 75% 55%)" },
-  ];
-  const currentLevel = [...levels].reverse().find(l => xp >= l.minXP) || levels[0];
-  const nextLevel = levels.find(l => l.minXP > xp);
-  const levelProgress = nextLevel ? ((xp - currentLevel.minXP) / (nextLevel.minXP - currentLevel.minXP)) * 100 : 100;
-  const LevelIcon = currentLevel.icon;
-
-  const badges = [
-    { icon: Flame, label: "First Transaction", desc: "Complete your first transaction", earned: txCount > 0, points: 50 },
-    { icon: Target, label: "Goal Setter", desc: "Create a savings goal", earned: goalCount > 0, points: 100 },
-    { icon: Shield, label: "KYC Verified", desc: "Verify your identity", earned: profile?.kyc_status === "verified", points: 200 },
-    { icon: Zap, label: "Power Saver", desc: "Save ₹1,000+", earned: (wallet?.balance || 0) >= 100000, points: 300 },
-    { icon: TrendingUp, label: "10 Transactions", desc: "Complete 10 transactions", earned: txCount >= 10, points: 500 },
-    { icon: Gift, label: "Reward Hunter", desc: "Redeem a reward", earned: rewardCount > 0, points: 150 },
-  ];
-  const totalPoints = badges.filter(b => b.earned).reduce((s, b) => s + b.points, 0);
-  const earnedCount = badges.filter(b => b.earned).length;
-
-  const copyReferral = () => {
-    navigator.clipboard.writeText(referralCode);
-    setCopiedReferral(true);
-    haptic.light();
-    toast.success("Referral code copied!");
-    setTimeout(() => setCopiedReferral(false), 2000);
-  };
-
-  const copyCoupon = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCoupon(code);
-    haptic.light();
-    toast.success("Coupon code copied!");
-    setTimeout(() => setCopiedCoupon(null), 2000);
-  };
-
-  const categoryEmojis: Record<string, string> = {
-    general: "🎁", food: "🍔", shopping: "🛍️", entertainment: "🎬", travel: "✈️", education: "📚",
-  };
-
-  const menuItems = [
-    { icon: User, label: "Personal Info", path: "/personal-info", desc: "Name, phone, email" },
-    { icon: Shield, label: "Security & PIN", path: "/security", desc: "Change PIN, biometrics" },
-    { icon: Wallet, label: "Spending Limits", path: "/spending-limits", desc: "Daily & monthly limits" },
-    { icon: Users, label: "Linked Parents", path: "/linked-parents", desc: "Manage parent connections" },
-    { icon: ShieldCheck, label: "Parent Controls", path: "/parent-controls", desc: "Limits, restrictions & requests" },
-    { icon: Target, label: "Savings Goals", path: "/savings", desc: "Track your goals" },
-    { icon: Bell, label: "Notifications", path: "/notifications", desc: "Alert preferences" },
-    { icon: HelpCircle, label: "Help & Support", path: "/help", desc: "FAQs, contact us" },
-    { icon: Info, label: "About AuroPay", path: "/about", desc: "Version, terms" },
+  const menuItems: { icon: any; label: string; path?: string; desc?: string; badge?: string | number; danger?: boolean; onClick?: () => void; }[] = [
+    { icon: User, label: "Personal Information", path: "/personal-info", desc: "Name, phone, email" },
+    { icon: Shield, label: "Security & PIN", path: "/security", desc: profile?.pin_set_at ? "PIN set" : "Set up PIN" } as any,
+    { icon: Users, label: "Linked Parent Account", path: "/linked-parents", desc: parentName ? `Linked to ${parentName}` : "Connect a parent" },
+    { icon: Gauge, label: "Spending Limits", path: "/spending-limits", desc: dailyLimit ? `Daily limit ₹${(dailyLimit / 100).toLocaleString("en-IN")}` : "Set limits" },
+    { icon: Bell, label: "Notifications", path: "/notifications", desc: "Alert preferences", badge: unreadNotif > 0 ? unreadNotif : undefined },
+    { icon: Gift, label: "Referral Program", path: "/referrals", desc: "Earn ₹50 per referral" },
+    { icon: Headphones, label: "Help & Support", path: "/support", desc: "Tickets, FAQs" },
+    { icon: FileText, label: "Privacy Policy", path: "/about", desc: "How we handle your data" },
+    { icon: Info, label: "About AuroPay", path: "/about", desc: `Version ${APP_VERSION}` },
+    { icon: LogOut, label: "Log Out", danger: true, onClick: () => setShowLogout(true) },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background noise-overlay pb-28">
-        <div className="flex flex-col items-center pt-10 px-5">
-          <div className="w-24 h-24 rounded-full bg-muted animate-pulse mb-4" />
-          <div className="w-36 h-5 bg-muted rounded animate-pulse mb-2" />
-          <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+      <div className="min-h-screen bg-background pb-28">
+        <div className="px-5 pt-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-20 h-20 rounded-full bg-white/[0.04] animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 w-32 bg-white/[0.04] rounded animate-pulse" />
+              <div className="h-3 w-24 bg-white/[0.04] rounded animate-pulse" />
+              <div className="h-3 w-40 bg-white/[0.04] rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2 mb-5">
+            {[1,2,3,4].map(i => <div key={i} className="h-[60px] rounded-[16px] bg-white/[0.04] animate-pulse" />)}
+          </div>
         </div>
         <BottomNav />
       </div>
@@ -198,282 +374,159 @@ const ProfileScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28 relative">
+    <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
+        <div className="absolute -top-40 -right-40 w-[400px] h-[400px] rounded-full opacity-[0.04] blur-[110px]"
+          style={{ background: "hsl(var(--primary))" }} />
       </div>
 
-      <div className="relative z-10">
-      {/* Profile Hero */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(42 78% 55% / 0.04) 0%, transparent 60%)" }} />
-        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-[0.04]" style={{ background: "hsl(42 78% 55%)" }} />
+      <div className="relative z-10 px-5">
+        {/* Hero card */}
+        <div className="pt-6 mb-5" style={{ animation: "prof-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+          <div className="rounded-[24px] p-5 border border-white/[0.05] relative overflow-hidden"
+            style={{ background: "linear-gradient(160deg, hsl(var(--primary) / 0.06), hsl(220 18% 7%))" }}>
+            <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-[0.07]"
+              style={{ background: "hsl(var(--primary))" }} />
 
-        <div className="relative z-10 flex flex-col items-center pt-8 pb-6 px-5">
-          <div className="relative mb-4">
-            <div className="absolute -inset-1.5 rounded-full" style={{ background: `conic-gradient(${currentLevel.color} ${levelProgress}%, transparent ${levelProgress}%)`, opacity: 0.6 }} />
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover relative z-10 ring-2 ring-background" />
-            ) : (
-              <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center text-2xl font-bold text-primary-foreground relative z-10 ring-2 ring-background shadow-[0_4px_20px_hsl(42_78%_55%/0.25)]">
-                {initials}
-              </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 z-20 w-8 h-8 rounded-full flex items-center justify-center shadow-lg" style={{ background: currentLevel.color }}>
-              <LevelIcon className="w-4 h-4 text-white" />
-            </div>
-          </div>
-
-          <h2 className="text-xl font-bold tracking-[-0.5px]">{profile?.full_name}</h2>
-          <p className="text-[11px] text-white/25 mt-0.5">{profile?.phone}</p>
-
-          <div className="flex items-center gap-2 mt-3">
-            <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${
-              profile?.kyc_status === "verified" ? "bg-[hsl(152_60%_45%/0.1)] text-[hsl(152_60%_45%)]" : "bg-[hsl(38_92%_50%/0.1)] text-[hsl(38_92%_50%)]"
-            }`}>
-              {profile?.kyc_status === "verified" ? "✓ Verified" : "⏳ Pending KYC"}
-            </div>
-            <div className="px-3 py-1 rounded-full text-[10px] font-semibold" style={{ background: `${currentLevel.color}15`, color: currentLevel.color }}>
-              {currentLevel.name} · {xp} XP
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Level Progress Card */}
-      <div className="px-5 mb-5 animate-slide-up-delay-1">
-        <div className="rounded-[20px] p-4 border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <LevelIcon className="w-4 h-4" style={{ color: currentLevel.color }} />
-              <span className="text-[12px] font-semibold">{currentLevel.name}</span>
-            </div>
-            {nextLevel && (
-              <span className="text-[10px] text-white/20">{nextLevel.minXP - xp} XP to {nextLevel.name}</span>
-            )}
-          </div>
-          <div className="w-full h-2 rounded-full bg-white/[0.04] overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${levelProgress}%`, background: currentLevel.color }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Row */}
-      <div className="px-5 mb-5">
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "Balance", value: formatAmount(wallet?.balance || 0) },
-            { label: "Txns", value: txCount.toString() },
-            { label: "Goals", value: goalCount.toString() },
-            { label: "Points", value: totalPoints.toString() },
-          ].map((s, i) => (
-            <div key={s.label} className="rounded-[16px] p-3 border border-white/[0.03] text-center" style={{
-              background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
-              animation: `slide-up-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.15 + i * 0.08}s both`,
-            }}>
-              <p className="text-sm font-bold">{s.value}</p>
-              <p className="text-[9px] text-white/20 font-medium">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Referral Code Card */}
-      <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" }}>
-        <button onClick={() => { haptic.light(); navigate("/referrals"); }} className="w-full text-left relative rounded-[20px] p-4 border border-primary/[0.08] overflow-hidden active:scale-[0.98] transition-all" style={{ background: "linear-gradient(160deg, hsl(42 78% 55% / 0.03), hsl(220 18% 7%))" }}>
-          <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(42 78% 55%), transparent)" }} />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <Gift className="w-4 h-4 text-primary" />
-              <p className="text-[12px] font-semibold text-primary">Your Referral Code</p>
-              <ChevronRight className="w-3.5 h-3.5 text-primary/50 ml-auto" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-primary/[0.04] rounded-[14px] px-4 py-3 border border-primary/[0.06] overflow-hidden">
-                <SlotMachineText text={referralCode} />
-              </div>
-              <button onClick={(e) => { e.stopPropagation(); copyReferral(); }} className="w-11 h-11 rounded-[14px] bg-primary/[0.08] flex items-center justify-center active:scale-90 transition-all">
-                {copiedReferral ? <Check className="w-5 h-5 text-success" /> : <Copy className="w-5 h-5 text-primary" />}
-              </button>
-            </div>
-            <p className="text-[10px] text-white/20 mt-2">Tap to view your referrals & earnings →</p>
-          </div>
-        </button>
-      </div>
-
-      {/* My Rewards Section */}
-      {redeemedRewards.length > 0 && (
-        <div className="px-5 mb-5 animate-slide-up-delay-2">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-primary" />
-              <p className="text-[13px] font-semibold">My Rewards</p>
-            </div>
-            <span className="text-[10px] text-white/20">{redeemedRewards.length} redeemed</span>
-          </div>
-          <div className="space-y-2.5">
-            {redeemedRewards.slice(0, 5).map(rr => {
-              const reward = rr.reward;
-              if (!reward) return null;
-              return (
-                <div key={rr.id} className="rounded-[20px] p-3.5 border border-white/[0.03]" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-[14px] bg-primary/[0.06] flex items-center justify-center text-lg shrink-0">
-                      {categoryEmojis[reward.category || "general"]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold truncate">{reward.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] font-bold text-primary">
-                          {reward.discount_type === "percentage" ? `${reward.discount_value}% OFF` : `₹${reward.discount_value} OFF`}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          {new Date(rr.redeemed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                        </span>
-                      </div>
-                    </div>
-                    <button onClick={() => copyCoupon(reward.coupon_code)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] bg-primary/[0.06] active:scale-90 transition-all">
-                      {copiedCoupon === reward.coupon_code ? (
-                        <Check className="w-3.5 h-3.5 text-success" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 text-primary" />
-                      )}
-                      <span className="text-[10px] font-bold text-primary tracking-wider">
-                        {copiedCoupon === reward.coupon_code ? "Copied!" : reward.coupon_code}
-                      </span>
-                    </button>
+            <div className="relative flex items-start gap-4">
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-[22px] font-bold ring-2 ring-white/10"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                      color: "hsl(220 22% 6%)",
+                    }}>
+                    {initials}
                   </div>
-                </div>
-              );
-            })}
-            {redeemedRewards.length > 5 && (
-              <button onClick={() => navigate("/rewards")} className="w-full py-2.5 text-center text-[11px] font-semibold text-primary active:scale-95 transition-all">
-                View all {redeemedRewards.length} rewards →
-              </button>
+                )}
+                <button
+                  onClick={() => { haptic.light(); setShowSource(true); }}
+                  disabled={uploading}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 ring-2 ring-background shadow-lg"
+                  style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))" }}>
+                  <Pencil className="w-3.5 h-3.5" style={{ color: "hsl(220 22% 6%)" }} />
+                </button>
+              </div>
+
+              {/* Identity */}
+              <div className="flex-1 min-w-0 pt-1">
+                <h1 className="text-[19px] font-bold tracking-[-0.4px] truncate">{profile?.full_name || "Set your name"}</h1>
+                <p className="text-[11px] text-white/40 mt-0.5">{profile?.phone || "—"}</p>
+                <p className="text-[11px] mt-1.5 text-primary/85 truncate"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.02em" }}>
+                  {profile?.upi_id || (profile?.phone ? `${profile.phone}@auropay` : "—")}
+                </p>
+                {profile?.kyc_status === "verified" ? (
+                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
+                    <BadgeCheck className="w-3 h-3" />
+                    KYC Verified
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 60%)" }}>
+                    KYC {profile?.kyc_status || "pending"}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-2 mb-5">
+          <StatTile label="Balance" value={Math.floor(walletBalance / 100)} prefix="₹" delay={0.05} ready={!loading} />
+          <StatTile label="Txns" value={txCount} delay={0.10} ready={!loading} />
+          <StatTile label="Goals" value={goalCount} delay={0.15} ready={!loading} />
+          <StatTile label="Months" value={memberMonths} delay={0.20} ready={!loading} />
+        </div>
+
+        {/* Spending insight strip */}
+        <div className="mb-5 rounded-[20px] p-4 border border-white/[0.04]"
+          style={{
+            background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+            animation: "prof-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both",
+          }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">This week</p>
+              <p className="text-[16px] font-bold mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                ₹{(thisWeekTotal / 100).toLocaleString("en-IN")}
+              </p>
+            </div>
+            {lastWeekTotal > 0 && (
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
+                style={{
+                  background: weekDelta < 0 ? "hsl(152 65% 42% / 0.12)" : "hsl(38 92% 50% / 0.12)",
+                  color: weekDelta < 0 ? "hsl(152 65% 60%)" : "hsl(38 92% 60%)",
+                }}>
+                {weekDelta < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                ₹{(weekDeltaAbs / 100).toLocaleString("en-IN")} {weekDelta < 0 ? "less" : "more"}
+              </div>
             )}
           </div>
+          <WeeklyChart data={weekly} />
         </div>
-      )}
 
-      {/* Achievement Badges */}
-      <div className="px-5 mb-5">
-        <div className="flex items-center justify-between mb-3" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.35s both" }}>
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-primary" />
-            <p className="text-[13px] font-semibold">Achievements</p>
-          </div>
-          <span className="text-[10px] text-white/20">{earnedCount}/{badges.length} unlocked</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {badges.map((b, i) => (
-            <div key={b.label}
-              style={{ animation: `slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) ${0.4 + i * 0.06}s both` }}
-              className={`relative rounded-[16px] p-3 border flex flex-col items-center text-center transition-all ${
-                b.earned
-                  ? "border-primary/[0.15] bg-primary/[0.02]"
-                  : "border-white/[0.03] opacity-40"
-              }`}
-              >
-              {b.earned && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[hsl(152_60%_45%)] flex items-center justify-center">
-                  <Check className="w-2.5 h-2.5 text-white" />
+        {/* Menu */}
+        <div className="space-y-1.5">
+          {menuItems.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.label}
+                onClick={() => {
+                  haptic.light();
+                  if (item.onClick) item.onClick();
+                  else if (item.path) navigate(item.path);
+                }}
+                className="group w-full text-left rounded-[16px] border border-white/[0.04] p-3.5 flex items-center gap-3 active:scale-[0.99] transition-all hover:border-white/[0.08]"
+                style={{
+                  background: item.danger
+                    ? "linear-gradient(160deg, hsl(0 70% 50% / 0.05), hsl(220 18% 7%))"
+                    : "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))",
+                  animation: `prof-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + i * 0.04}s both`,
+                }}>
+                <div className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 border"
+                  style={{
+                    background: item.danger ? "hsl(0 70% 50% / 0.1)" : "hsl(var(--primary) / 0.08)",
+                    borderColor: item.danger ? "hsl(0 70% 50% / 0.2)" : "hsl(var(--primary) / 0.15)",
+                  }}>
+                  <Icon className="w-[18px] h-[18px]" style={{ color: item.danger ? "hsl(0 75% 65%)" : "hsl(var(--primary))" }} />
                 </div>
-              )}
-              <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mb-1.5 ${b.earned ? "bg-primary/[0.06]" : "bg-white/[0.03]"}`}>
-                <b.icon className={`w-5 h-5 ${b.earned ? "text-primary" : "text-white/20"}`} />
-              </div>
-              <p className="text-[10px] font-semibold leading-tight">{b.label}</p>
-              <p className="text-[8px] text-white/15 mt-0.5">{b.points} pts</p>
-            </div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-semibold ${item.danger ? "text-destructive" : ""}`}>{item.label}</p>
+                  {item.desc && <p className="text-[10px] text-white/35 mt-0.5 truncate">{item.desc}</p>}
+                </div>
+                {item.badge !== undefined && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold mr-1"
+                    style={{ background: "hsl(var(--primary))", color: "hsl(220 22% 6%)" }}>
+                    {item.badge}
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-white/25 transition-transform group-hover:translate-x-1" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Theme Toggle */}
-      <div className="px-5 mb-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.5s both" }}>
-        <div className="rounded-[20px] p-4 border border-white/[0.03] flex items-center justify-between" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[12px] bg-primary/[0.06] flex items-center justify-center">
-              {isDarkMode ? (
-                <Moon className="w-[18px] h-[18px] text-primary" />
-              ) : (
-                <Sun className="w-[18px] h-[18px] text-primary" />
-              )}
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold">Dark Mode</p>
-              <p className="text-[10px] text-muted-foreground/40">Switch appearance theme</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              haptic.light();
-              if (isDarkMode) {
-                document.documentElement.classList.remove("dark");
-                localStorage.setItem("theme", "light");
-                setIsDarkMode(false);
-              } else {
-                document.documentElement.classList.add("dark");
-                localStorage.setItem("theme", "dark");
-                setIsDarkMode(true);
-              }
-            }}
-            className="relative w-12 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] transition-all duration-300 active:scale-90"
-          >
-            <div className={`absolute top-0.5 w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center ${
-              isDarkMode
-                ? "left-[calc(100%-1.625rem)] bg-primary shadow-[0_0_12px_hsl(42_78%_55%/0.4)]"
-                : "left-0.5 bg-muted-foreground/60"
-            }`}>
-              {isDarkMode ? (
-                <Moon className="w-3 h-3 text-primary-foreground" />
-              ) : (
-                <Sun className="w-3 h-3 text-white" />
-              )}
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Menu Items */}
-      <div className="px-5 mb-5">
-        <div className="rounded-[20px] border border-white/[0.03] overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
-          {menuItems.map((item, i) => (
-            <button
-              key={item.label}
-              onClick={() => { haptic.light(); navigate(item.path); }}
-              style={{ animation: `slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.55 + i * 0.05}s both` }}
-              className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-white/[0.02] transition-all ${
-                i < menuItems.length - 1 ? "border-b border-white/[0.025]" : ""
-              }`}
-            >
-              <div className="w-9 h-9 rounded-[12px] bg-white/[0.03] flex items-center justify-center shrink-0">
-                <item.icon className="w-[18px] h-[18px] text-white/30" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[13px] font-semibold">{item.label}</p>
-                <p className="text-[10px] text-white/20">{item.desc}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/10 shrink-0" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Logout */}
-      <div className="px-5 mb-8">
-        <button onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[16px] bg-destructive/[0.04] border border-destructive/[0.08] text-destructive/70 text-[13px] font-semibold active:scale-[0.98] transition-all">
-          <LogOut className="w-4 h-4" />
-          Log Out
-        </button>
-      </div>
-      </div>
+      {showSource && <SourceSheet onPick={(s) => s === "camera" ? pickFromCamera() : pickFromGallery()} onClose={() => setShowSource(false)} />}
+      {showLogout && <LogoutModal onConfirm={handleLogout} onClose={() => setShowLogout(false)} />}
 
       <BottomNav />
+
+      <style>{`
+        @keyframes prof-in    { 0% { opacity: 0; transform: translateY(14px) scale(0.98); } 100% { opacity: 1; transform: none; } }
+        @keyframes prof-fade  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes prof-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes prof-pop   { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+        @keyframes bar-grow   { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+      `}</style>
     </div>
   );
 };
