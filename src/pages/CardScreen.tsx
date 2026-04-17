@@ -54,7 +54,7 @@ const CardScreen = () => {
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [showLimitEditor, setShowLimitEditor] = useState(false);
   const [limitDraft, setLimitDraft] = useState<string>("");
-  const [pinModal, setPinModal] = useState<null | "cvv" | "details">(null);
+  const [pinModal, setPinModal] = useState<null | "cvv" | "details" | "freeze">(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -131,7 +131,7 @@ const CardScreen = () => {
   const handleMouseLeave = () => setTilt({ x: 0, y: 0 });
 
   // ─── Actions ───
-  const handleToggleFreeze = async () => {
+  const performToggleFreeze = async () => {
     if (!wallet) return;
     const newFrozen = !wallet.is_frozen;
     const { error } = await supabase.from("wallets").update({ is_frozen: newFrozen }).eq("id", wallet.id);
@@ -139,7 +139,12 @@ const CardScreen = () => {
     setWallet({ ...wallet, is_frozen: newFrozen });
     haptic.success();
     toast.success(newFrozen ? "Card frozen" : "Card unfrozen");
+  };
+
+  // Confirm-sheet "Freeze Now" → require PIN before mutating.
+  const handleConfirmFreezeRequestPin = () => {
     setShowFreezeConfirm(false);
+    openPinModal("freeze");
   };
 
   const saveLimit = async () => {
@@ -168,7 +173,7 @@ const CardScreen = () => {
   };
 
   // ─── PIN gate ───
-  const openPinModal = (purpose: "cvv" | "details") => {
+  const openPinModal = (purpose: "cvv" | "details" | "freeze") => {
     setPinInput(""); setPinError(""); setPinModal(purpose);
   };
 
@@ -187,13 +192,17 @@ const CardScreen = () => {
         return;
       }
       haptic.success();
-      if (pinModal === "cvv") setCvvRevealed(true);
-      if (pinModal === "details") setShowFullNumber(true);
+      const purpose = pinModal;
+      if (purpose === "cvv") setCvvRevealed(true);
+      if (purpose === "details") setShowFullNumber(true);
       setPinModal(null);
-      // auto-hide after 15s
+      if (purpose === "freeze") {
+        await performToggleFreeze();
+      }
+      // auto-hide reveals after 15s
       setTimeout(() => {
-        if (pinModal === "cvv") setCvvRevealed(false);
-        if (pinModal === "details") setShowFullNumber(false);
+        if (purpose === "cvv") setCvvRevealed(false);
+        if (purpose === "details") setShowFullNumber(false);
       }, 15000);
     } catch (e: any) {
       setPinError(e?.message || "Verification failed");
@@ -548,7 +557,7 @@ const CardScreen = () => {
               style={{ background: "hsl(220 15% 8%)" }}>
               Cancel
             </button>
-            <button onClick={handleToggleFreeze}
+            <button onClick={handleConfirmFreezeRequestPin}
               className="flex-1 h-[48px] rounded-2xl font-semibold text-[13px]"
               style={{
                 background: isFrozen ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))" : "hsl(205 80% 55%)",
@@ -622,7 +631,11 @@ const CardScreen = () => {
           </div>
           <h3 className="text-[17px] font-bold text-center mb-1">Enter PIN</h3>
           <p className="text-[12px] text-white/50 text-center mb-5">
-            {pinModal === "cvv" ? "Confirm to reveal CVV" : "Confirm to view full card number"}
+            {pinModal === "cvv"
+              ? "Confirm to reveal CVV"
+              : pinModal === "details"
+              ? "Confirm to view full card number"
+              : `Confirm to ${isFrozen ? "unfreeze" : "freeze"} your card`}
           </p>
 
           {/* PIN dots */}
