@@ -92,11 +92,21 @@ const Avatar = ({ name, size = 56, emoji }: AvatarProps) => {
 const SendMoney = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const incomingContact = (location.state as any)?.selectedContact as Favorite | undefined;
   const incomingMode = (location.state as any)?.mode as "send" | "request" | undefined;
 
+  // URL-param prefill (from Pay-again etc.) — `?amount=&name=&upi=&phone=&note=&category=&mode=`
+  const qpAmount = searchParams.get("amount");
+  const qpName = searchParams.get("name");
+  const qpUpi = searchParams.get("upi");
+  const qpPhone = searchParams.get("phone");
+  const qpNote = searchParams.get("note");
+  const qpCategory = searchParams.get("category");
+  const qpMode = searchParams.get("mode") as "send" | "request" | null;
+
   // Top-level mode: Send Money or Request Money
-  const [mode, setMode] = useState<"send" | "request">(incomingMode || "send");
+  const [mode, setMode] = useState<"send" | "request">(incomingMode || qpMode || "send");
 
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
