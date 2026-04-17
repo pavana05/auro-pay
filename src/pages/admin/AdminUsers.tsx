@@ -395,6 +395,24 @@ const AdminUsers = () => {
           </div>
         </div>
 
+        {/* Presets bar */}
+        <div className="rounded-[14px] border p-2.5 flex items-center gap-2 overflow-x-auto" style={{ background: "rgba(13,14,18,0.55)", borderColor: "rgba(255,255,255,0.04)" }}>
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-sora flex items-center gap-1.5 shrink-0 pr-1">
+            <Bookmark className="w-3 h-3" /> Presets
+          </span>
+          {BUILT_IN_PRESETS.map((p) => (
+            <PresetChip key={p.id} active={activePresetId === p.id} onClick={() => applyPreset(p)} icon={Star} label={p.name} built />
+          ))}
+          {userPresets.map((p) => (
+            <PresetChip key={p.id} active={activePresetId === p.id} onClick={() => applyPreset(p)} label={p.name}
+              onDelete={() => deletePreset(p.id)} />
+          ))}
+          <button onClick={saveCurrentAsPreset} title="Save current filters as preset"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-[8px] text-[10px] font-medium font-sora text-primary border border-primary/25 hover:bg-primary/10 shrink-0">
+            <PlusIcon className="w-3 h-3" /> Save current
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="rounded-[16px] border p-3 lg:p-4 space-y-3" style={{ background: "rgba(13,14,18,0.7)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.05)" }}>
           <div className="flex flex-wrap items-center gap-2">
