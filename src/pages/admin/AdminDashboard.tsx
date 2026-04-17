@@ -133,6 +133,8 @@ const AdminDashboard = () => {
 
   /* Snapshot state */
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(new Date());
   const [profile, setProfile] = useState<any>(null);
@@ -172,29 +174,70 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchAll = useCallback(async () => {
-    const [usersRes, walletsRes, txnsRes, kycRes, linksRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, role, created_at, phone").order("created_at", { ascending: false }),
-      supabase.from("wallets").select("id, user_id, balance, is_frozen"),
-      supabase.from("transactions").select("id, type, amount, status, merchant_name, merchant_upi_id, category, created_at, wallet_id, razorpay_payment_id").order("created_at", { ascending: false }).limit(1000),
-      supabase.from("kyc_requests").select("id, user_id, aadhaar_name, submitted_at, status").eq("status", "pending").order("submitted_at", { ascending: false }).limit(5),
-      supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
-    ]);
+    // Use Promise.allSettled so a single failed query (RLS, network) doesn't
+    // wipe the entire dashboard or trap us on the skeleton screen.
+    try {
+      const results = await Promise.allSettled([
+        supabase.from("profiles").select("id, full_name, role, created_at, phone").order("created_at", { ascending: false }),
+        supabase.from("wallets").select("id, user_id, balance, is_frozen"),
+        supabase.from("transactions").select("id, type, amount, status, merchant_name, merchant_upi_id, category, created_at, wallet_id, razorpay_payment_id").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("kyc_requests").select("id, user_id, aadhaar_name, submitted_at, status").eq("status", "pending").order("submitted_at", { ascending: false }).limit(5),
+        supabase.from("parent_teen_links").select("id", { count: "exact", head: true }).eq("is_active", true),
+      ]);
 
-    const allUsers = usersRes.data || [];
-    const allWallets = walletsRes.data || [];
-    const txns = txnsRes.data || [];
-    setUsers(allUsers);
-    setWallets(allWallets);
-    setAllTxns(txns);
-    setPendingKyc(kycRes.data || []);
-    setActiveLinks(linksRes.count || 0);
-    setSystemBalance(allWallets.reduce((s: number, w: any) => s + (w.balance || 0), 0));
-    setRecentFailed(txns.filter((t: any) => t.status === "failed").slice(0, 5));
-    setFeed(txns.slice(0, 30));
-    setLoading(false);
+      const [usersRes, walletsRes, txnsRes, kycRes, linksRes] = results;
+      const errs: string[] = [];
+      const pick = <T,>(r: PromiseSettledResult<any>, label: string, fallback: T): T => {
+        if (r.status === "rejected") { errs.push(`${label}: ${r.reason?.message || r.reason}`); return fallback; }
+        if (r.value?.error) { errs.push(`${label}: ${r.value.error.message}`); return fallback; }
+        return (r.value?.data ?? fallback) as T;
+      };
+      const allUsers = pick<any[]>(usersRes, "users", []);
+      const allWallets = pick<any[]>(walletsRes, "wallets", []);
+      const txns = pick<any[]>(txnsRes, "transactions", []);
+      const kyc = pick<any[]>(kycRes, "kyc", []);
+      const linksCount =
+        linksRes.status === "fulfilled" && !linksRes.value?.error
+          ? (linksRes.value.count || 0)
+          : (errs.push(`links: ${linksRes.status === "rejected" ? linksRes.reason?.message : linksRes.value?.error?.message}`), 0);
+
+      setUsers(allUsers);
+      setWallets(allWallets);
+      setAllTxns(txns);
+      setPendingKyc(kyc);
+      setActiveLinks(linksCount);
+      setSystemBalance(allWallets.reduce((s: number, w: any) => s + (w.balance || 0), 0));
+      setRecentFailed(txns.filter((t: any) => t.status === "failed").slice(0, 5));
+      setFeed(txns.slice(0, 30));
+
+      if (errs.length === results.length) {
+        // Everything failed — surface the error to the user.
+        setLoadError(errs.join(" · "));
+        toast.error(`Failed to load dashboard: ${errs[0]}`);
+      } else {
+        setLoadError(null);
+        if (errs.length > 0) {
+          console.warn("[AdminDashboard] partial load failures:", errs);
+        }
+        setLastUpdatedAt(Date.now());
+      }
+    } catch (e: any) {
+      console.error("[AdminDashboard] fetchAll exception:", e);
+      setLoadError(e?.message || "Unknown error");
+      toast.error(`Failed to load dashboard: ${e?.message || e}`);
+    } finally {
+      // ALWAYS clear loading so the page never gets stuck on the skeleton.
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    // Hard safety: if the supabase client hangs (e.g. session not yet ready),
+    // never trap the user on the skeleton — clear loading after 8s.
+    const t = setTimeout(() => setLoading((l) => (l ? false : l)), 8000);
+    return () => clearTimeout(t);
+  }, [fetchAll]);
 
   /* Realtime: live feed insert */
   useEffect(() => {
@@ -489,6 +532,36 @@ const AdminDashboard = () => {
           </div>
           <div className="flex items-center justify-center py-20">
             <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  /* ─────────── Hard error shell (every query failed) ─────────── */
+  if (loadError && users.length === 0 && wallets.length === 0 && allTxns.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="p-4 lg:p-8">
+          <div className="max-w-2xl mx-auto rounded-[18px] p-6 flex flex-col gap-4"
+               style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                   style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: C.danger }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Could not load dashboard data</p>
+                <p className="text-xs text-white/55 mt-1 break-words">{loadError}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setLoading(true); fetchAll(); }}
+              className="self-start text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2"
+              style={{ background: C.primary, color: "#0a0c0f" }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
           </div>
         </div>
       </AdminLayout>
