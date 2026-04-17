@@ -621,7 +621,8 @@ const LimitsTab = ({ wallet, onChange }: { wallet: any; onChange: () => void }) 
   const save = async (field: "daily_limit" | "monthly_limit", value: string) => {
     if (!wallet?.id) return;
     const paise = Math.round(parseFloat(value || "0") * 100);
-    const { error } = await supabase.from("wallets").update({ [field]: paise }).eq("id", wallet.id);
+    const update = field === "daily_limit" ? { daily_limit: paise } : { monthly_limit: paise };
+    const { error } = await supabase.from("wallets").update(update).eq("id", wallet.id);
     if (error) toast.error(error.message); else { toast.success("Limit updated"); onChange(); }
   };
 
