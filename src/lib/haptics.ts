@@ -1,4 +1,5 @@
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
+import { sound } from "@/lib/sounds";
 
 const isNative = () => typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
 
@@ -25,30 +26,30 @@ const guard = async (fn: () => Promise<void> | void) => {
 };
 
 export const haptic = {
-  light: () => guard(async () => {
+  light: () => { sound.tap(); return guard(async () => {
     if (isNative()) await Haptics.impact({ style: ImpactStyle.Light });
     else navigator.vibrate?.(5);
-  }),
-  medium: () => guard(async () => {
+  }); },
+  medium: () => { sound.tap(); return guard(async () => {
     if (isNative()) await Haptics.impact({ style: ImpactStyle.Medium });
     else navigator.vibrate?.(15);
-  }),
-  heavy: () => guard(async () => {
+  }); },
+  heavy: () => { sound.tap(); return guard(async () => {
     if (isNative()) await Haptics.impact({ style: ImpactStyle.Heavy });
     else navigator.vibrate?.(30);
-  }),
-  success: () => guard(async () => {
+  }); },
+  success: () => { sound.success(); return guard(async () => {
     if (isNative()) await Haptics.notification({ type: NotificationType.Success });
     else navigator.vibrate?.([10, 50, 20]);
-  }),
-  error: () => guard(async () => {
+  }); },
+  error: () => { sound.error(); return guard(async () => {
     if (isNative()) await Haptics.notification({ type: NotificationType.Error });
     else navigator.vibrate?.([50, 30, 50, 30, 50]);
-  }),
-  warning: () => guard(async () => {
+  }); },
+  warning: () => { sound.tap(); return guard(async () => {
     if (isNative()) await Haptics.notification({ type: NotificationType.Warning });
     else navigator.vibrate?.([30, 20, 30]);
-  }),
+  }); },
   selection: () => guard(async () => {
     if (isNative()) {
       await Haptics.selectionStart();

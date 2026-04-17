@@ -21,9 +21,14 @@ const Index = () => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, role")
+      .select("id, role, haptics_enabled")
       .eq("id", uid)
       .single();
+    // Apply user's haptics preference globally before any page renders.
+    if (profile && typeof (profile as any).haptics_enabled === "boolean") {
+      const { setHapticsEnabled } = await import("@/lib/haptics");
+      setHapticsEnabled((profile as any).haptics_enabled);
+    }
     if (profile) {
       if (profile.role === "parent") navigate("/parent");
       else navigate("/home");
