@@ -9,6 +9,15 @@ const categoryIcons: Record<string, string> = {
   food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
 };
 
+// Helper: log a parent action (best-effort, never blocks UI)
+const logParentAction = async (teenId: string, action_type: string, description: string, metadata: any = {}) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("parent_actions").insert({
+    parent_id: user.id, teen_id: teenId, action_type, description, metadata,
+  });
+};
+
 const ParentTeenDetail = () => {
   const { teenId } = useParams();
   const navigate = useNavigate();
@@ -16,6 +25,7 @@ const ParentTeenDetail = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [spendingLimits, setSpendingLimits] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [freezing, setFreezing] = useState(false);
   const [editingLimit, setEditingLimit] = useState(false);
