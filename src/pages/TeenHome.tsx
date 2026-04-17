@@ -335,6 +335,32 @@ const TeenHome = () => {
           </div>
         </motion.div>
 
+        {/* KYC pending banner */}
+        {profile && profile.kyc_status !== "verified" && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.04, type: "spring", stiffness: 280, damping: 24 }}
+            onClick={() => { haptic.light(); navigate("/personal-info"); }}
+            className="mx-5 mb-4 w-[calc(100%-2.5rem)] flex items-center gap-3 px-4 py-3 rounded-[16px] border border-warning/25 relative overflow-hidden text-left"
+            style={{ background: "linear-gradient(135deg, hsl(38 92% 50% / 0.12), hsl(42 78% 55% / 0.04))" }}
+          >
+            <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)" }} />
+            <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center shrink-0" style={{ background: "hsl(38 92% 50% / 0.15)" }}>
+              <Shield className="w-[17px] h-[17px] text-warning" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-foreground font-sora leading-tight">
+                Complete KYC to unlock full access
+              </p>
+              <p className="text-[10px] text-muted-foreground/70 font-sora mt-0.5">
+                Verify Aadhaar to remove limits & enable payouts
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-warning shrink-0" />
+          </motion.button>
+        )}
+
         {/* Streak + Daily Spin Strip */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}

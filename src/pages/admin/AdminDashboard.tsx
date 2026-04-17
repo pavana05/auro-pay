@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { Sparkline, VolumeBars, StatusDonut, GrowthLine, HBars, type VolBar } from "@/components/admin/charts";
+import BroadcastNotification from "@/components/admin/BroadcastNotification";
+import FraudDetectionPanel from "@/components/admin/FraudDetectionPanel";
 import { toast } from "sonner";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, AlertTriangle,
@@ -525,6 +527,12 @@ const AdminDashboard = () => {
       <div className="p-4 lg:p-6 space-y-5 relative min-h-full">
         {/* Ambient glow */}
         <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-[0.04] blur-[150px]" style={{ background: `radial-gradient(circle, ${C.primary}, transparent)` }} />
+
+        {/* Admin tools row: Broadcast + Fraud */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BroadcastNotification />
+          <FraudDetectionPanel />
+        </div>
 
         {/* Welcome banner */}
         <div
