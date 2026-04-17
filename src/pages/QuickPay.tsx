@@ -39,13 +39,14 @@ const CATEGORIES = [
 const gradientFor = (name: string) => {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  // Gold-family palettes only — keeps avatars on-theme (no purple/blue/green).
   const palettes: Array<[string, string]> = [
-    ["42 78% 55%", "38 88% 65%"],
-    ["152 60% 45%", "165 65% 55%"],
-    ["210 80% 55%", "225 75% 65%"],
-    ["280 60% 55%", "300 65% 65%"],
-    ["340 70% 55%", "10 75% 65%"],
-    ["190 70% 50%", "205 75% 60%"],
+    ["42 78% 55%", "38 88% 65%"],   // gold
+    ["32 82% 52%", "26 90% 62%"],   // amber
+    ["48 70% 50%", "44 80% 60%"],   // honey
+    ["20 70% 50%", "14 78% 60%"],   // copper
+    ["38 60% 45%", "34 70% 55%"],   // bronze
+    ["50 75% 55%", "46 85% 65%"],   // light gold
   ];
   return palettes[h % palettes.length];
 };
