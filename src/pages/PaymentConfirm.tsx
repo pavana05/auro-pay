@@ -22,6 +22,8 @@ interface PayState {
   amount_locked?: boolean;
   note?: string;
   category?: string;
+  /** When set, this payment is fulfilling a pending payment request — mark it paid on success. */
+  payment_request_id?: string;
 }
 
 const PROCESSING_STEPS = [
@@ -218,6 +220,18 @@ const PaymentConfirm = () => {
         reference: (tx?.id || "").slice(0, 12).toUpperCase(),
         time: new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
       });
+      // If this payment is fulfilling a pending request, mark it paid.
+      if (state.payment_request_id) {
+        supabase
+          .from("payment_requests")
+          .update({
+            status: "paid",
+            paid_transaction_id: tx?.id ?? null,
+            responded_at: new Date().toISOString(),
+          })
+          .eq("id", state.payment_request_id)
+          .then(() => {});
+      }
       // Let processing animation play out a bit
       setTimeout(() => { setStage("success"); haptic.success(); }, 1800);
     } catch (err: any) {
