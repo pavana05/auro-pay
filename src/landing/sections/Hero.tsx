@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Sparkles, Play, ChevronRight } from "lucide-react";
 import PhoneMockup from "../PhoneMockup";
+import heroIllustration from "@/assets/hero-illustration.png";
 
 const TABS = [
   { id: "home" as const, label: "Wallet", emoji: "💰" },
