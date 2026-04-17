@@ -716,6 +716,76 @@ const GoalCard = ({
             </button>
           </div>
         )}
+
+        {/* Auto-save rule */}
+        {!goal.is_completed && (
+          <div className="mt-3 pt-3 border-t border-white/[0.04]">
+            <button
+              onClick={() => { haptic.light(); setAutosaveOpen(o => !o); }}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-[28px] h-[28px] rounded-[9px] flex items-center justify-center"
+                  style={{
+                    background: goal.autosave_enabled
+                      ? `linear-gradient(135deg, hsl(${accent} / 0.22), hsl(${accent} / 0.08))`
+                      : "hsl(220 15% 8%)",
+                    border: `1px solid hsl(${accent} / ${goal.autosave_enabled ? 0.35 : 0.08})`,
+                  }}>
+                  <Repeat className="w-3.5 h-3.5" style={{ color: goal.autosave_enabled ? `hsl(${accent})` : "hsl(0 0% 100% / 0.3)" }} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-white/70">Auto-save</p>
+                  <p className="text-[9.5px] text-white/35">
+                    {goal.autosave_enabled
+                      ? `₹${goal.autosave_amount} every ${goal.autosave_frequency || "week"}`
+                      : "Hands-off saving"}
+                  </p>
+                </div>
+              </div>
+              {/* Toggle pill */}
+              <div
+                onClick={(e) => { e.stopPropagation(); onSetAutoSave(!goal.autosave_enabled, parseInt(draftAmount, 10) || 100, draftFreq); }}
+                className="w-[36px] h-[20px] rounded-full relative transition-colors cursor-pointer"
+                style={{ background: goal.autosave_enabled ? `hsl(${accent})` : "hsl(220 15% 14%)" }}
+              >
+                <div className="absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white transition-all"
+                  style={{ left: goal.autosave_enabled ? "18px" : "2px" }} />
+              </div>
+            </button>
+
+            {autosaveOpen && (
+              <div className="mt-3 flex gap-2 items-center" style={{ animation: "fade-in 0.2s" }}>
+                <span className="text-[11px] text-white/45">₹</span>
+                <input
+                  value={draftAmount}
+                  onChange={e => setDraftAmount(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  placeholder="100"
+                  className="w-[80px] h-[34px] rounded-lg px-2 text-[12px] font-mono outline-none"
+                  style={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 15% 12%)", color: "white" }}
+                />
+                <select
+                  value={draftFreq}
+                  onChange={e => setDraftFreq(e.target.value)}
+                  className="h-[34px] rounded-lg px-2 text-[12px] outline-none"
+                  style={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 15% 12%)", color: "white" }}
+                >
+                  <option value="weekly">weekly</option>
+                  <option value="monthly">monthly</option>
+                  <option value="daily">daily</option>
+                </select>
+                <button
+                  onClick={() => { onSetAutoSave(true, parseInt(draftAmount, 10) || 100, draftFreq); setAutosaveOpen(false); }}
+                  className="ml-auto h-[34px] px-3 rounded-lg text-[11px] font-bold active:scale-95 transition"
+                  style={{ background: `hsl(${accent})`, color: "hsl(220 22% 6%)" }}
+                >
+                  Save rule
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
