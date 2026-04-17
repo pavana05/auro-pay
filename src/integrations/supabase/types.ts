@@ -363,6 +363,66 @@ export type Database = {
         }
         Relationships: []
       }
+      flagged_transactions: {
+        Row: {
+          amount: number
+          baseline_avg: number
+          baseline_stddev: number | null
+          created_at: string
+          detail: string
+          id: string
+          multiplier: number
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          transaction_id: string
+          user_id: string
+          wallet_id: string
+          zscore: number | null
+        }
+        Insert: {
+          amount: number
+          baseline_avg: number
+          baseline_stddev?: number | null
+          created_at?: string
+          detail: string
+          id?: string
+          multiplier: number
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          transaction_id: string
+          user_id: string
+          wallet_id: string
+          zscore?: number | null
+        }
+        Update: {
+          amount?: number
+          baseline_avg?: number
+          baseline_stddev?: number | null
+          created_at?: string
+          detail?: string
+          id?: string
+          multiplier?: number
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          transaction_id?: string
+          user_id?: string
+          wallet_id?: string
+          zscore?: number | null
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           created_at: string | null
@@ -1349,6 +1409,13 @@ export type Database = {
           avatar_url: string
           full_name: string
           id: string
+        }[]
+      }
+      scan_transaction_anomalies: {
+        Args: { _lookback_minutes?: number }
+        Returns: {
+          flagged_count: number
+          scanned_count: number
         }[]
       }
     }
