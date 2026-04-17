@@ -1,515 +1,644 @@
-import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Search, ArrowLeft, ArrowDownLeft, ArrowUpRight, TrendingUp, CalendarDays, X, BarChart3, Sparkles } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
+// Screen 11 — Transaction History. Search + voice-icon, filter chips, date-range picker,
+// summary metric strip, daily spending bar chart, grouped infinite-scroll list, full-sheet detail.
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft, Search, Mic, X, Calendar, Check, Copy, Download, AlertTriangle,
+  ChevronDown, ArrowUpRight, ArrowDownLeft, Filter,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
-import { format, subDays, startOfDay } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { motion, AnimatePresence } from "framer-motion";
-import { useCountUp } from "@/hooks/useCountUp";
+import BottomNav from "@/components/BottomNav";
 
-interface Transaction {
+interface Txn {
   id: string;
-  type: string;
+  wallet_id: string;
+  type: "credit" | "debit" | string;
   amount: number;
-  merchant_name: string | null;
+  status: string | null;
   category: string | null;
-  status: string;
+  description: string | null;
+  merchant_name: string | null;
+  merchant_upi_id: string | null;
+  razorpay_payment_id: string | null;
+  razorpay_order_id: string | null;
   created_at: string;
 }
 
-const categoryIcons: Record<string, string> = {
-  food: "🍔", transport: "🚗", education: "📚", shopping: "🛍️", entertainment: "🎮", other: "💸",
-};
+type DirectionFilter = "all" | "sent" | "received";
+type DateRange = "week" | "month" | "custom";
 
-const filters = ["All", "Sent", "Received", "Food", "Transport", "Shopping", "Education", "Entertainment"];
+const PAGE_SIZE = 30;
 
-const quickDateFilters = [
-  { label: "Today", getRange: () => { const d = new Date(); d.setHours(0,0,0,0); return { from: d, to: new Date() }; } },
-  { label: "Yesterday", getRange: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); const e = new Date(d); e.setHours(23,59,59,999); return { from: d, to: e }; } },
-  { label: "This Week", getRange: () => { const d = new Date(); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); const start = new Date(d); start.setDate(diff); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
-  { label: "This Month", getRange: () => { const d = new Date(); const start = new Date(d.getFullYear(), d.getMonth(), 1); return { from: start, to: new Date() }; } },
-  { label: "Last 30 Days", getRange: () => { const d = new Date(); const start = new Date(d); start.setDate(d.getDate()-30); start.setHours(0,0,0,0); return { from: start, to: new Date() }; } },
+const CATEGORIES = [
+  { key: "food", label: "Food", icon: "🍔" },
+  { key: "transport", label: "Transport", icon: "🚗" },
+  { key: "shopping", label: "Shopping", icon: "🛍️" },
+  { key: "education", label: "Education", icon: "📚" },
+  { key: "entertainment", label: "Entertainment", icon: "🎬" },
 ];
 
-const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
+const categoryIcon = (cat: string | null, type: string) => {
+  const c = (cat || "").toLowerCase();
+  const found = CATEGORIES.find(x => x.key === c);
+  if (found) return found.icon;
+  if (type === "credit") return "💰";
+  return "💸";
+};
+
+const formatINR = (paise: number) =>
+  `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatINRShort = (paise: number) => {
+  const v = paise / 100;
+  if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k`;
+  return `₹${v.toFixed(0)}`;
+};
+
+const dayKey = (iso: string) => iso.slice(0, 10);
+const groupLabel = (iso: string) => {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const target = new Date(d); target.setHours(0, 0, 0, 0);
+  const diff = (today.getTime() - target.getTime()) / 86400000;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return d.toLocaleDateString("en-IN", { weekday: "long" });
+  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+};
 
 const Activity = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
-  const [showDatePicker, setShowDatePicker] = useState<"from" | "to" | null>(null);
-  const [activeQuickDate, setActiveQuickDate] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [allTx, setAllTx] = useState<Txn[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const [search, setSearch] = useState("");
+  const [direction, setDirection] = useState<DirectionFilter>("all");
+  const [category, setCategory] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange>("month");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
+  const [showRangePicker, setShowRangePicker] = useState(false);
+  const [pinnedDay, setPinnedDay] = useState<string | null>(null);
 
-      const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
-      if (!wallet) { setLoading(false); return; }
+  const [selected, setSelected] = useState<Txn | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-      // Fetch all for chart (last 30 days)
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      const { data: allData } = await supabase.from("transactions").select("*").eq("wallet_id", wallet.id).gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false });
-      if (allData) setAllTransactions(allData as Transaction[]);
-
-      let query = supabase.from("transactions").select("*").eq("wallet_id", wallet.id).order("created_at", { ascending: false }).limit(50);
-
-      if (filter === "Sent") query = query.eq("type", "debit");
-      else if (filter === "Received") query = query.eq("type", "credit");
-      else if (filter !== "All") query = query.eq("category", filter.toLowerCase());
-
-      if (dateFrom) query = query.gte("created_at", dateFrom.toISOString());
-      if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
-        query = query.lte("created_at", end.toISOString());
-      }
-
-      const { data } = await query;
-      setTransactions((data || []) as Transaction[]);
-      setLoading(false);
-    };
-    fetchTransactions();
-  }, [filter, dateFrom, dateTo]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("activity-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
-        const refetch = async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-          const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
-          if (!wallet) return;
-          const { data } = await supabase.from("transactions").select("*").eq("wallet_id", wallet.id).order("created_at", { ascending: false }).limit(50);
-          if (data) setTransactions(data as Transaction[]);
-        };
-        refetch();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const filtered = transactions.filter(
-    (tx) => !search || tx.merchant_name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalIn = filtered.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
-  const totalOut = filtered.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0);
-  const animIn = useCountUp(totalIn, 1000, true);
-  const animOut = useCountUp(totalOut, 1000, true);
-
-  // 7-day spending chart from allTransactions
-  const chartData = useMemo(() => {
-    const days: { day: string; date: Date; amount: number; label: string }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = startOfDay(subDays(new Date(), i));
-      const next = subDays(d, -1);
-      const amount = allTransactions
-        .filter(t => t.type === "debit" && new Date(t.created_at) >= d && new Date(t.created_at) < next)
-        .reduce((s, t) => s + t.amount, 0);
-      days.push({
-        day: format(d, "EEE")[0],
-        date: d,
-        amount,
-        label: format(d, "dd MMM"),
-      });
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    if (range === "week") {
+      const f = new Date(now); f.setDate(now.getDate() - 6); f.setHours(0, 0, 0, 0);
+      return { from: f, to: now };
     }
-    return days;
-  }, [allTransactions]);
+    if (range === "month") {
+      const f = new Date(now); f.setDate(now.getDate() - 29); f.setHours(0, 0, 0, 0);
+      return { from: f, to: now };
+    }
+    const f = customFrom ? new Date(customFrom + "T00:00:00") : new Date(now.getFullYear(), now.getMonth(), 1);
+    const t = customTo ? new Date(customTo + "T23:59:59") : now;
+    return { from: f, to: t };
+  }, [range, customFrom, customTo]);
 
-  const maxChart = Math.max(...chartData.map(d => d.amount), 1);
-  const totalWeek = chartData.reduce((s, d) => s + d.amount, 0);
-  const animWeek = useCountUp(totalWeek, 1000, true);
-  const avgDaily = totalWeek / 7;
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).maybeSingle();
+    if (!wallet) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("wallet_id", wallet.id)
+      .gte("created_at", from.toISOString())
+      .lte("created_at", to.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(500);
+    setAllTx((data || []) as Txn[]);
+    setVisibleCount(PAGE_SIZE);
+    setPinnedDay(null);
+    setLoading(false);
+  }, [from, to]);
 
-  const hasDateFilter = dateFrom || dateTo;
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const clearDateFilter = () => {
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    setActiveQuickDate(null);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allTx.filter(tx => {
+      if (direction === "sent" && tx.type !== "debit") return false;
+      if (direction === "received" && tx.type !== "credit") return false;
+      if (category && (tx.category || "").toLowerCase() !== category) return false;
+      if (pinnedDay && dayKey(tx.created_at) !== pinnedDay) return false;
+      if (q) {
+        const hay = `${tx.merchant_name || ""} ${tx.description || ""} ${tx.category || ""} ${tx.merchant_upi_id || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allTx, search, direction, category, pinnedDay]);
+
+  const summary = useMemo(() => {
+    let spent = 0, received = 0;
+    for (const tx of filtered) {
+      if (tx.status && tx.status !== "success") continue;
+      if (tx.type === "debit") spent += tx.amount;
+      else if (tx.type === "credit") received += tx.amount;
+    }
+    return { spent, received, count: filtered.length };
+  }, [filtered]);
+
+  const chart = useMemo(() => {
+    const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86400000) + 1);
+    const buckets: { day: string; spent: number; label: string }[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(from); d.setDate(from.getDate() + i);
+      buckets.push({ day: d.toISOString().slice(0, 10), spent: 0, label: d.toLocaleDateString("en-IN", { day: "numeric" }) });
+    }
+    for (const tx of allTx) {
+      if (tx.type !== "debit") continue;
+      if (tx.status && tx.status !== "success") continue;
+      const k = dayKey(tx.created_at);
+      const b = buckets.find(x => x.day === k);
+      if (b) b.spent += tx.amount;
+    }
+    const max = Math.max(1, ...buckets.map(b => b.spent));
+    return { buckets, max };
+  }, [allTx, from, to]);
+
+  const groups = useMemo(() => {
+    const slice = filtered.slice(0, visibleCount);
+    const map = new Map<string, Txn[]>();
+    for (const tx of slice) {
+      const k = dayKey(tx.created_at);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(tx);
+    }
+    return Array.from(map.entries()).map(([k, items]) => ({
+      key: k,
+      label: groupLabel(items[0].created_at),
+      items,
+      subtotal: items.reduce((s, t) => s + (t.type === "debit" ? t.amount : 0), 0),
+    }));
+  }, [filtered, visibleCount]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && visibleCount < filtered.length && !loadingMore) {
+        setLoadingMore(true);
+        setTimeout(() => {
+          setVisibleCount(c => Math.min(c + PAGE_SIZE, filtered.length));
+          setLoadingMore(false);
+        }, 350);
+      }
+    }, { rootMargin: "200px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [filtered.length, visibleCount, loadingMore]);
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    haptic.light();
+    toast.success(`${label} copied`);
   };
 
-  const applyQuickDate = (label: string) => {
-    const qf = quickDateFilters.find(q => q.label === label);
-    if (!qf) return;
-    haptic.selection();
-    const { from, to } = qf.getRange();
-    setDateFrom(from);
-    setDateTo(to);
-    setActiveQuickDate(label);
+  const downloadReceipt = (tx: Txn) => {
+    const lines = [
+      `AuroPay Receipt`,
+      `─────────────────────`,
+      `Type: ${tx.type === "credit" ? "Received" : "Sent"}`,
+      `Amount: ${formatINR(tx.amount)}`,
+      `Status: ${(tx.status || "success").toUpperCase()}`,
+      `Merchant: ${tx.merchant_name || tx.description || "—"}`,
+      `Category: ${tx.category || "other"}`,
+      `Date: ${new Date(tx.created_at).toLocaleString("en-IN")}`,
+      `UPI ID: ${tx.merchant_upi_id || "—"}`,
+      `Payment Ref: ${tx.razorpay_payment_id || tx.id}`,
+      `Order ID: ${tx.razorpay_order_id || "—"}`,
+    ].join("\n");
+    const blob = new Blob([lines], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `receipt_${tx.id.slice(0, 8)}.txt`; a.click();
+    URL.revokeObjectURL(url);
+    haptic.success();
+    toast.success("Receipt downloaded");
   };
 
-  const grouped = filtered.reduce<Record<string, Transaction[]>>((acc, tx) => {
-    const d = new Date(tx.created_at);
-    const today = new Date();
-    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-    let label: string;
-    if (d.toDateString() === today.toDateString()) label = "Today";
-    else if (d.toDateString() === yesterday.toDateString()) label = "Yesterday";
-    else label = d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-    if (!acc[label]) acc[label] = [];
-    acc[label].push(tx);
-    return acc;
-  }, {});
+  const clearChips = !!(category || direction !== "all" || search || pinnedDay);
 
   return (
     <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
-      {/* Ambient BG */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 -right-40 w-[420px] h-[420px] rounded-full opacity-[0.045] blur-[100px]" style={{ background: "hsl(42 78% 55%)" }} />
-        <div className="absolute top-[40%] -left-32 w-[280px] h-[280px] rounded-full opacity-[0.02] blur-[80px]" style={{ background: "hsl(36 60% 48%)" }} />
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04] blur-[120px]"
+          style={{ background: "hsl(var(--primary))" }} />
       </div>
 
-      <div className="relative z-10">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="px-5 pt-6 pb-4"
-        >
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => { haptic.light(); navigate(-1); }}
-              className="w-[42px] h-[42px] rounded-[14px] bg-muted/20 border border-border/30 flex items-center justify-center"
-            >
-              <ArrowLeft className="w-[18px] h-[18px] text-muted-foreground/70" />
-            </motion.button>
-            <div className="flex-1">
-              <h1 className="text-[18px] font-bold tracking-[-0.4px] font-sora">Activity</h1>
-              <p className="text-[10px] text-muted-foreground/40 font-mono mt-0.5">{filtered.length} transactions</p>
-            </div>
+      {/* Header */}
+      <div className="relative z-10 px-5 pt-4 pb-3">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => navigate(-1)}
+            className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
+            style={{ background: "hsl(220 15% 8%)" }}>
+            <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-[19px] font-bold tracking-[-0.5px]">Activity</h1>
+            <p className="text-[10px] text-white/30 font-medium">{summary.count} transactions</p>
           </div>
-        </motion.div>
-
-        {/* Summary Cards with count-up */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, type: "spring", stiffness: 200, damping: 22 }}
-          className="px-5 mb-4"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[20px] p-4 border border-success/[0.08] overflow-hidden relative" style={{ background: "linear-gradient(160deg, hsl(152 60% 45% / 0.04), hsl(220 18% 7%))" }}>
-              <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.05] blur-[20px]" style={{ background: "hsl(152 60% 45%)" }} />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-[9px] bg-success/[0.1] flex items-center justify-center">
-                    <ArrowDownLeft className="w-3.5 h-3.5 text-success" />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground/40 font-bold tracking-[0.12em] uppercase font-sora">Income</p>
-                </div>
-                <p className="text-[18px] font-bold text-success tabular-nums font-mono">{fmt(animIn)}</p>
-              </div>
-            </div>
-            <div className="rounded-[20px] p-4 border border-destructive/[0.06] overflow-hidden relative" style={{ background: "linear-gradient(160deg, hsl(0 72% 51% / 0.03), hsl(220 18% 7%))" }}>
-              <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.05] blur-[20px]" style={{ background: "hsl(0 72% 51%)" }} />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-[9px] bg-destructive/[0.1] flex items-center justify-center">
-                    <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground/40 font-bold tracking-[0.12em] uppercase font-sora">Spent</p>
-                </div>
-                <p className="text-[18px] font-bold text-destructive tabular-nums font-mono">{fmt(animOut)}</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 7-Day Spending Bar Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 22 }}
-          className="px-5 mb-5"
-        >
-          <div className="rounded-[22px] p-4 border border-border/20 relative overflow-hidden" style={{ background: "radial-gradient(ellipse 60% 80% at 95% 5%, hsl(42 78% 55% / 0.06) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}>
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.2), transparent)" }} />
-
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <BarChart3 className="w-3.5 h-3.5 text-primary/70" />
-                  <p className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.12em] uppercase font-sora">7-Day Spending</p>
-                </div>
-                <p className="text-[22px] font-bold tabular-nums font-mono tracking-[-0.5px]">{fmt(animWeek)}</p>
-                <p className="text-[10px] text-muted-foreground/40 font-sora font-mono mt-0.5">~{fmt(avgDaily)}/day</p>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                onClick={() => { haptic.light(); navigate("/analytics"); }}
-                className="px-3 py-2 rounded-[12px] bg-primary/[0.06] border border-primary/[0.1] flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-bold text-primary font-sora">Insights</span>
-              </motion.button>
-            </div>
-
-            {/* Bars */}
-            <div className="flex items-end justify-between gap-2 h-[80px] mt-2">
-              {chartData.map((d, i) => {
-                const height = (d.amount / maxChart) * 100;
-                const isToday = i === chartData.length - 1;
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group">
-                    <div className="w-full flex-1 flex items-end relative">
-                      <motion.div
-                        initial={{ height: "0%" }}
-                        animate={{ height: `${Math.max(height, 4)}%` }}
-                        transition={{ delay: 0.2 + i * 0.07, duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
-                        className="w-full rounded-t-[6px] relative"
-                        style={{
-                          background: isToday
-                            ? "linear-gradient(180deg, hsl(42 78% 55%), hsl(36 80% 42%))"
-                            : "linear-gradient(180deg, hsl(42 78% 55% / 0.35), hsl(36 80% 42% / 0.18))",
-                          boxShadow: isToday ? "0 0 12px hsl(42 78% 55% / 0.3)" : "none",
-                        }}
-                      >
-                        {isToday && (
-                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" style={{ boxShadow: "0 0 6px hsl(42 78% 55%)" }} />
-                        )}
-                      </motion.div>
-                    </div>
-                    <span className={`text-[9px] font-bold font-sora ${isToday ? "text-primary" : "text-muted-foreground/30"}`}>{d.day}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Quick Date Chips */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
-          className="px-5 mb-3"
-        >
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {quickDateFilters.map((qf, i) => (
-              <motion.button
-                key={qf.label}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + i * 0.04, type: "spring", stiffness: 300, damping: 22 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => activeQuickDate === qf.label ? clearDateFilter() : applyQuickDate(qf.label)}
-                className={`px-3.5 py-2 rounded-[12px] text-[11px] font-semibold whitespace-nowrap transition-colors font-sora ${
-                  activeQuickDate === qf.label
-                    ? "gradient-primary text-primary-foreground shadow-[0_4px_14px_hsl(42_78%_55%/0.3)]"
-                    : "bg-muted/15 border border-border/30 text-muted-foreground/60"
-                }`}
-              >
-                {qf.label}
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Custom Date Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.24 }}
-          className="px-5 mb-4"
-        >
-          <div className="flex gap-2 items-center">
-            <Popover open={showDatePicker === "from"} onOpenChange={(o) => setShowDatePicker(o ? "from" : null)}>
-              <PopoverTrigger asChild>
-                <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-[11px] font-medium border transition-all active:scale-95 font-sora ${dateFrom ? "border-primary/30 bg-primary/[0.06] text-primary" : "border-border/30 bg-muted/15 text-muted-foreground/40"}`}>
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  {dateFrom ? format(dateFrom, "dd MMM yyyy") : "From"}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateTo ? d > dateTo : false)} className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-[10px] text-muted-foreground/30 font-sora">to</span>
-
-            <Popover open={showDatePicker === "to"} onOpenChange={(o) => setShowDatePicker(o ? "to" : null)}>
-              <PopoverTrigger asChild>
-                <button className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-[11px] font-medium border transition-all active:scale-95 font-sora ${dateTo ? "border-primary/30 bg-primary/[0.06] text-primary" : "border-border/30 bg-muted/15 text-muted-foreground/40"}`}>
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  {dateTo ? format(dateTo, "dd MMM yyyy") : "To"}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setShowDatePicker(null); setActiveQuickDate(null); }} disabled={(d) => d > new Date() || (dateFrom ? d < dateFrom : false)} className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-
-            <AnimatePresence>
-              {hasDateFilter && (
-                <motion.button
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  whileTap={{ scale: 0.85 }}
-                  onClick={clearDateFilter}
-                  className="w-8 h-8 rounded-[10px] bg-destructive/[0.08] border border-destructive/[0.12] flex items-center justify-center"
-                >
-                  <X className="w-3.5 h-3.5 text-destructive/70" />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.div>
+          <button onClick={() => setShowRangePicker(true)}
+            className="px-3 h-[34px] rounded-full flex items-center gap-1.5 border border-white/[0.06] active:scale-95 transition"
+            style={{ background: "hsl(220 15% 8%)" }}>
+            <Calendar className="w-3 h-3 text-white/50" />
+            <span className="text-[11px] font-semibold text-white/80">
+              {range === "week" ? "This Week" : range === "month" ? "This Month" : "Custom"}
+            </span>
+            <ChevronDown className="w-3 h-3 text-white/40" />
+          </button>
+        </div>
 
         {/* Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-          className="px-5 mb-4"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search transactions..."
-              className="w-full h-[48px] rounded-[16px] bg-muted/15 border border-border/30 pl-11 pr-4 text-[13px] placeholder:text-muted-foreground/25 focus:border-primary/40 focus:bg-muted/20 focus:shadow-[0_0_0_3px_hsl(42_78%_55%/0.06)] transition-all outline-none font-sora"
-            />
+        <div className="relative mb-3">
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search transactions..."
+            className="w-full h-[44px] pl-11 pr-20 rounded-[14px] text-[13px] outline-none border border-white/[0.06] focus:border-primary/40 transition placeholder:text-white/25"
+            style={{ background: "hsl(220 15% 7%)" }}
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {search && (
+              <button onClick={() => setSearch("")}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-white/[0.05] active:scale-90">
+                <X className="w-3.5 h-3.5 text-white/50" />
+              </button>
+            )}
+            <button onClick={() => toast("Voice search coming soon")}
+              className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition"
+              style={{ background: "hsl(var(--primary) / 0.12)" }}>
+              <Mic className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
+            </button>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Category Filter Chips */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32 }}
-          className="px-5 mb-5"
-        >
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {filters.map((f, i) => (
-              <motion.button
-                key={f}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.35 + i * 0.03, type: "spring", stiffness: 300, damping: 22 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => { haptic.selection(); setFilter(f); }}
-                className={`px-4 py-2 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors font-sora ${
-                  filter === f
-                    ? "gradient-primary text-primary-foreground shadow-[0_4px_14px_hsl(42_78%_55%/0.3)]"
-                    : "bg-muted/15 border border-border/30 text-muted-foreground/50"
-                }`}
+        {/* Filter chips */}
+        <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
+          <div className="flex gap-2 w-max">
+            {([
+              { k: "all", label: "All" },
+              { k: "sent", label: "Sent" },
+              { k: "received", label: "Received" },
+            ] as const).map(c => {
+              const active = direction === c.k;
+              return (
+                <button key={c.k} onClick={() => { haptic.light(); setDirection(c.k); }}
+                  className="px-4 h-[32px] rounded-full text-[11px] font-semibold transition active:scale-95 border whitespace-nowrap"
+                  style={{
+                    background: active ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))" : "hsl(220 15% 7%)",
+                    color: active ? "hsl(220 20% 6%)" : "hsl(0 0% 100% / 0.6)",
+                    borderColor: active ? "transparent" : "hsl(0 0% 100% / 0.06)",
+                  }}>
+                  {c.label}
+                </button>
+              );
+            })}
+            <div className="w-px h-5 self-center bg-white/10 mx-1" />
+            {CATEGORIES.map(c => {
+              const active = category === c.key;
+              return (
+                <button key={c.key} onClick={() => { haptic.light(); setCategory(active ? null : c.key); }}
+                  className="px-3 h-[32px] rounded-full text-[11px] font-semibold transition active:scale-95 border whitespace-nowrap flex items-center gap-1.5"
+                  style={{
+                    background: active ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))" : "hsl(220 15% 7%)",
+                    color: active ? "hsl(220 20% 6%)" : "hsl(0 0% 100% / 0.6)",
+                    borderColor: active ? "transparent" : "hsl(0 0% 100% / 0.06)",
+                  }}>
+                  <span>{c.icon}</span>{c.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {clearChips && (
+          <button onClick={() => { setCategory(null); setDirection("all"); setSearch(""); setPinnedDay(null); }}
+            className="mt-3 text-[10px] text-white/40 hover:text-white/70 flex items-center gap-1 font-semibold">
+            <X className="w-2.5 h-2.5" /> Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Summary strip */}
+      <div className="relative z-10 px-5 mt-2 grid grid-cols-3 gap-2">
+        {[
+          { label: "Spent", value: formatINRShort(summary.spent), color: "hsl(0 70% 65%)" },
+          { label: "Received", value: formatINRShort(summary.received), color: "hsl(152 60% 60%)" },
+          { label: "Total", value: summary.count.toString(), color: "hsl(var(--primary))" },
+        ].map(m => (
+          <div key={m.label} className="rounded-[14px] p-3 border border-white/[0.05]"
+            style={{ background: "hsl(220 15% 7%)" }}>
+            <p className="text-[9px] text-white/30 font-semibold tracking-widest uppercase mb-1">{m.label}</p>
+            <p className="text-[15px] font-bold font-mono tracking-tight" style={{ color: m.color }}>{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="relative z-10 mx-5 mt-3 rounded-[16px] p-3 border border-white/[0.05]"
+        style={{ background: "hsl(220 15% 6%)" }}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[9px] text-white/30 font-semibold tracking-widest uppercase">Daily spend</p>
+          {pinnedDay && (
+            <button onClick={() => setPinnedDay(null)}
+              className="text-[9px] flex items-center gap-1 font-semibold" style={{ color: "hsl(var(--primary))" }}>
+              <X className="w-2.5 h-2.5" /> Showing {new Date(pinnedDay).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+            </button>
+          )}
+        </div>
+        <div className="flex items-end gap-[3px] h-[80px]">
+          {chart.buckets.map(b => {
+            const h = (b.spent / chart.max) * 72;
+            const active = pinnedDay === b.day;
+            const hasData = b.spent > 0;
+            return (
+              <button
+                key={b.day}
+                onClick={() => { if (hasData) { haptic.light(); setPinnedDay(active ? null : b.day); } }}
+                disabled={!hasData}
+                className="flex-1 flex flex-col items-center justify-end h-full group disabled:cursor-default"
+                title={`${b.label}: ${formatINR(b.spent)}`}
               >
-                {f !== "All" && f !== "Sent" && f !== "Received" && categoryIcons[f.toLowerCase()]
-                  ? `${categoryIcons[f.toLowerCase()]} ${f}`
-                  : f}
-              </motion.button>
+                <div className="w-full rounded-t transition-all"
+                  style={{
+                    height: `${Math.max(2, h)}px`,
+                    background: active
+                      ? "linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
+                      : hasData
+                      ? "linear-gradient(180deg, hsl(var(--primary) / 0.5), hsl(var(--primary) / 0.2))"
+                      : "hsl(220 15% 12%)",
+                    boxShadow: active ? "0 0 12px hsl(var(--primary) / 0.4)" : "none",
+                  }} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grouped list */}
+      <div className="relative z-10 px-5 mt-5">
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="h-[64px] rounded-[14px] bg-white/[0.03] animate-pulse" />
             ))}
           </div>
-        </motion.div>
-
-        {/* Transaction List */}
-        <div className="px-5">
-          {loading ? (
-            <div className="space-y-3">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="w-full h-16 rounded-[16px] skeleton-gold" />
-              ))}
+        ) : groups.length === 0 ? (
+          <div className="rounded-[18px] border border-white/[0.05] p-8 text-center"
+            style={{ background: "hsl(220 15% 7%)" }}>
+            <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center"
+              style={{ background: "hsl(var(--primary) / 0.1)" }}>
+              <Filter className="w-6 h-6" style={{ color: "hsl(var(--primary))" }} />
             </div>
-          ) : filtered.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16 rounded-[20px] bg-muted/10 border border-border/20"
-            >
-              <div className="w-14 h-14 rounded-[18px] bg-muted/15 flex items-center justify-center mx-auto mb-3">
-                <TrendingUp className="w-7 h-7 text-muted-foreground/15" />
-              </div>
-              <p className="text-[13px] font-semibold text-muted-foreground/40 font-sora">No transactions found</p>
-              <p className="text-[11px] text-muted-foreground/25 mt-1 font-sora">Try a different filter or search term</p>
-            </motion.div>
-          ) : (
-            Object.entries(grouped).map(([date, txns], gi) => (
-              <motion.div
-                key={date}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + gi * 0.06, type: "spring", stiffness: 200, damping: 22 }}
-                className="mb-5"
-              >
-                <div className="flex items-center gap-2 mb-2.5">
-                  <p className="text-[10px] font-bold text-muted-foreground/30 tracking-[0.15em] uppercase font-sora">{date}</p>
-                  <div className="flex-1 h-[1px]" style={{ background: "linear-gradient(90deg, hsl(220 15% 18% / 0.4), transparent)" }} />
-                  <span className="text-[10px] text-muted-foreground/25 font-mono">{txns.length}</span>
+            <p className="text-[14px] font-semibold mb-1">No transactions found</p>
+            <p className="text-[11px] text-white/40">Try adjusting your filters or date range</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {groups.map(g => (
+              <div key={g.key}>
+                <div className="flex items-baseline justify-between mb-2 px-1">
+                  <p className="text-[10px] font-semibold tracking-widest uppercase text-white/40">{g.label}</p>
+                  <p className="text-[10px] text-white/30 font-mono">{g.items.length} item{g.items.length !== 1 ? "s" : ""}</p>
                 </div>
-                <div className="rounded-[20px] border border-border/20 overflow-hidden relative" style={{
-                  background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))",
-                  boxShadow: "0 8px 32px -8px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.02)"
-                }}>
-                  <div className="absolute top-0 inset-x-0 h-[1px] z-10" style={{ background: "linear-gradient(90deg, transparent 10%, hsl(42 78% 55% / 0.1) 50%, transparent 90%)" }} />
-                  {txns.map((tx, idx) => (
-                    <motion.button
-                      key={tx.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.42 + gi * 0.06 + idx * 0.04, type: "spring", stiffness: 300, damping: 24 }}
-                      whileTap={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.025)" }}
-                      onClick={() => { haptic.light(); navigate(`/transaction/${tx.id}`); }}
-                      className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-all duration-200 ${idx < txns.length - 1 ? "border-b border-border/10" : ""}`}
-                    >
-                      <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center text-lg shrink-0 border border-border/10 ${
-                        tx.type === "credit" ? "bg-success/[0.08]" : "bg-muted/20"
-                      }`}>
-                        {categoryIcons[tx.category || "other"] || "💸"}
+                <div className="rounded-[16px] overflow-hidden border border-white/[0.05]"
+                  style={{ background: "hsl(220 15% 7%)" }}>
+                  {g.items.map((tx, i) => (
+                    <button key={tx.id}
+                      onClick={() => { haptic.light(); setSelected(tx); }}
+                      className="w-full flex items-center gap-3 p-3 text-left active:bg-white/[0.03] transition"
+                      style={{ borderTop: i > 0 ? "1px solid hsl(0 0% 100% / 0.04)" : "none" }}>
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                        style={{ background: "hsl(220 15% 10%)" }}>
+                        {categoryIcon(tx.category, tx.type)}
                       </div>
-                      <div className="flex-1 min-w-0 text-left">
-                        <p className="text-[13px] font-semibold truncate font-sora">{tx.merchant_name || tx.category || "Transaction"}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground/30 capitalize font-sora">{tx.category || "other"}</span>
-                          <span className="text-[10px] text-muted-foreground/15">·</span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full font-sora ${
-                            tx.status === "success" ? "bg-success/[0.1] text-success" :
-                            tx.status === "failed" ? "bg-destructive/[0.1] text-destructive" :
-                            "bg-warning/[0.1] text-warning"
-                          }`}>{tx.status}</span>
-                          <span className="text-[10px] text-muted-foreground/15">·</span>
-                          <span className="text-[10px] text-muted-foreground/30 font-mono">
-                            {new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold truncate text-white/90">
+                          {tx.merchant_name || tx.description || "Transaction"}
+                        </p>
+                        <p className="text-[10px] text-white/40 truncate flex items-center gap-1.5">
+                          <span className="capitalize">{tx.category || "other"}</span>
+                          <span className="text-white/20">·</span>
+                          <span>{new Date(tx.created_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>
+                        </p>
                       </div>
-                      <p className={`text-[13px] font-bold tabular-nums font-mono ${tx.type === "credit" ? "text-success" : "text-foreground"}`}>
-                        {tx.type === "credit" ? "+" : "-"}{fmt(tx.amount)}
-                      </p>
-                    </motion.button>
+                      <div className="text-right shrink-0">
+                        <p className="text-[13px] font-mono font-bold flex items-center gap-0.5 justify-end"
+                          style={{ color: tx.type === "credit" ? "hsl(152 60% 60%)" : "hsl(0 70% 65%)" }}>
+                          {tx.type === "credit" ? "+" : "−"}{formatINR(tx.amount)}
+                        </p>
+                        {tx.status && tx.status !== "success" && (
+                          <p className="text-[9px] text-white/40 capitalize">{tx.status}</p>
+                        )}
+                      </div>
+                    </button>
                   ))}
                 </div>
-              </motion.div>
-            ))
+                {g.subtotal > 0 && (
+                  <p className="text-[10px] text-white/30 text-right mt-1.5 px-1 font-mono">
+                    Subtotal: −{formatINR(g.subtotal)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div ref={sentinelRef} className="h-12 flex items-center justify-center mt-4">
+          {loadingMore && (
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="w-2 h-2 rounded-full"
+                  style={{
+                    background: "hsl(var(--primary))",
+                    animation: `dot-bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+                  }} />
+              ))}
+            </div>
+          )}
+          {!loadingMore && !loading && visibleCount >= filtered.length && filtered.length > 5 && (
+            <p className="text-[10px] text-white/25 font-semibold">— End of list —</p>
           )}
         </div>
       </div>
 
       <BottomNav />
 
+      {/* Date range picker */}
+      {showRangePicker && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ animation: "fade-in 0.2s ease-out" }}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowRangePicker(false)} />
+          <div className="relative w-full rounded-t-[28px] border-t border-white/[0.08] p-6 pb-8"
+            style={{ background: "hsl(220 20% 8%)", animation: "sheet-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+            <div className="w-12 h-1 rounded-full bg-white/15 mx-auto mb-5" />
+            <h3 className="text-[16px] font-bold mb-4">Select Date Range</h3>
+
+            <div className="space-y-2">
+              {[
+                { k: "week" as const, label: "This Week", desc: "Last 7 days" },
+                { k: "month" as const, label: "This Month", desc: "Last 30 days" },
+                { k: "custom" as const, label: "Custom", desc: "Pick your own dates" },
+              ].map(opt => {
+                const active = range === opt.k;
+                return (
+                  <button key={opt.k}
+                    onClick={() => { setRange(opt.k); if (opt.k !== "custom") setShowRangePicker(false); }}
+                    className="w-full p-3.5 rounded-[14px] flex items-center justify-between border transition active:scale-[0.98]"
+                    style={{
+                      background: active ? "hsl(var(--primary) / 0.1)" : "hsl(220 15% 6%)",
+                      borderColor: active ? "hsl(var(--primary) / 0.4)" : "hsl(0 0% 100% / 0.06)",
+                    }}>
+                    <div className="text-left">
+                      <p className="text-[13px] font-semibold">{opt.label}</p>
+                      <p className="text-[10px] text-white/40">{opt.desc}</p>
+                    </div>
+                    {active && <Check className="w-4 h-4" style={{ color: "hsl(var(--primary))" }} />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {range === "custom" && (
+              <div className="mt-4 space-y-2">
+                <div>
+                  <label className="text-[10px] text-white/40 font-semibold tracking-wider uppercase mb-1 block">From</label>
+                  <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                    className="w-full h-[44px] px-3 rounded-[12px] text-[13px] outline-none border border-white/[0.06] focus:border-primary/40"
+                    style={{ background: "hsl(220 15% 6%)", colorScheme: "dark" }} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/40 font-semibold tracking-wider uppercase mb-1 block">To</label>
+                  <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+                    className="w-full h-[44px] px-3 rounded-[12px] text-[13px] outline-none border border-white/[0.06] focus:border-primary/40"
+                    style={{ background: "hsl(220 15% 6%)", colorScheme: "dark" }} />
+                </div>
+                <button onClick={() => setShowRangePicker(false)} disabled={!customFrom || !customTo}
+                  className="w-full h-[48px] rounded-2xl font-semibold text-[13px] mt-2 disabled:opacity-40"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                    color: "hsl(220 20% 6%)",
+                  }}>
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Detail bottom sheet */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ animation: "fade-in 0.2s ease-out" }}>
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setSelected(null)} />
+          <div className="relative w-full max-h-[88vh] overflow-y-auto rounded-t-[28px] border-t border-white/[0.08]"
+            style={{
+              background: "linear-gradient(180deg, hsl(220 20% 9%), hsl(220 22% 5%))",
+              animation: "sheet-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+            }}>
+            <div className="sticky top-0 z-10 pt-3 pb-2 backdrop-blur-md"
+              style={{ background: "hsl(220 22% 7% / 0.9)" }}>
+              <div className="w-12 h-1 rounded-full bg-white/15 mx-auto" />
+            </div>
+
+            <div className="px-6 pb-8">
+              <div className="flex flex-col items-center pt-2 pb-5">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-[32px] mb-3"
+                  style={{ background: "hsl(220 15% 10%)", border: "1px solid hsl(0 0% 100% / 0.05)" }}>
+                  {categoryIcon(selected.category, selected.type)}
+                </div>
+                <p className="text-[12px] text-white/40 mb-1 flex items-center gap-1.5">
+                  {selected.type === "credit" ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                  {selected.type === "credit" ? "Received from" : "Sent to"}
+                </p>
+                <p className="text-[16px] font-bold mb-3 text-center">{selected.merchant_name || selected.description || "Transaction"}</p>
+                <p className="text-[36px] font-mono font-bold tracking-tight"
+                  style={{
+                    background: selected.type === "credit"
+                      ? "linear-gradient(135deg, hsl(152 60% 60%), hsl(152 60% 75%))"
+                      : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}>
+                  {selected.type === "credit" ? "+" : "−"}{formatINR(selected.amount)}
+                </p>
+                <div className="mt-3 px-3 h-[26px] rounded-full flex items-center gap-1.5 text-[11px] font-semibold"
+                  style={{
+                    background: selected.status === "success" || !selected.status
+                      ? "hsl(152 60% 50% / 0.12)" : "hsl(40 90% 55% / 0.12)",
+                    color: selected.status === "success" || !selected.status
+                      ? "hsl(152 60% 65%)" : "hsl(40 90% 65%)",
+                  }}>
+                  <Check className="w-3 h-3" />
+                  {(selected.status || "success").toUpperCase()}
+                </div>
+              </div>
+
+              <div className="rounded-[16px] divide-y divide-white/[0.04] border border-white/[0.05]"
+                style={{ background: "hsl(220 15% 6%)" }}>
+                {[
+                  { label: "Category", value: <span className="capitalize">{selected.category || "other"}</span>, copy: false, mono: false, copyVal: "" },
+                  { label: "Date & time", value: new Date(selected.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }), copy: false, mono: false, copyVal: "" },
+                  { label: "UPI ID", value: selected.merchant_upi_id || "—", copy: !!selected.merchant_upi_id, mono: true, copyVal: selected.merchant_upi_id || "" },
+                  { label: "Payment ID", value: selected.razorpay_payment_id || selected.id, copy: true, mono: true, copyVal: selected.razorpay_payment_id || selected.id },
+                  ...(selected.razorpay_order_id ? [{ label: "Order ID", value: selected.razorpay_order_id, copy: true, mono: true, copyVal: selected.razorpay_order_id }] : []),
+                  { label: "Fee", value: "₹0.00", copy: false, mono: false, copyVal: "" },
+                ].map((r, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <span className="text-[11px] text-white/40 font-medium">{r.label}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`text-[12px] font-medium text-white/85 truncate ${r.mono ? "font-mono" : ""}`}>{r.value}</span>
+                      {r.copy && (
+                        <button onClick={() => copyToClipboard(r.copyVal, r.label)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/[0.04] active:scale-90">
+                          <Copy className="w-3 h-3 text-white/50" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 mt-5">
+                <button onClick={() => downloadReceipt(selected)}
+                  className="flex-1 h-[50px] rounded-2xl font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-[0.97] transition"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                    color: "hsl(220 20% 6%)",
+                    boxShadow: "0 4px 24px hsl(var(--primary) / 0.25)",
+                  }}>
+                  <Download className="w-4 h-4" /> Receipt
+                </button>
+                <button onClick={() => { navigate("/help-support"); setSelected(null); }}
+                  className="flex-1 h-[50px] rounded-2xl font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-[0.97] transition border border-white/[0.06] text-white/70"
+                  style={{ background: "hsl(220 15% 8%)" }}>
+                  <AlertTriangle className="w-4 h-4" /> Dispute
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .skeleton-gold {
-          background: linear-gradient(110deg, hsl(220 15% 8%) 0%, hsl(220 15% 8%) 40%, hsl(42 78% 55% / 0.06) 50%, hsl(220 15% 8%) 60%, hsl(220 15% 8%) 100%);
-          background-size: 200% 100%;
-          animation: skel 1.8s ease-in-out infinite;
+        @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes sheet-up { 0% { transform: translateY(100%); } 100% { transform: translateY(0); } }
+        @keyframes dot-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-8px); opacity: 1; }
         }
-        @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
