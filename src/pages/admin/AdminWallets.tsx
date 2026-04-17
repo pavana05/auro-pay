@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
 import MaskedReveal from "@/components/admin/MaskedReveal";
 import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard } from "lucide-react";
+import ForceActionConfirmModal, { type ForceActionPayload } from "@/components/admin/ForceActionConfirmModal";
+
+const FORCE_THRESHOLD_PAISE = 10_000 * 100; // ₹10,000 — must match the edge function
 
 interface WalletRow {
   id: string;
