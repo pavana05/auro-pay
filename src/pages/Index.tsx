@@ -30,8 +30,13 @@ const Index = () => {
       setHapticsEnabled((profile as any).haptics_enabled);
     }
     if (profile) {
+      // Mandatory KYC: until verified, send everyone to /verify-kyc.
+      if ((profile as any).kyc_status !== "verified") {
+        navigate("/verify-kyc");
+        return;
+      }
       // Force PIN setup if KYC is verified but no payment PIN set yet.
-      const needsPin = (profile as any).kyc_status === "verified" && !(profile as any).pin_hash;
+      const needsPin = !(profile as any).pin_hash;
       if (needsPin) { navigate("/security?setup=1"); return; }
       if (profile.role === "parent") navigate("/parent");
       else navigate("/home");

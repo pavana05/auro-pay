@@ -80,6 +80,8 @@ import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 import DeepLinkHandler from "./components/DeepLinkHandler";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MaintenanceGate from "./components/MaintenanceGate";
+import KycEnforcer from "./components/KycEnforcer";
+import VerifyKyc from "./pages/VerifyKyc.tsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -141,6 +143,7 @@ const App = () => (
       <BrowserRouter>
         <DeepLinkHandler />
         <AuthRedirector />
+        <KycEnforcer />
         <RealtimeWrapper>
         <MaintenanceGate>
         <Routes>
@@ -177,6 +180,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/verify-kyc" element={<VerifyKyc />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
                     <Route path="/card" element={<CardScreen />} />
