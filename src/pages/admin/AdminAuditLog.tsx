@@ -37,6 +37,8 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
   role_change: { icon: Shield, color: C.primary, bg: `${C.primary}15`, label: "Role Change" },
   wallet_freeze: { icon: Wallet, color: C.warning, bg: `${C.warning}15`, label: "Wallet Frozen" },
   wallet_unfreeze: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Wallet Unfrozen" },
+  wallet_auto_freeze: { icon: Lock, color: C.danger, bg: `${C.danger}25`, label: "Wallet Auto-Frozen (Fraud)" },
+  wallet_account_unlock: { icon: Wallet, color: C.success, bg: `${C.success}25`, label: "Account Unlocked" },
   wallet_balance_updated: { icon: Wallet, color: C.primary, bg: `${C.primary}15`, label: "Balance Updated" },
   wallet_funds_added: { icon: Wallet, color: C.success, bg: `${C.success}15`, label: "Funds Added" },
   wallet_funds_deducted: { icon: Wallet, color: C.danger, bg: `${C.danger}15`, label: "Funds Deducted" },
@@ -52,6 +54,7 @@ const actionMeta: Record<string, { icon: any; color: string; bg: string; label: 
 };
 
 const FORCE_ACTIONS = new Set(["wallet_force_credit", "wallet_force_debit"]);
+const UNLOCK_ACTION = "wallet_account_unlock";
 
 const humanize = (a: string) => actionMeta[a]?.label || a.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
