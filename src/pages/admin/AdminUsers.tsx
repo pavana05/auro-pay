@@ -65,6 +65,66 @@ const AdminUsers = () => {
   const [txnMin, setTxnMin] = useState("");
   const [lastActiveDays, setLastActiveDays] = useState<string>("any");
 
+  // Sort
+  type SortKey = "name" | "balance" | "txnCount" | "lastActiveAt" | "created_at";
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir(k === "name" ? "asc" : "desc"); }
+    setPage(0);
+  };
+
+  // Presets
+  type Preset = { id: string; name: string; built?: boolean; filters: any };
+  const BUILT_IN_PRESETS: Preset[] = [
+    { id: "p-hv-frozen", name: "High-value frozen", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"frozen", dateFrom:"", dateTo:"", balMin:"5000", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"balance", sortDir:"desc" } },
+    { id: "p-pending-7d", name: "Pending KYC > 7 days", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"pending", statusFilter:"all", dateFrom:"", dateTo: new Date(Date.now() - 7*86400000).toISOString().slice(0,10), balMin:"", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"created_at", sortDir:"asc" } },
+    { id: "p-new-today", name: "New today", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom: new Date().toISOString().slice(0,10), dateTo:"", balMin:"", balMax:"", txnMin:"", lastActiveDays:"any", sortKey:"created_at", sortDir:"desc" } },
+    { id: "p-inactive-30d", name: "Inactive 30+ days", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom:"", dateTo:"", balMin:"", balMax:"", txnMin:"1", lastActiveDays:"any", sortKey:"lastActiveAt", sortDir:"asc" } },
+    { id: "p-power", name: "Power users (50+ txns)", built: true,
+      filters: { search:"", roleFilter:"all", kycFilter:"all", statusFilter:"all", dateFrom:"", dateTo:"", balMin:"", balMax:"", txnMin:"50", lastActiveDays:"any", sortKey:"txnCount", sortDir:"desc" } },
+  ];
+
+  const [userPresets, setUserPresets] = useState<Preset[]>(() => {
+    try { return JSON.parse(localStorage.getItem("admin-user-presets") || "[]"); } catch { return []; }
+  });
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
+  const applyPreset = (p: Preset) => {
+    const f = p.filters;
+    setSearch(f.search ?? ""); setRoleFilter(f.roleFilter ?? "all"); setKycFilter(f.kycFilter ?? "all");
+    setStatusFilter(f.statusFilter ?? "all"); setDateFrom(f.dateFrom ?? ""); setDateTo(f.dateTo ?? "");
+    setBalMin(f.balMin ?? ""); setBalMax(f.balMax ?? ""); setTxnMin(f.txnMin ?? "");
+    setLastActiveDays(f.lastActiveDays ?? "any");
+    if (f.sortKey) setSortKey(f.sortKey); if (f.sortDir) setSortDir(f.sortDir);
+    setPage(0); setActivePresetId(p.id);
+    toast.success(`Applied "${p.name}"`);
+  };
+  const saveCurrentAsPreset = () => {
+    const name = window.prompt("Name this filter preset:");
+    if (!name) return;
+    const p: Preset = {
+      id: `u-${Date.now()}`, name,
+      filters: { search, roleFilter, kycFilter, statusFilter, dateFrom, dateTo, balMin, balMax, txnMin, lastActiveDays, sortKey, sortDir },
+    };
+    const next = [...userPresets, p];
+    setUserPresets(next);
+    localStorage.setItem("admin-user-presets", JSON.stringify(next));
+    setActivePresetId(p.id);
+    toast.success(`Preset "${name}" saved`);
+  };
+  const deletePreset = (id: string) => {
+    const next = userPresets.filter((p) => p.id !== id);
+    setUserPresets(next);
+    localStorage.setItem("admin-user-presets", JSON.stringify(next));
+    if (activePresetId === id) setActivePresetId(null);
+  };
+
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
