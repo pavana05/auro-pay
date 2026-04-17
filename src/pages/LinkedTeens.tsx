@@ -99,7 +99,7 @@ const LinkedTeens = () => {
       } catch (e: any) {
         setLookup({ status: "error", message: e?.message });
       }
-    }, 350);
+    }, 400);
     return () => clearTimeout(t);
   }, [phone, links]);
 
@@ -129,7 +129,7 @@ const LinkedTeens = () => {
       await supabase.from("notifications").insert({
         user_id: lookup.profile.id,
         title: "Parent linked 🎉",
-        body: "Your parent just connected with you on AuroPay 🎉",
+        body: "Your parent just linked with you on AuroPay 🎉",
         type: "parent_link",
       });
       toast.success(`Linked with ${lookup.profile.full_name || "teen"}`);
@@ -317,6 +317,29 @@ const LinkedTeens = () => {
 
             {/* Result */}
             <div className="mt-4 min-h-[80px]">
+              {lookup.status === "searching" && (
+                <div
+                  className="rounded-2xl p-4 flex items-center gap-3 overflow-hidden relative"
+                  style={{
+                    background: "hsl(0 0% 100% / 0.04)",
+                    border: "1.5px solid hsl(0 0% 100% / 0.08)",
+                  }}
+                >
+                  <div className="w-12 h-12 rounded-full bg-white/[0.06] shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-20 rounded bg-white/[0.08]" />
+                    <div className="h-3.5 w-40 rounded bg-white/[0.06]" />
+                  </div>
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.08), transparent)",
+                      animation: "lt-shimmer 1.4s linear infinite",
+                    }}
+                  />
+                  <span className="absolute bottom-1.5 right-3 text-[10px] tracking-wider uppercase text-white/40">searching…</span>
+                </div>
+              )}
               {lookup.status === "found" && (
                 <div
                   className="rounded-2xl p-4 flex items-center gap-3"
@@ -410,6 +433,10 @@ const LinkedTeens = () => {
         @keyframes lt-pop {
           from { opacity: 0; transform: translateY(8px) scale(0.98); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes lt-shimmer {
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(100%); }
         }
       `}</style>
     </div>
