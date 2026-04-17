@@ -74,6 +74,9 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
           if (!isNaN(d.getTime())) setDob(d);
         }
         if (typeof s.teenPhone === "string") setTeenPhone(s.teenPhone);
+        if (s.city && typeof s.city === "object" && typeof s.city.name === "string" && typeof s.city.state === "string") {
+          setCity(s.city as IndiaCity);
+        }
       }
     } catch {}
     setHydrated(true);
@@ -93,10 +96,11 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
           role,
           dob: dob ? dob.toISOString() : null,
           teenPhone,
+          city,
         })
       );
     } catch {}
-  }, [hydrated, step, fullName, avatar, role, dob, teenPhone, storageKey]);
+  }, [hydrated, step, fullName, avatar, role, dob, teenPhone, city, storageKey]);
 
   const displayStep = Math.min(step + 1, TOTAL_STEPS);
 
@@ -158,18 +162,29 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
     goNext();
   };
 
+  const handleStepCity = () => {
+    // City is optional — users can skip it
+    goNext();
+  };
+
   /* ---------- Final submit (called from avatar step) ---------- */
   const submitProfile = async () => {
     setLoading(true);
     try {
-      const { error: profileError } = await supabase.from("profiles").insert({
+      const profileInsert: Record<string, any> = {
         id: userId,
         full_name: fullName.trim(),
         phone: phone?.trim() || null,
         role,
         kyc_status: "pending",
         avatar_url: avatar,
-      });
+      };
+      if (city) {
+        profileInsert.city = city.name;
+        profileInsert.state_code = city.state;
+        profileInsert.state_source = "manual";
+      }
+      const { error: profileError } = await supabase.from("profiles").insert(profileInsert);
       if (profileError) throw profileError;
 
       const { error: walletError } = await supabase.from("wallets").insert({ user_id: userId });
