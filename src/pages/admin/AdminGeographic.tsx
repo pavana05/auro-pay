@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { MapPin, TrendingUp, TrendingDown, Building2, Globe2 } from "lucide-react";
+import { INDIA_STATES, type IndiaState } from "@/lib/india-states";
 
 /* ──────────────────────────────────────────────────────────────
  * Geographic intelligence — India map.
@@ -14,46 +15,21 @@ import { MapPin, TrendingUp, TrendingDown, Building2, Globe2 } from "lucide-reac
 interface StateNode {
   code: string;
   name: string;
-  cx: number; // SVG center
+  cx: number; // SVG centroid
   cy: number;
-  rx: number;
-  ry: number;
+  d: string;  // SVG path
   tier: 1 | 2 | 3;
 }
 
-// Approximate state ellipses on a 1000×1100 viewBox
-const STATES: StateNode[] = [
-  { code: "JK", name: "Jammu & Kashmir", cx: 360, cy: 110, rx: 70, ry: 50, tier: 3 },
-  { code: "HP", name: "Himachal Pradesh", cx: 410, cy: 200, rx: 50, ry: 35, tier: 2 },
-  { code: "PB", name: "Punjab", cx: 350, cy: 240, rx: 45, ry: 35, tier: 1 },
-  { code: "UK", name: "Uttarakhand", cx: 460, cy: 260, rx: 45, ry: 30, tier: 2 },
-  { code: "HR", name: "Haryana", cx: 380, cy: 290, rx: 38, ry: 32, tier: 1 },
-  { code: "DL", name: "Delhi", cx: 410, cy: 320, rx: 16, ry: 16, tier: 1 },
-  { code: "RJ", name: "Rajasthan", cx: 310, cy: 360, rx: 80, ry: 70, tier: 1 },
-  { code: "UP", name: "Uttar Pradesh", cx: 510, cy: 340, rx: 90, ry: 55, tier: 1 },
-  { code: "BR", name: "Bihar", cx: 640, cy: 360, rx: 60, ry: 38, tier: 2 },
-  { code: "SK", name: "Sikkim", cx: 720, cy: 320, rx: 22, ry: 18, tier: 3 },
-  { code: "AS", name: "Assam", cx: 810, cy: 340, rx: 60, ry: 38, tier: 2 },
-  { code: "AR", name: "Arunachal", cx: 870, cy: 290, rx: 60, ry: 35, tier: 3 },
-  { code: "NL", name: "Nagaland", cx: 880, cy: 360, rx: 25, ry: 24, tier: 3 },
-  { code: "MN", name: "Manipur", cx: 870, cy: 410, rx: 25, ry: 24, tier: 3 },
-  { code: "MZ", name: "Mizoram", cx: 850, cy: 460, rx: 22, ry: 28, tier: 3 },
-  { code: "TR", name: "Tripura", cx: 800, cy: 440, rx: 22, ry: 22, tier: 3 },
-  { code: "ML", name: "Meghalaya", cx: 800, cy: 380, rx: 35, ry: 22, tier: 3 },
-  { code: "WB", name: "West Bengal", cx: 700, cy: 430, rx: 45, ry: 60, tier: 1 },
-  { code: "JH", name: "Jharkhand", cx: 620, cy: 430, rx: 50, ry: 40, tier: 2 },
-  { code: "OD", name: "Odisha", cx: 620, cy: 510, rx: 60, ry: 50, tier: 2 },
-  { code: "CG", name: "Chhattisgarh", cx: 530, cy: 470, rx: 55, ry: 55, tier: 2 },
-  { code: "MP", name: "Madhya Pradesh", cx: 430, cy: 440, rx: 90, ry: 55, tier: 2 },
-  { code: "GJ", name: "Gujarat", cx: 230, cy: 460, rx: 75, ry: 65, tier: 1 },
-  { code: "MH", name: "Maharashtra", cx: 350, cy: 560, rx: 100, ry: 65, tier: 1 },
-  { code: "TS", name: "Telangana", cx: 470, cy: 620, rx: 55, ry: 45, tier: 1 },
-  { code: "AP", name: "Andhra Pradesh", cx: 510, cy: 720, rx: 70, ry: 70, tier: 1 },
-  { code: "GA", name: "Goa", cx: 290, cy: 660, rx: 18, ry: 16, tier: 2 },
-  { code: "KA", name: "Karnataka", cx: 380, cy: 740, rx: 65, ry: 80, tier: 1 },
-  { code: "KL", name: "Kerala", cx: 380, cy: 870, rx: 28, ry: 60, tier: 1 },
-  { code: "TN", name: "Tamil Nadu", cx: 460, cy: 860, rx: 55, ry: 80, tier: 1 },
-];
+// Real India state geometry (28 states + 7 UTs) on a 1000×1100 viewBox
+const STATES: StateNode[] = INDIA_STATES.map((s: IndiaState) => ({
+  code: s.code,
+  name: s.name,
+  cx: s.cx,
+  cy: s.cy,
+  d: s.d,
+  tier: s.tier,
+}));
 
 const TIER_CITIES: Record<1 | 2 | 3, string[]> = {
   1: ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad"],
@@ -324,38 +300,35 @@ const AdminGeographic = () => {
                   </radialGradient>
                 </defs>
 
-                {/* Country backdrop subtle outline */}
-                <ellipse cx={500} cy={550} rx={420} ry={500} fill="rgba(200,149,46,0.015)" stroke="rgba(200,149,46,0.06)" strokeDasharray="4 6" />
-
+                {/* Render each state as real geographic path */}
                 {stateStats.map((s, i) => {
                   const isHover = hoverState === s.node.code;
+                  const smallUT = ["DL", "CH", "DN", "DD", "PY", "LD", "AN", "GA", "SK"].includes(s.node.code);
                   return (
                     <g key={s.node.code}
                       onMouseEnter={() => setHoverState(s.node.code)}
                       onMouseLeave={() => setHoverState(null)}
                       style={{ cursor: "pointer", animation: `fade-in 0.5s ${0.02 * i}s both` }}
                     >
-                      <ellipse
-                        cx={s.node.cx}
-                        cy={s.node.cy}
-                        rx={s.node.rx}
-                        ry={s.node.ry}
+                      <path
+                        d={s.node.d}
                         fill={isHover ? "url(#stateHover)" : colorFor(s.users)}
-                        stroke={isHover ? "#e8c060" : "rgba(200,149,46,0.25)"}
-                        strokeWidth={isHover ? 2 : 1}
+                        stroke={isHover ? "#e8c060" : "rgba(200,149,46,0.35)"}
+                        strokeWidth={isHover ? 1.6 : 0.6}
+                        strokeLinejoin="round"
                         style={{
                           filter: isHover ? "drop-shadow(0 0 12px rgba(232,192,96,0.6))" : "none",
-                          transition: "filter 0.2s, fill 0.2s, stroke 0.2s",
+                          transition: "filter 0.2s, fill 0.2s, stroke 0.2s, stroke-width 0.2s",
                         }}
                       />
-                      {s.node.rx >= 40 && (
+                      {!smallUT && (
                         <text
                           x={s.node.cx}
                           y={s.node.cy + 3}
                           textAnchor="middle"
                           fontSize={10}
                           fontFamily="Sora"
-                          fill={s.users > maxStateUsers * 0.5 ? "#0a0c0f" : "rgba(255,255,255,0.5)"}
+                          fill={s.users > maxStateUsers * 0.5 ? "#0a0c0f" : "rgba(255,255,255,0.55)"}
                           style={{ pointerEvents: "none", fontWeight: 600 }}
                         >
                           {s.node.code}
