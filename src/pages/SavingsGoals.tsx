@@ -356,6 +356,7 @@ const SavingsGoals = () => {
                 onAddSubmit={() => handleAdd(goal)}
                 onWithdrawSubmit={() => handleWithdraw(goal)}
                 onCancelAction={() => { setActionFor(null); setActionAmount(""); }}
+                onSetAutoSave={(enabled, amt, freq) => setAutoSave(goal, enabled, amt, freq)}
               />
             ))}
           </div>
