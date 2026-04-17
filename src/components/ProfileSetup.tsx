@@ -29,15 +29,17 @@ const AVATAR_OPTIONS = ["🦄", "🐯", "🦊", "🐼", "🐧", "🦁", "🐨", 
  *  0  Name
  *  1  Role
  *  2  Teen → DOB        |  Parent → Teen lookup
- *  3  Avatar (optional but always shown)
- *  4  Congrats
+ *  3  City (India autocomplete)
+ *  4  Avatar (optional but always shown)
+ *  5  Congrats
  */
 const STEP_NAME = 0;
 const STEP_ROLE = 1;
 const STEP_BRANCH = 2;
-const STEP_AVATAR = 3;
-const STEP_CONGRATS = 4;
-const TOTAL_STEPS = 4; // congrats not counted in stepper
+const STEP_CITY = 3;
+const STEP_AVATAR = 4;
+const STEP_CONGRATS = 5;
+const TOTAL_STEPS = 5; // congrats not counted in stepper
 
 const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   const storageKey = `auropay_setup_progress_${userId}`;
@@ -52,6 +54,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   const [dob, setDob] = useState<Date | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [teenPhone, setTeenPhone] = useState("");
+  const [city, setCity] = useState<IndiaCity | null>(null);
   const [teenLookup, setTeenLookup] = useState<{ status: "idle" | "searching" | "found" | "missing" | "error"; profile?: { id: string; full_name: string | null; avatar_url: string | null } | null }>({ status: "idle" });
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
