@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Loader2, Lock, Check } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
+import { getReferrerId } from "@/landing/referral";
 
 const CITIES = ["Bengaluru","Mumbai","Delhi","Hyderabad","Chennai","Kolkata","Pune","Mysuru","Hubli","Davangere","Ahmedabad","Jaipur","Lucknow","Kochi","Coimbatore","Nagpur","Surat","Indore","Patna","Bhubaneswar"];
 
@@ -34,6 +35,7 @@ export default function Waitlist() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setError("Enter a valid email.");
 
     setLoading(true);
+    const referred_by = await getReferrerId();
     const { error: insErr } = await supabase.from("waitlist").insert({
       full_name: name.trim(),
       phone: "+91" + cleanPhone,
@@ -41,6 +43,7 @@ export default function Waitlist() {
       city: city || null,
       role,
       source: "landing_form",
+      referred_by,
     });
     setLoading(false);
     if (insErr) {
