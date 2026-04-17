@@ -300,38 +300,35 @@ const AdminGeographic = () => {
                   </radialGradient>
                 </defs>
 
-                {/* Country backdrop subtle outline */}
-                <ellipse cx={500} cy={550} rx={420} ry={500} fill="rgba(200,149,46,0.015)" stroke="rgba(200,149,46,0.06)" strokeDasharray="4 6" />
-
+                {/* Render each state as real geographic path */}
                 {stateStats.map((s, i) => {
                   const isHover = hoverState === s.node.code;
+                  const smallUT = ["DL", "CH", "DN", "DD", "PY", "LD", "AN", "GA", "SK"].includes(s.node.code);
                   return (
                     <g key={s.node.code}
                       onMouseEnter={() => setHoverState(s.node.code)}
                       onMouseLeave={() => setHoverState(null)}
                       style={{ cursor: "pointer", animation: `fade-in 0.5s ${0.02 * i}s both` }}
                     >
-                      <ellipse
-                        cx={s.node.cx}
-                        cy={s.node.cy}
-                        rx={s.node.rx}
-                        ry={s.node.ry}
+                      <path
+                        d={s.node.d}
                         fill={isHover ? "url(#stateHover)" : colorFor(s.users)}
-                        stroke={isHover ? "#e8c060" : "rgba(200,149,46,0.25)"}
-                        strokeWidth={isHover ? 2 : 1}
+                        stroke={isHover ? "#e8c060" : "rgba(200,149,46,0.35)"}
+                        strokeWidth={isHover ? 1.6 : 0.6}
+                        strokeLinejoin="round"
                         style={{
                           filter: isHover ? "drop-shadow(0 0 12px rgba(232,192,96,0.6))" : "none",
-                          transition: "filter 0.2s, fill 0.2s, stroke 0.2s",
+                          transition: "filter 0.2s, fill 0.2s, stroke 0.2s, stroke-width 0.2s",
                         }}
                       />
-                      {s.node.rx >= 40 && (
+                      {!smallUT && (
                         <text
                           x={s.node.cx}
                           y={s.node.cy + 3}
                           textAnchor="middle"
                           fontSize={10}
                           fontFamily="Sora"
-                          fill={s.users > maxStateUsers * 0.5 ? "#0a0c0f" : "rgba(255,255,255,0.5)"}
+                          fill={s.users > maxStateUsers * 0.5 ? "#0a0c0f" : "rgba(255,255,255,0.55)"}
                           style={{ pointerEvents: "none", fontWeight: 600 }}
                         >
                           {s.node.code}
