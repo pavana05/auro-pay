@@ -66,6 +66,7 @@ const navSections: NavSection[] = [
   { title: "Analytics", items: [
     { path: "/admin/analytics", icon: BarChart3, label: "Reports" },
     { path: "/admin/revenue", icon: TrendingUp, label: "Revenue" },
+    { path: "/admin/geographic", icon: BarChart3, label: "Geographic" },
     { path: "/admin/rewards", icon: Gift, label: "Rewards" },
   ]},
   { title: "System", items: [
