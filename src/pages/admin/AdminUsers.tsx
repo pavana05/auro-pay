@@ -231,8 +231,28 @@ const AdminUsers = () => {
     });
   }, [rows, debouncedSearch, roleFilter, kycFilter, statusFilter, dateFrom, dateTo, balMin, balMax, txnMin, lastActiveDays]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // Sort
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "name": av = (a.full_name || "").toLowerCase(); bv = (b.full_name || "").toLowerCase(); break;
+        case "balance": av = a.balance; bv = b.balance; break;
+        case "txnCount": av = a.txnCount; bv = b.txnCount; break;
+        case "lastActiveAt": av = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0; bv = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0; break;
+        case "created_at":
+        default: av = a.created_at ? new Date(a.created_at).getTime() : 0; bv = b.created_at ? new Date(b.created_at).getTime() : 0; break;
+      }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const resetFilters = () => {
     setSearch(""); setRoleFilter("all"); setKycFilter("all"); setStatusFilter("all");
