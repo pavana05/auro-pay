@@ -528,6 +528,12 @@ const AdminDashboard = () => {
         {/* Ambient glow */}
         <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-[0.04] blur-[150px]" style={{ background: `radial-gradient(circle, ${C.primary}, transparent)` }} />
 
+        {/* Admin tools row: Broadcast + Fraud */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BroadcastNotification />
+          <FraudDetectionPanel />
+        </div>
+
         {/* Welcome banner */}
         <div
           className="relative rounded-[20px] overflow-hidden border border-primary/[0.14] p-5 lg:p-6"
