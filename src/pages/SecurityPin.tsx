@@ -155,8 +155,8 @@ const SecurityPin = () => {
             className="input-auro w-full"
             maxLength={4}
           />
-          <button onClick={handleChangePin} disabled={changing} className="w-full h-11 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
-            {changing ? "Updating..." : "Update PIN"}
+          <button onClick={handleChangePin} disabled={changing} className="w-full h-11 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50">
+            {changing ? (isSetupMode ? "Creating..." : "Updating...") : (isSetupMode ? "Create PIN & Continue" : "Update PIN")}
           </button>
           <button
             onClick={() => setShowForgotPin(true)}
