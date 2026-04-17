@@ -110,8 +110,8 @@ const AuthRedirector = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        if (location.pathname !== "/" && location.pathname !== "/reset-password") {
-          navigate("/", { replace: true });
+        if (location.pathname !== "/auth" && location.pathname !== "/" && location.pathname !== "/reset-password") {
+          navigate("/auth", { replace: true });
         }
       }
     });
@@ -178,7 +178,8 @@ const App = () => (
             <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
             <Route path="/admin/waitlist" element={<PageTransition><AdminWaitlist /></PageTransition>} />
 
-            {/* Public landing page — full-bleed, no mobile container */}
+            {/* Public landing page — full-bleed, no mobile container. Now the home route. */}
+            <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
 
             {/* User routes - max-w-lg mobile container */}
@@ -186,7 +187,7 @@ const App = () => (
               <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
                 <PageTransition>
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
                     <Route path="/home" element={<TeenHome />} />
