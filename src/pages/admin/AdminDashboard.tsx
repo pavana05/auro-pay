@@ -7,6 +7,7 @@ import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { Sparkline, VolumeBars, StatusDonut, GrowthLine, HBars, type VolBar } from "@/components/admin/charts";
 import BroadcastNotification from "@/components/admin/BroadcastNotification";
 import FraudDetectionPanel from "@/components/admin/FraudDetectionPanel";
+import AnomalySummaryCard from "@/components/admin/AnomalySummaryCard";
 import { toast } from "sonner";
 import {
   Users, ArrowLeftRight, Wallet, ShieldCheck, AlertTriangle,
@@ -854,9 +855,10 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Admin tools row: Broadcast + Fraud (bottom) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Admin tools row: Broadcast + Anomaly summary + Fraud (bottom) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <BroadcastNotification />
+          <AnomalySummaryCard />
           <FraudDetectionPanel />
         </div>
       </div>
