@@ -273,14 +273,6 @@ const AdminWallets = () => {
                       </td>
                       <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => setFundsModal({ wallet: w, mode: "add" })}
-                            className="p-1.5 rounded-lg bg-success/10 hover:bg-success/20 border border-success/20 transition-all" title="Add funds">
-                            <Plus className="w-3.5 h-3.5 text-success" />
-                          </button>
-                          <button onClick={() => setFundsModal({ wallet: w, mode: "deduct" })}
-                            className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 transition-all" title="Deduct funds">
-                            <Minus className="w-3.5 h-3.5 text-destructive" />
-                          </button>
                           <button onClick={() => toggleFreeze(w)}
                             className={`text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all active:scale-90 whitespace-nowrap ${
                               w.is_frozen ? "bg-success/10 text-success border border-success/20 hover:bg-success/20" : "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20"
@@ -298,30 +290,6 @@ const AdminWallets = () => {
         </div>
       </div>
 
-      {fundsModal && (
-        <FundsModal
-          wallet={fundsModal.wallet}
-          mode={fundsModal.mode}
-          onClose={() => setFundsModal(null)}
-          onDone={() => { setFundsModal(null); fetchWallets(); }}
-        />
-      )}
-
-      <DestructiveConfirm
-        open={!!debitConfirm}
-        title="Force-debit wallet?"
-        warning={debitConfirm
-          ? `You are about to remove funds from ${debitConfirm.profile?.full_name || "this user"}'s wallet (current balance ${formatAmount(debitConfirm.balance || 0)}). This change is logged to the audit trail and cannot be undone without a manual credit.`
-          : ""}
-        confirmPhrase="DEBIT"
-        confirmLabel="Continue to debit form"
-        onCancel={() => setDebitConfirm(null)}
-        onConfirm={() => {
-          const w = debitConfirm!;
-          setDebitConfirm(null);
-          setFundsModal({ wallet: w, mode: "deduct" });
-        }}
-      />
     </AdminLayout>
   );
 };
