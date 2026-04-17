@@ -180,6 +180,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/verify-kyc" element={<VerifyKyc />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
                     <Route path="/card" element={<CardScreen />} />
