@@ -46,6 +46,7 @@ const AdminWallets = () => {
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [fundsModal, setFundsModal] = useState<{ wallet: WalletRow; mode: "add" | "deduct" } | null>(null);
+  const [debitConfirm, setDebitConfirm] = useState<WalletRow | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -134,7 +135,7 @@ const AdminWallets = () => {
         <WalletPanelBody
           wallet={w}
           onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
-          onDeduct={() => setFundsModal({ wallet: w, mode: "deduct" })}
+          onDeduct={() => setDebitConfirm(w)}
           onFreeze={() => toggleFreeze(w)}
         />
       ),
@@ -310,6 +311,22 @@ const AdminWallets = () => {
           onDone={() => { setFundsModal(null); fetchWallets(); }}
         />
       )}
+
+      <DestructiveConfirm
+        open={!!debitConfirm}
+        title="Force-debit wallet?"
+        warning={debitConfirm
+          ? `You are about to remove funds from ${debitConfirm.profile?.full_name || "this user"}'s wallet (current balance ${formatAmount(debitConfirm.balance || 0)}). This change is logged to the audit trail and cannot be undone without a manual credit.`
+          : ""}
+        confirmPhrase="DEBIT"
+        confirmLabel="Continue to debit form"
+        onCancel={() => setDebitConfirm(null)}
+        onConfirm={() => {
+          const w = debitConfirm!;
+          setDebitConfirm(null);
+          setFundsModal({ wallet: w, mode: "deduct" });
+        }}
+      />
     </AdminLayout>
   );
 };
