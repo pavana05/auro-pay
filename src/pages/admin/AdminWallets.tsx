@@ -313,7 +313,7 @@ const InlineCell = ({
   const value = (w[field] as number) || 0;
 
   return (
-    <td className={`py-3.5 px-5 transition-colors duration-500 ${flashed ? "bg-success/15" : ""}`}>
+    <td onClick={(e) => e.stopPropagation()} className={`py-3.5 px-5 transition-colors duration-500 ${flashed ? "bg-success/15" : ""}`}>
       {isEditing ? (
         <div className="flex items-center gap-1.5">
           <input value={edit.value} onChange={(e) => setEdit({ ...edit!, value: e.target.value })}
