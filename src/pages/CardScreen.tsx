@@ -156,12 +156,14 @@ const CardScreen = () => {
     setShowLimitEditor(false);
   };
 
-  const toggleControl = async (key: keyof Wallet) => {
+  type ControlKey = "card_online_enabled" | "card_international_enabled" | "card_contactless_enabled" | "card_atm_enabled";
+  const toggleControl = async (key: ControlKey) => {
     if (!wallet) return;
     const newVal = !wallet[key];
-    const { error } = await supabase.from("wallets").update({ [key]: newVal }).eq("id", wallet.id);
+    const update: Partial<Record<ControlKey, boolean>> = { [key]: newVal };
+    const { error } = await supabase.from("wallets").update(update).eq("id", wallet.id);
     if (error) { toast.error(error.message); return; }
-    setWallet({ ...wallet, [key]: newVal } as Wallet);
+    setWallet({ ...wallet, [key]: newVal });
     haptic.light();
   };
 
