@@ -80,6 +80,8 @@ import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
 import DeepLinkHandler from "./components/DeepLinkHandler";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MaintenanceGate from "./components/MaintenanceGate";
+import KycEnforcer from "./components/KycEnforcer";
+import VerifyKyc from "./pages/VerifyKyc.tsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
