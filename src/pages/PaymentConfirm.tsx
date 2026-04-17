@@ -77,12 +77,12 @@ const PaymentConfirm = () => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const [{ data: wallet }, { data: pinStatus }] = await Promise.all([
+      const [{ data: wallet }, { data: pinStatus, error: pinStatusError }] = await Promise.all([
         supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
         supabase.functions.invoke("payment-pin", { body: { action: "status" } }),
       ]);
       setWalletBalance(wallet?.balance || 0);
-      setHasPinSet(!!pinStatus?.data?.is_set || !!(pinStatus as any)?.is_set);
+      setHasPinSet(pinStatusError ? false : Boolean((pinStatus as any)?.is_set));
 
       // Last 3 paid contacts for the quick-switch row
       const { data: recents } = await supabase
@@ -125,6 +125,14 @@ const PaymentConfirm = () => {
 
   // ---- PIN PAD HANDLERS ----
   const onPinKey = (k: string) => {
+    if (hasPinSet !== true) {
+      if (hasPinSet === false) {
+        setPin("");
+        setStage("review");
+        toast.info("Set up your Payment PIN to continue");
+      }
+      return;
+    }
     haptic.light();
     if (k === "del") { setPin((p) => p.slice(0, -1)); setPinError(false); return; }
     if (pin.length >= 4) return;
@@ -172,6 +180,12 @@ const PaymentConfirm = () => {
 
   // ---- SUBMIT ----
   const submitPayment = async (pinValue: string) => {
+    if (hasPinSet !== true) {
+      setPin("");
+      setStage("review");
+      toast.info("Set up your Payment PIN to continue");
+      return;
+    }
     setStage("processing");
     haptic.medium();
     try {
@@ -185,9 +199,9 @@ const PaymentConfirm = () => {
           pin: pinValue,
         },
       });
+      const errCode = (data as any)?.code;
       const errMsg = (data as any)?.error || error?.message;
-      // PIN not set on backend → flip back to setup flow instead of failing
-      if (errMsg && /pin not set/i.test(errMsg)) {
+      if (errCode === "PIN_NOT_SET" || (errMsg && /pin not set/i.test(errMsg))) {
         setHasPinSet(false);
         setPin("");
         setStage("review");
@@ -369,12 +383,19 @@ const PaymentConfirm = () => {
           <motion.button
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18, type: "spring", stiffness: 260, damping: 22 }}
-            disabled={!numericAmount || exceedsBalance}
-            onClick={() => { haptic.medium(); setStage("pin"); }}
+            disabled={!numericAmount || exceedsBalance || hasPinSet === null}
+            onClick={() => {
+              haptic.medium();
+              if (hasPinSet === false) {
+                toast.info("Set up your Payment PIN to continue");
+                return;
+              }
+              if (hasPinSet === true) setStage("pin");
+            }}
             className="w-full mt-5 h-14 rounded-2xl gradient-primary text-primary-foreground font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-40 transition-all"
             style={{ boxShadow: "0 10px 30px hsl(42 78% 55% / 0.3), inset 0 1px 0 hsl(48 90% 70% / 0.3)" }}
           >
-            <Lock className="w-4 h-4" /> Continue · Pay ₹{numericAmount || 0}
+            <Lock className="w-4 h-4" /> {hasPinSet === null ? "Checking PIN…" : `Continue · Pay ₹${numericAmount || 0}`}
           </motion.button>
         </div>
 
