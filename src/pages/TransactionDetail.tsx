@@ -748,9 +748,23 @@ const TransactionDetailPage = () => {
                   </div>
                 )}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!reportReason) { toast.error("Please select a reason"); return; }
                     haptic.medium();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user || !tx) { toast.error("Not signed in"); return; }
+                    const reasonLabels: Record<string, string> = {
+                      unauthorized: "Unauthorized transaction", wrong_amount: "Wrong amount charged",
+                      not_received: "Payment not received", duplicate: "Duplicate transaction",
+                      fraud: "Suspected fraud", other: "Other issue",
+                    };
+                    const subject = `Dispute: ${reasonLabels[reportReason]} (${formatAmount(tx.amount)})`;
+                    const description = `Transaction ID: ${tx.id}\nReference: ${tx.razorpay_payment_id || tx.id}\nReason: ${reasonLabels[reportReason]}\nAmount: ${formatAmount(tx.amount)}\nMerchant: ${tx.merchant_name || "—"}\n\n${reportDescription || "(no additional details)"}`;
+                    const { error } = await supabase.from("support_tickets").insert({
+                      user_id: user.id, subject, description,
+                      category: "dispute", priority: reportReason === "fraud" || reportReason === "unauthorized" ? "high" : "medium",
+                    });
+                    if (error) { toast.error("Failed to submit dispute"); return; }
                     setReportSubmitted(true);
                   }}
                   disabled={!reportReason}
@@ -759,7 +773,7 @@ const TransactionDetailPage = () => {
                       ? "bg-red-400/15 border border-red-400/25 text-red-400 hover:bg-red-400/20"
                       : "bg-white/[0.03] border border-white/[0.05] text-muted-foreground cursor-not-allowed"
                   }`}>
-                  Submit Report
+                  Submit Dispute
                 </button>
               </>
             )}
