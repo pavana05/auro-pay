@@ -377,12 +377,19 @@ const PaymentConfirm = () => {
           <motion.button
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18, type: "spring", stiffness: 260, damping: 22 }}
-            disabled={!numericAmount || exceedsBalance}
-            onClick={() => { haptic.medium(); setStage("pin"); }}
+            disabled={!numericAmount || exceedsBalance || hasPinSet === null}
+            onClick={() => {
+              haptic.medium();
+              if (hasPinSet === false) {
+                toast.info("Set up your Payment PIN to continue");
+                return;
+              }
+              if (hasPinSet === true) setStage("pin");
+            }}
             className="w-full mt-5 h-14 rounded-2xl gradient-primary text-primary-foreground font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-40 transition-all"
             style={{ boxShadow: "0 10px 30px hsl(42 78% 55% / 0.3), inset 0 1px 0 hsl(48 90% 70% / 0.3)" }}
           >
-            <Lock className="w-4 h-4" /> Continue · Pay ₹{numericAmount || 0}
+            <Lock className="w-4 h-4" /> {hasPinSet === null ? "Checking PIN…" : `Continue · Pay ₹${numericAmount || 0}`}
           </motion.button>
         </div>
 
