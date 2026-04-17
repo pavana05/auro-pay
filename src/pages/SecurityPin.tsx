@@ -28,7 +28,7 @@ const SecurityPin = () => {
     }
   }, [isSetupMode]);
 
-  const handleChangePin = () => {
+  const handleChangePin = async () => {
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
       toast.error("PIN must be exactly 4 digits");
       return;
@@ -38,14 +38,32 @@ const SecurityPin = () => {
       return;
     }
     setChanging(true);
-    // Simulated - in production this would be a secure backend call
-    setTimeout(() => {
-      toast.success("PIN updated successfully!");
-      setCurrentPin("");
-      setNewPin("");
-      setConfirmPin("");
+    try {
+      const { data, error } = await supabase.functions.invoke("payment-pin", {
+        body: { action: "set", pin: newPin, current_pin: currentPin || undefined },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success(isSetupMode ? "PIN created — you're all set!" : "PIN updated successfully!");
+      setCurrentPin(""); setNewPin(""); setConfirmPin("");
+
+      if (isSetupMode) {
+        // After setup, send the user on to their home (parent or teen).
+        const { data: { user } } = await supabase.auth.getUser();
+        let dest = "/home";
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles").select("role").eq("id", user.id).maybeSingle();
+          if (profile?.role === "parent") dest = "/parent";
+        }
+        navigate(dest, { replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update PIN");
+    } finally {
       setChanging(false);
-    }, 1000);
+    }
   };
 
   const handleChangePassword = async () => {
