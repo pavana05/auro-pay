@@ -78,6 +78,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
         phone: phone?.trim() || null,
         role,
         kyc_status: "pending",
+        avatar_url: avatar,
       });
       if (profileError) throw profileError;
 
