@@ -4,9 +4,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
-import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
 import MaskedReveal from "@/components/admin/MaskedReveal";
-import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Plus, Minus, Check, X, Edit3, ArrowLeftRight, Activity, ShieldAlert, Copy, FileText, Download, CreditCard } from "lucide-react";
+import { Wallet, Snowflake, TrendingUp, DollarSign, Search, Check, X, Edit3, ArrowLeftRight, Copy, FileText, Download, CreditCard } from "lucide-react";
 
 interface WalletRow {
   id: string;
@@ -45,8 +44,6 @@ const AdminWallets = () => {
   const [tab, setTab] = useState<"all" | "frozen">("all");
   const [edit, setEdit] = useState<EditState>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
-  const [fundsModal, setFundsModal] = useState<{ wallet: WalletRow; mode: "add" | "deduct" } | null>(null);
-  const [debitConfirm, setDebitConfirm] = useState<WalletRow | null>(null);
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -134,8 +131,6 @@ const AdminWallets = () => {
       body: (
         <WalletPanelBody
           wallet={w}
-          onAdd={() => setFundsModal({ wallet: w, mode: "add" })}
-          onDeduct={() => setDebitConfirm(w)}
           onFreeze={() => toggleFreeze(w)}
         />
       ),
