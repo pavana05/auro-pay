@@ -120,8 +120,9 @@ const BillSplitPage = () => {
       {view === "create" && me && (
         <CreateView
           me={me}
-          onCancel={() => setView("list")}
-          onCreated={(id) => { setActiveSplitId(id); setView("detail"); }}
+          prefill={prefill}
+          onCancel={() => { setPrefill(null); setView("list"); }}
+          onCreated={(id) => { setPrefill(null); setActiveSplitId(id); setView("detail"); }}
         />
       )}
       {view === "detail" && activeSplitId && me && (
