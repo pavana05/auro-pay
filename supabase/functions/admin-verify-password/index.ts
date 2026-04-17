@@ -58,6 +58,58 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Rate limit: max 5 failed attempts per user in the last 15 minutes
+    const rlClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: failed } = await rlClient
+      .from("audit_logs")
+      .select("created_at")
+      .eq("admin_user_id", userId)
+      .eq("action", "admin_unlock_failed")
+      .gte("created_at", windowStart)
+      .order("created_at", { ascending: true });
+
+    if ((failed?.length ?? 0) >= 5) {
+      const oldest = failed![0].created_at;
+      const cooldownEndsAt = new Date(new Date(oldest).getTime() + 15 * 60 * 1000);
+      const retryAfter = Math.max(1, Math.ceil((cooldownEndsAt.getTime() - Date.now()) / 1000));
+      // Audit the rate-limit hit so admins can spot brute-force attempts
+      await rlClient.from("audit_logs").insert({
+        admin_user_id: userId,
+        action: "admin_unlock_rate_limited",
+        target_type: "admin_panel",
+        target_id: userId,
+        ip_address:
+          req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          req.headers.get("cf-connecting-ip") ||
+          req.headers.get("x-real-ip") ||
+          null,
+        details: {
+          user_agent: req.headers.get("user-agent") || null,
+          failed_attempts: failed!.length,
+          retry_after_seconds: retryAfter,
+        },
+      });
+      return new Response(
+        JSON.stringify({
+          error: "Too many failed attempts. Try again later.",
+          retry_after_seconds: retryAfter,
+          cooldown_ends_at: cooldownEndsAt.toISOString(),
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+          },
+        },
+      );
+    }
+
     const expected = Deno.env.get("ADMIN_PANEL_PASSWORD") ?? "";
     if (!expected) {
       return new Response(JSON.stringify({ error: "Admin password not configured" }), {
