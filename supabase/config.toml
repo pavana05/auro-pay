@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.financial-insights-tip]
 verify_jwt = false
+
+[functions.og-referral]
+verify_jwt = false
