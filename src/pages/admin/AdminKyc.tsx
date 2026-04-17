@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { optimistic } from "@/lib/optimistic";
 import DestructiveConfirm from "@/components/admin/DestructiveConfirm";
 import MaskedReveal from "@/components/admin/MaskedReveal";
+import RequestInfoModal from "@/components/admin/RequestInfoModal";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
   ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
-  Image as ImageIcon, Download, Loader2, Maximize2,
+  Image as ImageIcon, Download, Loader2, Maximize2, MessageSquareWarning,
 } from "lucide-react";
 
 const C = {
@@ -58,6 +59,7 @@ const AdminKyc = () => {
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
   const [rejectNote, setRejectNote] = useState("");
   const [detail, setDetail] = useState<KycRow | null>(null);
+  const [infoTarget, setInfoTarget] = useState<KycRow | null>(null);
 
   // Bulk review
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -274,6 +276,7 @@ const AdminKyc = () => {
           onApprove={() => { setApproveTarget(r); ctxPanel.hide(); }}
           onReject={() => { setRejectTarget(r); ctxPanel.hide(); }}
           onMoveReview={() => moveToInReview(r)}
+          onRequestInfo={() => { setInfoTarget(r); ctxPanel.hide(); }}
         />
       ),
     });
