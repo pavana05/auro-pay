@@ -631,7 +631,11 @@ const CardScreen = () => {
           </div>
           <h3 className="text-[17px] font-bold text-center mb-1">Enter PIN</h3>
           <p className="text-[12px] text-white/50 text-center mb-5">
-            {pinModal === "cvv" ? "Confirm to reveal CVV" : "Confirm to view full card number"}
+            {pinModal === "cvv"
+              ? "Confirm to reveal CVV"
+              : pinModal === "details"
+              ? "Confirm to view full card number"
+              : `Confirm to ${isFrozen ? "unfreeze" : "freeze"} your card`}
           </p>
 
           {/* PIN dots */}
