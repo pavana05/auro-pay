@@ -229,6 +229,7 @@ const TeenHome = () => {
     { label: "Split Bill", path: "/bill-split", emoji: "👥", desc: "Share costs" },
     { label: "Budget", path: "/budget", emoji: "📈", desc: "Plan ahead" },
     { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
+    { label: "Request", path: "/quick-pay", state: { mode: "request" }, emoji: "💰", desc: "Ask for money" },
     { label: "Scratch", path: "/scratch-cards", emoji: "🎰", desc: "Win rewards" },
     { label: "Spin", path: "/spin-wheel", emoji: "🎡", desc: "Spin to win" },
     { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn money" },
