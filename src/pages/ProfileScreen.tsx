@@ -177,6 +177,7 @@ const ProfileScreen = () => {
     { icon: Shield, label: "Security & PIN", path: "/security", desc: "Change PIN, biometrics" },
     { icon: Wallet, label: "Spending Limits", path: "/spending-limits", desc: "Daily & monthly limits" },
     { icon: Users, label: "Linked Parents", path: "/linked-parents", desc: "Manage parent connections" },
+    { icon: ShieldCheck, label: "Parent Controls", path: "/parent-controls", desc: "Limits, restrictions & requests" },
     { icon: Target, label: "Savings Goals", path: "/savings", desc: "Track your goals" },
     { icon: Bell, label: "Notifications", path: "/notifications", desc: "Alert preferences" },
     { icon: HelpCircle, label: "Help & Support", path: "/help", desc: "FAQs, contact us" },
