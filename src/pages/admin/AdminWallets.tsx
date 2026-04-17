@@ -94,7 +94,8 @@ const AdminWallets = () => {
     const w = wallets.find((x) => x.id === edit.walletId);
     if (!w) return;
     const oldVal = (w[edit.field] as number) || 0;
-    const { error } = await supabase.from("wallets").update({ [edit.field]: valuePaise }).eq("id", edit.walletId);
+    const update: Record<string, number> = { [edit.field]: valuePaise };
+    const { error } = await supabase.from("wallets").update(update as any).eq("id", edit.walletId);
     if (error) { toast.error(error.message); return; }
     await logAudit(`wallet_${edit.field}_updated`, edit.walletId, { from: oldVal, to: valuePaise, user: w.profile?.full_name });
     setSavedFlash(`${edit.walletId}-${edit.field}`);
