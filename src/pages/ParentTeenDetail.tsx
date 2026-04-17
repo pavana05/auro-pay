@@ -229,7 +229,35 @@ const ParentTeenDetail = () => {
 
       {tab === "overview" && (
         <div className="space-y-3">
-          {/* Daily Limit Editor */}
+          {/* Pending limit increase requests */}
+          {requests.length > 0 && requests.map(r => (
+            <div key={r.id} className="p-4 rounded-lg bg-card border border-primary/30 card-glow"
+              style={{ background: "linear-gradient(160deg, hsl(var(--primary) / 0.08), hsl(220 22% 5%))" }}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base">💰</span>
+                <p className="text-sm font-semibold flex-1">Limit increase request</p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                  style={{ background: "hsl(var(--primary) / 0.15)", color: "hsl(var(--primary))" }}>
+                  {r.limit_type}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Raise from <span className="text-foreground font-mono">{formatAmount(r.current_limit)}</span>
+                {" → "}<span className="text-foreground font-mono font-bold">{formatAmount(r.requested_limit)}</span>
+              </p>
+              {r.reason && <p className="text-xs italic text-white/60 mb-3 px-3 py-2 rounded-lg" style={{ background: "hsl(220 15% 7%)" }}>"{r.reason}"</p>}
+              <div className="flex gap-2">
+                <button onClick={() => decideRequest(r, false)}
+                  className="flex-1 h-9 rounded-pill border border-destructive/40 text-destructive text-xs font-semibold active:scale-95 transition">
+                  Reject
+                </button>
+                <button onClick={() => decideRequest(r, true)}
+                  className="flex-1 h-9 rounded-pill gradient-primary text-primary-foreground text-xs font-semibold active:scale-95 transition">
+                  Approve
+                </button>
+              </div>
+            </div>
+          ))}
           <div className="p-4 rounded-lg bg-card border border-border card-glow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Daily Limit</span>
