@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import { toast } from "sonner";
 import {
   ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, Eye, LayoutGrid, List,
-  ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash,
+  ChevronLeft, ChevronRight, X, Zap, RefreshCw, User as UserIcon, Calendar, Hash, Copy, FileText,
 } from "lucide-react";
 
 const C = {
