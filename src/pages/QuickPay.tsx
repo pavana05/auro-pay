@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Search, Plus, X, Send, Check, Shield, UserPlus, Loader2, Pencil, Delete,
-  Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles,
+  Coffee, Bus, ShoppingBag, Film, Gift, MoreHorizontal, Receipt, Sparkles, HandCoins,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +93,10 @@ const SendMoney = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const incomingContact = (location.state as any)?.selectedContact as Favorite | undefined;
+  const incomingMode = (location.state as any)?.mode as "send" | "request" | undefined;
+
+  // Top-level mode: Send Money or Request Money
+  const [mode, setMode] = useState<"send" | "request">(incomingMode || "send");
 
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
