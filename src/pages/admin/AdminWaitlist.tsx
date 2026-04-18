@@ -118,13 +118,47 @@ function RoleBadge({ role }: { role: string | null }) {
 }
 
 async function fetchWaitlist(): Promise<WaitlistRow[]> {
-  const { data, error } = await supabase
+  const t0 = performance.now();
+  // Snapshot auth state up front so we can see if the request is unauthenticated.
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const session = sessionData?.session ?? null;
+  console.info("[AdminWaitlist] fetch:start", {
+    hasSession: !!session,
+    userId: session?.user?.id ?? null,
+    sessionError: sessionError?.message ?? null,
+    href: typeof window !== "undefined" ? window.location.href : null,
+  });
+
+  // Race the Supabase request against a 15s timeout so the Preview proxy
+  // (which can silently hang requests) surfaces a real error
+  // instead of leaving the UI spinning forever.
+  const queryPromise = supabase
     .from("waitlist")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(1000);
-  if (error) throw error;
-  return (data as WaitlistRow[]) || [];
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(
+      () => reject(new Error("Request timed out after 15s (Preview proxy may be blocking the request — try the published URL).")),
+      15_000,
+    );
+  });
+
+  try {
+    const { data, error } = (await Promise.race([queryPromise, timeoutPromise])) as Awaited<typeof queryPromise>;
+    const ms = Math.round(performance.now() - t0);
+    if (error) {
+      console.error("[AdminWaitlist] fetch:error", { ms, code: (error as any).code, message: error.message, details: (error as any).details });
+      throw error;
+    }
+    console.info("[AdminWaitlist] fetch:ok", { ms, rowCount: data?.length ?? 0, firstRowId: data?.[0]?.id ?? null });
+    return (data as WaitlistRow[]) || [];
+  } catch (e: any) {
+    const ms = Math.round(performance.now() - t0);
+    console.error("[AdminWaitlist] fetch:throw", { ms, message: e?.message, name: e?.name });
+    throw e;
+  }
 }
 
 export default function AdminWaitlist() {
@@ -137,13 +171,21 @@ export default function AdminWaitlist() {
   const [detailRow, setDetailRow] = useState<WaitlistRow | null>(null);
   const [liveItems, setLiveItems] = useState<WaitlistRow[]>([]);
 
-  const { data: rows = [], isLoading, isFetching, error, refetch } = useQuery({
+  const { data: rows = [], isLoading, isFetching, error, refetch, dataUpdatedAt, errorUpdatedAt } = useQuery({
     queryKey: ["admin-waitlist"],
     queryFn: fetchWaitlist,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     retry: 1,
   });
+
+  // Surface query lifecycle so we can correlate UI state with network activity.
+  useEffect(() => {
+    console.info("[AdminWaitlist] query:state", {
+      isLoading, isFetching, hasError: !!error,
+      rowCount: rows.length, dataUpdatedAt, errorUpdatedAt,
+    });
+  }, [isLoading, isFetching, error, rows.length, dataUpdatedAt, errorUpdatedAt]);
 
   // Realtime updates
   useEffect(() => {
