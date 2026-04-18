@@ -16,6 +16,9 @@ import Features from "@/landing/sections/Features";
 import HowItWorks from "@/landing/sections/HowItWorks";
 import Comparison from "@/landing/sections/Comparison";
 import Security from "@/landing/sections/Security";
+import SmartSpending from "@/landing/sections/SmartSpending";
+import RewardsSection from "@/landing/sections/RewardsSection";
+import SavingsSection from "@/landing/sections/SavingsSection";
 import DualPerspective from "@/landing/sections/DualPerspective";
 import Testimonials from "@/landing/sections/Testimonials";
 import FAQ from "@/landing/sections/FAQ";
@@ -84,6 +87,9 @@ export default function Landing() {
         <div id="how"><HowItWorks /></div>
         <Comparison />
         <div id="security"><Security /></div>
+        <SmartSpending />
+        <RewardsSection />
+        <SavingsSection />
         <DualPerspective onCTA={() => setModalOpen(true)} />
         <Testimonials />
         <FAQ />
