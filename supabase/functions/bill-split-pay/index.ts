@@ -26,9 +26,15 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Emergency freeze check
-    const { data: freezeRow } = await admin.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
-    if (freezeRow?.value === "true") return json({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }, 503);
+    // Centralised admin-flag checks
+    const { data: settingsRows } = await admin
+      .from("app_settings")
+      .select("key,value")
+      .in("key", ["freeze_all_transactions", "feature_bill_split"]);
+    const flags: Record<string, string> = {};
+    (settingsRows || []).forEach((r: any) => { flags[r.key] = r.value; });
+    if (flags.freeze_all_transactions === "true") return json({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }, 503);
+    if (flags.feature_bill_split === "false") return json({ error: "Bill Split is currently disabled by administrators." }, 403);
 
     // Find member row for this user in this split
     const { data: member, error: memberError } = await admin

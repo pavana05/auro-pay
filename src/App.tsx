@@ -83,6 +83,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import MaintenanceGate from "./components/MaintenanceGate";
 import KycEnforcer from "./components/KycEnforcer";
 import PinEnforcer from "./components/PinEnforcer";
+import FeatureGate from "./components/FeatureGate";
 import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
 
@@ -204,7 +205,7 @@ const App = () => (
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/data-safety" element={<DataSafety />} />
-                    <Route path="/savings" element={<SavingsGoals />} />
+                    <Route path="/savings" element={<FeatureGate flag="feature_savings_goals" label="Savings Goals"><SavingsGoals /></FeatureGate>} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/scan" element={<ScanPay />} />
                     <Route path="/pay" element={<ErrorBoundary label="Payment"><PaymentConfirm /></ErrorBoundary>} />
@@ -217,19 +218,19 @@ const App = () => (
                     <Route path="/transaction/:id" element={<TransactionDetailPage />} />
                     <Route path="/analytics" element={<ExpenseAnalytics />} />
                     <Route path="/insights" element={<FinancialInsights />} />
-                    <Route path="/bill-split" element={<BillSplitPage />} />
+                    <Route path="/bill-split" element={<FeatureGate flag="feature_bill_split" label="Bill Split"><BillSplitPage /></FeatureGate>} />
                     <Route path="/budget" element={<BudgetPlanner />} />
-                    <Route path="/quick-pay" element={<QuickPay />} />
+                    <Route path="/quick-pay" element={<FeatureGate flag="feature_quick_pay" label="Quick Pay"><QuickPay /></FeatureGate>} />
                     <Route path="/bill-payments" element={<BillPayments />} />
                     <Route path="/scratch-cards" element={<ScratchCards />} />
-                    <Route path="/chores" element={<Chores />} />
+                    <Route path="/chores" element={<FeatureGate flag="feature_chores" label="Chores & Rewards"><Chores /></FeatureGate>} />
                     <Route path="/achievements" element={<Achievements />} />
                     <Route path="/friends" element={<Friends />} />
                     <Route path="/support" element={<SupportTickets />} />
                     <Route path="/support-chat" element={<SupportChat />} />
                     <Route path="/spin-wheel" element={<SpinWheel />} />
-                    <Route path="/referrals" element={<Referrals />} />
-                    <Route path="/learn" element={<FinancialEducation />} />
+                    <Route path="/referrals" element={<FeatureGate flag="feature_referrals" label="Referrals"><Referrals /></FeatureGate>} />
+                    <Route path="/learn" element={<FeatureGate flag="feature_lessons" label="Financial Lessons"><FinancialEducation /></FeatureGate>} />
                     <Route path="/chats" element={<ChatList />} />
                     <Route path="/chat/:conversationId" element={<ChatRoom />} />
                     <Route path="/recurring" element={<ManageRecurring />} />

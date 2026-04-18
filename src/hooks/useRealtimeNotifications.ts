@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 export const useRealtimeNotifications = () => {
   const [userId, setUserId] = useState<string | null>(null);
+  const { isOn, loading } = useAppSettings();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -13,6 +15,9 @@ export const useRealtimeNotifications = () => {
   }, []);
 
   useEffect(() => {
+    // Honor admin toggle: if realtime notifications are OFF, never subscribe.
+    if (loading) return;
+    if (!isOn("realtime_notifications")) return;
     if (!userId) return;
 
     const channel = supabase
@@ -22,7 +27,7 @@ export const useRealtimeNotifications = () => {
         schema: "public",
         table: "friendships",
         filter: `friend_id=eq.${userId}`,
-      }, (payload) => {
+      }, () => {
         haptic.light();
         toast("👋 New friend request!", { description: "Someone wants to connect with you" });
         insertNotification(userId, "Friend Request", "You received a new friend request", "friend_request");
@@ -54,7 +59,6 @@ export const useRealtimeNotifications = () => {
         filter: `user_id=eq.${userId}`,
       }, (payload: any) => {
         const n = payload.new || {};
-        // Skip notifications already toast-ed by other channels above.
         if (["friend_request", "chore", "support"].includes(n.type)) return;
         haptic.light();
         toast(n.title || "Notification", { description: n.body || undefined });
@@ -64,7 +68,7 @@ export const useRealtimeNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, loading, isOn]);
 };
 
 const insertNotification = async (userId: string, title: string, body: string, type: string) => {

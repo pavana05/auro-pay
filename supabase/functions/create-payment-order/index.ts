@@ -12,9 +12,15 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Emergency freeze check
-    const { data: freezeRow } = await supabase.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
-    if (freezeRow?.value === "true") {
+    // ── Admin-flag checks ───────────────────────────────────────────
+    const { data: settingsRows } = await supabase
+      .from("app_settings")
+      .select("key,value")
+      .in("key", ["freeze_all_transactions", "min_transaction_amount", "max_transaction_amount", "max_wallet_balance"]);
+    const flags: Record<string, string> = {};
+    (settingsRows || []).forEach((r: any) => { flags[r.key] = r.value; });
+
+    if (flags.freeze_all_transactions === "true") {
       return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -22,6 +28,10 @@ Deno.serve(async (req) => {
     if (!amount || amount <= 0) return new Response(JSON.stringify({ error: "Invalid amount" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const amountPaise = Math.round(amount * 100);
+    const minAmt = Number(flags.min_transaction_amount ?? "100");
+    const maxAmt = Number(flags.max_transaction_amount ?? "5000000");
+    if (amountPaise < minAmt) return new Response(JSON.stringify({ error: `Minimum top-up is ₹${(minAmt / 100).toLocaleString("en-IN")}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (amountPaise > maxAmt) return new Response(JSON.stringify({ error: `Maximum top-up is ₹${(maxAmt / 100).toLocaleString("en-IN")}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // Get or create wallet
     let { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
@@ -30,11 +40,16 @@ Deno.serve(async (req) => {
       wallet = newWallet;
     }
 
+    // Wallet balance cap
+    const maxBal = Number(flags.max_wallet_balance ?? "1000000");
+    if ((wallet?.balance || 0) + amountPaise > maxBal) {
+      return new Response(JSON.stringify({ error: `This top-up would exceed the ₹${(maxBal / 100).toLocaleString("en-IN")} wallet balance cap.` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
     const razorpaySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
 
     if (razorpayKeyId && razorpaySecret) {
-      // Create real Razorpay order
       const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
         method: "POST",
         headers: {
@@ -50,7 +65,6 @@ Deno.serve(async (req) => {
       });
       const order = await orderRes.json();
 
-      // Create pending transaction
       await supabase.from("transactions").insert({
         wallet_id: wallet!.id,
         type: "credit",
@@ -68,7 +82,7 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Sandbox mode — simulate order creation
+    // Sandbox mode
     const mockOrderId = `order_sim_${Date.now()}`;
     await supabase.from("transactions").insert({
       wallet_id: wallet!.id,
