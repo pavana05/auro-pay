@@ -101,7 +101,8 @@ export default function WaitlistModal({ open, onClose }: Props) {
       setReferralCode(result.referralCode);
       setSuccess(true);
       toast.success("You're on the list! 🎉");
-      fetchPosition();
+      // Fetch live waitlist position (fire-and-forget, inline to guarantee execution)
+      void fetchPosition().catch(() => {});
 
       // Confetti
       try {
