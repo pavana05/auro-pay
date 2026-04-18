@@ -17,9 +17,12 @@ export function useWaitlistPosition() {
     try {
       const { data, error } = await supabase.rpc("get_waitlist_count");
       if (error) throw error;
-      if (typeof data === "number") {
-        setPosition(data + POSITION_OFFSET);
-        return data + POSITION_OFFSET;
+      // PG bigint may come back as number OR string depending on size
+      const n = typeof data === "number" ? data : Number(data);
+      if (Number.isFinite(n)) {
+        const pos = n + POSITION_OFFSET;
+        setPosition(pos);
+        return pos;
       }
     } catch {
       /* swallow — we just won't show a position */
