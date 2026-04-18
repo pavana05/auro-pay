@@ -40,7 +40,7 @@ interface WebhookEntry {
   event: string;
   amount: number | null;
   status: "success" | "failed" | "pending";
-  processingMs: number;
+  processingMs?: number;
   ts: number;
 }
 
@@ -347,7 +347,7 @@ const AdminHealth = () => {
                     <span className="text-[11px] tabular-nums font-semibold" style={{ color: C.textSecondary }}>
                       {w.amount ? `₹${(w.amount / 100).toLocaleString("en-IN")}` : "—"}
                     </span>
-                    <span className="text-[10px] tabular-nums" style={{ color: C.textMuted }}>{w.processingMs}ms</span>
+                    <span className="text-[10px] tabular-nums" style={{ color: C.textMuted }}>{w.processingMs ? `${w.processingMs}ms` : "—"}</span>
                     <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${sColor}15`, color: sColor }}>{w.status}</span>
                   </div>
                 );
@@ -365,7 +365,9 @@ const AdminHealth = () => {
               <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
             </div>
             <div className="max-h-[340px] overflow-y-auto">
-              {funcs.map((f, i) => {
+              {funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions tracked yet</p>
+              ) : funcs.map((f, i) => {
                 const isErr = f.status === "error";
                 const sColor = isErr ? C.danger : C.success;
                 return (
@@ -434,29 +436,33 @@ const AdminHealth = () => {
             <span className="text-[10px]" style={{ color: C.textMuted }}>Last 30 days</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {["Service", "Started", "Duration", "Impact", "Status"].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.textMuted }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {incidents.map((inc, i) => {
-                  const iColor = inc.impact === "critical" ? C.danger : inc.impact === "major" ? C.warning : C.textSecondary;
-                  return (
-                    <tr key={inc.id} className="hover:bg-white/[0.02]" style={{ borderBottom: i < incidents.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>{inc.service}</td>
-                      <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.startedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
-                      <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{inc.durationMin}m</td>
-                      <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${iColor}15`, color: iColor }}>{inc.impact}</span></td>
-                      <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${C.success}15`, color: C.success }}>Resolved</span></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {incidents.length === 0 ? (
+              <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No incidents recorded ✓</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {["Service", "Started", "Duration", "Impact", "Status"].map(h => (
+                      <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.textMuted }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidents.map((inc, i) => {
+                    const iColor = inc.impact === "critical" ? C.danger : inc.impact === "major" ? C.warning : C.textSecondary;
+                    return (
+                      <tr key={inc.id} className="hover:bg-white/[0.02]" style={{ borderBottom: i < incidents.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>{inc.service}</td>
+                        <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.startedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
+                        <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{inc.durationMin}m</td>
+                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${iColor}15`, color: iColor }}>{inc.impact}</span></td>
+                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${C.success}15`, color: C.success }}>Resolved</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
