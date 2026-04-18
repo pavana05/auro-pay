@@ -16,8 +16,14 @@ export interface JoinWaitlistResult {
   referralCode: string | null;
 }
 
+interface JoinWaitlistResponse {
+  ok?: boolean;
+  error?: string;
+  referral_code?: string | null;
+}
+
 export async function joinWaitlist(input: JoinWaitlistInput): Promise<JoinWaitlistResult> {
-  const { data, error } = await supabase.functions.invoke("join-waitlist", {
+  const { data, error } = await supabase.functions.invoke<JoinWaitlistResponse>("join-waitlist", {
     body: input,
   });
 
@@ -25,11 +31,11 @@ export async function joinWaitlist(input: JoinWaitlistInput): Promise<JoinWaitli
     throw new Error(error.message || "Couldn't join right now. Please try again.");
   }
 
-  if ((data as { error?: string } | null)?.error) {
-    throw new Error((data as { error: string }).error);
+  if (!data?.ok) {
+    throw new Error(data?.error || "Couldn't join right now. Please try again.");
   }
 
   return {
-    referralCode: (data as { referral_code?: string | null } | null)?.referral_code ?? null,
+    referralCode: data.referral_code ?? null,
   };
 }
