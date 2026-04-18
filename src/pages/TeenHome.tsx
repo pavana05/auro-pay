@@ -36,7 +36,10 @@ const stagger = {
 
 const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
+import { useAppSettings } from "@/hooks/useAppSettings";
+
 const TeenHome = () => {
+  const { isOn: settingOn } = useAppSettings();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
