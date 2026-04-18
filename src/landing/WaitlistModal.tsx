@@ -12,7 +12,7 @@ const SITE_URL = "https://auro-pay.lovable.app";
 const JOIN_TIMEOUT_MS = 30_000;
 const REFERRAL_LOOKUP_TIMEOUT_MS = 4_000;
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
 
