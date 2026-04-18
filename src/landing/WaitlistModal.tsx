@@ -2,15 +2,15 @@ import { useState, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Loader2, Copy, MessageCircle, Twitter } from "lucide-react";
 import confetti from "canvas-confetti";
-import { supabase } from "@/integrations/supabase/client";
-import { getReferrerId } from "@/landing/referral";
+import { captureReferralCode } from "@/landing/referral";
+import { joinWaitlist } from "@/landing/joinWaitlist";
 
 type Role = "teen" | "parent" | "both";
 
 const SUPABASE_FUNCTIONS_URL = "https://mkduupshubnzjwefptcw.functions.supabase.co";
 const SITE_URL = "https://auro-pay.lovable.app";
 const JOIN_TIMEOUT_MS = 30_000;
-const REFERRAL_LOOKUP_TIMEOUT_MS = 4_000;
+
 
 function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -96,45 +96,26 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     setLoading(true);
 
     try {
-      let referred_by: string | null = null;
-
-      try {
-        referred_by = await withTimeout(
-          getReferrerId(),
-          REFERRAL_LOOKUP_TIMEOUT_MS,
-          "Referral lookup timed out"
-        );
-      } catch {
-        referred_by = null;
-      }
-
-      const { data: inserted, error: insErr } = await withTimeout(
-        supabase
-          .from("waitlist")
-          .insert({
-            full_name: name.trim(),
-            phone: "+91" + cleanPhone,
-            email: email.trim().toLowerCase(),
-            role,
-            source: "landing_modal",
-            referred_by,
-          })
-          .select("referral_code")
-          .single(),
+      const referralCode = captureReferralCode();
+      const { referralCode: insertedReferralCode } = await withTimeout(
+        joinWaitlist({
+          fullName: name.trim(),
+          phone: cleanPhone,
+          email: email.trim().toLowerCase(),
+          role,
+          source: "landing_modal",
+          referralCode,
+        }),
         JOIN_TIMEOUT_MS,
         "Waitlist submission timed out"
       );
 
-      if (insErr) {
-        setError(insErr.message.includes("waitlist_email_lower_idx") || insErr.code === "23505"
-          ? "You're already on the list!"
-          : "Couldn't join right now. Please try again.");
-        return;
-      }
-
-      if (inserted?.referral_code) {
-        setRefCode(inserted.referral_code);
-        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${inserted.referral_code}`, { mode: "no-cors" })
+      if (insertedReferralCode) {
+        setRefCode(insertedReferralCode);
+        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${insertedReferralCode}`, { mode: "no-cors" })
+          .catch(() => {});
+      } else if (referralCode) {
+        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${referralCode}`, { mode: "no-cors" })
           .catch(() => {});
       }
 
@@ -144,7 +125,9 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
       setError(
         err instanceof Error && err.message === "Waitlist submission timed out"
           ? "This is taking too long. Please try again in a moment."
-          : "Couldn't join right now. Please try again."
+          : err instanceof Error
+            ? err.message
+            : "Couldn't join right now. Please try again."
       );
     } finally {
       setLoading(false);
