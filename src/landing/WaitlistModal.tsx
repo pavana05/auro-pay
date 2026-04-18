@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Loader2, Copy, MessageCircle, Twitter } from "lucide-react";
 import confetti from "canvas-confetti";
