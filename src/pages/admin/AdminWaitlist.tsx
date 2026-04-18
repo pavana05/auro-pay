@@ -145,20 +145,27 @@ export default function AdminWaitlist() {
     if (background) setRefreshing(true);
     else setLoading(true);
 
-    const { data, error } = await supabase
-      .from("waitlist")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1000);
+    try {
+      const { data, error } = await supabase
+        .from("waitlist")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1000);
 
-    if (error) {
-      if (!silent) toast.error("Failed to load waitlist");
-    } else {
+      if (error) throw error;
+
       setRows((data as WaitlistRow[]) || []);
+    } catch (error) {
+      console.error("[AdminWaitlist] Failed to load waitlist:", error);
+      if (!silent) {
+        toast.error("Failed to load waitlist", {
+          description: error instanceof Error ? error.message : "Please try reloading the page.",
+        });
+      }
+    } finally {
+      if (background) setRefreshing(false);
+      else setLoading(false);
     }
-
-    if (background) setRefreshing(false);
-    else setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -422,7 +429,11 @@ export default function AdminWaitlist() {
               Waitlist Analytics
             </h1>
             <p className="text-sm mt-1" style={{ color: G.muted }}>
-              {loading ? "Loading…" : `${stats.total.toLocaleString()} total signups · live updates enabled`}
+              {loading
+                ? "Loading waitlist data…"
+                : refreshing
+                  ? `${stats.total.toLocaleString()} total signups · refreshing live data…`
+                  : `${stats.total.toLocaleString()} total signups · live updates enabled`}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -721,6 +732,13 @@ export default function AdminWaitlist() {
                 </tr>
               </thead>
               <tbody>
+                {loading && (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center" style={{ color: G.muted }}>
+                      Loading waitlist entries…
+                    </td>
+                  </tr>
+                )}
                 {pageRows.length === 0 && !loading && (
                   <tr><td colSpan={8} className="py-12 text-center" style={{ color: G.muted }}>No entries match your filters.</td></tr>
                 )}
