@@ -53,6 +53,7 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   const reset = () => {
     setPhone(""); setEmail(""); setName(""); setRole("teen");
     setDone(false); setError(null); setRefCode(null); setCopied(false);
+    setSubmittedName("");
   };
 
   const copyLink = async () => {
@@ -87,6 +88,22 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     try {
       await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl });
     } catch { /* user cancelled */ }
+  };
+
+  const downloadBadge = () => {
+    try {
+      const dataUrl = generateFoundingBadge({
+        name: submittedName || "Founding Member",
+        referralCode: refCode,
+        position,
+      });
+      if (!dataUrl) throw new Error("Couldn't generate badge");
+      const safeCode = (refCode || "AUROPAY").replace(/[^A-Z0-9-]/gi, "");
+      downloadDataUrl(dataUrl, `auropay-founding-member-${safeCode}.png`);
+      toast.success("Badge saved", { description: "Post it on your story and tag @auropay 💛" });
+    } catch {
+      toast.error("Couldn't save badge", { description: "Try again or screenshot this card." });
+    }
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -134,6 +151,9 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
       });
 
       setDone(true);
+      setSubmittedName(name.trim());
+      // fire-and-forget — failure just hides the position pill
+      fetchPosition();
       confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ["#c8952e", "#e0b048", "#fff7e3"] });
     } catch (err) {
       const msg =
