@@ -229,19 +229,19 @@ const TeenHome = () => {
 
   const allFeatures = [
     { label: "My Card", path: "/card", emoji: "💳", desc: "Virtual card" },
-    { label: "Split Bill", path: "/bill-split", emoji: "👥", desc: "Share costs" },
+    settingOn("feature_bill_split") && { label: "Split Bill", path: "/bill-split", emoji: "👥", desc: "Share costs" },
     { label: "Budget", path: "/budget", emoji: "📈", desc: "Plan ahead" },
-    { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
-    { label: "Request", path: "/quick-pay", state: { mode: "request" }, emoji: "💰", desc: "Ask for money" },
+    settingOn("feature_quick_pay") && { label: "Quick Pay", path: "/quick-pay", emoji: "⚡", desc: "Fast transfer" },
+    settingOn("feature_quick_pay") && { label: "Request", path: "/quick-pay", state: { mode: "request" }, emoji: "💰", desc: "Ask for money" },
     { label: "Scratch", path: "/scratch-cards", emoji: "🎰", desc: "Win rewards" },
     { label: "Spin", path: "/spin-wheel", emoji: "🎡", desc: "Spin to win" },
-    { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn money" },
+    settingOn("feature_chores") && { label: "Chores", path: "/chores", emoji: "📋", desc: "Earn money" },
     { label: "Badges", path: "/achievements", emoji: "🏆", desc: "Your badges" },
     { label: "Friends", path: "/friends", emoji: "🤝", desc: "Social hub" },
-    { label: "Learn", path: "/learn", emoji: "📚", desc: "Earn coins" },
+    settingOn("feature_lessons") && { label: "Learn", path: "/learn", emoji: "📚", desc: "Earn coins" },
     { label: "Bills", path: "/bill-payments", emoji: "⚡", desc: "Pay bills" },
-    { label: "Refer", path: "/referrals", emoji: "🎁", desc: "Earn ₹20" },
-  ];
+    settingOn("feature_referrals") && { label: "Refer", path: "/referrals", emoji: "🎁", desc: "Earn ₹20" },
+  ].filter(Boolean) as Array<{ label: string; path: string; emoji: string; desc: string; state?: any }>;
 
   return (
     <div className="min-h-screen bg-background pb-28 relative overflow-hidden">
