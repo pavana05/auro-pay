@@ -26,6 +26,7 @@ export default function WaitlistModal({ open, onClose }: Props) {
   const [success, setSuccess] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { position, fetchPosition } = useWaitlistPosition();
 
   // Reset state whenever modal closes
   useEffect(() => {
