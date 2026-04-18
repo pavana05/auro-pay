@@ -285,3 +285,199 @@ function Input({
     </label>
   );
 }
+
+/* ---------------- Premium loader (matches modal) ---------------- */
+function PremiumLoader() {
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      <span className="relative inline-block w-[18px] h-[18px]">
+        <motion.span
+          className="absolute inset-0 rounded-full"
+          style={{ border: "2px solid rgba(0,0,0,0.25)", borderTopColor: "rgba(0,0,0,0.85)" }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.85, ease: "linear" }}
+        />
+      </span>
+      <span className="relative">
+        Securing your spot
+        <span className="inline-block w-[2ch] text-left" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="inline-block"
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ repeat: Infinity, duration: 1.1, delay: i * 0.18 }}
+            >.</motion.span>
+          ))}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/* ---------------- Inline success view (matches modal) ---------------- */
+function SuccessInline({
+  name, refCode, shareUrl, copied, position,
+  onCopy, onWhatsApp, onTwitter, onEmail, onNativeShare, onDownloadBadge,
+}: {
+  name: string;
+  refCode: string | null;
+  shareUrl: string;
+  copied: boolean;
+  position: number | null;
+  onCopy: () => void;
+  onWhatsApp: () => void;
+  onTwitter: () => void;
+  onEmail: () => void;
+  onNativeShare: () => void;
+  onDownloadBadge: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative text-center space-y-5"
+    >
+      {/* Halo + check */}
+      <div className="relative w-24 h-24 mx-auto">
+        <motion.div
+          aria-hidden
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: [0.6, 1.15, 1], opacity: [0, 0.6, 0.35] }}
+          transition={{ duration: 1.4, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full"
+          style={{ background: "radial-gradient(closest-side, rgba(200,149,46,0.55), transparent 70%)" }}
+        />
+        <motion.div
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 16 }}
+          className="absolute inset-2 rounded-full flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg,#e0b048,#c8952e)",
+            boxShadow: "0 16px 40px rgba(200,149,46,0.55), inset 0 2px 0 rgba(255,255,255,0.45)",
+          }}
+        >
+          <Check size={42} strokeWidth={3} className="text-black" />
+        </motion.div>
+      </div>
+
+      <div>
+        <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
+          You're on the list{name ? `, ${name.split(" ")[0]}` : ""}!
+        </h3>
+        <p className="text-[13.5px] text-white/60 mt-1.5">
+          {refCode
+            ? <>Invite friends — you both get <span className="text-amber-200 font-semibold">₹100</span> when they join.</>
+            : "We'll notify you the moment AuroPay launches in your city."}
+        </p>
+      </div>
+
+      {/* Live waitlist position */}
+      <AnimatePresence>
+        {position !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 18 }}
+            className="mx-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-[13px] font-semibold tabular-nums"
+            style={{
+              background: "linear-gradient(135deg, rgba(224,176,72,0.18), rgba(200,149,46,0.10))",
+              border: "1px solid rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+              boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
+            }}
+          >
+            <Sparkles size={12} className="text-amber-300" />
+            #{position.toLocaleString("en-IN")} in line
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {refCode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="rounded-2xl p-3 flex items-center gap-3"
+          style={{
+            background: "linear-gradient(135deg, rgba(200,149,46,0.10), rgba(200,149,46,0.04))",
+            border: "1px solid rgba(200,149,46,0.30)",
+          }}
+        >
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-white/50 font-semibold">Your invite link</div>
+            <div className="text-[12.5px] text-white/90 truncate font-mono">{shareUrl.replace(/^https?:\/\//, "")}</div>
+          </div>
+          <button
+            onClick={onCopy}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[11px] font-semibold transition"
+            style={{
+              background: copied ? "rgba(34,197,94,0.18)" : "rgba(200,149,46,0.18)",
+              color: copied ? "#86efac" : "#e9c168",
+            }}
+          >
+            {copied ? <><Check size={12} strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy</>}
+          </button>
+        </motion.div>
+      )}
+
+      {refCode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+          className="grid grid-cols-3 gap-2"
+        >
+          <ShareBtn onClick={onWhatsApp} label="WhatsApp" tint="#25d366" icon={<MessageCircle size={15} fill="#fff" strokeWidth={0} />} />
+          <ShareBtn onClick={onTwitter} label="Twitter" tint="#1d1d1f" icon={<Twitter size={14} fill="#fff" strokeWidth={0} />} />
+          <ShareBtn onClick={onEmail} label="Email" tint="#3b3b40" icon={<Mail size={14} className="text-white" />} />
+        </motion.div>
+      )}
+
+      {refCode && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+          onClick={typeof navigator !== "undefined" && "share" in navigator ? onNativeShare : onCopy}
+          className="relative w-full h-12 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 overflow-hidden group"
+          style={{
+            background: "linear-gradient(135deg,#c8952e,#e0b048)",
+            color: "#0a0a0a",
+            boxShadow: "0 10px 28px rgba(200,149,46,0.42), inset 0 1px 0 rgba(255,255,255,0.35)",
+          }}
+        >
+          <span aria-hidden className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }} />
+          <Share2 size={15} strokeWidth={2.5} /> Invite a friend
+        </motion.button>
+      )}
+
+      <motion.button
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
+        onClick={onDownloadBadge}
+        className="w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+        style={{
+          background: "rgba(224,176,72,0.08)",
+          borderColor: "rgba(224,176,72,0.35)",
+          color: "#ffe9a8",
+        }}
+      >
+        <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+      </motion.button>
+    </motion.div>
+  );
+}
+
+function ShareBtn({ onClick, label, tint, icon }: { onClick: () => void; label: string; tint: string; icon: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="h-11 rounded-xl text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition hover:scale-[1.03] active:scale-[0.97]"
+      style={{
+        background: `linear-gradient(135deg, ${tint}, rgba(0,0,0,0.4))`,
+        color: "#fff",
+        border: "1px solid rgba(255,255,255,0.10)",
+        boxShadow: `0 6px 18px ${tint}40`,
+      }}
+    >
+      {icon} {label}
+    </button>
+  );
+}
