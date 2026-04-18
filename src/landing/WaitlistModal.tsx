@@ -333,6 +333,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
                   shareTwitter={shareTwitter}
                   shareEmail={shareEmail}
                   nativeShare={nativeShare}
+                  position={position}
+                  onDownloadBadge={downloadBadge}
                   onClose={handleClose}
                 />
               )}
