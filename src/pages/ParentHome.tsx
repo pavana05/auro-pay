@@ -89,11 +89,14 @@ const ParentHome = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Realtime subscription for teen wallets
+  // Realtime subscription for teen wallets + pending approvals
   useEffect(() => {
     const channel = supabase
-      .channel("parent-wallet-changes")
+      .channel(`parent-home-rt-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
+        fetchData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pending_payment_approvals" }, () => {
         fetchData();
       })
       .subscribe();
