@@ -349,7 +349,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
 /* ---------------- Success view ---------------- */
 
 function SuccessView({
-  refCode, shareUrl, copied, copyLink, shareWhatsApp, shareTwitter, shareEmail, nativeShare, onClose,
+  refCode, shareUrl, copied, copyLink, shareWhatsApp, shareTwitter, shareEmail, nativeShare,
+  position, onDownloadBadge, onClose,
 }: {
   refCode: string | null;
   shareUrl: string;
@@ -359,6 +360,8 @@ function SuccessView({
   shareTwitter: () => void;
   shareEmail: () => void;
   nativeShare: () => void;
+  position: number | null;
+  onDownloadBadge: () => void;
   onClose: () => void;
 }) {
   return (
