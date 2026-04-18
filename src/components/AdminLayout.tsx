@@ -87,7 +87,6 @@ const allNavItems = navSections.flatMap((s) => s.items);
 
 interface BadgeCounts { kyc: number; frozen: number; notif: number; flagged: number; tickets: number; }
 type ApiHealth = "green" | "amber" | "red";
-const ADMIN_AUTH_EVENT = "admin-auth-changed";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -219,7 +218,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   /* Session timeout handled by SessionTimeoutModal (2h with 5-min warning) */
   const handleSessionExpire = () => {
     sessionStorage.removeItem("admin_auth");
-    window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
     setIsAuthenticated(false);
     toast.error("Session expired. Please re-authenticate.");
   };
@@ -271,7 +269,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = async () => {
     haptic.heavy();
     sessionStorage.removeItem("admin_auth");
-    window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
     await supabase.auth.signOut();
     navigate("/");
   };
