@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { captureReferralCode } from "@/landing/referral";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
 
 type Role = "teen" | "parent" | "both";
 
