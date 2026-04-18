@@ -70,6 +70,10 @@
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer utilities {
@@ -206,6 +210,46 @@
   @keyframes lux-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+
+  /* Slow drifting aurora — conic gold sweep for premium depth */
+  .lux-aurora-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(200,149,46,0.10), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 80% 90%, rgba(255,247,227,0.06), transparent 60%),
+      conic-gradient(from 90deg at 50% 50%,
+        transparent 0deg,
+        rgba(200,149,46,0.05) 80deg,
+        transparent 160deg,
+        rgba(255,247,227,0.04) 240deg,
+        transparent 320deg);
+    filter: blur(60px);
+    animation: lux-aurora-drift 28s linear infinite;
+  }
+  @keyframes lux-aurora-drift {
+    from { transform: rotate(0deg) scale(1.1); }
+    to { transform: rotate(360deg) scale(1.1); }
+  }
+
+  /* Spotlight that follows nothing — pure ambient glow */
+  .lux-spotlight {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(200,149,46,0.18), transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Premium text glow — subtle gold halo behind text */
+  .lux-text-glow {
+    text-shadow:
+      0 0 20px rgba(200,149,46,0.4),
+      0 0 40px rgba(200,149,46,0.2);
+  }
+
+  /* Reveal mask — text reveals from below with mask */
+  .lux-reveal {
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
   }
 
   .gradient-card {
