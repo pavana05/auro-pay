@@ -488,6 +488,20 @@ function SuccessView({
             <Share2 size={15} strokeWidth={2.5} /> Invite a friend
           </motion.button>
 
+          {/* Founding Member badge download */}
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
+            onClick={onDownloadBadge}
+            className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+            style={{
+              background: "rgba(224,176,72,0.08)",
+              borderColor: "rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+            }}
+          >
+            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+          </motion.button>
+
           <button
             onClick={onClose}
             className="w-full py-2.5 text-xs text-white/45 hover:text-white/75 transition"
@@ -496,13 +510,27 @@ function SuccessView({
           </button>
         </>
       ) : (
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
-          style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
-        >
-          Done
-        </button>
+        <>
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+            onClick={onDownloadBadge}
+            className="w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+            style={{
+              background: "rgba(224,176,72,0.08)",
+              borderColor: "rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+            }}
+          >
+            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+          </motion.button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
+            style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
+          >
+            Done
+          </button>
+        </>
       )}
     </motion.div>
   );
