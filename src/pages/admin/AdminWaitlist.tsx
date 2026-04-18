@@ -138,12 +138,21 @@ export default function AdminWaitlist() {
   const [page, setPage] = useState(1);
   const [detailRow, setDetailRow] = useState<WaitlistRow | null>(null);
   const [liveItems, setLiveItems] = useState<WaitlistRow[]>([]);
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => sessionStorage.getItem("admin_auth") === "true");
   const activeLoadId = useRef(0);
   const PER_PAGE = 25;
 
   const loadRows = useCallback(async (options?: { silent?: boolean; background?: boolean }) => {
     const { silent = false, background = false } = options ?? {};
     const loadId = ++activeLoadId.current;
+
+    if (!isAdminUnlocked) {
+      setLoadError(null);
+      setRows([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     if (background) setRefreshing(true);
     else {
@@ -152,10 +161,6 @@ export default function AdminWaitlist() {
     }
 
     try {
-      // Do NOT await supabase.auth.getSession() here — it competes for the
-      // same navigator lock that the auto token refresh holds during page
-      // load, which causes both calls to hang for >5s. The PostgREST query
-      // itself reads the cached access token without acquiring the lock.
       const queryPromise = supabase
         .from("waitlist")
         .select("*")
@@ -187,16 +192,43 @@ export default function AdminWaitlist() {
       if (background) setRefreshing(false);
       else setLoading(false);
     }
+  }, [isAdminUnlocked]);
+
+  useEffect(() => {
+    const syncAdminUnlock = () => {
+      setIsAdminUnlocked(sessionStorage.getItem("admin_auth") === "true");
+    };
+
+    window.addEventListener("admin-auth-changed", syncAdminUnlock);
+    window.addEventListener("storage", syncAdminUnlock);
+    return () => {
+      window.removeEventListener("admin-auth-changed", syncAdminUnlock);
+      window.removeEventListener("storage", syncAdminUnlock);
+    };
   }, []);
 
   useEffect(() => {
     let mounted = true;
+
+    if (!isAdminUnlocked) {
+      setRows([]);
+      setLiveItems([]);
+      setLoadError(null);
+      setLoading(false);
+      setRefreshing(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
     const guardedLoad = async (options?: { silent?: boolean; background?: boolean }) => {
       if (!mounted) return;
       await loadRows(options);
     };
 
-    guardedLoad();
+    const initialTimer = window.setTimeout(() => {
+      guardedLoad();
+    }, 250);
 
     const channel = supabase
       .channel("admin-waitlist")
@@ -222,8 +254,6 @@ export default function AdminWaitlist() {
         }
       });
 
-    // Realtime keeps rows fresh; only do a slow safety-net poll to avoid
-    // hammering the auth lock (which was causing requests to hang/time out).
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       guardedLoad({ silent: true, background: true });
@@ -231,7 +261,6 @@ export default function AdminWaitlist() {
 
     let lastFocusReload = Date.now();
     const maybeReloadOnReturn = () => {
-      // Throttle: at most once every 30s on focus/visibility events.
       if (Date.now() - lastFocusReload < 30000) return;
       lastFocusReload = Date.now();
       guardedLoad({ silent: true, background: true });
@@ -245,12 +274,13 @@ export default function AdminWaitlist() {
 
     return () => {
       mounted = false;
+      window.clearTimeout(initialTimer);
       window.clearInterval(intervalId);
       window.removeEventListener("focus", maybeReloadOnReturn);
       document.removeEventListener("visibilitychange", handleVisibility);
       supabase.removeChannel(channel);
     };
-  }, [loadRows]);
+  }, [isAdminUnlocked, loadRows]);
 
   // Stats
   const stats = useMemo(() => {
