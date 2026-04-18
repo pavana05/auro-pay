@@ -172,13 +172,13 @@ export default function AdminWaitlist() {
       });
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
-      if (loadId !== activeLoadId.current) return;
+      if (loadId !== activeLoadId.current && !background) return;
       if (error) throw error;
 
       setRows((data as WaitlistRow[]) || []);
       setLoadError(null);
     } catch (error) {
-      if (loadId !== activeLoadId.current) return;
+      if (loadId !== activeLoadId.current && !background) return;
       const message = error instanceof Error ? error.message : "Please try reloading the page.";
       console.error("[AdminWaitlist] Failed to load waitlist:", error);
       setLoadError(message);
@@ -188,9 +188,11 @@ export default function AdminWaitlist() {
         });
       }
     } finally {
-      if (loadId !== activeLoadId.current) return;
-      if (background) setRefreshing(false);
-      else setLoading(false);
+      if (background) {
+        if (loadId === activeLoadId.current) setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [isAdminUnlocked]);
 
