@@ -63,11 +63,15 @@ interface ApiError {
 
 interface Incident {
   id: string;
+  title: string;
+  description: string | null;
   service: string;
-  startedAt: number;
-  durationMin: number;
-  impact: "minor" | "major" | "critical";
-  resolved: boolean;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "investigating" | "identified" | "monitoring" | "resolved";
+  affected_service: string | null;
+  postmortem_url: string | null;
+  started_at: string;
+  resolved_at: string | null;
 }
 
 const STATUS_META: Record<ServiceStatus, { label: string; color: string; icon: any }> = {
