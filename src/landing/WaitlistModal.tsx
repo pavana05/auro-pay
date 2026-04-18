@@ -477,9 +477,9 @@ function ShareBtn({ onClick, label, tint, icon }: { onClick: () => void; label: 
 
 /* ---------------- Premium loader ---------------- */
 
-function PremiumLoader() {
+const PremiumLoader = forwardRef<HTMLSpanElement>(function PremiumLoader(_, ref) {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span ref={ref} className="inline-flex items-center gap-2.5">
       <span className="relative inline-block w-[18px] h-[18px]">
         <motion.span
           className="absolute inset-0 rounded-full"
@@ -502,11 +502,11 @@ function PremiumLoader() {
       </span>
     </span>
   );
-}
+});
 
-function DotPulse() {
+const DotPulse = forwardRef<HTMLSpanElement>(function DotPulse(_, ref) {
   return (
-    <>
+    <span ref={ref}>
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
@@ -517,9 +517,9 @@ function DotPulse() {
           .
         </motion.span>
       ))}
-    </>
+    </span>
   );
-}
+});
 
 /* ---------------- Field ---------------- */
 
