@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { captureReferralCode } from "@/landing/referral";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
 
 type Role = "teen" | "parent" | "both";
 
@@ -25,6 +26,7 @@ export default function WaitlistModal({ open, onClose }: Props) {
   const [success, setSuccess] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { position, fetchPosition } = useWaitlistPosition();
 
   // Reset state whenever modal closes
   useEffect(() => {
@@ -99,6 +101,7 @@ export default function WaitlistModal({ open, onClose }: Props) {
       setReferralCode(result.referralCode);
       setSuccess(true);
       toast.success("You're on the list! 🎉");
+      fetchPosition();
 
       // Confetti
       try {
@@ -308,9 +311,29 @@ export default function WaitlistModal({ open, onClose }: Props) {
                   <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "Sora, sans-serif" }}>
                     You're in! 🎉
                   </h2>
-                  <p className="text-sm text-white/60 mb-6">
+                  <p className="text-sm text-white/60 mb-4">
                     We'll email you the moment AuroPay opens to your phone.
                   </p>
+
+                  <AnimatePresence>
+                    {position !== null && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ type: "spring", stiffness: 240, damping: 18 }}
+                        className="mx-auto mb-5 inline-flex items-center gap-2 px-4 h-9 rounded-full text-[13px] font-semibold tabular-nums"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(224,183,88,0.18), rgba(200,149,46,0.10))",
+                          border: "1px solid rgba(224,183,88,0.35)",
+                          color: "#ffe9a8",
+                          boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-300" />
+                        #{position.toLocaleString("en-IN")} in line
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {referralCode && (
                     <>
