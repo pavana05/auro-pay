@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { toast } from "sonner";
 import {
   Server, Activity, Database, Shield, Globe, Cpu, RefreshCw,
   CheckCircle2, AlertTriangle, XCircle, Zap, Webhook, Code2,
-  AlertOctagon, Clock, TrendingUp, TrendingDown,
+  AlertOctagon, Clock, Plus, X,
 } from "lucide-react";
 
 const C = {
@@ -62,11 +63,15 @@ interface ApiError {
 
 interface Incident {
   id: string;
+  title: string;
+  description: string | null;
   service: string;
-  startedAt: number;
-  durationMin: number;
-  impact: "minor" | "major" | "critical";
-  resolved: boolean;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "investigating" | "identified" | "monitoring" | "resolved";
+  affected_service: string | null;
+  postmortem_url: string | null;
+  started_at: string;
+  resolved_at: string | null;
 }
 
 const STATUS_META: Record<ServiceStatus, { label: string; color: string; icon: any }> = {
@@ -159,8 +164,22 @@ const AdminHealth = () => {
   const [checking, setChecking] = useState(false);
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
   const [funcs, setFuncs] = useState<FunctionEntry[]>([]);
+  const [funcsError, setFuncsError] = useState<string | null>(null);
+  const [funcsLoading, setFuncsLoading] = useState(false);
   const [errors, setErrors] = useState<ApiError[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentFormOpen, setIncidentFormOpen] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    title: "",
+    description: "",
+    service: "Database",
+    severity: "medium" as Incident["severity"],
+    status: "investigating" as Incident["status"],
+    affected_service: "",
+    postmortem_url: "",
+    started_at: new Date().toISOString().slice(0, 16),
+  });
+  const [incidentSaving, setIncidentSaving] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -187,7 +206,48 @@ const AdminHealth = () => {
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current); };
   }, [autoRefresh]);
 
-  /* Load real webhook data from transactions (Razorpay activity) and real errors from failed transactions. */
+  /* Load incidents from DB */
+  const loadIncidents = async () => {
+    const { data } = await supabase
+      .from("incidents")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(50);
+    setIncidents((data || []) as any);
+  };
+
+  /* Load real edge function logs from analytics via admin proxy */
+  const loadEdgeLogs = async () => {
+    setFuncsLoading(true);
+    setFuncsError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-edge-logs");
+      if (error) throw error;
+      const rows = (data?.rows || []) as any[];
+      const mapped: FunctionEntry[] = rows.map((r: any) => {
+        const status: "ok" | "error" =
+          typeof r.status_code === "number" && r.status_code >= 400 ? "error" : "ok";
+        return {
+          id: String(r.id ?? `${r.ts}-${Math.random()}`),
+          name: String(r.function_id ?? "unknown"),
+          durationMs: Math.round(Number(r.execution_time_ms ?? 0)),
+          status,
+          error: status === "error" ? `HTTP ${r.status_code}` : undefined,
+          ts: r.ts ? Math.floor(Number(r.ts) / 1000) : Date.now(),
+        };
+      });
+      setFuncs(mapped);
+      if (data?.error) setFuncsError(data.error);
+    } catch (e: any) {
+      setFuncsError(e?.message || "Failed to load edge logs");
+      setFuncs([]);
+    } finally {
+      setFuncsLoading(false);
+    }
+  };
+
+  /* Load real webhook data from transactions, real errors from failed txns,
+     plus incidents and edge function logs. */
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -209,9 +269,6 @@ const AdminHealth = () => {
       });
       setWebhooks(entries);
 
-      // Real errors derived from failed transactions only. Edge function logs and
-      // historical incidents aren't tracked in the DB, so we leave those empty
-      // until a logs table is wired up.
       const txErrors: ApiError[] = (data || []).filter((t: any) => t.status === "failed").slice(0, 50).map((t: any) => ({
         id: t.id,
         service: "Payment Gateway",
@@ -219,10 +276,58 @@ const AdminHealth = () => {
         ts: new Date(t.created_at).getTime(),
       }));
       setErrors(txErrors);
-      setFuncs([]);
-      setIncidents([]);
     })();
+
+    loadIncidents();
+    loadEdgeLogs();
+
+    // Live updates for incidents
+    const ch = supabase
+      .channel("incidents-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, () => loadIncidents())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
+
+  const submitIncident = async () => {
+    if (!incidentForm.title.trim() || !incidentForm.service.trim()) {
+      toast.error("Title and service are required");
+      return;
+    }
+    setIncidentSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setIncidentSaving(false); toast.error("Not signed in"); return; }
+    const payload: any = {
+      title: incidentForm.title.trim(),
+      description: incidentForm.description.trim() || null,
+      service: incidentForm.service.trim(),
+      severity: incidentForm.severity,
+      status: incidentForm.status,
+      affected_service: incidentForm.affected_service.trim() || null,
+      postmortem_url: incidentForm.postmortem_url.trim() || null,
+      started_at: new Date(incidentForm.started_at).toISOString(),
+      created_by: user.id,
+    };
+    const { error } = await supabase.from("incidents").insert(payload);
+    setIncidentSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Incident logged");
+    setIncidentFormOpen(false);
+    setIncidentForm({
+      title: "", description: "", service: "Database",
+      severity: "medium", status: "investigating",
+      affected_service: "", postmortem_url: "",
+      started_at: new Date().toISOString().slice(0, 16),
+    });
+    loadIncidents();
+  };
+
+  const updateIncidentStatus = async (id: string, status: Incident["status"]) => {
+    const { error } = await supabase.from("incidents").update({ status }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "resolved" ? "Incident resolved" : `Status: ${status}`);
+  };
+
 
   /* Aggregate error frequency by service */
   const errorFreq = useMemo(() => {
@@ -355,18 +460,29 @@ const AdminHealth = () => {
             </div>
           </div>
 
-          {/* Edge function log */}
+          {/* Edge function log (real analytics) */}
           <div className="rounded-[18px] backdrop-blur-md overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
               <div className="flex items-center gap-2">
                 <Code2 className="w-4 h-4" style={{ color: C.primary }} />
                 <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Edge Function Executions</h3>
+                <span className="text-[10px]" style={{ color: C.textMuted }}>· last 20</span>
               </div>
-              <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
+                <button onClick={loadEdgeLogs} disabled={funcsLoading} className="p-1 rounded-md hover:bg-white/[0.04] disabled:opacity-50" title="Refresh">
+                  <RefreshCw className={`w-3 h-3 ${funcsLoading ? "animate-spin" : ""}`} style={{ color: C.textSecondary }} />
+                </button>
+              </div>
             </div>
             <div className="max-h-[340px] overflow-y-auto">
-              {funcs.length === 0 ? (
-                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions tracked yet</p>
+              {funcsError && (
+                <p className="text-[10px] text-center px-5 py-2" style={{ color: C.warning, background: `${C.warning}08` }}>⚠ {funcsError}</p>
+              )}
+              {funcsLoading && funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>Loading…</p>
+              ) : funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions in recent logs</p>
               ) : funcs.map((f, i) => {
                 const isErr = f.status === "error";
                 const sColor = isErr ? C.danger : C.success;
@@ -377,6 +493,7 @@ const AdminHealth = () => {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="w-1 h-5 rounded-full shrink-0" style={{ background: sColor }} />
                         <span className="font-mono text-[11px] truncate" style={{ color: C.textPrimary }}>{f.name}</span>
+                        <span className="text-[10px] shrink-0" style={{ color: C.textMuted }}>{fmtRel(f.ts)}</span>
                       </div>
                       <span className="text-[10px] tabular-nums shrink-0" style={{ color: C.textMuted }}>{f.durationMs}ms</span>
                       <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full shrink-0" style={{ background: `${sColor}15`, color: sColor }}>{f.status}</span>
@@ -432,8 +549,12 @@ const AdminHealth = () => {
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4" style={{ color: C.primary }} />
               <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Incident History</h3>
+              <span className="text-[10px]" style={{ color: C.textMuted }}>· {incidents.length} recorded</span>
             </div>
-            <span className="text-[10px]" style={{ color: C.textMuted }}>Last 30 days</span>
+            <button onClick={() => setIncidentFormOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-semibold text-white"
+              style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primary}cc)` }}>
+              <Plus className="w-3 h-3" /> Log incident
+            </button>
           </div>
           <div className="overflow-x-auto">
             {incidents.length === 0 ? (
@@ -442,21 +563,44 @@ const AdminHealth = () => {
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    {["Service", "Started", "Duration", "Impact", "Status"].map(h => (
+                    {["Title", "Service", "Started", "Duration", "Severity", "Status", ""].map(h => (
                       <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.textMuted }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {incidents.map((inc, i) => {
-                    const iColor = inc.impact === "critical" ? C.danger : inc.impact === "major" ? C.warning : C.textSecondary;
+                    const sevColor = inc.severity === "critical" ? C.danger : inc.severity === "high" ? C.warning : inc.severity === "medium" ? C.primary : C.textSecondary;
+                    const statusColor = inc.status === "resolved" ? C.success : inc.status === "monitoring" ? C.primary : inc.status === "identified" ? C.warning : C.danger;
+                    const startMs = new Date(inc.started_at).getTime();
+                    const endMs = inc.resolved_at ? new Date(inc.resolved_at).getTime() : Date.now();
+                    const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
+                    const durStr = mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${Math.floor(mins/1440)}d`;
                     return (
                       <tr key={inc.id} className="hover:bg-white/[0.02]" style={{ borderBottom: i < incidents.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>{inc.service}</td>
-                        <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.startedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
-                        <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{inc.durationMin}m</td>
-                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${iColor}15`, color: iColor }}>{inc.impact}</span></td>
-                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${C.success}15`, color: C.success }}>Resolved</span></td>
+                        <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>
+                          {inc.title}
+                          {inc.affected_service && <span className="ml-2 text-[10px]" style={{ color: C.textMuted }}>· {inc.affected_service}</span>}
+                        </td>
+                        <td className="px-5 py-3" style={{ color: C.textSecondary }}>{inc.service}</td>
+                        <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.started_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{durStr}{!inc.resolved_at && " (ongoing)"}</td>
+                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${sevColor}15`, color: sevColor }}>{inc.severity}</span></td>
+                        <td className="px-5 py-3">
+                          <select value={inc.status} onChange={(e) => updateIncidentStatus(inc.id, e.target.value as Incident["status"])}
+                            className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full focus:outline-none cursor-pointer"
+                            style={{ background: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}33` }}>
+                            <option value="investigating">Investigating</option>
+                            <option value="identified">Identified</option>
+                            <option value="monitoring">Monitoring</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          {inc.postmortem_url && (
+                            <a href={inc.postmortem_url} target="_blank" rel="noreferrer" className="text-[10px] underline" style={{ color: C.primary }}>Postmortem</a>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -465,9 +609,95 @@ const AdminHealth = () => {
             )}
           </div>
         </div>
+
+        {/* ── Incident form modal ── */}
+        {incidentFormOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }} onClick={() => setIncidentFormOpen(false)}>
+            <div className="w-full max-w-lg rounded-[20px] overflow-hidden" style={{ background: C.cardBgSolid, border: `1px solid ${C.border}` }} onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: `${C.primary}15`, border: `1px solid ${C.primary}33` }}>
+                    <AlertOctagon className="w-4 h-4" style={{ color: C.primary }} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Log new incident</h3>
+                    <p className="text-[11px]" style={{ color: C.textMuted }}>Add a record to Incident History</p>
+                  </div>
+                </div>
+                <button onClick={() => setIncidentFormOpen(false)} className="p-1.5 rounded-md hover:bg-white/[0.04]" style={{ color: C.textSecondary }}><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                <Field label="Title *">
+                  <input value={incidentForm.title} onChange={(e) => setIncidentForm({ ...incidentForm, title: e.target.value })} placeholder="e.g. Webhook delivery delayed" autoFocus
+                    className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
+                </Field>
+                <Field label="Description">
+                  <textarea value={incidentForm.description} onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })} rows={3} placeholder="What happened, root cause, mitigation…"
+                    className="w-full px-3 py-2 rounded-[10px] text-sm focus:outline-none resize-y"
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Service *">
+                    <select value={incidentForm.service} onChange={(e) => setIncidentForm({ ...incidentForm, service: e.target.value })}
+                      className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }}>
+                      {["Database","Auth Service","Realtime","Edge Functions","Payment Gateway","KYC Provider","Other"].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Affected service">
+                    <input value={incidentForm.affected_service} onChange={(e) => setIncidentForm({ ...incidentForm, affected_service: e.target.value })} placeholder="optional"
+                      className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Severity">
+                    <select value={incidentForm.severity} onChange={(e) => setIncidentForm({ ...incidentForm, severity: e.target.value as any })}
+                      className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }}>
+                      <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+                    </select>
+                  </Field>
+                  <Field label="Status">
+                    <select value={incidentForm.status} onChange={(e) => setIncidentForm({ ...incidentForm, status: e.target.value as any })}
+                      className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }}>
+                      <option value="investigating">Investigating</option><option value="identified">Identified</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option>
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Started at">
+                  <input type="datetime-local" value={incidentForm.started_at} onChange={(e) => setIncidentForm({ ...incidentForm, started_at: e.target.value })}
+                    className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
+                </Field>
+                <Field label="Postmortem URL">
+                  <input value={incidentForm.postmortem_url} onChange={(e) => setIncidentForm({ ...incidentForm, postmortem_url: e.target.value })} placeholder="https://…"
+                    className="w-full h-10 px-3 rounded-[10px] text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textPrimary }} />
+                </Field>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => setIncidentFormOpen(false)} className="flex-1 h-10 rounded-[10px] text-xs font-semibold" style={{ background: "rgba(255,255,255,0.04)", color: C.textPrimary, border: `1px solid ${C.border}` }}>Cancel</button>
+                  <button disabled={incidentSaving || !incidentForm.title.trim()} onClick={submitIncident} className="flex-1 h-10 rounded-[10px] text-xs font-semibold text-white disabled:opacity-40"
+                    style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primary}cc)` }}>
+                    {incidentSaving ? "Saving…" : "Log incident"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
 };
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div>
+    <label className="text-[11px] font-medium mb-1.5 block" style={{ color: "rgba(255,255,255,0.55)" }}>{label}</label>
+    {children}
+  </div>
+);
 
 export default AdminHealth;
