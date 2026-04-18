@@ -406,6 +406,27 @@ function SuccessView({
         </p>
       </div>
 
+      {/* Live waitlist position */}
+      <AnimatePresence>
+        {position !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 18 }}
+            className="mx-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-[12.5px] font-semibold tabular-nums"
+            style={{
+              background: "linear-gradient(135deg, rgba(224,176,72,0.18), rgba(200,149,46,0.10))",
+              border: "1px solid rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+              boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
+            }}
+          >
+            <Sparkles size={12} className="text-amber-300" />
+            #{position.toLocaleString("en-IN")} in line
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {refCode ? (
         <>
           {/* Invite card */}
