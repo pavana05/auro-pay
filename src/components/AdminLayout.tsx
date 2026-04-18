@@ -253,7 +253,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       if (payload?.ok) {
         setIsAuthenticated(true);
         sessionStorage.setItem("admin_auth", "true");
-        window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
+        
         toast.success("Admin access granted"); haptic.success();
       } else {
         setAuthError("Incorrect password. Access denied."); haptic.error();
