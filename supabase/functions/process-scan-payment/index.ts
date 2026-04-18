@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const { data: settingsRows } = await supabase
       .from("app_settings")
       .select("key,value")
-      .in("key", ["freeze_all_transactions", "kyc_required", "pin_required", "min_transaction_amount", "max_transaction_amount"]);
+      .in("key", ["freeze_all_transactions", "kyc_required", "pin_required", "min_transaction_amount", "max_transaction_amount", "parent_approval"]);
     const flags: Record<string, string> = {};
     (settingsRows || []).forEach((r: any) => { flags[r.key] = r.value; });
 
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { upi_id, payee_name, amount, category, note, pin } = await req.json();
+    const { upi_id, payee_name, amount, category, note, pin, approval_id } = await req.json();
 
     if (!upi_id || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Invalid payment details" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -48,11 +48,59 @@ Deno.serve(async (req) => {
       }
     }
 
-    // KYC gate
+    // KYC + parent_approval gate (single profile fetch)
+    const { data: prof } = await supabase.from("profiles").select("kyc_status, role").eq("id", user.id).maybeSingle();
     if (flags.kyc_required !== "false") {
-      const { data: kyc } = await supabase.from("profiles").select("kyc_status").eq("id", user.id).maybeSingle();
-      if (kyc?.kyc_status !== "verified") {
+      if (prof?.kyc_status !== "verified") {
         return new Response(JSON.stringify({ error: "KYC verification required before paying." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Parent approval gate: teens spending > ₹2,000 must wait for parent OK
+    const PARENT_APPROVAL_THRESHOLD = 200000;
+    if (
+      flags.parent_approval !== "false" &&
+      prof?.role === "teen" &&
+      amountPaise > PARENT_APPROVAL_THRESHOLD &&
+      !approval_id
+    ) {
+      const { data: link } = await supabase
+        .from("parent_teen_links")
+        .select("parent_id")
+        .eq("teen_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!link?.parent_id) {
+        return new Response(JSON.stringify({ error: "Payments over ₹2,000 require a linked parent. Ask a parent to link with you first." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: pending, error: pErr } = await supabase
+        .from("pending_payment_approvals")
+        .insert({
+          teen_id: user.id,
+          parent_id: link.parent_id,
+          amount: amountPaise,
+          note: note || `Payment to ${payee_name || upi_id}`,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (pErr) return new Response(JSON.stringify({ error: "Could not request parent approval" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({
+        success: false,
+        requires_parent_approval: true,
+        approval_id: pending.id,
+        message: "Your parent has been asked to approve this payment.",
+      }), { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (approval_id) {
+      const { data: appr } = await supabase
+        .from("pending_payment_approvals")
+        .select("status, teen_id, amount")
+        .eq("id", approval_id)
+        .maybeSingle();
+      if (!appr || appr.teen_id !== user.id || appr.amount !== amountPaise || appr.status !== "approved") {
+        return new Response(JSON.stringify({ error: "Approval invalid or not yet granted." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
