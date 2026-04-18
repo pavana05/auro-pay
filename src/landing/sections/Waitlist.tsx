@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Loader2, Lock, Check } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
-import { getReferrerId } from "@/landing/referral";
+import { joinWaitlist } from "@/landing/joinWaitlist";
 
 const CITIES = ["Bengaluru","Mumbai","Delhi","Hyderabad","Chennai","Kolkata","Pune","Mysuru","Hubli","Davangere","Ahmedabad","Jaipur","Lucknow","Kochi","Coimbatore","Nagpur","Surat","Indore","Patna","Bhubaneswar"];
 
@@ -35,22 +35,21 @@ export default function Waitlist() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setError("Enter a valid email.");
 
     setLoading(true);
-    const referred_by = await getReferrerId();
-    const { error: insErr } = await supabase.from("waitlist").insert({
-      full_name: name.trim(),
-      phone: "+91" + cleanPhone,
-      email: email.trim().toLowerCase(),
-      city: city || null,
-      role,
-      source: "landing_form",
-      referred_by,
-    });
-    setLoading(false);
-    if (insErr) {
-      setError(insErr.code === "23505" || insErr.message.includes("waitlist_email_lower_idx")
-        ? "You're already on the list!" : "Couldn't join right now. Please try again.");
+    try {
+      await joinWaitlist({
+        fullName: name.trim(),
+        phone: cleanPhone,
+        email: email.trim().toLowerCase(),
+        city: city || null,
+        role,
+        source: "landing_form",
+      });
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Couldn't join right now. Please try again.");
       return;
     }
+    setLoading(false);
     setDone(true);
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#c8952e","#e0b048","#fff7e3"] });
   };
