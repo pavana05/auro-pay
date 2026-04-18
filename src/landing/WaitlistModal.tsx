@@ -1,10 +1,12 @@
 import { useState, forwardRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Share2, UserPlus } from "lucide-react";
+import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Share2, UserPlus, Download } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { captureReferralCode } from "@/landing/referral";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
+import { generateFoundingBadge, downloadDataUrl } from "@/landing/foundingBadge";
 
 type Role = "teen" | "parent" | "both";
 
@@ -31,6 +33,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   const [error, setError] = useState<string | null>(null);
   const [refCode, setRefCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [submittedName, setSubmittedName] = useState<string>("");
+  const { position, fetchPosition } = useWaitlistPosition();
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -49,6 +53,7 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   const reset = () => {
     setPhone(""); setEmail(""); setName(""); setRole("teen");
     setDone(false); setError(null); setRefCode(null); setCopied(false);
+    setSubmittedName("");
   };
 
   const copyLink = async () => {
@@ -83,6 +88,22 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     try {
       await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl });
     } catch { /* user cancelled */ }
+  };
+
+  const downloadBadge = () => {
+    try {
+      const dataUrl = generateFoundingBadge({
+        name: submittedName || "Founding Member",
+        referralCode: refCode,
+        position,
+      });
+      if (!dataUrl) throw new Error("Couldn't generate badge");
+      const safeCode = (refCode || "AUROPAY").replace(/[^A-Z0-9-]/gi, "");
+      downloadDataUrl(dataUrl, `auropay-founding-member-${safeCode}.png`);
+      toast.success("Badge saved", { description: "Post it on your story and tag @auropay 💛" });
+    } catch {
+      toast.error("Couldn't save badge", { description: "Try again or screenshot this card." });
+    }
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -130,6 +151,9 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
       });
 
       setDone(true);
+      setSubmittedName(name.trim());
+      // fire-and-forget — failure just hides the position pill
+      fetchPosition();
       confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ["#c8952e", "#e0b048", "#fff7e3"] });
     } catch (err) {
       const msg =
@@ -309,6 +333,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
                   shareTwitter={shareTwitter}
                   shareEmail={shareEmail}
                   nativeShare={nativeShare}
+                  position={position}
+                  onDownloadBadge={downloadBadge}
                   onClose={handleClose}
                 />
               )}
@@ -323,7 +349,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
 /* ---------------- Success view ---------------- */
 
 function SuccessView({
-  refCode, shareUrl, copied, copyLink, shareWhatsApp, shareTwitter, shareEmail, nativeShare, onClose,
+  refCode, shareUrl, copied, copyLink, shareWhatsApp, shareTwitter, shareEmail, nativeShare,
+  position, onDownloadBadge, onClose,
 }: {
   refCode: string | null;
   shareUrl: string;
@@ -333,6 +360,8 @@ function SuccessView({
   shareTwitter: () => void;
   shareEmail: () => void;
   nativeShare: () => void;
+  position: number | null;
+  onDownloadBadge: () => void;
   onClose: () => void;
 }) {
   return (
@@ -376,6 +405,27 @@ function SuccessView({
             : "We'll notify you the moment AuroPay launches in your city."}
         </p>
       </div>
+
+      {/* Live waitlist position */}
+      <AnimatePresence>
+        {position !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 18 }}
+            className="mx-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-[12.5px] font-semibold tabular-nums"
+            style={{
+              background: "linear-gradient(135deg, rgba(224,176,72,0.18), rgba(200,149,46,0.10))",
+              border: "1px solid rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+              boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
+            }}
+          >
+            <Sparkles size={12} className="text-amber-300" />
+            #{position.toLocaleString("en-IN")} in line
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {refCode ? (
         <>
@@ -438,6 +488,20 @@ function SuccessView({
             <Share2 size={15} strokeWidth={2.5} /> Invite a friend
           </motion.button>
 
+          {/* Founding Member badge download */}
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
+            onClick={onDownloadBadge}
+            className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+            style={{
+              background: "rgba(224,176,72,0.08)",
+              borderColor: "rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+            }}
+          >
+            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+          </motion.button>
+
           <button
             onClick={onClose}
             className="w-full py-2.5 text-xs text-white/45 hover:text-white/75 transition"
@@ -446,13 +510,27 @@ function SuccessView({
           </button>
         </>
       ) : (
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
-          style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
-        >
-          Done
-        </button>
+        <>
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+            onClick={onDownloadBadge}
+            className="w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+            style={{
+              background: "rgba(224,176,72,0.08)",
+              borderColor: "rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+            }}
+          >
+            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+          </motion.button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
+            style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
+          >
+            Done
+          </button>
+        </>
       )}
     </motion.div>
   );
@@ -477,9 +555,9 @@ function ShareBtn({ onClick, label, tint, icon }: { onClick: () => void; label: 
 
 /* ---------------- Premium loader ---------------- */
 
-function PremiumLoader() {
+const PremiumLoader = forwardRef<HTMLSpanElement>(function PremiumLoader(_, ref) {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span ref={ref} className="inline-flex items-center gap-2.5">
       <span className="relative inline-block w-[18px] h-[18px]">
         <motion.span
           className="absolute inset-0 rounded-full"
@@ -502,11 +580,11 @@ function PremiumLoader() {
       </span>
     </span>
   );
-}
+});
 
-function DotPulse() {
+const DotPulse = forwardRef<HTMLSpanElement>(function DotPulse(_, ref) {
   return (
-    <>
+    <span ref={ref}>
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
@@ -517,9 +595,9 @@ function DotPulse() {
           .
         </motion.span>
       ))}
-    </>
+    </span>
   );
-}
+});
 
 /* ---------------- Field ---------------- */
 

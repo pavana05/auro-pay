@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Loader2, Lock, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, Check, Sparkles, Download, Copy, MessageCircle, Twitter, Mail, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { captureReferralCode } from "@/landing/referral";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
+import { generateFoundingBadge, downloadDataUrl } from "@/landing/foundingBadge";
 
 const CITIES = ["Bengaluru","Mumbai","Delhi","Hyderabad","Chennai","Kolkata","Pune","Mysuru","Hubli","Davangere","Ahmedabad","Jaipur","Lucknow","Kochi","Coimbatore","Nagpur","Surat","Indore","Patna","Bhubaneswar"];
+const SITE_URL = "https://auro-pay.lovable.app";
 const JOIN_TIMEOUT_MS = 30_000;
 
 type Role = "teen" | "parent" | "both";
@@ -20,12 +25,58 @@ export default function Waitlist() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refCode, setRefCode] = useState<string | null>(null);
+  const [submittedName, setSubmittedName] = useState("");
+  const [copied, setCopied] = useState(false);
+  const { position, fetchPosition } = useWaitlistPosition();
 
   useEffect(() => {
     supabase.rpc("get_waitlist_count").then(({ data }) => {
       if (typeof data === "number") setCount(data + 12000);
     });
   }, []);
+
+  const shareUrl = refCode ? `${SITE_URL}/?ref=${refCode}` : SITE_URL;
+  const shareText = refCode
+    ? `I just joined the AuroPay waitlist — India's first scan-and-pay app for teens 💛 Use my link and we both get ₹100: ${shareUrl}`
+    : `Join the AuroPay waitlist — India's first scan-and-pay app for teens 💛 ${shareUrl}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      toast.success("Invite link copied", { description: "Share it to earn ₹100 each." });
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      toast.error("Couldn't copy", { description: "Long-press the link to copy manually." });
+    }
+  };
+  const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  const shareTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  const shareEmail = () => {
+    const subject = encodeURIComponent("Join me on the AuroPay waitlist");
+    const body = encodeURIComponent(`${shareText}\n\n— Sent from AuroPay`);
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank", "noopener");
+  };
+  const nativeShare = async () => {
+    if (!navigator.share) { copyLink(); return; }
+    try { await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl }); } catch { /* cancelled */ }
+  };
+  const downloadBadge = () => {
+    try {
+      const dataUrl = generateFoundingBadge({
+        name: submittedName || "Founding Member",
+        referralCode: refCode,
+        position,
+      });
+      if (!dataUrl) throw new Error("Couldn't generate badge");
+      const safeCode = (refCode || "AUROPAY").replace(/[^A-Z0-9-]/gi, "");
+      downloadDataUrl(dataUrl, `auropay-founding-member-${safeCode}.png`);
+      toast.success("Badge saved", { description: "Post it on your story and tag @auropay 💛" });
+    } catch {
+      toast.error("Couldn't save badge", { description: "Try again or screenshot the card." });
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +88,8 @@ export default function Waitlist() {
 
     setLoading(true);
     try {
-      await Promise.race([
+      const referralCode = captureReferralCode();
+      const result = await Promise.race([
         joinWaitlist({
           fullName: name.trim(),
           phone: cleanPhone,
@@ -45,10 +97,16 @@ export default function Waitlist() {
           city: city || null,
           role,
           source: "landing_form",
-          referralCode: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? null : null,
+          referralCode,
         }),
-        new Promise((_, reject) => window.setTimeout(() => reject(new Error("Waitlist submission timed out")), JOIN_TIMEOUT_MS)),
+        new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("Waitlist submission timed out")), JOIN_TIMEOUT_MS)),
       ]);
+      setRefCode(result?.referralCode ?? null);
+      setSubmittedName(name.trim());
+      // Auto-clear inputs
+      setName(""); setPhone(""); setEmail(""); setCity(""); setRole("teen");
+      toast.success("You're on the list!", { description: "We'll notify you the moment AuroPay launches." });
+      fetchPosition(); // fire-and-forget
     } catch (err) {
       setLoading(false);
       setError(
@@ -93,30 +151,46 @@ export default function Waitlist() {
           ))}
         </div>
 
+        {/* Premium conic gold edge — matches modal */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="rounded-[28px] p-8 sm:p-10"
+          className="relative rounded-[32px] p-[1px] overflow-hidden"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            backdropFilter: "blur(32px)",
-            border: "1px solid rgba(200,149,46,0.25)",
-            boxShadow: "0 40px 100px rgba(0,0,0,0.4)",
+            background:
+              "conic-gradient(from 140deg at 50% 50%, rgba(200,149,46,0.55), rgba(255,255,255,0.05) 30%, rgba(200,149,46,0.35) 60%, rgba(255,255,255,0.05) 90%, rgba(200,149,46,0.55))",
+            boxShadow: "0 40px 100px rgba(0,0,0,0.55), 0 0 60px rgba(200,149,46,0.12)",
           }}
         >
+          <div
+            className="relative rounded-[31px] p-7 sm:p-10"
+            style={{
+              background: "linear-gradient(180deg, rgba(18,15,22,0.96), rgba(10,12,15,0.98))",
+              backdropFilter: "blur(40px) saturate(200%)",
+            }}
+          >
+            {/* Top shine */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[31px] opacity-60"
+              style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 18%)" }}
+            />
+
           {done ? (
-            <div className="py-6 text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 240, damping: 18 }}
-                className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}>
-                <Check size={32} strokeWidth={3} className="text-black" />
-              </motion.div>
-              <h3 className="text-2xl font-bold text-white">🎉 You're on the list!</h3>
-              <p className="text-white/60">We'll notify you the moment AuroPay launches in your city.</p>
-            </div>
+            <SuccessInline
+              name={submittedName}
+              refCode={refCode}
+              shareUrl={shareUrl}
+              copied={copied}
+              position={position}
+              onCopy={copyLink}
+              onWhatsApp={shareWhatsApp}
+              onTwitter={shareTwitter}
+              onEmail={shareEmail}
+              onNativeShare={nativeShare}
+              onDownloadBadge={downloadBadge}
+            />
           ) : (
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="relative space-y-4">
               <Input label="Full name" value={name} onChange={setName} placeholder="Aarav Sharma" />
               <Input label="Phone" value={phone} onChange={setPhone} placeholder="9876543210" prefix="+91" inputMode="numeric" />
               <Input label="Email" value={email} onChange={setEmail} placeholder="you@email.com" type="email" />
@@ -146,18 +220,30 @@ export default function Waitlist() {
                 </div>
               </div>
 
-              {error && (
-                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -4 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2"
+                  >{error}</motion.div>
+                )}
+              </AnimatePresence>
 
               <button type="submit" disabled={loading}
-                className="w-full h-14 rounded-xl font-semibold text-base transition disabled:opacity-60 flex items-center justify-center gap-2"
+                className="relative w-full h-14 rounded-xl font-semibold text-base transition disabled:opacity-90 flex items-center justify-center gap-2 overflow-hidden group"
                 style={{
                   background: "linear-gradient(135deg,#c8952e,#e0b048)",
                   color: "#0a0a0a",
-                  boxShadow: "0 8px 32px rgba(200,149,46,0.4)",
+                  boxShadow: "0 10px 28px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
                 }}>
-                {loading ? <><Loader2 size={18} className="animate-spin" /> Joining…</> : "Join the Waitlist →"}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+                />
+                {loading ? <PremiumLoader /> : <>Join the Waitlist →</>}
               </button>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/40">
@@ -170,6 +256,7 @@ export default function Waitlist() {
               )}
             </form>
           )}
+          </div>
         </motion.div>
       </div>
     </section>
@@ -196,5 +283,201 @@ function Input({
         />
       </div>
     </label>
+  );
+}
+
+/* ---------------- Premium loader (matches modal) ---------------- */
+function PremiumLoader() {
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      <span className="relative inline-block w-[18px] h-[18px]">
+        <motion.span
+          className="absolute inset-0 rounded-full"
+          style={{ border: "2px solid rgba(0,0,0,0.25)", borderTopColor: "rgba(0,0,0,0.85)" }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.85, ease: "linear" }}
+        />
+      </span>
+      <span className="relative">
+        Securing your spot
+        <span className="inline-block w-[2ch] text-left" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="inline-block"
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ repeat: Infinity, duration: 1.1, delay: i * 0.18 }}
+            >.</motion.span>
+          ))}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/* ---------------- Inline success view (matches modal) ---------------- */
+function SuccessInline({
+  name, refCode, shareUrl, copied, position,
+  onCopy, onWhatsApp, onTwitter, onEmail, onNativeShare, onDownloadBadge,
+}: {
+  name: string;
+  refCode: string | null;
+  shareUrl: string;
+  copied: boolean;
+  position: number | null;
+  onCopy: () => void;
+  onWhatsApp: () => void;
+  onTwitter: () => void;
+  onEmail: () => void;
+  onNativeShare: () => void;
+  onDownloadBadge: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative text-center space-y-5"
+    >
+      {/* Halo + check */}
+      <div className="relative w-24 h-24 mx-auto">
+        <motion.div
+          aria-hidden
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: [0.6, 1.15, 1], opacity: [0, 0.6, 0.35] }}
+          transition={{ duration: 1.4, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full"
+          style={{ background: "radial-gradient(closest-side, rgba(200,149,46,0.55), transparent 70%)" }}
+        />
+        <motion.div
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 16 }}
+          className="absolute inset-2 rounded-full flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg,#e0b048,#c8952e)",
+            boxShadow: "0 16px 40px rgba(200,149,46,0.55), inset 0 2px 0 rgba(255,255,255,0.45)",
+          }}
+        >
+          <Check size={42} strokeWidth={3} className="text-black" />
+        </motion.div>
+      </div>
+
+      <div>
+        <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
+          You're on the list{name ? `, ${name.split(" ")[0]}` : ""}!
+        </h3>
+        <p className="text-[13.5px] text-white/60 mt-1.5">
+          {refCode
+            ? <>Invite friends — you both get <span className="text-amber-200 font-semibold">₹100</span> when they join.</>
+            : "We'll notify you the moment AuroPay launches in your city."}
+        </p>
+      </div>
+
+      {/* Live waitlist position */}
+      <AnimatePresence>
+        {position !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 18 }}
+            className="mx-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-[13px] font-semibold tabular-nums"
+            style={{
+              background: "linear-gradient(135deg, rgba(224,176,72,0.18), rgba(200,149,46,0.10))",
+              border: "1px solid rgba(224,176,72,0.35)",
+              color: "#ffe9a8",
+              boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
+            }}
+          >
+            <Sparkles size={12} className="text-amber-300" />
+            #{position.toLocaleString("en-IN")} in line
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {refCode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="rounded-2xl p-3 flex items-center gap-3"
+          style={{
+            background: "linear-gradient(135deg, rgba(200,149,46,0.10), rgba(200,149,46,0.04))",
+            border: "1px solid rgba(200,149,46,0.30)",
+          }}
+        >
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-white/50 font-semibold">Your invite link</div>
+            <div className="text-[12.5px] text-white/90 truncate font-mono">{shareUrl.replace(/^https?:\/\//, "")}</div>
+          </div>
+          <button
+            onClick={onCopy}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[11px] font-semibold transition"
+            style={{
+              background: copied ? "rgba(34,197,94,0.18)" : "rgba(200,149,46,0.18)",
+              color: copied ? "#86efac" : "#e9c168",
+            }}
+          >
+            {copied ? <><Check size={12} strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy</>}
+          </button>
+        </motion.div>
+      )}
+
+      {refCode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+          className="grid grid-cols-3 gap-2"
+        >
+          <ShareBtn onClick={onWhatsApp} label="WhatsApp" tint="#25d366" icon={<MessageCircle size={15} fill="#fff" strokeWidth={0} />} />
+          <ShareBtn onClick={onTwitter} label="Twitter" tint="#1d1d1f" icon={<Twitter size={14} fill="#fff" strokeWidth={0} />} />
+          <ShareBtn onClick={onEmail} label="Email" tint="#3b3b40" icon={<Mail size={14} className="text-white" />} />
+        </motion.div>
+      )}
+
+      {refCode && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+          onClick={typeof navigator !== "undefined" && "share" in navigator ? onNativeShare : onCopy}
+          className="relative w-full h-12 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 overflow-hidden group"
+          style={{
+            background: "linear-gradient(135deg,#c8952e,#e0b048)",
+            color: "#0a0a0a",
+            boxShadow: "0 10px 28px rgba(200,149,46,0.42), inset 0 1px 0 rgba(255,255,255,0.35)",
+          }}
+        >
+          <span aria-hidden className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }} />
+          <Share2 size={15} strokeWidth={2.5} /> Invite a friend
+        </motion.button>
+      )}
+
+      <motion.button
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
+        onClick={onDownloadBadge}
+        className="w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
+        style={{
+          background: "rgba(224,176,72,0.08)",
+          borderColor: "rgba(224,176,72,0.35)",
+          color: "#ffe9a8",
+        }}
+      >
+        <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
+      </motion.button>
+    </motion.div>
+  );
+}
+
+function ShareBtn({ onClick, label, tint, icon }: { onClick: () => void; label: string; tint: string; icon: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="h-11 rounded-xl text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition hover:scale-[1.03] active:scale-[0.97]"
+      style={{
+        background: `linear-gradient(135deg, ${tint}, rgba(0,0,0,0.4))`,
+        color: "#fff",
+        border: "1px solid rgba(255,255,255,0.10)",
+        boxShadow: `0 6px 18px ${tint}40`,
+      }}
+    >
+      {icon} {label}
+    </button>
   );
 }
