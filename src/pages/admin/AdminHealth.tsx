@@ -164,8 +164,22 @@ const AdminHealth = () => {
   const [checking, setChecking] = useState(false);
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
   const [funcs, setFuncs] = useState<FunctionEntry[]>([]);
+  const [funcsError, setFuncsError] = useState<string | null>(null);
+  const [funcsLoading, setFuncsLoading] = useState(false);
   const [errors, setErrors] = useState<ApiError[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentFormOpen, setIncidentFormOpen] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    title: "",
+    description: "",
+    service: "Database",
+    severity: "medium" as Incident["severity"],
+    status: "investigating" as Incident["status"],
+    affected_service: "",
+    postmortem_url: "",
+    started_at: new Date().toISOString().slice(0, 16),
+  });
+  const [incidentSaving, setIncidentSaving] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -192,7 +206,48 @@ const AdminHealth = () => {
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current); };
   }, [autoRefresh]);
 
-  /* Load real webhook data from transactions (Razorpay activity) and real errors from failed transactions. */
+  /* Load incidents from DB */
+  const loadIncidents = async () => {
+    const { data } = await supabase
+      .from("incidents")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(50);
+    setIncidents((data || []) as any);
+  };
+
+  /* Load real edge function logs from analytics via admin proxy */
+  const loadEdgeLogs = async () => {
+    setFuncsLoading(true);
+    setFuncsError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-edge-logs");
+      if (error) throw error;
+      const rows = (data?.rows || []) as any[];
+      const mapped: FunctionEntry[] = rows.map((r: any) => {
+        const status: "ok" | "error" =
+          typeof r.status_code === "number" && r.status_code >= 400 ? "error" : "ok";
+        return {
+          id: String(r.id ?? `${r.ts}-${Math.random()}`),
+          name: String(r.function_id ?? "unknown"),
+          durationMs: Math.round(Number(r.execution_time_ms ?? 0)),
+          status,
+          error: status === "error" ? `HTTP ${r.status_code}` : undefined,
+          ts: r.ts ? Math.floor(Number(r.ts) / 1000) : Date.now(),
+        };
+      });
+      setFuncs(mapped);
+      if (data?.error) setFuncsError(data.error);
+    } catch (e: any) {
+      setFuncsError(e?.message || "Failed to load edge logs");
+      setFuncs([]);
+    } finally {
+      setFuncsLoading(false);
+    }
+  };
+
+  /* Load real webhook data from transactions, real errors from failed txns,
+     plus incidents and edge function logs. */
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -214,9 +269,6 @@ const AdminHealth = () => {
       });
       setWebhooks(entries);
 
-      // Real errors derived from failed transactions only. Edge function logs and
-      // historical incidents aren't tracked in the DB, so we leave those empty
-      // until a logs table is wired up.
       const txErrors: ApiError[] = (data || []).filter((t: any) => t.status === "failed").slice(0, 50).map((t: any) => ({
         id: t.id,
         service: "Payment Gateway",
@@ -224,10 +276,58 @@ const AdminHealth = () => {
         ts: new Date(t.created_at).getTime(),
       }));
       setErrors(txErrors);
-      setFuncs([]);
-      setIncidents([]);
     })();
+
+    loadIncidents();
+    loadEdgeLogs();
+
+    // Live updates for incidents
+    const ch = supabase
+      .channel("incidents-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, () => loadIncidents())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
+
+  const submitIncident = async () => {
+    if (!incidentForm.title.trim() || !incidentForm.service.trim()) {
+      toast.error("Title and service are required");
+      return;
+    }
+    setIncidentSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setIncidentSaving(false); toast.error("Not signed in"); return; }
+    const payload: any = {
+      title: incidentForm.title.trim(),
+      description: incidentForm.description.trim() || null,
+      service: incidentForm.service.trim(),
+      severity: incidentForm.severity,
+      status: incidentForm.status,
+      affected_service: incidentForm.affected_service.trim() || null,
+      postmortem_url: incidentForm.postmortem_url.trim() || null,
+      started_at: new Date(incidentForm.started_at).toISOString(),
+      created_by: user.id,
+    };
+    const { error } = await supabase.from("incidents").insert(payload);
+    setIncidentSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Incident logged");
+    setIncidentFormOpen(false);
+    setIncidentForm({
+      title: "", description: "", service: "Database",
+      severity: "medium", status: "investigating",
+      affected_service: "", postmortem_url: "",
+      started_at: new Date().toISOString().slice(0, 16),
+    });
+    loadIncidents();
+  };
+
+  const updateIncidentStatus = async (id: string, status: Incident["status"]) => {
+    const { error } = await supabase.from("incidents").update({ status }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "resolved" ? "Incident resolved" : `Status: ${status}`);
+  };
+
 
   /* Aggregate error frequency by service */
   const errorFreq = useMemo(() => {
