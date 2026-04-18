@@ -744,6 +744,24 @@ export default function AdminWaitlist() {
           className="rounded-2xl overflow-hidden mb-4"
           style={{ background: G.card, border: `1px solid ${G.border}` }}
         >
+          {loadError && !loading && (
+            <div
+              className="mx-4 mt-4 rounded-2xl px-4 py-3 text-sm flex items-center justify-between gap-3 flex-wrap"
+              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: G.text }}
+            >
+              <div>
+                <div className="font-semibold">Couldn’t load waitlist data.</div>
+                <div style={{ color: G.muted }}>{loadError}</div>
+              </div>
+              <button
+                onClick={() => loadRows()}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: G.primary, color: "#0a0c0f" }}
+              >
+                <RefreshCw size={14} /> Retry now
+              </button>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
