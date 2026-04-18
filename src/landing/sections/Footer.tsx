@@ -8,7 +8,6 @@ const PRODUCT: LinkItem[] = [
   { label: "Security", href: "#security" },
   { label: "How it works", href: "#how" },
   { label: "FAQ", href: "#faq" },
-  { label: "Join Waitlist", href: "#waitlist" },
 ];
 
 const COMPANY: LinkItem[] = [
@@ -98,20 +97,20 @@ export default function Footer() {
             </div>
             <div className="text-sm text-white/50 mt-1">No spam, just the good stuff.</div>
           </div>
-          <button
-            onClick={() => smoothScrollTo("#waitlist")}
+          <a
+            href="mailto:hello@auropay.in"
             className="relative inline-flex items-center gap-1.5 pl-5 pr-2 h-12 rounded-full font-semibold text-sm text-black lux-shimmer"
             style={{
               background: "linear-gradient(135deg,#c8952e,#e0b048)",
               boxShadow: "0 8px 28px rgba(200,149,46,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
             }}
           >
-            Join Waitlist
+            Get in Touch
             <span className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ background: "rgba(0,0,0,0.18)" }}>
               <ArrowUpRight size={14} strokeWidth={2.5} />
             </span>
-          </button>
+          </a>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-10 mb-14">

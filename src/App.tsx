@@ -56,7 +56,7 @@ import AdminRevenue from "./pages/admin/AdminRevenue.tsx";
 import AdminHealth from "./pages/admin/AdminHealth.tsx";
 import AdminGeographic from "./pages/admin/AdminGeographic.tsx";
 import AdminReports from "./pages/admin/AdminReports.tsx";
-import AdminWaitlist from "./pages/admin/AdminWaitlist.tsx";
+
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
 import TransactionDetailPage from "./pages/TransactionDetail.tsx";
@@ -178,7 +178,7 @@ const App = () => (
             <Route path="/admin/health" element={<PageTransition><AdminHealth /></PageTransition>} />
             <Route path="/admin/geographic" element={<PageTransition><AdminGeographic /></PageTransition>} />
             <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
-            <Route path="/admin/waitlist" element={<PageTransition><AdminWaitlist /></PageTransition>} />
+            
 
             {/* Public landing page — full-bleed, no mobile container. Home route. */}
             <Route path="/" element={<Landing />} />

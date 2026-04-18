@@ -12,7 +12,7 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
     const onScroll = () => {
       setScrolled(window.scrollY > 40);
       // Active section detection
-      const ids = ["features", "how", "security", "waitlist"];
+      const ids = ["features", "how", "security"];
       let current = "";
       for (const id of ids) {
         const el = document.getElementById(id);
@@ -29,7 +29,6 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
     { label: "Features", id: "features" },
     { label: "How", id: "how" },
     { label: "Security", id: "security" },
-    { label: "Waitlist", id: "waitlist" },
   ];
 
   return (
