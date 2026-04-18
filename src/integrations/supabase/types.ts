@@ -447,6 +447,54 @@ export type Database = {
         }
         Relationships: []
       }
+      incidents: {
+        Row: {
+          affected_service: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          postmortem_url: string | null
+          resolved_at: string | null
+          service: string
+          severity: string
+          started_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_service?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          postmortem_url?: string | null
+          resolved_at?: string | null
+          service: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_service?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          postmortem_url?: string | null
+          resolved_at?: string | null
+          service?: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kyc_requests: {
         Row: {
           aadhaar_name: string | null
