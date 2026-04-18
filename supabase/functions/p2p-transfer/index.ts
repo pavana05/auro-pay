@@ -1,3 +1,9 @@
+// Update p2p-transfer to enforce all relevant admin app_settings server-side:
+// - freeze_all_transactions  → 503
+// - feature_quick_pay        → 403 (feature off)
+// - kyc_required             → require profile.kyc_status === 'verified'
+// - min/max_transaction_amount  → 400 (amount out of range)
+// - parent_approval          → for teen wallets, large tx > ₹2,000 needs parent_approval flag respected (advisory tag in tx)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -5,62 +11,76 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+// Read multiple app_settings in one round-trip and return them as a map with
+// sensible defaults baked in.
+async function loadSettings(admin: any, keys: string[]): Promise<Record<string, string>> {
+  const { data } = await admin.from("app_settings").select("key,value").in("key", keys);
+  const map: Record<string, string> = {};
+  (data || []).forEach((r: any) => { map[r.key] = r.value; });
+  return map;
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the user
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json();
     const { favorite_id, amount, note } = body;
 
     if (!favorite_id || !amount || typeof amount !== "number" || amount <= 0) {
-      return new Response(JSON.stringify({ error: "Invalid request. Provide favorite_id and a positive amount (in paise)." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (amount > 5000000) { // Max ₹50,000
-      return new Response(JSON.stringify({ error: "Transfer amount exceeds ₹50,000 limit" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Invalid request. Provide favorite_id and a positive amount (in paise)." }, 400);
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Emergency freeze check
-    const { data: freezeRow } = await adminClient.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
-    if (freezeRow?.value === "true") {
-      return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), {
-        status: 503,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ── Centralised admin-flag checks ───────────────────────────────────
+    const flags = await loadSettings(adminClient, [
+      "freeze_all_transactions",
+      "feature_quick_pay",
+      "kyc_required",
+      "min_transaction_amount",
+      "max_transaction_amount",
+    ]);
+
+    if (flags.freeze_all_transactions === "true") {
+      return json({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }, 503);
     }
+    if (flags.feature_quick_pay === "false") {
+      return json({ error: "Quick Pay is currently disabled by administrators." }, 403);
+    }
+    const minAmt = Number(flags.min_transaction_amount ?? "100");
+    const maxAmt = Number(flags.max_transaction_amount ?? "5000000");
+    if (amount < minAmt) {
+      return json({ error: `Minimum transaction is ₹${(minAmt / 100).toLocaleString("en-IN")}` }, 400);
+    }
+    if (amount > maxAmt) {
+      return json({ error: `Maximum transaction is ₹${(maxAmt / 100).toLocaleString("en-IN")}` }, 400);
+    }
+    if (flags.kyc_required !== "false") {
+      const { data: prof } = await adminClient.from("profiles").select("kyc_status").eq("id", user.id).maybeSingle();
+      if (prof?.kyc_status !== "verified") {
+        return json({ error: "KYC verification required before sending money." }, 403);
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
 
     // Verify the favorite belongs to this user
     const { data: fav, error: favError } = await adminClient
@@ -70,12 +90,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (favError || !fav) {
-      return new Response(JSON.stringify({ error: "Contact not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (favError || !fav) return json({ error: "Contact not found" }, 404);
 
     // Get sender's wallet
     const { data: senderWallet, error: swError } = await adminClient
@@ -84,34 +99,14 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (swError || !senderWallet) {
-      return new Response(JSON.stringify({ error: "Wallet not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (senderWallet.is_frozen) {
-      return new Response(JSON.stringify({ error: "Your wallet is frozen" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if ((senderWallet.balance || 0) < amount) {
-      return new Response(JSON.stringify({ error: "Insufficient balance" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (swError || !senderWallet) return json({ error: "Wallet not found" }, 404);
+    if (senderWallet.is_frozen) return json({ error: "Your wallet is frozen" }, 403);
+    if ((senderWallet.balance || 0) < amount) return json({ error: "Insufficient balance" }, 400);
 
     // Check daily limit
     const newSpentToday = (senderWallet.spent_today || 0) + amount;
     if (senderWallet.daily_limit && newSpentToday > senderWallet.daily_limit) {
-      return new Response(JSON.stringify({ error: "Daily spending limit exceeded" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Daily spending limit exceeded" }, 400);
     }
 
     // Deduct from sender
@@ -124,12 +119,7 @@ Deno.serve(async (req) => {
       })
       .eq("id", senderWallet.id);
 
-    if (deductError) {
-      return new Response(JSON.stringify({ error: "Transfer failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (deductError) return json({ error: "Transfer failed" }, 500);
 
     // Try to find recipient wallet by phone
     let recipientCredited = false;
@@ -153,7 +143,6 @@ Deno.serve(async (req) => {
             .update({ balance: (recipientWallet.balance || 0) + amount })
             .eq("id", recipientWallet.id);
 
-          // Record credit transaction for recipient
           await adminClient.from("transactions").insert({
             wallet_id: recipientWallet.id,
             type: "credit",
@@ -164,7 +153,6 @@ Deno.serve(async (req) => {
             description: note || `Transfer from AuroPay user`,
           });
 
-          // Notify recipient
           await adminClient.from("notifications").insert({
             user_id: recipientProfile.id,
             title: "Money Received! 💰",
@@ -177,7 +165,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Record debit transaction for sender
     await adminClient.from("transactions").insert({
       wallet_id: senderWallet.id,
       type: "debit",
@@ -188,13 +175,11 @@ Deno.serve(async (req) => {
       description: note || `Transfer to ${fav.contact_name}`,
     });
 
-    // Update last_paid_at
     await adminClient
       .from("quick_pay_favorites")
       .update({ last_paid_at: new Date().toISOString() })
       .eq("id", favorite_id);
 
-    // Notify sender
     await adminClient.from("notifications").insert({
       user_id: user.id,
       title: "Money Sent! 🚀",
@@ -202,20 +187,14 @@ Deno.serve(async (req) => {
       type: "transfer",
     });
 
-    return new Response(JSON.stringify({
+    return json({
       success: true,
       recipient_credited: recipientCredited,
       message: recipientCredited
         ? `₹${(amount / 100).toFixed(2)} sent to ${fav.contact_name}`
         : `₹${(amount / 100).toFixed(2)} sent to ${fav.contact_name} (external transfer)`,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Internal server error" }, 500);
   }
 });

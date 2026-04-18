@@ -16,9 +16,15 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Emergency freeze check
-    const { data: freezeRow } = await supabase.from("app_settings").select("value").eq("key", "freeze_all_transactions").maybeSingle();
-    if (freezeRow?.value === "true") {
+    // ── Centralised admin-flag checks ────────────────────────────────
+    const { data: settingsRows } = await supabase
+      .from("app_settings")
+      .select("key,value")
+      .in("key", ["freeze_all_transactions", "kyc_required", "pin_required", "min_transaction_amount", "max_transaction_amount"]);
+    const flags: Record<string, string> = {};
+    (settingsRows || []).forEach((r: any) => { flags[r.key] = r.value; });
+
+    if (flags.freeze_all_transactions === "true") {
       return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -27,23 +33,42 @@ Deno.serve(async (req) => {
     if (!upi_id || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Invalid payment details" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!pin || !/^\d{4}$/.test(String(pin))) {
-      return new Response(JSON.stringify({ error: "PIN required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // Verify PIN against stored hash
-    const { data: profile } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).single();
-    if (!profile?.pin_hash) {
-      return new Response(JSON.stringify({ success: false, code: "PIN_NOT_SET", error: "Payment PIN not set" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const pinData = new TextEncoder().encode(`${user.id}:${pin}`);
-    const pinHashBuf = await crypto.subtle.digest("SHA-256", pinData);
-    const pinHash = Array.from(new Uint8Array(pinHashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-    if (pinHash !== profile.pin_hash) {
-      return new Response(JSON.stringify({ error: "Incorrect PIN" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     const amountPaise = Math.round(amount * 100);
+    const minAmt = Number(flags.min_transaction_amount ?? "100");
+    const maxAmt = Number(flags.max_transaction_amount ?? "5000000");
+    if (amountPaise < minAmt) return new Response(JSON.stringify({ error: `Minimum transaction is ₹${(minAmt / 100).toLocaleString("en-IN")}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (amountPaise > maxAmt) return new Response(JSON.stringify({ error: `Maximum transaction is ₹${(maxAmt / 100).toLocaleString("en-IN")}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // PIN required policy (default ON)
+    const pinRequired = flags.pin_required !== "false";
+    if (pinRequired) {
+      if (!pin || !/^\d{4}$/.test(String(pin))) {
+        return new Response(JSON.stringify({ error: "PIN required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // KYC gate
+    if (flags.kyc_required !== "false") {
+      const { data: kyc } = await supabase.from("profiles").select("kyc_status").eq("id", user.id).maybeSingle();
+      if (kyc?.kyc_status !== "verified") {
+        return new Response(JSON.stringify({ error: "KYC verification required before paying." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Verify PIN against stored hash (only when pin_required)
+    if (pinRequired) {
+      const { data: profile } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).single();
+      if (!profile?.pin_hash) {
+        return new Response(JSON.stringify({ success: false, code: "PIN_NOT_SET", error: "Payment PIN not set" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const pinData = new TextEncoder().encode(`${user.id}:${pin}`);
+      const pinHashBuf = await crypto.subtle.digest("SHA-256", pinData);
+      const pinHash = Array.from(new Uint8Array(pinHashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      if (pinHash !== profile.pin_hash) {
+        return new Response(JSON.stringify({ error: "Incorrect PIN" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     // Get wallet
     const { data: wallet, error: walletErr } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
@@ -75,14 +100,12 @@ Deno.serve(async (req) => {
 
     if (txErr) throw txErr;
 
-    // Update wallet balance
     await supabase.from("wallets").update({
       balance: (wallet.balance || 0) - amountPaise,
       spent_today: (wallet.spent_today || 0) + amountPaise,
       spent_this_month: (wallet.spent_this_month || 0) + amountPaise,
     }).eq("id", wallet.id);
 
-    // Send notification
     await supabase.from("notifications").insert({
       user_id: user.id,
       title: "Payment Successful",
