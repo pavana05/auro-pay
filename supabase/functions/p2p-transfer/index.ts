@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       "kyc_required",
       "min_transaction_amount",
       "max_transaction_amount",
+      "parent_approval",
     ]);
 
     if (flags.freeze_all_transactions === "true") {
@@ -74,8 +75,8 @@ Deno.serve(async (req) => {
     if (amount > maxAmt) {
       return json({ error: `Maximum transaction is ₹${(maxAmt / 100).toLocaleString("en-IN")}` }, 400);
     }
+    const { data: prof } = await adminClient.from("profiles").select("kyc_status, role").eq("id", user.id).maybeSingle();
     if (flags.kyc_required !== "false") {
-      const { data: prof } = await adminClient.from("profiles").select("kyc_status").eq("id", user.id).maybeSingle();
       if (prof?.kyc_status !== "verified") {
         return json({ error: "KYC verification required before sending money." }, 403);
       }
@@ -91,6 +92,59 @@ Deno.serve(async (req) => {
       .single();
 
     if (favError || !fav) return json({ error: "Contact not found" }, 404);
+
+    // Parent approval gate: teens sending > ₹2,000 must wait for parent OK.
+    // Skip the bypass param `approval_id` (set when parent has approved).
+    const approvalId: string | undefined = body.approval_id;
+    const PARENT_APPROVAL_THRESHOLD = 200000; // ₹2,000 in paise
+    if (
+      flags.parent_approval !== "false" &&
+      prof?.role === "teen" &&
+      amount > PARENT_APPROVAL_THRESHOLD &&
+      !approvalId
+    ) {
+      // Find an active parent link
+      const { data: link } = await adminClient
+        .from("parent_teen_links")
+        .select("parent_id")
+        .eq("teen_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!link?.parent_id) {
+        return json({ error: "Payments over ₹2,000 require a linked parent. Ask a parent to link with you first." }, 403);
+      }
+      const { data: pending, error: pErr } = await adminClient
+        .from("pending_payment_approvals")
+        .insert({
+          teen_id: user.id,
+          parent_id: link.parent_id,
+          favorite_id,
+          amount,
+          note: note || null,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (pErr) return json({ error: "Could not request parent approval" }, 500);
+      return json({
+        success: false,
+        requires_parent_approval: true,
+        approval_id: pending.id,
+        message: "Your parent has been asked to approve this payment.",
+      }, 202);
+    }
+
+    // If approval_id was passed, verify it's approved & belongs to this teen+amount
+    if (approvalId) {
+      const { data: appr } = await adminClient
+        .from("pending_payment_approvals")
+        .select("status, teen_id, amount")
+        .eq("id", approvalId)
+        .maybeSingle();
+      if (!appr || appr.teen_id !== user.id || appr.amount !== amount || appr.status !== "approved") {
+        return json({ error: "Approval invalid or not yet granted." }, 403);
+      }
+    }
 
     // Get sender's wallet
     const { data: senderWallet, error: swError } = await adminClient
