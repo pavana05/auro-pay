@@ -67,14 +67,13 @@ export function useAppSettings() {
     };
     load();
 
-    const ch = supabase
-      .channel("app-settings-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, (p: any) => {
-        const row = (p.new || p.old) as { key: string; value: string };
-        if (!row?.key) return;
-        setSettings((prev) => ({ ...prev, [row.key]: p.new?.value ?? DEFAULTS[row.key] ?? "" }));
-      })
-      .subscribe();
+    const ch = supabase.channel(`app-settings-rt-${Math.random().toString(36).slice(2)}`);
+    ch.on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, (p: any) => {
+      const row = (p.new || p.old) as { key: string; value: string };
+      if (!row?.key) return;
+      setSettings((prev) => ({ ...prev, [row.key]: p.new?.value ?? DEFAULTS[row.key] ?? "" }));
+    });
+    ch.subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, []);
