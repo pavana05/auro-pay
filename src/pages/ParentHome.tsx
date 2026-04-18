@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, RefreshCw, Plus, ChevronRight } from "lucide-react";
+import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 
