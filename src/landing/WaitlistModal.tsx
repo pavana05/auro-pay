@@ -33,6 +33,8 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   const [error, setError] = useState<string | null>(null);
   const [refCode, setRefCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [submittedName, setSubmittedName] = useState<string>("");
+  const { position, fetchPosition } = useWaitlistPosition();
 
   // Lock body scroll while modal is open
   useEffect(() => {
