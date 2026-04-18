@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { joinWaitlist } from "@/landing/joinWaitlist";
 
 const CITIES = ["Bengaluru","Mumbai","Delhi","Hyderabad","Chennai","Kolkata","Pune","Mysuru","Hubli","Davangere","Ahmedabad","Jaipur","Lucknow","Kochi","Coimbatore","Nagpur","Surat","Indore","Patna","Bhubaneswar"];
+const JOIN_TIMEOUT_MS = 30_000;
 
 type Role = "teen" | "parent" | "both";
 
@@ -36,18 +37,27 @@ export default function Waitlist() {
 
     setLoading(true);
     try {
-      await joinWaitlist({
-        fullName: name.trim(),
-        phone: cleanPhone,
-        email: email.trim().toLowerCase(),
-        city: city || null,
-        role,
-        source: "landing_form",
-        referralCode: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? null : null,
-      });
+      await Promise.race([
+        joinWaitlist({
+          fullName: name.trim(),
+          phone: cleanPhone,
+          email: email.trim().toLowerCase(),
+          city: city || null,
+          role,
+          source: "landing_form",
+          referralCode: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? null : null,
+        }),
+        new Promise((_, reject) => window.setTimeout(() => reject(new Error("Waitlist submission timed out")), JOIN_TIMEOUT_MS)),
+      ]);
     } catch (err) {
       setLoading(false);
-      setError(err instanceof Error ? err.message : "Couldn't join right now. Please try again.");
+      setError(
+        err instanceof Error && err.message === "Waitlist submission timed out"
+          ? "This is taking too long. Please try again in a moment."
+          : err instanceof Error
+            ? err.message
+            : "Couldn't join right now. Please try again."
+      );
       return;
     }
     setLoading(false);

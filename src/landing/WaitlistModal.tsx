@@ -125,7 +125,9 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
       setError(
         err instanceof Error && err.message === "Waitlist submission timed out"
           ? "This is taking too long. Please try again in a moment."
-          : "Couldn't join right now. Please try again."
+          : err instanceof Error
+            ? err.message
+            : "Couldn't join right now. Please try again."
       );
     } finally {
       setLoading(false);
