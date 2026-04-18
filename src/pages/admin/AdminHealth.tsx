@@ -40,7 +40,7 @@ interface WebhookEntry {
   event: string;
   amount: number | null;
   status: "success" | "failed" | "pending";
-  processingMs: number;
+  processingMs?: number;
   ts: number;
 }
 
@@ -187,7 +187,7 @@ const AdminHealth = () => {
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current); };
   }, [autoRefresh]);
 
-  /* Load webhook data from transactions table (Razorpay activity) */
+  /* Load real webhook data from transactions (Razorpay activity) and real errors from failed transactions. */
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -204,45 +204,23 @@ const AdminHealth = () => {
           event: isPaid ? "payment.captured" : isFailed ? "payment.failed" : "order.created",
           amount: t.amount,
           status: isFailed ? "failed" : isPaid ? "success" : "pending",
-          processingMs: 80 + Math.floor(Math.random() * 220),
           ts: new Date(t.created_at).getTime(),
         };
       });
       setWebhooks(entries);
 
-      // Synthetic edge function log (no logs table in schema)
-      const fnNames = ["confirm-payment", "p2p-transfer", "create-payment-order", "send-push-notification", "support-chat", "digio-kyc-webhook"];
-      const fLog: FunctionEntry[] = Array.from({ length: 14 }).map((_, i) => {
-        const errored = Math.random() < 0.12;
-        return {
-          id: `fn-${i}`,
-          name: fnNames[i % fnNames.length],
-          durationMs: errored ? 1200 + Math.floor(Math.random() * 800) : 80 + Math.floor(Math.random() * 480),
-          status: errored ? "error" : "ok",
-          error: errored ? "Timeout reaching upstream" : undefined,
-          ts: Date.now() - i * 1000 * (60 + Math.floor(Math.random() * 240)),
-        };
-      });
-      setFuncs(fLog);
-
-      // Build error list from failed transactions + synthetic errors
-      const txErrors: ApiError[] = (data || []).filter((t: any) => t.status === "failed").slice(0, 12).map((t: any) => ({
-        id: t.id, service: "Payment Gateway", message: `Transaction declined (${(t.razorpay_order_id || "").slice(0, 14)}…)`, ts: new Date(t.created_at).getTime(),
+      // Real errors derived from failed transactions only. Edge function logs and
+      // historical incidents aren't tracked in the DB, so we leave those empty
+      // until a logs table is wired up.
+      const txErrors: ApiError[] = (data || []).filter((t: any) => t.status === "failed").slice(0, 50).map((t: any) => ({
+        id: t.id,
+        service: "Payment Gateway",
+        message: `Transaction declined (${(t.razorpay_order_id || "").slice(0, 14)}…)`,
+        ts: new Date(t.created_at).getTime(),
       }));
-      const synth: ApiError[] = [
-        { id: "e1", service: "KYC Provider", message: "Aadhaar OTP delivery failed", ts: Date.now() - 1000*60*22 },
-        { id: "e2", service: "Edge Functions", message: "send-push-notification: invalid token", ts: Date.now() - 1000*60*48 },
-        { id: "e3", service: "Realtime", message: "Channel auth lost (reconnected)", ts: Date.now() - 1000*60*94 },
-        { id: "e4", service: "Edge Functions", message: "support-chat: rate limit hit", ts: Date.now() - 1000*60*150 },
-      ];
-      setErrors([...txErrors, ...synth].slice(0, 50));
-
-      setIncidents([
-        { id: "i1", service: "Payment Gateway", startedAt: Date.now() - 1000*60*60*24*4, durationMin: 18, impact: "major", resolved: true },
-        { id: "i2", service: "KYC Provider", startedAt: Date.now() - 1000*60*60*24*9, durationMin: 47, impact: "critical", resolved: true },
-        { id: "i3", service: "Realtime", startedAt: Date.now() - 1000*60*60*24*16, durationMin: 6, impact: "minor", resolved: true },
-        { id: "i4", service: "Edge Functions", startedAt: Date.now() - 1000*60*60*24*23, durationMin: 12, impact: "minor", resolved: true },
-      ]);
+      setErrors(txErrors);
+      setFuncs([]);
+      setIncidents([]);
     })();
   }, []);
 
@@ -369,7 +347,7 @@ const AdminHealth = () => {
                     <span className="text-[11px] tabular-nums font-semibold" style={{ color: C.textSecondary }}>
                       {w.amount ? `₹${(w.amount / 100).toLocaleString("en-IN")}` : "—"}
                     </span>
-                    <span className="text-[10px] tabular-nums" style={{ color: C.textMuted }}>{w.processingMs}ms</span>
+                    <span className="text-[10px] tabular-nums" style={{ color: C.textMuted }}>{w.processingMs ? `${w.processingMs}ms` : "—"}</span>
                     <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${sColor}15`, color: sColor }}>{w.status}</span>
                   </div>
                 );
@@ -387,7 +365,9 @@ const AdminHealth = () => {
               <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
             </div>
             <div className="max-h-[340px] overflow-y-auto">
-              {funcs.map((f, i) => {
+              {funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions tracked yet</p>
+              ) : funcs.map((f, i) => {
                 const isErr = f.status === "error";
                 const sColor = isErr ? C.danger : C.success;
                 return (
@@ -456,29 +436,33 @@ const AdminHealth = () => {
             <span className="text-[10px]" style={{ color: C.textMuted }}>Last 30 days</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {["Service", "Started", "Duration", "Impact", "Status"].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.textMuted }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {incidents.map((inc, i) => {
-                  const iColor = inc.impact === "critical" ? C.danger : inc.impact === "major" ? C.warning : C.textSecondary;
-                  return (
-                    <tr key={inc.id} className="hover:bg-white/[0.02]" style={{ borderBottom: i < incidents.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>{inc.service}</td>
-                      <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.startedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
-                      <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{inc.durationMin}m</td>
-                      <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${iColor}15`, color: iColor }}>{inc.impact}</span></td>
-                      <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${C.success}15`, color: C.success }}>Resolved</span></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {incidents.length === 0 ? (
+              <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No incidents recorded ✓</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {["Service", "Started", "Duration", "Impact", "Status"].map(h => (
+                      <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.textMuted }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidents.map((inc, i) => {
+                    const iColor = inc.impact === "critical" ? C.danger : inc.impact === "major" ? C.warning : C.textSecondary;
+                    return (
+                      <tr key={inc.id} className="hover:bg-white/[0.02]" style={{ borderBottom: i < incidents.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <td className="px-5 py-3 font-medium" style={{ color: C.textPrimary }}>{inc.service}</td>
+                        <td className="px-5 py-3" style={{ color: C.textSecondary }}>{new Date(inc.startedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
+                        <td className="px-5 py-3 tabular-nums" style={{ color: C.textSecondary }}>{inc.durationMin}m</td>
+                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${iColor}15`, color: iColor }}>{inc.impact}</span></td>
+                        <td className="px-5 py-3"><span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${C.success}15`, color: C.success }}>Resolved</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

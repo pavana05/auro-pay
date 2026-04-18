@@ -87,7 +87,7 @@ const AdminRoles = () => {
         phone: p?.phone || null,
         avatar_url: p?.avatar_url || null,
         last_login: p?.created_at || null,
-        is_online: Math.random() > 0.5,
+        is_online: false,
       };
     });
     setAdmins(merged);
@@ -255,8 +255,8 @@ const AdminRoles = () => {
                             <td className="px-4 py-3.5 tabular-nums" style={{ color: C.textSecondary }}>{fmtRel(a.last_login)}</td>
                             <td className="px-4 py-3.5">
                               <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: a.is_online ? C.success : C.textMuted, boxShadow: a.is_online ? `0 0 6px ${C.success}` : "none" }} />
-                                <span className="text-[11px]" style={{ color: a.is_online ? C.success : C.textMuted }}>{a.is_online ? "Online" : "Offline"}</span>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.textMuted }} />
+                                <span className="text-[11px]" style={{ color: C.textMuted }}>—</span>
                               </div>
                             </td>
                             <td className="px-4 py-3.5 text-right">
