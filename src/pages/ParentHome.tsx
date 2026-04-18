@@ -18,6 +18,7 @@ const ParentHome = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
   const navigate = useNavigate();
 
   const fetchData = async () => {
