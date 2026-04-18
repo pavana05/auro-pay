@@ -3,8 +3,6 @@ import { useReducedMotion } from "framer-motion";
 import ThreeBackground from "@/landing/ThreeBackground";
 import Navbar from "@/landing/Navbar";
 import EntryAnimation from "@/landing/EntryAnimation";
-import WaitlistModal from "@/landing/WaitlistModal";
-import StickyCTA from "@/landing/StickyCTA";
 import ScrollProgress from "@/landing/ScrollProgress";
 import PremiumCursor from "@/landing/PremiumCursor";
 import ParticleField from "@/landing/ParticleField";
@@ -22,7 +20,6 @@ import SavingsSection from "@/landing/sections/SavingsSection";
 import DualPerspective from "@/landing/sections/DualPerspective";
 import Testimonials from "@/landing/sections/Testimonials";
 import FAQ from "@/landing/sections/FAQ";
-import Waitlist from "@/landing/sections/Waitlist";
 import Footer from "@/landing/sections/Footer";
 
 /**
@@ -31,7 +28,6 @@ import Footer from "@/landing/sections/Footer";
  */
 export default function Landing() {
   const reduceMotion = useReducedMotion();
-  const [modalOpen, setModalOpen] = useState(false);
   const [entryDone, setEntryDone] = useState(false);
 
   useEffect(() => {
@@ -45,15 +41,6 @@ export default function Landing() {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "India's first scan-and-pay app for teens. Aadhaar-only signup, no PAN. Parental controls, savings goals, and instant UPI — built for Gen Z.");
 
-    // If visited with ?ref=AURO-XXX-1234, swap OG image to the personalized one
-    // so when the visitor re-shares the URL, the share preview shows the inviter's name.
-    const ref = new URLSearchParams(window.location.search).get("ref");
-    if (ref && /^AURO-[A-Z]{3}-\d{4}$/i.test(ref)) {
-      const url = `https://mkduupshubnzjwefptcw.functions.supabase.co/og-referral?ref=${encodeURIComponent(ref.toUpperCase())}`;
-      document.querySelector('meta[property="og:image"]')?.setAttribute("content", url);
-      document.querySelector('meta[name="twitter:image"]')?.setAttribute("content", url);
-    }
-
     const id = "auropay-landing-fonts";
     if (!document.getElementById(id)) {
       const link = document.createElement("link");
@@ -63,6 +50,9 @@ export default function Landing() {
       document.head.appendChild(link);
     }
   }, []);
+
+  // CTAs now scroll to top instead of opening a waitlist modal.
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white" style={{ background: "#050507", fontFamily: "Sora, sans-serif" }}>
@@ -76,10 +66,10 @@ export default function Landing() {
       <div className="fixed inset-0 -z-[5] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at top, rgba(200,149,46,0.12), transparent 60%)" }} />
 
-      <Navbar onCTA={() => setModalOpen(true)} />
+      <Navbar onCTA={scrollToTop} />
 
       <main style={{ opacity: entryDone ? 1 : 0, transition: "opacity 0.6s ease-out" }}>
-        <Hero onCTA={() => setModalOpen(true)} />
+        <Hero onCTA={scrollToTop} />
         <PressStrip />
         <Stats />
         <WhyNeeded />
@@ -90,15 +80,11 @@ export default function Landing() {
         <SmartSpending />
         <RewardsSection />
         <SavingsSection />
-        <DualPerspective onCTA={() => setModalOpen(true)} />
+        <DualPerspective onCTA={scrollToTop} />
         <Testimonials />
         <FAQ />
-        <Waitlist />
         <Footer />
       </main>
-
-      <StickyCTA onCTA={() => setModalOpen(true)} />
-      <WaitlistModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
