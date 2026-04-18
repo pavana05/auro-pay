@@ -151,30 +151,46 @@ export default function Waitlist() {
           ))}
         </div>
 
+        {/* Premium conic gold edge — matches modal */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="rounded-[28px] p-8 sm:p-10"
+          className="relative rounded-[32px] p-[1px] overflow-hidden"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            backdropFilter: "blur(32px)",
-            border: "1px solid rgba(200,149,46,0.25)",
-            boxShadow: "0 40px 100px rgba(0,0,0,0.4)",
+            background:
+              "conic-gradient(from 140deg at 50% 50%, rgba(200,149,46,0.55), rgba(255,255,255,0.05) 30%, rgba(200,149,46,0.35) 60%, rgba(255,255,255,0.05) 90%, rgba(200,149,46,0.55))",
+            boxShadow: "0 40px 100px rgba(0,0,0,0.55), 0 0 60px rgba(200,149,46,0.12)",
           }}
         >
+          <div
+            className="relative rounded-[31px] p-7 sm:p-10"
+            style={{
+              background: "linear-gradient(180deg, rgba(18,15,22,0.96), rgba(10,12,15,0.98))",
+              backdropFilter: "blur(40px) saturate(200%)",
+            }}
+          >
+            {/* Top shine */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[31px] opacity-60"
+              style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 18%)" }}
+            />
+
           {done ? (
-            <div className="py-6 text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 240, damping: 18 }}
-                className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}>
-                <Check size={32} strokeWidth={3} className="text-black" />
-              </motion.div>
-              <h3 className="text-2xl font-bold text-white">🎉 You're on the list!</h3>
-              <p className="text-white/60">We'll notify you the moment AuroPay launches in your city.</p>
-            </div>
+            <SuccessInline
+              name={submittedName}
+              refCode={refCode}
+              shareUrl={shareUrl}
+              copied={copied}
+              position={position}
+              onCopy={copyLink}
+              onWhatsApp={shareWhatsApp}
+              onTwitter={shareTwitter}
+              onEmail={shareEmail}
+              onNativeShare={nativeShare}
+              onDownloadBadge={downloadBadge}
+            />
           ) : (
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="relative space-y-4">
               <Input label="Full name" value={name} onChange={setName} placeholder="Aarav Sharma" />
               <Input label="Phone" value={phone} onChange={setPhone} placeholder="9876543210" prefix="+91" inputMode="numeric" />
               <Input label="Email" value={email} onChange={setEmail} placeholder="you@email.com" type="email" />
@@ -204,18 +220,30 @@ export default function Waitlist() {
                 </div>
               </div>
 
-              {error && (
-                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -4 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2"
+                  >{error}</motion.div>
+                )}
+              </AnimatePresence>
 
               <button type="submit" disabled={loading}
-                className="w-full h-14 rounded-xl font-semibold text-base transition disabled:opacity-60 flex items-center justify-center gap-2"
+                className="relative w-full h-14 rounded-xl font-semibold text-base transition disabled:opacity-90 flex items-center justify-center gap-2 overflow-hidden group"
                 style={{
                   background: "linear-gradient(135deg,#c8952e,#e0b048)",
                   color: "#0a0a0a",
-                  boxShadow: "0 8px 32px rgba(200,149,46,0.4)",
+                  boxShadow: "0 10px 28px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
                 }}>
-                {loading ? <><Loader2 size={18} className="animate-spin" /> Joining…</> : "Join the Waitlist →"}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+                />
+                {loading ? <PremiumLoader /> : <>Join the Waitlist →</>}
               </button>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/40">
@@ -228,6 +256,7 @@ export default function Waitlist() {
               )}
             </form>
           )}
+          </div>
         </motion.div>
       </div>
     </section>
