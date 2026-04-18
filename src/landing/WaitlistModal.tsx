@@ -104,6 +104,7 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
           email: email.trim().toLowerCase(),
           role,
           source: "landing_modal",
+          referralCode,
         }),
         JOIN_TIMEOUT_MS,
         "Waitlist submission timed out"

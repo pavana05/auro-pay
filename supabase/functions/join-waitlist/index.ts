@@ -9,6 +9,7 @@ const bodySchema = z.object({
   role: z.enum(["teen", "parent", "both"]),
   source: z.string().trim().min(1).max(80),
   city: z.string().trim().min(1).max(120).nullable().optional(),
+  referralCode: z.string().trim().regex(/^AURO-[A-Z]{3}-\d{4}$/).nullable().optional(),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -28,22 +29,20 @@ Deno.serve(async (req) => {
       return json({ error: "Please enter valid waitlist details." }, 400);
     }
 
-    const { fullName, phone, email, role, source, city } = parsed.data;
+    const { fullName, phone, email, role, source, city, referralCode } = parsed.data;
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const url = new URL(req.url);
-    const ref = url.searchParams.get("ref")?.trim().toUpperCase();
     let referredBy: string | null = null;
 
-    if (ref && /^AURO-[A-Z]{3}-\d{4}$/.test(ref)) {
+    if (referralCode) {
       const { data: refRow } = await admin
         .from("waitlist")
         .select("id")
-        .eq("referral_code", ref)
+        .eq("referral_code", referralCode)
         .maybeSingle();
       referredBy = refRow?.id ?? null;
     }

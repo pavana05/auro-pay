@@ -43,6 +43,7 @@ export default function Waitlist() {
         city: city || null,
         role,
         source: "landing_form",
+        referralCode: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? null : null,
       });
     } catch (err) {
       setLoading(false);

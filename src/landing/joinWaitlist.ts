@@ -9,6 +9,7 @@ export interface JoinWaitlistInput {
   role: WaitlistRole;
   source: string;
   city?: string | null;
+  referralCode?: string | null;
 }
 
 export interface JoinWaitlistResult {
