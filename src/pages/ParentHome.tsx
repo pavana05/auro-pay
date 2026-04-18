@@ -143,6 +143,28 @@ const ParentHome = () => {
         </div>
       </div>
 
+      {/* Pending Approvals Banner */}
+      {pendingApprovals > 0 && (
+        <button
+          onClick={() => navigate("/parent/approvals")}
+          className="w-full mb-4 p-4 rounded-lg border border-primary/40 bg-primary/10 flex items-center gap-3 transition-all hover:bg-primary/15 active:scale-[0.99]"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold">
+              {pendingApprovals} pending approval{pendingApprovals !== 1 ? "s" : ""}
+            </p>
+            <p className="text-xs text-muted-foreground">Tap to review payment requests</p>
+          </div>
+          <span className="min-w-[24px] h-6 px-2 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+            {pendingApprovals}
+          </span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Family Wallet Overview */}
       <div className="gradient-card rounded-lg p-6 mb-6 card-glow border border-border">
         <span className="text-xs font-medium tracking-wider text-muted-foreground">FAMILY WALLET</span>
