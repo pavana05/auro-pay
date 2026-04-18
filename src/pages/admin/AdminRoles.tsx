@@ -293,10 +293,22 @@ const AdminRoles = () => {
                             </td>
                             <td className="px-4 py-3.5 tabular-nums" style={{ color: C.textSecondary }}>{fmtRel(a.last_login)}</td>
                             <td className="px-4 py-3.5">
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.textMuted }} />
-                                <span className="text-[11px]" style={{ color: C.textMuted }}>—</span>
-                              </div>
+                              {(() => {
+                                const online = onlineIds.has(a.user_id);
+                                return (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="relative flex w-2 h-2">
+                                      {online && (
+                                        <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping" style={{ background: C.success }} />
+                                      )}
+                                      <span className="relative inline-flex w-2 h-2 rounded-full" style={{ background: online ? C.success : C.textMuted }} />
+                                    </span>
+                                    <span className="text-[11px] font-medium" style={{ color: online ? C.success : C.textMuted }}>
+                                      {online ? "Online" : "Offline"}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-4 py-3.5 text-right">
                               <button onClick={() => setRemoveOpen(a)} className="p-1.5 rounded-md hover:bg-white/[0.04]" style={{ color: C.textSecondary }} title="Remove role">
