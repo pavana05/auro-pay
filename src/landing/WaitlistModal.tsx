@@ -9,6 +9,24 @@ type Role = "teen" | "parent" | "both";
 
 const SUPABASE_FUNCTIONS_URL = "https://mkduupshubnzjwefptcw.functions.supabase.co";
 const SITE_URL = "https://auro-pay.lovable.app";
+const JOIN_TIMEOUT_MS = 30_000;
+const REFERRAL_LOOKUP_TIMEOUT_MS = 4_000;
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((err) => {
+        window.clearTimeout(timeoutId);
+        reject(err);
+      });
+  });
+}
 
 export default function WaitlistModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [phone, setPhone] = useState("");
@@ -76,37 +94,61 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     if (name.trim().length < 2) { setError("Enter your full name."); return; }
 
     setLoading(true);
-    const referred_by = await getReferrerId();
-    const { data: inserted, error: insErr } = await supabase
-      .from("waitlist")
-      .insert({
-        full_name: name.trim(),
-        phone: "+91" + cleanPhone,
-        email: email.trim().toLowerCase(),
-        role,
-        source: "landing_modal",
-        referred_by,
-      })
-      .select("referral_code")
-      .single();
-    setLoading(false);
 
-    if (insErr) {
-      setError(insErr.message.includes("waitlist_email_lower_idx") || insErr.code === "23505"
-        ? "You're already on the list!"
-        : "Couldn't join right now. Please try again.");
-      return;
+    try {
+      let referred_by: string | null = null;
+
+      try {
+        referred_by = await withTimeout(
+          getReferrerId(),
+          REFERRAL_LOOKUP_TIMEOUT_MS,
+          "Referral lookup timed out"
+        );
+      } catch {
+        referred_by = null;
+      }
+
+      const { data: inserted, error: insErr } = await withTimeout(
+        supabase
+          .from("waitlist")
+          .insert({
+            full_name: name.trim(),
+            phone: "+91" + cleanPhone,
+            email: email.trim().toLowerCase(),
+            role,
+            source: "landing_modal",
+            referred_by,
+          })
+          .select("referral_code")
+          .single(),
+        JOIN_TIMEOUT_MS,
+        "Waitlist submission timed out"
+      );
+
+      if (insErr) {
+        setError(insErr.message.includes("waitlist_email_lower_idx") || insErr.code === "23505"
+          ? "You're already on the list!"
+          : "Couldn't join right now. Please try again.");
+        return;
+      }
+
+      if (inserted?.referral_code) {
+        setRefCode(inserted.referral_code);
+        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${inserted.referral_code}`, { mode: "no-cors" })
+          .catch(() => {});
+      }
+
+      setDone(true);
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c8952e", "#e0b048", "#fff7e3"] });
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "Waitlist submission timed out"
+          ? "This is taking too long. Please try again in a moment."
+          : "Couldn't join right now. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (inserted?.referral_code) {
-      setRefCode(inserted.referral_code);
-      // Pre-warm the OG image cache so the first WhatsApp/Twitter share preview renders instantly
-      fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${inserted.referral_code}`, { mode: "no-cors" })
-        .catch(() => {});
-    }
-
-    setDone(true);
-    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c8952e", "#e0b048", "#fff7e3"] });
   };
 
   return (
