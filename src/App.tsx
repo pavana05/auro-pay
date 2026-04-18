@@ -31,6 +31,7 @@ import AddMoney from "./pages/AddMoney.tsx";
 import ParentHome from "./pages/ParentHome.tsx";
 import ParentTeenDetail from "./pages/ParentTeenDetail.tsx";
 import ParentAddMoney from "./pages/ParentAddMoney.tsx";
+import ParentApprovals from "./pages/ParentApprovals.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
 import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
@@ -213,6 +214,7 @@ const App = () => (
                     <Route path="/parent" element={<ParentHome />} />
                     <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
                     <Route path="/parent/add-money" element={<ParentAddMoney />} />
+                    <Route path="/parent/approvals" element={<ParentApprovals />} />
                     <Route path="/rewards" element={<Rewards />} />
                     <Route path="/rewards/:id" element={<RewardDetail />} />
                     <Route path="/transaction/:id" element={<TransactionDetailPage />} />

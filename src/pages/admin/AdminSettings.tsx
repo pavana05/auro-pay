@@ -291,6 +291,19 @@ const AdminSettings = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{def.label}</p>
                             <p className="text-[11px] mt-0.5" style={{ color: C.textSecondary }}>{def.desc}</p>
+                            <div
+                              className="mt-2 inline-flex items-start gap-1.5 px-2 py-1 rounded-md max-w-full"
+                              style={{
+                                background: meta.danger ? `${C.danger}10` : `${meta.color}0d`,
+                                border: `1px solid ${meta.danger ? `${C.danger}33` : `${meta.color}22`}`,
+                              }}
+                            >
+                              <Zap className="w-3 h-3 mt-[1px] shrink-0" style={{ color: meta.danger ? C.danger : meta.color }} />
+                              <span className="text-[10.5px] leading-snug font-medium" style={{ color: meta.danger ? `${C.danger}dd` : C.textSecondary }}>
+                                <span className="uppercase tracking-wider mr-1" style={{ color: meta.danger ? C.danger : meta.color }}>Effect:</span>
+                                {def.effect}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Money input */}
