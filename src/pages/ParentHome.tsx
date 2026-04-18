@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, RefreshCw, Plus, ChevronRight } from "lucide-react";
+import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 
@@ -18,6 +18,7 @@ const ParentHome = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -73,6 +74,16 @@ const ParentHome = () => {
         setAllTransactions(txns || []);
       }
     }
+
+    // Pending parent approvals count
+    const { count: apprCount } = await supabase
+      .from("pending_payment_approvals")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", user.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString());
+    setPendingApprovals(apprCount || 0);
+
     setLoading(false);
   };
 
@@ -131,6 +142,28 @@ const ParentHome = () => {
           </button>
         </div>
       </div>
+
+      {/* Pending Approvals Banner */}
+      {pendingApprovals > 0 && (
+        <button
+          onClick={() => navigate("/parent/approvals")}
+          className="w-full mb-4 p-4 rounded-lg border border-primary/40 bg-primary/10 flex items-center gap-3 transition-all hover:bg-primary/15 active:scale-[0.99]"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold">
+              {pendingApprovals} pending approval{pendingApprovals !== 1 ? "s" : ""}
+            </p>
+            <p className="text-xs text-muted-foreground">Tap to review payment requests</p>
+          </div>
+          <span className="min-w-[24px] h-6 px-2 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+            {pendingApprovals}
+          </span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
 
       {/* Family Wallet Overview */}
       <div className="gradient-card rounded-lg p-6 mb-6 card-glow border border-border">
