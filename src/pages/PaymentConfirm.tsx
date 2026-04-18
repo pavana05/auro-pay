@@ -223,6 +223,14 @@ const PaymentConfirm = () => {
         toast.info("Set up your Payment PIN to continue");
         return;
       }
+      // Parent approval required → show pending screen, do NOT mark success.
+      if ((data as any)?.requires_parent_approval) {
+        setErrorMsg((data as any)?.message || "Waiting for parent approval. You'll get a notification when they respond.");
+        haptic.medium();
+        toast.info("Waiting for parent approval", { description: "Your parent has been notified." });
+        setTimeout(() => { setStage("failure"); }, 600);
+        return;
+      }
       if (error) throw new Error(error.message || "Payment failed");
       if ((data as any)?.error) throw new Error((data as any).error);
 
