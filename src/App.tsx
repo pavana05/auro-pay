@@ -83,6 +83,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import MaintenanceGate from "./components/MaintenanceGate";
 import KycEnforcer from "./components/KycEnforcer";
 import PinEnforcer from "./components/PinEnforcer";
+import FeatureGate from "./components/FeatureGate";
 import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
 
