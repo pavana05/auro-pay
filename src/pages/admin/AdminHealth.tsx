@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
+import { toast } from "sonner";
 import {
   Server, Activity, Database, Shield, Globe, Cpu, RefreshCw,
   CheckCircle2, AlertTriangle, XCircle, Zap, Webhook, Code2,
-  AlertOctagon, Clock, TrendingUp, TrendingDown,
+  AlertOctagon, Clock, Plus, X,
 } from "lucide-react";
 
 const C = {
