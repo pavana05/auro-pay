@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Loader2, Lock, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, Check, Sparkles, Download, Copy, MessageCircle, Twitter, Mail, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { captureReferralCode } from "@/landing/referral";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
+import { generateFoundingBadge, downloadDataUrl } from "@/landing/foundingBadge";
 
 const CITIES = ["Bengaluru","Mumbai","Delhi","Hyderabad","Chennai","Kolkata","Pune","Mysuru","Hubli","Davangere","Ahmedabad","Jaipur","Lucknow","Kochi","Coimbatore","Nagpur","Surat","Indore","Patna","Bhubaneswar"];
+const SITE_URL = "https://auro-pay.lovable.app";
 const JOIN_TIMEOUT_MS = 30_000;
 
 type Role = "teen" | "parent" | "both";
@@ -20,12 +25,58 @@ export default function Waitlist() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refCode, setRefCode] = useState<string | null>(null);
+  const [submittedName, setSubmittedName] = useState("");
+  const [copied, setCopied] = useState(false);
+  const { position, fetchPosition } = useWaitlistPosition();
 
   useEffect(() => {
     supabase.rpc("get_waitlist_count").then(({ data }) => {
       if (typeof data === "number") setCount(data + 12000);
     });
   }, []);
+
+  const shareUrl = refCode ? `${SITE_URL}/?ref=${refCode}` : SITE_URL;
+  const shareText = refCode
+    ? `I just joined the AuroPay waitlist — India's first scan-and-pay app for teens 💛 Use my link and we both get ₹100: ${shareUrl}`
+    : `Join the AuroPay waitlist — India's first scan-and-pay app for teens 💛 ${shareUrl}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      toast.success("Invite link copied", { description: "Share it to earn ₹100 each." });
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      toast.error("Couldn't copy", { description: "Long-press the link to copy manually." });
+    }
+  };
+  const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  const shareTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  const shareEmail = () => {
+    const subject = encodeURIComponent("Join me on the AuroPay waitlist");
+    const body = encodeURIComponent(`${shareText}\n\n— Sent from AuroPay`);
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank", "noopener");
+  };
+  const nativeShare = async () => {
+    if (!navigator.share) { copyLink(); return; }
+    try { await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl }); } catch { /* cancelled */ }
+  };
+  const downloadBadge = () => {
+    try {
+      const dataUrl = generateFoundingBadge({
+        name: submittedName || "Founding Member",
+        referralCode: refCode,
+        position,
+      });
+      if (!dataUrl) throw new Error("Couldn't generate badge");
+      const safeCode = (refCode || "AUROPAY").replace(/[^A-Z0-9-]/gi, "");
+      downloadDataUrl(dataUrl, `auropay-founding-member-${safeCode}.png`);
+      toast.success("Badge saved", { description: "Post it on your story and tag @auropay 💛" });
+    } catch {
+      toast.error("Couldn't save badge", { description: "Try again or screenshot the card." });
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +88,8 @@ export default function Waitlist() {
 
     setLoading(true);
     try {
-      await Promise.race([
+      const referralCode = captureReferralCode();
+      const result = await Promise.race([
         joinWaitlist({
           fullName: name.trim(),
           phone: cleanPhone,
@@ -45,10 +97,16 @@ export default function Waitlist() {
           city: city || null,
           role,
           source: "landing_form",
-          referralCode: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? null : null,
+          referralCode,
         }),
-        new Promise((_, reject) => window.setTimeout(() => reject(new Error("Waitlist submission timed out")), JOIN_TIMEOUT_MS)),
+        new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("Waitlist submission timed out")), JOIN_TIMEOUT_MS)),
       ]);
+      setRefCode(result?.referralCode ?? null);
+      setSubmittedName(name.trim());
+      // Auto-clear inputs
+      setName(""); setPhone(""); setEmail(""); setCity(""); setRole("teen");
+      toast.success("You're on the list!", { description: "We'll notify you the moment AuroPay launches." });
+      fetchPosition(); // fire-and-forget
     } catch (err) {
       setLoading(false);
       setError(
