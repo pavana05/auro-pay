@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
@@ -130,6 +130,7 @@ export default function AdminWaitlist() {
   const [rows, setRows] = useState<WaitlistRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -137,32 +138,48 @@ export default function AdminWaitlist() {
   const [page, setPage] = useState(1);
   const [detailRow, setDetailRow] = useState<WaitlistRow | null>(null);
   const [liveItems, setLiveItems] = useState<WaitlistRow[]>([]);
+  const activeLoadId = useRef(0);
   const PER_PAGE = 25;
 
   const loadRows = useCallback(async (options?: { silent?: boolean; background?: boolean }) => {
     const { silent = false, background = false } = options ?? {};
+    const loadId = ++activeLoadId.current;
 
     if (background) setRefreshing(true);
-    else setLoading(true);
+    else {
+      setLoading(true);
+      setLoadError(null);
+    }
 
     try {
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from("waitlist")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1000);
 
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("Waitlist request timed out. Please try again.")), 12000);
+      });
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+      if (loadId !== activeLoadId.current) return;
       if (error) throw error;
 
       setRows((data as WaitlistRow[]) || []);
+      setLoadError(null);
     } catch (error) {
+      if (loadId !== activeLoadId.current) return;
+      const message = error instanceof Error ? error.message : "Please try reloading the page.";
       console.error("[AdminWaitlist] Failed to load waitlist:", error);
+      setLoadError(message);
       if (!silent) {
         toast.error("Failed to load waitlist", {
-          description: error instanceof Error ? error.message : "Please try reloading the page.",
+          description: message,
         });
       }
     } finally {
+      if (loadId !== activeLoadId.current) return;
       if (background) setRefreshing(false);
       else setLoading(false);
     }
@@ -431,12 +448,14 @@ export default function AdminWaitlist() {
             <p className="text-sm mt-1" style={{ color: G.muted }}>
               {loading
                 ? "Loading waitlist data…"
-                : refreshing
-                  ? `${stats.total.toLocaleString()} total signups · refreshing live data…`
-                  : `${stats.total.toLocaleString()} total signups · live updates enabled`}
+                : loadError
+                  ? "Waitlist data failed to load"
+                  : refreshing
+                    ? `${stats.total.toLocaleString()} total signups · refreshing live data…`
+                    : `${stats.total.toLocaleString()} total signups · live updates enabled`}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
               style={{ background: G.accent10, color: G.primary, border: `1px solid ${G.border}` }}
@@ -444,6 +463,14 @@ export default function AdminWaitlist() {
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: G.success }} />
               {stats.total} live
             </span>
+            <button
+              onClick={() => loadRows()}
+              disabled={loading || refreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: G.accent10, color: G.text, border: `1px solid ${G.border}` }}
+            >
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> Retry
+            </button>
             <button
               onClick={exportCsv}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
@@ -717,6 +744,24 @@ export default function AdminWaitlist() {
           className="rounded-2xl overflow-hidden mb-4"
           style={{ background: G.card, border: `1px solid ${G.border}` }}
         >
+          {loadError && !loading && (
+            <div
+              className="mx-4 mt-4 rounded-2xl px-4 py-3 text-sm flex items-center justify-between gap-3 flex-wrap"
+              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: G.text }}
+            >
+              <div>
+                <div className="font-semibold">Couldn’t load waitlist data.</div>
+                <div style={{ color: G.muted }}>{loadError}</div>
+              </div>
+              <button
+                onClick={() => loadRows()}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: G.primary, color: "#0a0c0f" }}
+              >
+                <RefreshCw size={14} /> Retry now
+              </button>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
