@@ -87,6 +87,7 @@ const allNavItems = navSections.flatMap((s) => s.items);
 
 interface BadgeCounts { kyc: number; frozen: number; notif: number; flagged: number; tickets: number; }
 type ApiHealth = "green" | "amber" | "red";
+const ADMIN_AUTH_EVENT = "admin-auth-changed";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -164,12 +165,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       const [kycRes, walletRes, notifRes, ticketsRes, recentRes] = await Promise.all([
         supabase.from("kyc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("wallets").select("id", { count: "exact", head: true }).eq("is_frozen", true),
-        // Only count admin-relevant unread notifications in the bell badge.
         supabase.from("notifications").select("id", { count: "exact", head: true })
           .eq("is_read", false)
           .in("type", ADMIN_NOTIFICATION_TYPES as unknown as string[]),
         supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
-        // Bell dropdown list — same filter so admins never see user-only noise.
         supabase.from("notifications").select("id, title, body, type, created_at, is_read")
           .in("type", ADMIN_NOTIFICATION_TYPES as unknown as string[])
           .order("created_at", { ascending: false }).limit(6),
@@ -220,6 +219,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   /* Session timeout handled by SessionTimeoutModal (2h with 5-min warning) */
   const handleSessionExpire = () => {
     sessionStorage.removeItem("admin_auth");
+    window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
     setIsAuthenticated(false);
     toast.error("Session expired. Please re-authenticate.");
   };
@@ -255,6 +255,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       if (payload?.ok) {
         setIsAuthenticated(true);
         sessionStorage.setItem("admin_auth", "true");
+        window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
         toast.success("Admin access granted"); haptic.success();
       } else {
         setAuthError("Incorrect password. Access denied."); haptic.error();
@@ -270,6 +271,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = async () => {
     haptic.heavy();
     sessionStorage.removeItem("admin_auth");
+    window.dispatchEvent(new Event(ADMIN_AUTH_EVENT));
     await supabase.auth.signOut();
     navigate("/");
   };
