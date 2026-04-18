@@ -168,8 +168,8 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           {/* Ambient illustration removed per design feedback */}
 
           <motion.div
-            initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.4, duration: 0.8, type: "spring", stiffness: 60, damping: 16 }}
+            initial={{ opacity: 0, y: 60, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.5, duration: 1.0, type: "spring", stiffness: 60, damping: 16 }}
             style={{ perspective: 1200 }}
             className="relative z-10"
           >
@@ -194,7 +194,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             {/* Floating sticker badges */}
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: -6 }}
-              transition={{ delay: 3.2, type: "spring", stiffness: 220, damping: 14 }}
+              transition={{ delay: 1.5, type: "spring", stiffness: 220, damping: 14 }}
               className="hidden md:flex absolute -top-4 -left-8 lg:-left-10 items-center gap-2 px-3 py-2 rounded-2xl text-xs text-white"
               style={{
                 background: "linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.95))",
@@ -206,7 +206,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: 8 }} animate={{ opacity: 1, scale: 1, rotate: 5 }}
-              transition={{ delay: 3.4, type: "spring", stiffness: 220, damping: 14 }}
+              transition={{ delay: 1.7, type: "spring", stiffness: 220, damping: 14 }}
               className="hidden md:flex absolute bottom-24 -right-6 lg:-right-4 items-center gap-2 px-3 py-2 rounded-2xl text-xs text-white"
               style={{
                 background: "linear-gradient(135deg, rgba(20,20,25,0.95), rgba(30,28,22,0.95))",
@@ -223,7 +223,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: 5 }} animate={{ opacity: 1, scale: 1, rotate: 4 }}
-              transition={{ delay: 3.6, type: "spring", stiffness: 220, damping: 14 }}
+              transition={{ delay: 1.9, type: "spring", stiffness: 220, damping: 14 }}
               className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-12 items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
               style={{
                 background: "rgba(200,149,46,0.95)",
@@ -239,7 +239,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           {/* Interactive tab switcher */}
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 3.5 }}
+            transition={{ delay: 1.6, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="flex items-center gap-1 p-1 rounded-full border"
             style={{
               background: "rgba(20,20,25,0.85)",
