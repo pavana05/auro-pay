@@ -74,6 +74,16 @@ const ParentHome = () => {
         setAllTransactions(txns || []);
       }
     }
+
+    // Pending parent approvals count
+    const { count: apprCount } = await supabase
+      .from("pending_payment_approvals")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", user.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString());
+    setPendingApprovals(apprCount || 0);
+
     setLoading(false);
   };
 
