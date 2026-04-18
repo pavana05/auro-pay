@@ -101,15 +101,8 @@ export default function WaitlistModal({ open, onClose }: Props) {
       setReferralCode(result.referralCode);
       setSuccess(true);
       toast.success("You're on the list! 🎉");
-      // Inline RPC for live position — guaranteed to fire on success
-      void (async () => {
-        try {
-          const { supabase } = await import("@/integrations/supabase/client");
-          const { data } = await supabase.rpc("get_waitlist_count");
-          const n = typeof data === "number" ? data : Number(data);
-          if (Number.isFinite(n)) await fetchPosition();
-        } catch { /* ignore */ }
-      })();
+      // Live position — await so the pill appears reliably
+      await fetchPosition();
 
       // Confetti
       try {
