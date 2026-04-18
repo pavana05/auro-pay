@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 export type WaitlistRole = "teen" | "parent" | "both";
 
@@ -23,19 +24,43 @@ interface JoinWaitlistResponse {
 }
 
 export async function joinWaitlist(input: JoinWaitlistInput): Promise<JoinWaitlistResult> {
-  const { data, error } = await supabase.functions.invoke<JoinWaitlistResponse>("join-waitlist", {
-    body: input,
-  });
+  const url = `${SUPABASE_URL}/functions/v1/join-waitlist`;
 
-  if (error) {
-    throw new Error(error.message || "Couldn't join right now. Please try again.");
+  // 25s timeout so the user never gets stuck on "Securing your spot…"
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify(input),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    window.clearTimeout(timeoutId);
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error("This is taking too long. Please try again in a moment.");
+    }
+    throw new Error("Network error. Please check your connection and try again.");
+  }
+  window.clearTimeout(timeoutId);
+
+  let data: JoinWaitlistResponse | null = null;
+  try {
+    data = (await res.json()) as JoinWaitlistResponse;
+  } catch {
+    throw new Error("Couldn't join right now. Please try again.");
   }
 
-  if (!data?.ok) {
+  if (!res.ok || !data?.ok) {
     throw new Error(data?.error || "Couldn't join right now. Please try again.");
   }
 
-  return {
-    referralCode: data.referral_code ?? null,
-  };
+  return { referralCode: data.referral_code ?? null };
 }
