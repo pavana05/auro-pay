@@ -1,42 +1,48 @@
-import { useState, forwardRef, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Share2, UserPlus, Download } from "lucide-react";
-import confetti from "canvas-confetti";
+import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import { captureReferralCode } from "@/landing/referral";
 import { joinWaitlist } from "@/landing/joinWaitlist";
-import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
-import { generateFoundingBadge, downloadDataUrl } from "@/landing/foundingBadge";
 
 type Role = "teen" | "parent" | "both";
 
-const SUPABASE_FUNCTIONS_URL = "https://mkduupshubnzjwefptcw.functions.supabase.co";
 const SITE_URL = "https://auro-pay.lovable.app";
-const JOIN_TIMEOUT_MS = 30_000;
 
-function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
-    Promise.resolve(promise)
-      .then((value) => { window.clearTimeout(timeoutId); resolve(value); })
-      .catch((err) => { window.clearTimeout(timeoutId); reject(err); });
-  });
+interface Props {
+  open: boolean;
+  onClose: () => void;
 }
 
-export default function WaitlistModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function WaitlistModal({ open, onClose }: Props) {
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("teen");
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refCode, setRefCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [submittedName, setSubmittedName] = useState<string>("");
-  const { position, fetchPosition } = useWaitlistPosition();
 
-  // Lock body scroll while modal is open
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Reset state whenever modal closes
+  useEffect(() => {
+    if (open) return;
+    const t = setTimeout(() => {
+      setName("");
+      setPhone("");
+      setEmail("");
+      setRole("teen");
+      setSubmitting(false);
+      setSuccess(false);
+      setReferralCode(null);
+      setCopied(false);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  // Lock scroll
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -44,128 +50,95 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  const shareUrl = refCode ? `${SITE_URL}/?ref=${refCode}` : SITE_URL;
-  const ogImageUrl = refCode ? `${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${refCode}` : "";
-  const shareText = refCode
-    ? `I just joined the AuroPay waitlist — India's first scan-and-pay app for teens 💛 Use my link and we both get ₹100: ${shareUrl}`
-    : `Join the AuroPay waitlist — India's first scan-and-pay app for teens 💛 ${shareUrl}`;
+  // ESC closes
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
-  const reset = () => {
-    setPhone(""); setEmail(""); setName(""); setRole("teen");
-    setDone(false); setError(null); setRefCode(null); setCopied(false);
-    setSubmittedName("");
-  };
+  const shareUrl = referralCode ? `${SITE_URL}/?ref=${referralCode}` : SITE_URL;
+  const shareText = referralCode
+    ? `I just joined the AuroPay waitlist — India's first scan-and-pay app for teens 💛 Use my link: ${shareUrl}`
+    : `Check out AuroPay — India's first scan-and-pay app for teens 💛 ${shareUrl}`;
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    // Validate
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.replace(/\D/g, "");
+
+    if (trimmedName.length < 2) {
+      toast.error("Please enter your full name");
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      toast.error("Enter a valid 10-digit Indian mobile number");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Enter a valid email address");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await joinWaitlist({
+        fullName: trimmedName,
+        phone: cleanPhone,
+        email: trimmedEmail,
+        role,
+        source: "landing_modal",
+        referralCode: captureReferralCode(),
+      });
+
+      setReferralCode(result.referralCode);
+      setSuccess(true);
+      toast.success("You're on the list! 🎉");
+
+      // Confetti
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.4 },
+          colors: ["#c8952e", "#e0b758", "#f5d98a", "#ffffff"],
+        });
+      } catch { /* ignore */ }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't join right now. Please try again.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, name, phone, email, role]);
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success("Invite link copied", { description: "Share it with friends to earn ₹100 each." });
-      setTimeout(() => setCopied(false), 2200);
+      toast.success("Link copied!");
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Couldn't copy. Long-press the link to copy manually.");
+      toast.error("Couldn't copy. Long-press the link to copy.");
     }
   };
 
-  const shareWhatsApp = () => {
-    if (ogImageUrl) fetch(ogImageUrl, { mode: "no-cors" }).catch(() => {});
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
-  };
-
-  const shareTwitter = () => {
-    if (ogImageUrl) fetch(ogImageUrl, { mode: "no-cors" }).catch(() => {});
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
-  };
-
-  const shareEmail = () => {
-    const subject = encodeURIComponent("Join me on the AuroPay waitlist");
-    const body = encodeURIComponent(`${shareText}\n\n— Sent from AuroPay`);
-    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank", "noopener");
-  };
+  const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+  const shareTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
+  const shareEmail = () => window.open(`mailto:?subject=${encodeURIComponent("Join me on AuroPay")}&body=${encodeURIComponent(shareText)}`);
 
   const nativeShare = async () => {
-    if (!navigator.share) { copyLink(); return; }
-    try {
-      await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl });
-    } catch { /* user cancelled */ }
-  };
-
-  const downloadBadge = () => {
-    try {
-      const dataUrl = generateFoundingBadge({
-        name: submittedName || "Founding Member",
-        referralCode: refCode,
-        position,
-      });
-      if (!dataUrl) throw new Error("Couldn't generate badge");
-      const safeCode = (refCode || "AUROPAY").replace(/[^A-Z0-9-]/gi, "");
-      downloadDataUrl(dataUrl, `auropay-founding-member-${safeCode}.png`);
-      toast.success("Badge saved", { description: "Post it on your story and tag @auropay 💛" });
-    } catch {
-      toast.error("Couldn't save badge", { description: "Try again or screenshot this card." });
-    }
-  };
-
-  const handleClose = () => { reset(); onClose(); };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-    if (cleanPhone.length !== 10) { setError("Enter a valid 10-digit phone number."); return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setError("Enter a valid email."); return; }
-    if (name.trim().length < 2) { setError("Enter your full name."); return; }
-
-    setLoading(true);
-
-    try {
-      const referralCode = captureReferralCode();
-      const { referralCode: insertedReferralCode } = await withTimeout(
-        joinWaitlist({
-          fullName: name.trim(),
-          phone: cleanPhone,
-          email: email.trim().toLowerCase(),
-          role,
-          source: "landing_modal",
-          referralCode,
-        }),
-        JOIN_TIMEOUT_MS,
-        "Waitlist submission timed out"
-      );
-
-      if (insertedReferralCode) {
-        setRefCode(insertedReferralCode);
-        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${insertedReferralCode}`, { mode: "no-cors" })
-          .catch(() => {});
-      } else if (referralCode) {
-        fetch(`${SUPABASE_FUNCTIONS_URL}/og-referral?ref=${referralCode}`, { mode: "no-cors" })
-          .catch(() => {});
-      }
-
-      // Auto-clear inputs on success
-      setPhone(""); setEmail(""); setName(""); setRole("teen");
-
-      toast.success("You're on the list!", {
-        description: "We'll notify you the moment AuroPay launches.",
-      });
-
-      setDone(true);
-      setSubmittedName(name.trim());
-      // fire-and-forget — failure just hides the position pill
-      fetchPosition();
-      confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ["#c8952e", "#e0b048", "#fff7e3"] });
-    } catch (err) {
-      const msg =
-        err instanceof Error && err.message === "Waitlist submission timed out"
-          ? "This is taking too long. Please try again in a moment."
-          : err instanceof Error
-            ? err.message
-            : "Couldn't join right now. Please try again.";
-      setError(msg);
-      toast.error("Couldn't join", { description: msg });
-    } finally {
-      setLoading(false);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "AuroPay", text: shareText, url: shareUrl });
+      } catch { /* user cancelled */ }
+    } else {
+      copyLink();
     }
   };
 
@@ -174,169 +147,226 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
       {open && (
         <motion.div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={handleClose}
-          style={{ background: "rgba(3,3,5,0.78)", backdropFilter: "blur(10px)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          {/* Animated gold aurora behind the card */}
-          <motion.div
-            aria-hidden
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="pointer-events-none absolute inset-0 overflow-hidden"
-          >
-            <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[640px] h-[640px] rounded-full blur-3xl opacity-40"
-              style={{ background: "radial-gradient(closest-side, rgba(200,149,46,0.55), transparent 70%)" }}
-            />
-          </motion.div>
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            onClick={onClose}
+          />
 
+          {/* Card */}
           <motion.div
-            onClick={(e) => e.stopPropagation()}
-            initial={{ scale: 0.9, opacity: 0, y: 12 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 8 }}
-            transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            className="relative w-full max-w-[400px] rounded-[36px] p-[1px] overflow-hidden"
+            className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 shadow-2xl"
             style={{
-              background:
-                "conic-gradient(from 140deg at 50% 50%, rgba(200,149,46,0.55), rgba(255,255,255,0.05) 30%, rgba(200,149,46,0.35) 60%, rgba(255,255,255,0.05) 90%, rgba(200,149,46,0.55))",
-              boxShadow: "0 60px 140px rgba(0,0,0,0.85), 0 0 60px rgba(200,149,46,0.18)",
+              background: "linear-gradient(180deg, #14110a 0%, #0a0908 100%)",
+              boxShadow: "0 20px 80px rgba(200,149,46,0.25), 0 0 0 1px rgba(200,149,46,0.15)",
             }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", damping: 22, stiffness: 280 }}
           >
-            <div
-              className="relative rounded-[35px] p-7 sm:p-8"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,15,22,0.96), rgba(10,12,15,0.98))",
-                backdropFilter: "blur(40px) saturate(200%)",
-              }}
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+              aria-label="Close"
             >
-              {/* shine highlight */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-[35px] opacity-60"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 18%)",
-                }}
-              />
+              <X className="w-4 h-4 text-white/70" />
+            </button>
 
-              <button
-                onClick={handleClose}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition text-white/60 z-10"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-
-              {!done ? (
-                <form onSubmit={submit} className="relative pt-1 space-y-4">
-                  <div className="text-center mb-1">
-                    <motion.div
-                      initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
-                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 240, damping: 18, delay: 0.05 }}
-                      className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3 relative"
-                      style={{
-                        background: "linear-gradient(135deg,#e0b048,#8a6520)",
-                        boxShadow: "0 10px 28px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
-                      }}
-                    >
-                      <Sparkles size={22} className="text-black" strokeWidth={2.5} />
-                    </motion.div>
-                    <h2 className="text-[22px] sm:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
+            <div className="p-6 sm:p-8">
+              {!success ? (
+                <>
+                  {/* Header */}
+                  <div className="text-center mb-6">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3"
+                      style={{ background: "linear-gradient(135deg, #c8952e, #e0b758)" }}>
+                      <Sparkles className="w-6 h-6 text-black" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: "Sora, sans-serif" }}>
                       Join the Waitlist
                     </h2>
-                    <p className="text-[13px] text-white/55 mt-1">Founding members unlock perks no one else gets.</p>
+                    <p className="text-sm text-white/60">
+                      Early access + ₹100 sign-up bonus
+                    </p>
                   </div>
 
-                  {/* Quick perks chips */}
-                  <div className="flex flex-wrap items-center justify-center gap-1.5 pb-1">
-                    {["🎁 ₹100 bonus", "⚡ Priority access", "🏆 Founder badge"].map((p, i) => (
-                      <motion.span
-                        key={p}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + i * 0.05 }}
-                        className="text-[10.5px] px-2.5 py-1 rounded-full border text-white/75"
-                        style={{ background: "rgba(200,149,46,0.08)", borderColor: "rgba(200,149,46,0.22)" }}
-                      >
-                        {p}
-                      </motion.span>
-                    ))}
-                  </div>
-
-                  <Field label="Full name" value={name} onChange={setName} placeholder="Aarav Sharma" autoComplete="name" />
-                  <Field label="Phone" value={phone} onChange={setPhone} placeholder="9876543210" prefix="+91" inputMode="numeric" autoComplete="tel" />
-                  <Field label="Email" value={email} onChange={setEmail} placeholder="you@email.com" type="email" autoComplete="email" />
-
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-white/50 mb-2 font-semibold">I am a</div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["teen", "parent", "both"] as Role[]).map((r) => (
-                        <button
-                          type="button" key={r}
-                          onClick={() => setRole(r)}
-                          className="relative py-2.5 rounded-xl text-sm font-medium transition border overflow-hidden"
-                          style={role === r
-                            ? { background: "linear-gradient(135deg,#e0b048,#c8952e)", color: "#0a0a0a", borderColor: "transparent", boxShadow: "0 6px 18px rgba(200,149,46,0.35)" }
-                            : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.78)", borderColor: "rgba(255,255,255,0.08)" }}
-                        >
-                          {r[0].toUpperCase() + r.slice(1)}
-                        </button>
-                      ))}
+                  {/* Form */}
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-white/50 mb-1.5">Full Name</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={submitting}
+                        placeholder="Aarav Sharma"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 outline-none focus:border-[#c8952e]/60 focus:bg-white/[0.07] transition-all"
+                        autoComplete="name"
+                      />
                     </div>
-                  </div>
 
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0, y: -4 }}
-                        animate={{ opacity: 1, height: "auto", y: 0 }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2"
-                      >{error}</motion.div>
-                    )}
-                  </AnimatePresence>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-white/50 mb-1.5">Mobile Number</label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-xl bg-white/[0.03] border border-r-0 border-white/10 text-white/60 text-sm">+91</span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          disabled={submitting}
+                          placeholder="9876543210"
+                          maxLength={10}
+                          className="flex-1 px-4 py-3 rounded-r-xl bg-white/5 border border-white/10 text-white placeholder-white/30 outline-none focus:border-[#c8952e]/60 focus:bg-white/[0.07] transition-all"
+                          autoComplete="tel-national"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-white/50 mb-1.5">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={submitting}
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 outline-none focus:border-[#c8952e]/60 focus:bg-white/[0.07] transition-all"
+                        autoComplete="email"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-white/50 mb-1.5">I am a…</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["teen", "parent", "both"] as Role[]).map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            disabled={submitting}
+                            onClick={() => setRole(r)}
+                            className={`py-2.5 rounded-xl text-sm font-medium capitalize transition-all border ${
+                              role === r
+                                ? "bg-[#c8952e] text-black border-[#c8952e]"
+                                : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10"
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full py-3.5 rounded-xl font-semibold text-black flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:brightness-110"
+                      style={{
+                        background: "linear-gradient(135deg, #e0b758, #c8952e)",
+                        boxShadow: "0 8px 24px rgba(200,149,46,0.35)",
+                      }}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Securing your spot…
+                        </>
+                      ) : (
+                        <>Join Waitlist <Sparkles className="w-4 h-4" /></>
+                      )}
+                    </button>
+
+                    <p className="text-[11px] text-center text-white/40 leading-relaxed">
+                      By joining, you agree to receive launch updates. We'll never spam you.
+                    </p>
+                  </form>
+                </>
+              ) : (
+                /* Success view */
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
+                    style={{ background: "linear-gradient(135deg, #c8952e, #e0b758)" }}
+                  >
+                    <Check className="w-8 h-8 text-black" strokeWidth={3} />
+                  </motion.div>
+
+                  <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "Sora, sans-serif" }}>
+                    You're in! 🎉
+                  </h2>
+                  <p className="text-sm text-white/60 mb-6">
+                    We'll email you the moment AuroPay opens to your phone.
+                  </p>
+
+                  {referralCode && (
+                    <>
+                      <div className="rounded-xl border border-[#c8952e]/30 bg-[#c8952e]/[0.06] p-4 mb-4 text-left">
+                        <p className="text-xs uppercase tracking-wider text-[#e0b758] mb-2">
+                          Your referral link
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-xs sm:text-sm text-white/90 truncate font-mono">
+                            {shareUrl}
+                          </code>
+                          <button
+                            onClick={copyLink}
+                            className="shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/15 flex items-center justify-center transition-colors"
+                            aria-label="Copy link"
+                          >
+                            {copied ? <Check className="w-4 h-4 text-[#c8952e]" /> : <Copy className="w-4 h-4 text-white/70" />}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-white/50 mt-2">
+                          You and your friend both get ₹100 when they join.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={nativeShare}
+                        className="w-full py-3 rounded-xl font-semibold text-black mb-3 hover:brightness-110 transition-all"
+                        style={{
+                          background: "linear-gradient(135deg, #e0b758, #c8952e)",
+                          boxShadow: "0 8px 24px rgba(200,149,46,0.35)",
+                        }}
+                      >
+                        Invite a Friend
+                      </button>
+
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        <button onClick={shareWhatsApp} className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-1.5 text-xs text-white/80 transition-colors">
+                          <MessageCircle className="w-4 h-4" /> WhatsApp
+                        </button>
+                        <button onClick={shareTwitter} className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-1.5 text-xs text-white/80 transition-colors">
+                          <Twitter className="w-4 h-4" /> Twitter
+                        </button>
+                        <button onClick={shareEmail} className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-1.5 text-xs text-white/80 transition-colors">
+                          <Mail className="w-4 h-4" /> Email
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   <button
-                    type="submit" disabled={loading}
-                    className="relative w-full h-12 rounded-xl font-semibold text-[15px] transition disabled:opacity-90 flex items-center justify-center gap-2 overflow-hidden group"
-                    style={{
-                      background: "linear-gradient(135deg,#c8952e,#e0b048)",
-                      color: "#0a0a0a",
-                      boxShadow: "0 10px 28px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
-                    }}
+                    onClick={onClose}
+                    className="text-sm text-white/50 hover:text-white/80 transition-colors"
                   >
-                    {/* shimmer on hover */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
-                      style={{
-                        background:
-                          "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
-                      }}
-                    />
-                    {loading ? <PremiumLoader /> : <>Reserve my spot →</>}
+                    Close
                   </button>
-
-                  <p className="text-[11px] text-center text-white/40">🔒 We never share your data. Ever.</p>
-                </form>
-              ) : (
-                <SuccessView
-                  refCode={refCode}
-                  shareUrl={shareUrl}
-                  copied={copied}
-                  copyLink={copyLink}
-                  shareWhatsApp={shareWhatsApp}
-                  shareTwitter={shareTwitter}
-                  shareEmail={shareEmail}
-                  nativeShare={nativeShare}
-                  position={position}
-                  onDownloadBadge={downloadBadge}
-                  onClose={handleClose}
-                />
+                </motion.div>
               )}
             </div>
           </motion.div>
@@ -345,286 +375,3 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
     </AnimatePresence>
   );
 }
-
-/* ---------------- Success view ---------------- */
-
-function SuccessView({
-  refCode, shareUrl, copied, copyLink, shareWhatsApp, shareTwitter, shareEmail, nativeShare,
-  position, onDownloadBadge, onClose,
-}: {
-  refCode: string | null;
-  shareUrl: string;
-  copied: boolean;
-  copyLink: () => void;
-  shareWhatsApp: () => void;
-  shareTwitter: () => void;
-  shareEmail: () => void;
-  nativeShare: () => void;
-  position: number | null;
-  onDownloadBadge: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="relative pt-2 text-center space-y-4"
-    >
-      {/* Halo + check */}
-      <div className="relative w-24 h-24 mx-auto">
-        <motion.div
-          aria-hidden
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: [0.6, 1.15, 1], opacity: [0, 0.6, 0.35] }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
-          className="absolute inset-0 rounded-full"
-          style={{ background: "radial-gradient(closest-side, rgba(200,149,46,0.55), transparent 70%)" }}
-        />
-        <motion.div
-          initial={{ scale: 0, rotate: -30 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 16 }}
-          className="absolute inset-2 rounded-full flex items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg,#e0b048,#c8952e)",
-            boxShadow: "0 16px 40px rgba(200,149,46,0.55), inset 0 2px 0 rgba(255,255,255,0.45)",
-          }}
-        >
-          <Check size={42} strokeWidth={3} className="text-black" />
-        </motion.div>
-      </div>
-
-      <div>
-        <h2 className="text-[22px] sm:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
-          You're on the list!
-        </h2>
-        <p className="text-[13px] text-white/60 mt-1.5">
-          {refCode
-            ? <>Invite friends — you both get <span className="text-amber-200 font-semibold">₹100</span> when they join.</>
-            : "We'll notify you the moment AuroPay launches in your city."}
-        </p>
-      </div>
-
-      {/* Live waitlist position */}
-      <AnimatePresence>
-        {position !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 240, damping: 18 }}
-            className="mx-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-[12.5px] font-semibold tabular-nums"
-            style={{
-              background: "linear-gradient(135deg, rgba(224,176,72,0.18), rgba(200,149,46,0.10))",
-              border: "1px solid rgba(224,176,72,0.35)",
-              color: "#ffe9a8",
-              boxShadow: "0 6px 18px rgba(200,149,46,0.18)",
-            }}
-          >
-            <Sparkles size={12} className="text-amber-300" />
-            #{position.toLocaleString("en-IN")} in line
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {refCode ? (
-        <>
-          {/* Invite card */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="rounded-2xl p-3 flex items-center gap-3"
-            style={{
-              background: "linear-gradient(135deg, rgba(200,149,46,0.10), rgba(200,149,46,0.04))",
-              border: "1px solid rgba(200,149,46,0.30)",
-            }}
-          >
-            <div
-              className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg,#e0b048,#c8952e)" }}
-            >
-              <UserPlus size={16} className="text-black" strokeWidth={2.5} />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="text-[10px] uppercase tracking-[0.22em] text-white/50 font-semibold">Your invite link</div>
-              <div className="text-[12.5px] text-white/90 truncate font-mono">{shareUrl.replace(/^https?:\/\//, "")}</div>
-            </div>
-            <button
-              onClick={copyLink}
-              className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[11px] font-semibold transition"
-              style={{
-                background: copied ? "rgba(34,197,94,0.18)" : "rgba(200,149,46,0.18)",
-                color: copied ? "#86efac" : "#e9c168",
-              }}
-            >
-              {copied ? <><Check size={12} strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy</>}
-            </button>
-          </motion.div>
-
-          {/* Share buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
-            className="grid grid-cols-3 gap-2"
-          >
-            <ShareBtn onClick={shareWhatsApp} label="WhatsApp" tint="#25d366" icon={<MessageCircle size={15} fill="#fff" strokeWidth={0} />} />
-            <ShareBtn onClick={shareTwitter} label="Twitter" tint="#1d1d1f" icon={<Twitter size={14} fill="#fff" strokeWidth={0} />} />
-            <ShareBtn onClick={shareEmail} label="Email" tint="#3b3b40" icon={<Mail size={14} className="text-white" />} />
-          </motion.div>
-
-          <motion.button
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
-            onClick={typeof navigator !== "undefined" && "share" in navigator ? nativeShare : copyLink}
-            className="relative w-full h-12 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 overflow-hidden group"
-            style={{
-              background: "linear-gradient(135deg,#c8952e,#e0b048)",
-              color: "#0a0a0a",
-              boxShadow: "0 10px 28px rgba(200,149,46,0.42), inset 0 1px 0 rgba(255,255,255,0.35)",
-            }}
-          >
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms]"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
-            />
-            <Share2 size={15} strokeWidth={2.5} /> Invite a friend
-          </motion.button>
-
-          {/* Founding Member badge download */}
-          <motion.button
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
-            onClick={onDownloadBadge}
-            className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
-            style={{
-              background: "rgba(224,176,72,0.08)",
-              borderColor: "rgba(224,176,72,0.35)",
-              color: "#ffe9a8",
-            }}
-          >
-            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
-          </motion.button>
-
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 text-xs text-white/45 hover:text-white/75 transition"
-          >
-            Maybe later
-          </button>
-        </>
-      ) : (
-        <>
-          <motion.button
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
-            onClick={onDownloadBadge}
-            className="w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition border"
-            style={{
-              background: "rgba(224,176,72,0.08)",
-              borderColor: "rgba(224,176,72,0.35)",
-              color: "#ffe9a8",
-            }}
-          >
-            <Download size={14} strokeWidth={2.5} /> Download Founding Member badge
-          </motion.button>
-          <button
-            onClick={onClose}
-            className="w-full py-3 rounded-xl font-medium text-sm border transition hover:bg-white/5"
-            style={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
-          >
-            Done
-          </button>
-        </>
-      )}
-    </motion.div>
-  );
-}
-
-function ShareBtn({ onClick, label, tint, icon }: { onClick: () => void; label: string; tint: string; icon: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className="h-11 rounded-xl text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition hover:scale-[1.03] active:scale-[0.97]"
-      style={{
-        background: `linear-gradient(135deg, ${tint}, rgba(0,0,0,0.4))`,
-        color: "#fff",
-        border: "1px solid rgba(255,255,255,0.10)",
-        boxShadow: `0 6px 18px ${tint}40`,
-      }}
-    >
-      {icon} {label}
-    </button>
-  );
-}
-
-/* ---------------- Premium loader ---------------- */
-
-const PremiumLoader = forwardRef<HTMLSpanElement>(function PremiumLoader(_, ref) {
-  return (
-    <span ref={ref} className="inline-flex items-center gap-2.5">
-      <span className="relative inline-block w-[18px] h-[18px]">
-        <motion.span
-          className="absolute inset-0 rounded-full"
-          style={{
-            border: "2px solid rgba(0,0,0,0.25)",
-            borderTopColor: "rgba(0,0,0,0.85)",
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 0.85, ease: "linear" }}
-        />
-      </span>
-      <span className="relative">
-        Securing your spot
-        <motion.span
-          className="inline-block w-[2ch] text-left"
-          aria-hidden
-        >
-          <DotPulse />
-        </motion.span>
-      </span>
-    </span>
-  );
-});
-
-const DotPulse = forwardRef<HTMLSpanElement>(function DotPulse(_, ref) {
-  return (
-    <span ref={ref}>
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="inline-block"
-          animate={{ opacity: [0.2, 1, 0.2] }}
-          transition={{ repeat: Infinity, duration: 1.1, delay: i * 0.18 }}
-        >
-          .
-        </motion.span>
-      ))}
-    </span>
-  );
-});
-
-/* ---------------- Field ---------------- */
-
-const Field = forwardRef<HTMLInputElement, {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; inputMode?: "text" | "numeric" | "email"; prefix?: string;
-  autoComplete?: string;
-}>(function Field(
-  { label, value, onChange, placeholder, type = "text", inputMode, prefix, autoComplete },
-  ref
-) {
-  return (
-    <label className="block">
-      <div className="text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">{label}</div>
-      <div
-        className="flex items-center rounded-xl border h-12 px-4 transition focus-within:border-[#c8952e]/70 focus-within:shadow-[0_0_0_3px_rgba(200,149,46,0.15)]"
-        style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}
-      >
-        {prefix && <span className="text-white/55 text-sm mr-2 font-medium">{prefix}</span>}
-        <input
-          ref={ref}
-          value={value} onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder} type={type} inputMode={inputMode} autoComplete={autoComplete}
-          className="flex-1 bg-transparent outline-none text-white text-[15px] placeholder:text-white/30"
-          style={{ fontFamily: "Sora, sans-serif" }}
-        />
-      </div>
-    </label>
-  );
-});
