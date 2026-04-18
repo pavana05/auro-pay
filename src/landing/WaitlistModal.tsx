@@ -1,10 +1,12 @@
 import { useState, forwardRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Share2, UserPlus } from "lucide-react";
+import { X, Check, Copy, MessageCircle, Twitter, Mail, Sparkles, Share2, UserPlus, Download } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { captureReferralCode } from "@/landing/referral";
 import { joinWaitlist } from "@/landing/joinWaitlist";
+import { useWaitlistPosition } from "@/landing/useWaitlistPosition";
+import { generateFoundingBadge, downloadDataUrl } from "@/landing/foundingBadge";
 
 type Role = "teen" | "parent" | "both";
 
