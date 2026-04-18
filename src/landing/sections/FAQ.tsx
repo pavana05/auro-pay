@@ -18,7 +18,7 @@ const FAQS = [
   { q: "What happens to my data?",
     a: "Your data stays in India on RBI-approved infrastructure. We never sell, share, or use your personal info for ads. Aadhaar details are encrypted and never stored in plaintext. You can delete your account and all data anytime from settings." },
   { q: "When does AuroPay launch?",
-    a: "We're rolling out city by city through 2026, starting with Bengaluru, Mysuru, Hubli, and Mumbai. Waitlist members get access first, plus a ₹100 bonus and the Founding Member badge — forever." },
+    a: "We're rolling out city by city through 2026, starting with Bengaluru, Mysuru, Hubli, and Mumbai. Follow us on social to know when we land in your city." },
 ];
 
 export default function FAQ() {
