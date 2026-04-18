@@ -72,6 +72,8 @@ const AdminRoles = () => {
   const [inviteSending, setInviteSending] = useState(false);
   const [removeOpen, setRemoveOpen] = useState<AdminRow | null>(null);
 
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+
   const fetchAdmins = async () => {
     setLoading(true);
     const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["admin", "moderator"]);
@@ -95,6 +97,43 @@ const AdminRoles = () => {
   };
 
   useEffect(() => { fetchAdmins(); }, []);
+
+  /* ── Admin presence (Supabase Realtime) ──
+     Every admin/moderator viewing this page (or any admin route via this hook)
+     joins the `admin-presence` channel and tracks themselves. Other admins see
+     them as Online in real time. */
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      channel = supabase.channel("admin-presence", {
+        config: { presence: { key: user.id } },
+      });
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          const state = channel!.presenceState();
+          setOnlineIds(new Set(Object.keys(state)));
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel!.track({ online_at: new Date().toISOString() });
+          }
+        });
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        channel.untrack().catch(() => {});
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return admins;
