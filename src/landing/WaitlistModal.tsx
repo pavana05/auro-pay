@@ -16,7 +16,7 @@ function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: str
   return new Promise((resolve, reject) => {
     const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
 
-    promise
+    Promise.resolve(promise)
       .then((value) => {
         window.clearTimeout(timeoutId);
         resolve(value);
