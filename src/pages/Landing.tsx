@@ -32,7 +32,7 @@ export default function Landing() {
 
   useEffect(() => {
     if (reduceMotion) { setEntryDone(true); return; }
-    const t = setTimeout(() => setEntryDone(true), 3000);
+    const t = setTimeout(() => setEntryDone(true), 3200);
     return () => clearTimeout(t);
   }, [reduceMotion]);
 
@@ -66,9 +66,19 @@ export default function Landing() {
       <div className="fixed inset-0 -z-[5] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at top, rgba(200,149,46,0.12), transparent 60%)" }} />
 
+      {/* Aurora drift — slow rotating conic for depth */}
+      <div className="fixed inset-0 -z-[4] pointer-events-none lux-aurora-bg" />
+
       <Navbar onCTA={scrollToTop} />
 
-      <main style={{ opacity: entryDone ? 1 : 0, transition: "opacity 0.6s ease-out" }}>
+      <main
+        style={{
+          opacity: entryDone ? 1 : 0,
+          filter: entryDone ? "blur(0px)" : "blur(12px)",
+          transform: entryDone ? "scale(1)" : "scale(1.02)",
+          transition: "opacity 0.9s cubic-bezier(0.16,1,0.3,1), filter 0.9s cubic-bezier(0.16,1,0.3,1), transform 1.1s cubic-bezier(0.16,1,0.3,1)",
+        }}
+      >
         <Hero onCTA={scrollToTop} />
         <PressStrip />
         <Stats />
