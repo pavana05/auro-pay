@@ -152,6 +152,13 @@ export default function AdminWaitlist() {
     }
 
     try {
+      // Wait for the auth session to be ready before querying. The Supabase
+      // client uses a navigator lock during token refresh; firing queries
+      // while that lock is held causes them to hang. Awaiting getSession()
+      // ensures the token is fresh and the lock is released first.
+      await supabase.auth.getSession();
+      if (loadId !== activeLoadId.current) return;
+
       const queryPromise = supabase
         .from("waitlist")
         .select("*")
