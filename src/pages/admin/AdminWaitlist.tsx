@@ -159,7 +159,7 @@ export default function AdminWaitlist() {
         .limit(1000);
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        window.setTimeout(() => reject(new Error("Waitlist request timed out. Please try again.")), 12000);
+        window.setTimeout(() => reject(new Error("Waitlist request timed out. Please try again.")), 30000);
       });
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
@@ -218,24 +218,31 @@ export default function AdminWaitlist() {
         }
       });
 
+    // Realtime keeps rows fresh; only do a slow safety-net poll to avoid
+    // hammering the auth lock (which was causing requests to hang/time out).
     const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       guardedLoad({ silent: true, background: true });
-    }, 15000);
+    }, 120000);
 
-    const handleFocus = () => guardedLoad({ silent: true, background: true });
+    let lastFocusReload = Date.now();
+    const maybeReloadOnReturn = () => {
+      // Throttle: at most once every 30s on focus/visibility events.
+      if (Date.now() - lastFocusReload < 30000) return;
+      lastFocusReload = Date.now();
+      guardedLoad({ silent: true, background: true });
+    };
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        guardedLoad({ silent: true, background: true });
-      }
+      if (document.visibilityState === "visible") maybeReloadOnReturn();
     };
 
-    window.addEventListener("focus", handleFocus);
+    window.addEventListener("focus", maybeReloadOnReturn);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       mounted = false;
       window.clearInterval(intervalId);
-      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("focus", maybeReloadOnReturn);
       document.removeEventListener("visibilitychange", handleVisibility);
       supabase.removeChannel(channel);
     };
