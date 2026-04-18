@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
 import {
   Sparkles, Users, UserCheck, MapPin, TrendingUp, Calendar,
-  Search, Download, MoreVertical, X, Radio, Trophy, Clock,
+  Search, Download, MoreVertical, X, Radio, Trophy, Clock, RefreshCw,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -129,6 +129,7 @@ const RoleBadge = ({ role }: { role: string | null }) => {
 export default function AdminWaitlist() {
   const [rows, setRows] = useState<WaitlistRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -138,28 +139,43 @@ export default function AdminWaitlist() {
   const [liveItems, setLiveItems] = useState<WaitlistRow[]>([]);
   const PER_PAGE = 25;
 
-  // Initial load + realtime
+  const loadRows = useCallback(async (options?: { silent?: boolean; background?: boolean }) => {
+    const { silent = false, background = false } = options ?? {};
+
+    if (background) setRefreshing(true);
+    else setLoading(true);
+
+    const { data, error } = await supabase
+      .from("waitlist")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (error) {
+      if (!silent) toast.error("Failed to load waitlist");
+    } else {
+      setRows((data as WaitlistRow[]) || []);
+    }
+
+    if (background) setRefreshing(false);
+    else setLoading(false);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
-      const { data, error } = await supabase
-        .from("waitlist")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+    const guardedLoad = async (options?: { silent?: boolean; background?: boolean }) => {
       if (!mounted) return;
-      if (error) { toast.error("Failed to load waitlist"); }
-      setRows((data as WaitlistRow[]) || []);
-      setLoading(false);
+      await loadRows(options);
     };
-    load();
+
+    guardedLoad();
 
     const channel = supabase
       .channel("admin-waitlist")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "waitlist" }, (payload) => {
         const r = payload.new as WaitlistRow;
-        setRows((prev) => [r, ...prev]);
-        setLiveItems((prev) => [r, ...prev].slice(0, 5));
+        setRows((prev) => [r, ...prev.filter((x) => x.id !== r.id)]);
+        setLiveItems((prev) => [r, ...prev.filter((x) => x.id !== r.id)].slice(0, 5));
         setTimeout(() => {
           setLiveItems((prev) => prev.filter((x) => x.id !== r.id));
         }, 10000);
@@ -167,14 +183,39 @@ export default function AdminWaitlist() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "waitlist" }, (payload) => {
         const r = payload.new as WaitlistRow;
         setRows((prev) => prev.map((x) => (x.id === r.id ? r : x)));
+        setDetailRow((prev) => (prev?.id === r.id ? r : prev));
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "waitlist" }, (payload) => {
-        setRows((prev) => prev.filter((x) => x.id !== (payload.old as any).id));
+        setRows((prev) => prev.filter((x) => x.id !== (payload.old as { id: string }).id));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          guardedLoad({ silent: true, background: true });
+        }
+      });
 
-    return () => { mounted = false; supabase.removeChannel(channel); };
-  }, []);
+    const intervalId = window.setInterval(() => {
+      guardedLoad({ silent: true, background: true });
+    }, 15000);
+
+    const handleFocus = () => guardedLoad({ silent: true, background: true });
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        guardedLoad({ silent: true, background: true });
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      supabase.removeChannel(channel);
+    };
+  }, [loadRows]);
 
   // Stats
   const stats = useMemo(() => {

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { z } from "https://esm.sh/zod@3.24.1";
 
@@ -12,9 +12,15 @@ const bodySchema = z.object({
   referralCode: z.string().trim().regex(/^AURO-[A-Z]{3}-\d{4}$/).nullable().optional(),
 });
 
-const json = (body: unknown, status = 200) =>
+type JoinWaitlistResponse = {
+  ok: boolean;
+  referral_code?: string | null;
+  error?: string;
+};
+
+const json = (body: JoinWaitlistResponse) =>
   new Response(JSON.stringify(body), {
-    status,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
@@ -24,9 +30,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const parsed = bodySchema.safeParse(await req.json());
+    let requestBody: unknown;
+
+    try {
+      requestBody = await req.json();
+    } catch {
+      return json({ ok: false, error: "Please enter valid waitlist details." });
+    }
+
+    const parsed = bodySchema.safeParse(requestBody);
     if (!parsed.success) {
-      return json({ error: "Please enter valid waitlist details." }, 400);
+      return json({ ok: false, error: "Please enter valid waitlist details." });
     }
 
     const { fullName, phone, email, role, source, city, referralCode } = parsed.data;
@@ -62,15 +76,18 @@ Deno.serve(async (req) => {
       .single();
 
     if (error) {
+      console.error("join-waitlist insert error", error);
+
       const message = error.code === "23505" || error.message.includes("waitlist_email_lower_idx")
         ? "You're already on the list!"
         : "Couldn't join right now. Please try again.";
-      return json({ error: message }, error.code === "23505" ? 409 : 500);
+
+      return json({ ok: false, error: message });
     }
 
-    return json({ success: true, referral_code: data?.referral_code ?? null });
+    return json({ ok: true, referral_code: data?.referral_code ?? null });
   } catch (error) {
     console.error("join-waitlist error", error);
-    return json({ error: "Couldn't join right now. Please try again." }, 500);
+    return json({ ok: false, error: "Couldn't join right now. Please try again." });
   }
 });
