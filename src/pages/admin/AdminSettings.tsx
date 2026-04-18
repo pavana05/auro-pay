@@ -31,34 +31,35 @@ type Section = "payment" | "core" | "safety" | "advanced" | "emergency";
 const SETTING_DEFS: Record<string, {
   label: string;
   desc: string;
+  effect: string; // What flipping this actually does — surfaced under each row.
   type: "money" | "number" | "toggle" | "mode";
   section: Section;
   icon: any;
   default: string;
 }> = {
-  default_daily_limit:    { label: "Default Daily Limit",       desc: "Spending limit for new wallets",          type: "money",  section: "payment", icon: Sliders, default: "50000" },
-  max_wallet_balance:     { label: "Maximum Wallet Balance",    desc: "Cap on wallet balance",                   type: "money",  section: "payment", icon: Sliders, default: "1000000" },
-  min_transaction_amount: { label: "Minimum Transaction",       desc: "Lowest allowed transaction amount",       type: "money",  section: "payment", icon: Sliders, default: "100" },
-  max_transaction_amount: { label: "Maximum Transaction",       desc: "Per-transaction cap",                     type: "money",  section: "payment", icon: Sliders, default: "5000000" },
-  razorpay_mode:          { label: "Razorpay Mode",              desc: "Test or Live payment processing",         type: "mode",   section: "payment", icon: CreditCard, default: "test" },
+  default_daily_limit:    { label: "Default Daily Limit",       desc: "Spending limit for new wallets",          effect: "Sets the daily spending cap applied to newly created wallets.",                                                                          type: "money",  section: "payment", icon: Sliders, default: "50000" },
+  max_wallet_balance:     { label: "Maximum Wallet Balance",    desc: "Cap on wallet balance",                   effect: "Top-ups & transfers fail if they would push a wallet above this amount.",                                                                  type: "money",  section: "payment", icon: Sliders, default: "1000000" },
+  min_transaction_amount: { label: "Minimum Transaction",       desc: "Lowest allowed transaction amount",       effect: "Edge functions reject any payment under this amount with HTTP 400.",                                                                       type: "money",  section: "payment", icon: Sliders, default: "100" },
+  max_transaction_amount: { label: "Maximum Transaction",       desc: "Per-transaction cap",                     effect: "Edge functions reject any single payment over this amount with HTTP 400.",                                                                 type: "money",  section: "payment", icon: Sliders, default: "5000000" },
+  razorpay_mode:          { label: "Razorpay Mode",              desc: "Test or Live payment processing",         effect: "LIVE mode processes real money via Razorpay live keys. TEST mode uses sandbox keys; no real money moves.",                               type: "mode",   section: "payment", icon: CreditCard, default: "test" },
 
-  feature_quick_pay:      { label: "Quick Pay",                  desc: "P2P transfers between users",             type: "toggle", section: "core", icon: Zap, default: "true" },
-  feature_bill_split:     { label: "Bill Split",                 desc: "Split expenses across friends",           type: "toggle", section: "core", icon: Activity, default: "true" },
-  feature_savings_goals:  { label: "Savings Goals",              desc: "Goal-based saving for teens",             type: "toggle", section: "core", icon: Activity, default: "true" },
-  feature_chores:         { label: "Chores & Rewards",           desc: "Parent-assigned earn-and-do tasks",       type: "toggle", section: "core", icon: Activity, default: "true" },
+  feature_quick_pay:      { label: "Quick Pay",                  desc: "P2P transfers between users",             effect: "OFF → tile hidden on /home, /quick-pay shows 'unavailable', and p2p-transfer returns 403.",                                              type: "toggle", section: "core", icon: Zap, default: "true" },
+  feature_bill_split:     { label: "Bill Split",                 desc: "Split expenses across friends",           effect: "OFF → tile hidden on /home, /bill-split shows 'unavailable', and bill-split-pay returns 403.",                                           type: "toggle", section: "core", icon: Activity, default: "true" },
+  feature_savings_goals:  { label: "Savings Goals",              desc: "Goal-based saving for teens",             effect: "OFF → tile hidden on /home and /savings shows 'unavailable'.",                                                                            type: "toggle", section: "core", icon: Activity, default: "true" },
+  feature_chores:         { label: "Chores & Rewards",           desc: "Parent-assigned earn-and-do tasks",       effect: "OFF → chores tile hidden on /home and /chores shows 'unavailable'.",                                                                       type: "toggle", section: "core", icon: Activity, default: "true" },
 
-  kyc_required:           { label: "KYC Required",               desc: "Verify Aadhaar before payments",          type: "toggle", section: "safety", icon: Shield, default: "true" },
-  pin_required:           { label: "PIN Required",               desc: "Force payment PIN on every transaction",  type: "toggle", section: "safety", icon: Lock, default: "true" },
-  fraud_detection:        { label: "Fraud Detection",            desc: "Auto-flag suspicious patterns",           type: "toggle", section: "safety", icon: Shield, default: "true" },
-  parent_approval:        { label: "Parent Approval (Large Tx)", desc: "Require parent approval over ₹2,000",     type: "toggle", section: "safety", icon: Shield, default: "true" },
+  kyc_required:           { label: "KYC Required",               desc: "Verify Aadhaar before payments",          effect: "ON → unverified users are forced to /verify-kyc; payment edge functions reject unverified users with 403.",                                type: "toggle", section: "safety", icon: Shield, default: "true" },
+  pin_required:           { label: "PIN Required",               desc: "Force payment PIN on every transaction",  effect: "ON → payment screens redirect users without a PIN to /security?setup=1; process-scan-payment rejects calls missing the PIN.",                type: "toggle", section: "safety", icon: Lock, default: "true" },
+  fraud_detection:        { label: "Fraud Detection",            desc: "Auto-flag suspicious patterns",           effect: "ON → anomaly-scan continues writing to flagged_transactions for admin review and auto-freezes wallets on confirmed fraud.",                  type: "toggle", section: "safety", icon: Shield, default: "true" },
+  parent_approval:        { label: "Parent Approval (Large Tx)", desc: "Require parent approval over ₹2,000",     effect: "ON → teen payments above ₹2,000 are paused; a notification is sent to the parent and the payment only completes when they approve.",         type: "toggle", section: "safety", icon: Shield, default: "true" },
 
-  feature_referrals:      { label: "Referral Program",           desc: "Allow users to invite & earn",            type: "toggle", section: "advanced", icon: Sparkles, default: "true" },
-  feature_lessons:        { label: "Financial Lessons",          desc: "In-app financial education modules",      type: "toggle", section: "advanced", icon: Sparkles, default: "true" },
-  realtime_notifications: { label: "Realtime Notifications",     desc: "Push notifications via WebSocket",        type: "toggle", section: "advanced", icon: Bell, default: "true" },
+  feature_referrals:      { label: "Referral Program",           desc: "Allow users to invite & earn",            effect: "OFF → /referrals shows 'unavailable' and the referral tile is hidden.",                                                                     type: "toggle", section: "advanced", icon: Sparkles, default: "true" },
+  feature_lessons:        { label: "Financial Lessons",          desc: "In-app financial education modules",      effect: "OFF → /learn shows 'unavailable' and the lessons tile is hidden.",                                                                          type: "toggle", section: "advanced", icon: Sparkles, default: "true" },
+  realtime_notifications: { label: "Realtime Notifications",     desc: "Push notifications via WebSocket",        effect: "OFF → no live notification toasts; users still see notifications by reloading /notifications.",                                              type: "toggle", section: "advanced", icon: Bell, default: "true" },
 
-  maintenance_mode:        { label: "Maintenance Mode",           desc: "Temporarily disable all user features",   type: "toggle", section: "emergency", icon: Wrench, default: "false" },
-  freeze_all_transactions: { label: "Freeze ALL Transactions",    desc: "Emergency stop on every payment",         type: "toggle", section: "emergency", icon: Ban, default: "false" },
-  disable_new_signups:     { label: "Disable New Signups",        desc: "Block new user registration",             type: "toggle", section: "emergency", icon: UserX, default: "false" },
+  maintenance_mode:        { label: "Maintenance Mode",           desc: "Temporarily disable all user features",   effect: "ON → every non-admin user sees a fullscreen maintenance splash. Admin routes & /reset-password remain accessible.",                          type: "toggle", section: "emergency", icon: Wrench, default: "false" },
+  freeze_all_transactions: { label: "Freeze ALL Transactions",    desc: "Emergency stop on every payment",         effect: "ON → all payment edge functions return 503. No money moves anywhere on the platform.",                                                       type: "toggle", section: "emergency", icon: Ban, default: "false" },
+  disable_new_signups:     { label: "Disable New Signups",        desc: "Block new user registration",             effect: "ON → a database trigger blocks all new auth.users inserts with an explicit error. Existing users are unaffected.",                            type: "toggle", section: "emergency", icon: UserX, default: "false" },
 };
 
 const SECTION_META: Record<Section, { title: string; subtitle: string; icon: any; color: string; danger?: boolean }> = {
@@ -290,6 +291,19 @@ const AdminSettings = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{def.label}</p>
                             <p className="text-[11px] mt-0.5" style={{ color: C.textSecondary }}>{def.desc}</p>
+                            <div
+                              className="mt-2 inline-flex items-start gap-1.5 px-2 py-1 rounded-md max-w-full"
+                              style={{
+                                background: meta.danger ? `${C.danger}10` : `${meta.color}0d`,
+                                border: `1px solid ${meta.danger ? `${C.danger}33` : `${meta.color}22`}`,
+                              }}
+                            >
+                              <Zap className="w-3 h-3 mt-[1px] shrink-0" style={{ color: meta.danger ? C.danger : meta.color }} />
+                              <span className="text-[10.5px] leading-snug font-medium" style={{ color: meta.danger ? `${C.danger}dd` : C.textSecondary }}>
+                                <span className="uppercase tracking-wider mr-1" style={{ color: meta.danger ? C.danger : meta.color }}>Effect:</span>
+                                {def.effect}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Money input */}

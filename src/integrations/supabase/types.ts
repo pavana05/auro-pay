@@ -767,6 +767,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_payment_approvals: {
+        Row: {
+          amount: number
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          expires_at: string
+          favorite_id: string | null
+          id: string
+          note: string | null
+          parent_id: string
+          status: string
+          teen_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          expires_at?: string
+          favorite_id?: string | null
+          id?: string
+          note?: string | null
+          parent_id: string
+          status?: string
+          teen_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          expires_at?: string
+          favorite_id?: string | null
+          id?: string
+          note?: string | null
+          parent_id?: string
+          status?: string
+          teen_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aadhaar_verified: boolean | null
