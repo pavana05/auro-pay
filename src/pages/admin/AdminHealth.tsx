@@ -460,18 +460,29 @@ const AdminHealth = () => {
             </div>
           </div>
 
-          {/* Edge function log */}
+          {/* Edge function log (real analytics) */}
           <div className="rounded-[18px] backdrop-blur-md overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
               <div className="flex items-center gap-2">
                 <Code2 className="w-4 h-4" style={{ color: C.primary }} />
                 <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Edge Function Executions</h3>
+                <span className="text-[10px]" style={{ color: C.textMuted }}>· last 20</span>
               </div>
-              <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px]" style={{ color: C.textMuted }}>{funcs.filter(f => f.status === "error").length} errors</span>
+                <button onClick={loadEdgeLogs} disabled={funcsLoading} className="p-1 rounded-md hover:bg-white/[0.04] disabled:opacity-50" title="Refresh">
+                  <RefreshCw className={`w-3 h-3 ${funcsLoading ? "animate-spin" : ""}`} style={{ color: C.textSecondary }} />
+                </button>
+              </div>
             </div>
             <div className="max-h-[340px] overflow-y-auto">
-              {funcs.length === 0 ? (
-                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions tracked yet</p>
+              {funcsError && (
+                <p className="text-[10px] text-center px-5 py-2" style={{ color: C.warning, background: `${C.warning}08` }}>⚠ {funcsError}</p>
+              )}
+              {funcsLoading && funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>Loading…</p>
+              ) : funcs.length === 0 ? (
+                <p className="text-xs text-center py-10" style={{ color: C.textMuted }}>No edge function executions in recent logs</p>
               ) : funcs.map((f, i) => {
                 const isErr = f.status === "error";
                 const sColor = isErr ? C.danger : C.success;
@@ -482,6 +493,7 @@ const AdminHealth = () => {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="w-1 h-5 rounded-full shrink-0" style={{ background: sColor }} />
                         <span className="font-mono text-[11px] truncate" style={{ color: C.textPrimary }}>{f.name}</span>
+                        <span className="text-[10px] shrink-0" style={{ color: C.textMuted }}>{fmtRel(f.ts)}</span>
                       </div>
                       <span className="text-[10px] tabular-nums shrink-0" style={{ color: C.textMuted }}>{f.durationMs}ms</span>
                       <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full shrink-0" style={{ background: `${sColor}15`, color: sColor }}>{f.status}</span>
