@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Loader2, Copy, MessageCircle, Twitter } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -355,12 +355,13 @@ export default function WaitlistModal({ open, onClose }: { open: boolean; onClos
   );
 }
 
-function Field({
-  label, value, onChange, placeholder, type = "text", inputMode, prefix,
-}: {
+const Field = forwardRef<HTMLInputElement, {
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; type?: string; inputMode?: "text" | "numeric" | "email"; prefix?: string;
-}) {
+}>(function Field(
+  { label, value, onChange, placeholder, type = "text", inputMode, prefix },
+  ref
+) {
   return (
     <label className="block">
       <div className="text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">{label}</div>
@@ -368,6 +369,7 @@ function Field({
         style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}>
         {prefix && <span className="text-white/50 text-sm mr-2">{prefix}</span>}
         <input
+          ref={ref}
           value={value} onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder} type={type} inputMode={inputMode}
           className="flex-1 bg-transparent outline-none text-white text-[15px] placeholder:text-white/30"
@@ -376,4 +378,4 @@ function Field({
       </div>
     </label>
   );
-}
+});
