@@ -17,6 +17,8 @@ import InlineSearchResults from "@/components/InlineSearchResults";
 import PressTooltip from "@/components/PressTooltip";
 import SwipeActionRow from "@/components/SwipeActionRow";
 import PaymentRequestPill from "@/components/PaymentRequestPill";
+import { CountUp as ZenCountUp } from "@/components/zen/CountUp";
+import ZenzoPointsWidget from "@/components/zen/ZenzoPointsWidget";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -227,7 +229,7 @@ const TeenHome = () => {
 
   const quickActions = [
     { icon: Plus, label: "Add Money", path: "/add-money", desc: "Top up wallet" },
-    { icon: Send, label: "Send", path: "/quick-pay", desc: "Transfer" },
+    { icon: Send, label: "Send", path: "/send", desc: "UPI transfer" },
     { icon: QrCode, label: "Scan & Pay", path: "/scan", desc: "QR payment" },
     { icon: BarChart3, label: "Analytics", path: "/analytics", desc: "Insights" },
   ];
