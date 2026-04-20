@@ -104,7 +104,7 @@ export default function PremiumHeading({
             duration: 1.1,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className={`block h-[2px] mt-5 rounded-full ${alignClass}`}
+          className={`relative block h-[2px] mt-5 rounded-full overflow-hidden ${alignClass}`}
           style={{
             transformOrigin:
               underlineAlign === "right"
@@ -118,7 +118,27 @@ export default function PremiumHeading({
             boxShadow:
               "0 0 18px rgba(200,149,46,0.55), 0 0 36px rgba(200,149,46,0.35)",
           }}
-        />
+        >
+          {/* One-shot shimmer sweep */}
+          <motion.span
+            aria-hidden
+            initial={{ x: "-120%", opacity: 0 }}
+            whileInView={{ x: "120%", opacity: [0, 1, 1, 0] }}
+            viewport={{ once: true, margin: "-10% 0px" }}
+            transition={{
+              delay: totalRevealDelay + 0.95,
+              duration: 1.2,
+              ease: [0.4, 0, 0.2, 1],
+              times: [0, 0.15, 0.85, 1],
+            }}
+            className="absolute inset-y-0 w-1/2 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, rgba(255,247,227,0.95) 50%, transparent 100%)",
+              filter: "blur(1px)",
+            }}
+          />
+        </motion.span>
       )}
     </h2>
   );
