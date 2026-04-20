@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion, MotionConfig } from "framer-motion";
 import ThreeBackground from "@/landing/ThreeBackground";
 import Navbar from "@/landing/Navbar";
 import EntryAnimation from "@/landing/EntryAnimation";
