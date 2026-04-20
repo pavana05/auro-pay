@@ -96,22 +96,22 @@ export default function Comparison() {
           }}
         >
           {/* Header */}
-          <div className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr] border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-            <div className="p-5 sm:p-7 text-[11px] uppercase tracking-[0.22em] text-white/40 font-semibold">
+          <div className="grid grid-cols-[1.3fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr] border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            <div className="p-3 sm:p-7 text-[10px] sm:text-[11px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-white/40 font-semibold flex items-center">
               Feature
             </div>
             <div
-              className="relative p-5 sm:p-7 flex items-center gap-2.5"
+              className="relative p-3 sm:p-7 flex items-center gap-1.5 sm:gap-2.5 min-w-0"
               style={{ background: "linear-gradient(180deg, rgba(200,149,46,0.14), rgba(200,149,46,0.02))" }}
             >
               <div
-                className="w-7 h-7 rounded-xl shrink-0"
+                className="hidden sm:block w-7 h-7 rounded-xl shrink-0"
                 style={{
                   background: "conic-gradient(from 220deg, #c8952e, #fff7e3, #c8952e, #8a6520, #c8952e)",
                   boxShadow: "0 0 20px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
                 }}
               />
-              <div className="text-white font-semibold tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>AuroPay</div>
+              <div className="text-white font-semibold tracking-tight text-sm sm:text-base truncate" style={{ fontFamily: "Sora, sans-serif" }}>AuroPay</div>
               <span
                 className="ml-2 hidden sm:inline-block text-[9px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-full text-black"
                 style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}
@@ -119,8 +119,8 @@ export default function Comparison() {
                 New
               </span>
             </div>
-            <div className="p-5 sm:p-7">
-              <div className="text-white/45 font-medium">FamPay</div>
+            <div className="p-3 sm:p-7 flex items-center min-w-0">
+              <div className="text-white/45 font-medium text-sm sm:text-base truncate">FamPay</div>
             </div>
           </div>
 
