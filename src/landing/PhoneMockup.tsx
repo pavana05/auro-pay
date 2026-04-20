@@ -32,20 +32,21 @@ const PhoneMockup = forwardRef<HTMLDivElement, PhoneMockupProps>(function PhoneM
       <div
         className="absolute inset-0 rounded-[44px] p-2"
         style={{
-          background: "linear-gradient(145deg, #1a1a1f, #08080a)",
+          background:
+            "linear-gradient(145deg, hsl(220 12% 11%), hsl(var(--background)))",
           boxShadow:
-            "0 60px 120px rgba(200,149,46,0.25), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08)",
+            "0 60px 120px hsl(var(--primary) / 0.25), 0 0 0 1px hsl(var(--foreground) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.08)",
         }}
       >
         {/* Screen */}
         <div
           className="w-full h-full rounded-[38px] overflow-hidden relative"
-          style={{ background: "linear-gradient(180deg, #0a0c0f, #14161b)" }}
+          style={{ background: "linear-gradient(180deg, hsl(var(--background)), hsl(var(--card)))" }}
         >
           {/* Notch */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 rounded-full z-10" style={{ background: "hsl(var(--background))" }} />
           {/* Status bar */}
-          <div className="flex justify-between items-center px-6 pt-3 pb-1 text-[10px] text-white/80 font-mono">
+          <div className="flex justify-between items-center px-6 pt-3 pb-1 text-[10px] text-foreground/80 font-mono">
             <span>9:41</span>
             <span>●●●●● 5G ▮</span>
           </div>
