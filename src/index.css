@@ -29,7 +29,15 @@
     --destructive-foreground: 40 20% 95%;
 
     --success: 152 60% 45%;
+    --success-deep: 142 71% 38%;
     --warning: 38 92% 50%;
+
+    /* Platinum highlight at top of gold gradients */
+    --platinum: 44 100% 95%;
+    /* Deeper gold accent (used in 135deg gold→darker gradients) */
+    --primary-deep: 36 60% 33%;
+    /* Brighter gold for shimmer mid-stop */
+    --primary-bright: 40 70% 58%;
 
     --border: 220 15% 18% / 0.5;
     --border-active: 42 60% 50% / 0.45;
