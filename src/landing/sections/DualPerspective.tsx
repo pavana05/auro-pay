@@ -20,10 +20,24 @@ export default function DualPerspective({ onCTA }: { onCTA: () => void }) {
         <div className="inline-block">
           <span className="lux-eyebrow">{data.eyebrow}</span>
         </div>
-        <h3 className="text-3xl lg:text-5xl font-bold text-white tracking-tight"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.03em", lineHeight: 1.04 }}>
+        <motion.h3
+          initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
+          whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          viewport={{ once: true, margin: "-10% 0px" }}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          className="text-3xl lg:text-5xl font-bold tracking-tight"
+          style={{
+            fontFamily: "Sora, sans-serif",
+            letterSpacing: "-0.03em",
+            lineHeight: 1.04,
+            backgroundImage:
+              "linear-gradient(180deg,#fff7e3 0%,#ffffff 30%,#e0b048 70%,#c8952e 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "0 0 40px rgba(200,149,46,0.25)",
+          }}>
           {data.title}
-        </h3>
+        </motion.h3>
         <ul className={`space-y-2.5 text-white/65 inline-block text-left`}>
           {data.points.map((p) => (
             <li key={p} className="flex items-center gap-2.5">

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, Wallet, Eye, Clock, BookOpen, Lock } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 const PROBLEMS = [
   { icon: AlertTriangle, stat: "73%", title: "of teens carry cash to school",
@@ -28,15 +29,13 @@ export default function WhyNeeded() {
         >
           <span className="lux-eyebrow">Why It Matters</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white max-w-3xl mb-6"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          India's teens deserve better than{" "}
-          <span className="lux-text-platinum">cash and chaos.</span>
-        </motion.h2>
+        <PremiumHeading
+          className="max-w-3xl mb-6"
+          lines={[
+            { text: "India's teens deserve better" },
+            { text: "than cash and chaos.", accent: "gold" },
+          ]}
+        />
         <motion.p
           initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           transition={{ delay: 0.2 }}

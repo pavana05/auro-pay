@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Star, Quote } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 const ITEMS = [
   { q: "My son uses AuroPay for canteen every day. I get alerts for every rupee. Perfect.", n: "Rekha S.", r: "Parent · Mysuru" },
@@ -20,14 +21,13 @@ export default function Testimonials() {
         >
           <span className="lux-eyebrow">Loved by Families</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white text-center mb-5 tracking-tight"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          <span className="lux-text-platinum tabular-nums">12,847</span> families<br className="sm:hidden" /> already trust AuroPay.
-        </motion.h2>
+        <PremiumHeading
+          className="text-center mb-5"
+          lines={[
+            { text: <span className="tabular-nums">12,847 families</span>, accent: "gold" },
+            { text: "already trust AuroPay." },
+          ]}
+        />
         <div className="flex items-center justify-center gap-2 text-white/55 mb-16">
           {[1,2,3,4,5].map(i => <Star key={i} size={15} fill="#e0b048" stroke="#e0b048" />)}
           <span className="ml-2 text-sm">4.9 / 5.0 from 2,847 reviews</span>
