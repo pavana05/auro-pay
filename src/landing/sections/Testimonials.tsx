@@ -1,4 +1,4 @@
-import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { motion, useAnimationFrame, useMotionValue, useReducedMotion } from "framer-motion";
 import { useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import PremiumHeading from "../PremiumHeading";
