@@ -5,34 +5,22 @@ import type { CSSProperties, ReactNode } from "react";
  * PremiumHeading — shared headline treatment for landing sections.
  * - Blur-reveal entrance per line on scroll-into-view
  * - Optional platinum→gold gradient on the accent line
- *
- * Usage:
- *   <PremiumHeading
- *     lines={[
- *       { text: "Bank-grade security." },
- *       { text: "Built for parents.", accent: "muted" }, // dim line
- *     ]}
- *   />
- *   <PremiumHeading
- *     lines={[
- *       { text: "Spend smart." },
- *       { text: "Track every rupee.", accent: "gold" }, // platinum→gold gradient
- *     ]}
- *   />
+ * - Optional gold-glow underline that draws in + shimmer sweep
+ * - Optional ambient halo that pulses gently behind the heading
  */
 
 export type HeadingLine = {
   text: ReactNode;
-  /** "gold" = platinum→gold gradient, "muted" = dim white/40, undefined = solid white */
+  /** "gold" = platinum→gold gradient, "muted" = dim foreground/40, undefined = solid foreground */
   accent?: "gold" | "muted";
 };
 
 const PLATINUM_GOLD: CSSProperties = {
   backgroundImage:
-    "linear-gradient(180deg,#fff7e3 0%,#ffffff 30%,#e0b048 70%,#c8952e 100%)",
+    "linear-gradient(180deg, hsl(var(--platinum)) 0%, hsl(var(--foreground)) 30%, hsl(var(--primary)) 70%, hsl(var(--accent)) 100%)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
-  textShadow: "0 0 40px rgba(200,149,46,0.25)",
+  textShadow: "0 0 40px hsl(var(--primary) / 0.25)",
 };
 
 export default function PremiumHeading({
@@ -45,9 +33,7 @@ export default function PremiumHeading({
   lines: HeadingLine[];
   className?: string;
   baseDelay?: number;
-  /** Show the gold-glow underline that draws in after the headline reveals. */
   underline?: boolean;
-  /** Where the underline sits horizontally. */
   underlineAlign?: "left" | "center" | "right";
 }) {
   const totalRevealDelay = baseDelay + lines.length * 0.12 + 0.55;
@@ -68,7 +54,7 @@ export default function PremiumHeading({
   return (
     <h2
       className={
-        "relative text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight " +
+        "relative text-3xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight " +
         className
       }
       style={{
@@ -85,7 +71,7 @@ export default function PremiumHeading({
           width: "min(560px, 90%)",
           height: "min(280px, 110%)",
           background:
-            "radial-gradient(ellipse at center, rgba(200,149,46,0.22) 0%, rgba(200,149,46,0.10) 35%, transparent 70%)",
+            "radial-gradient(ellipse at center, hsl(var(--primary) / 0.22) 0%, hsl(var(--primary) / 0.10) 35%, transparent 70%)",
           filter: "blur(28px)",
         }}
         initial={{ opacity: 0, scale: 0.85 }}
@@ -120,7 +106,7 @@ export default function PremiumHeading({
           {line.accent === "gold" ? (
             <span style={PLATINUM_GOLD}>{line.text}</span>
           ) : line.accent === "muted" ? (
-            <span className="text-white/40">{line.text}</span>
+            <span className="text-foreground/40">{line.text}</span>
           ) : (
             line.text
           )}
@@ -148,9 +134,9 @@ export default function PremiumHeading({
                 : "left center",
             width: "min(180px, 35%)",
             background:
-              "linear-gradient(90deg, transparent 0%, rgba(200,149,46,0.55) 30%, #e0b048 55%, rgba(200,149,46,0.55) 80%, transparent 100%)",
+              "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.55) 30%, hsl(var(--primary-bright)) 55%, hsl(var(--primary) / 0.55) 80%, transparent 100%)",
             boxShadow:
-              "0 0 18px rgba(200,149,46,0.55), 0 0 36px rgba(200,149,46,0.35)",
+              "0 0 18px hsl(var(--primary) / 0.55), 0 0 36px hsl(var(--primary) / 0.35)",
           }}
         >
           {/* One-shot shimmer sweep */}
@@ -168,7 +154,7 @@ export default function PremiumHeading({
             className="absolute inset-y-0 w-1/2 pointer-events-none"
             style={{
               background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,247,227,0.95) 50%, transparent 100%)",
+                "linear-gradient(90deg, transparent 0%, hsl(var(--platinum) / 0.95) 50%, transparent 100%)",
               filter: "blur(1px)",
             }}
           />
