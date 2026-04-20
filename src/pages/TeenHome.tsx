@@ -475,25 +475,14 @@ const TeenHome = () => {
             ref={cardRef}
             onMouseMove={handleCardMouseMove}
             onMouseLeave={() => setCardTilt({ x: 0, y: 0 })}
-            className="relative rounded-[26px] overflow-hidden"
+            className="zen-balance-card zen-card-shimmer relative rounded-[26px] overflow-hidden"
             style={{
-              boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)",
               transform: `rotateY(${cardTilt.x}deg) rotateX(${cardTilt.y}deg)`,
               transition: cardTilt.x === 0 && cardTilt.y === 0 ? "transform 0.5s ease-out" : "transform 0.1s ease-out",
               transformStyle: "preserve-3d",
             }}
           >
-            <div className="absolute inset-0" style={{
-              background: `radial-gradient(ellipse 80% 60% at 90% 0%, hsl(42 78% 55% / 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse 50% 40% at 10% 100%, hsl(36 60% 48% / 0.05) 0%, transparent 45%),
-                linear-gradient(170deg, hsl(220 25% 11%), hsl(225 30% 4%))`
-            }} />
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.35) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.35) 70%, transparent 95%)" }} />
-            <div className="absolute inset-0 opacity-[0.04]" style={{
-              background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55%) 50%, transparent 70%)",
-              backgroundSize: "300% 100%",
-              animation: "shimmer-card 4s ease-in-out infinite",
-            }} />
 
             <div className="relative z-10 p-5 pb-4">
               <div className="flex items-start justify-between mb-5">
