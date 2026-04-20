@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles, Play, ChevronRight } from "lucide-react";
 import PhoneMockup from "../PhoneMockup";
 import MagneticCTA from "../MagneticCTA";
@@ -17,6 +17,47 @@ const TABS = [
 export default function Hero({ onCTA }: { onCTA: () => void }) {
   const [count, setCount] = useState(12000);
   const [activeTab, setActiveTab] = useState<typeof TABS[number]["id"]>("home");
+  const reduceMotion = useReducedMotion();
+
+  // Mouse parallax — normalized -0.5..0.5 around the parallax container center
+  const parallaxRef = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 80, damping: 18, mass: 0.6 });
+  const sy = useSpring(my, { stiffness: 80, damping: 18, mass: 0.6 });
+
+  // Depth layers (px) — phone subtle, stickers more pronounced
+  const phoneX = useTransform(sx, (v) => v * 18);
+  const phoneY = useTransform(sy, (v) => v * 14);
+  const phoneRY = useTransform(sx, (v) => -6 + v * 6);
+  const phoneRX = useTransform(sy, (v) => 3 + v * -4);
+
+  const stickerAX = useTransform(sx, (v) => v * -34);
+  const stickerAY = useTransform(sy, (v) => v * -22);
+  const stickerBX = useTransform(sx, (v) => v * 38);
+  const stickerBY = useTransform(sy, (v) => v * 24);
+  const stickerCX = useTransform(sx, (v) => v * 28);
+  const stickerCY = useTransform(sy, (v) => v * -18);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const el = parallaxRef.current;
+    if (!el) return;
+    const onMove = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      mx.set(Math.max(-0.5, Math.min(0.5, nx)));
+      my.set(Math.max(-0.5, Math.min(0.5, ny)));
+    };
+    const onLeave = () => { mx.set(0); my.set(0); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerleave", onLeave);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerleave", onLeave);
+    };
+  }, [mx, my, reduceMotion]);
 
   useEffect(() => {
     const target = 12847;
