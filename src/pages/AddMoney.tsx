@@ -486,12 +486,9 @@ const AddMoney = () => {
           </div>
         </div>
 
-        {/* Amount card with native input */}
-        <div className="rounded-[22px] p-5 mb-4 border border-white/[0.04] relative overflow-hidden"
-          style={{
-            background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 22% 5.5%))",
-            animation: "am-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both",
-          }}>
+        {/* Amount card with native input — zen-balance-card backlight */}
+        <div className="zen-balance-card zen-card-shimmer rounded-[22px] p-5 mb-4 relative"
+          style={{ animation: "am-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both" }}>
           <div className="absolute top-0 left-6 right-6 h-[1px]"
             style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.25), transparent)" }} />
 

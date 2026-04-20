@@ -296,19 +296,10 @@ const ScanPay = () => {
             />
           ))}
 
-          {/* Scanning beam */}
+          {/* Scanning beam — premium zen utility */}
           {!detected && bracketsIn && (
-            <div className="absolute left-2 right-2 top-2 bottom-2 overflow-hidden rounded-[16px]">
-              <div
-                className="absolute inset-x-0 h-[60px] pointer-events-none"
-                style={{
-                  background: "linear-gradient(180deg, transparent 0%, hsl(42 78% 55% / 0.05) 30%, hsl(42 78% 55% / 0.35) 80%, hsl(42 78% 65%) 100%)",
-                  animation: "scan-sweep 2.5s ease-in-out infinite",
-                  filter: "blur(0.5px)",
-                }}
-              >
-                <div className="absolute bottom-0 inset-x-0 h-[2px]" style={{ background: "hsl(42 78% 65%)", boxShadow: "0 0 14px hsl(42 78% 55%)" }} />
-              </div>
+            <div className="absolute left-0 right-0 top-0 bottom-0 overflow-hidden rounded-[16px]">
+              <div className="zen-scan-beam" />
             </div>
           )}
         </div>

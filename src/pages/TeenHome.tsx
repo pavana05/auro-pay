@@ -17,6 +17,8 @@ import InlineSearchResults from "@/components/InlineSearchResults";
 import PressTooltip from "@/components/PressTooltip";
 import SwipeActionRow from "@/components/SwipeActionRow";
 import PaymentRequestPill from "@/components/PaymentRequestPill";
+import { CountUp as ZenCountUp } from "@/components/zen/CountUp";
+import ZenzoPointsWidget from "@/components/zen/ZenzoPointsWidget";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -227,7 +229,7 @@ const TeenHome = () => {
 
   const quickActions = [
     { icon: Plus, label: "Add Money", path: "/add-money", desc: "Top up wallet" },
-    { icon: Send, label: "Send", path: "/quick-pay", desc: "Transfer" },
+    { icon: Send, label: "Send", path: "/send", desc: "UPI transfer" },
     { icon: QrCode, label: "Scan & Pay", path: "/scan", desc: "QR payment" },
     { icon: BarChart3, label: "Analytics", path: "/analytics", desc: "Insights" },
   ];
@@ -473,25 +475,14 @@ const TeenHome = () => {
             ref={cardRef}
             onMouseMove={handleCardMouseMove}
             onMouseLeave={() => setCardTilt({ x: 0, y: 0 })}
-            className="relative rounded-[26px] overflow-hidden"
+            className="zen-balance-card zen-card-shimmer relative rounded-[26px] overflow-hidden"
             style={{
-              boxShadow: "0 20px 60px -12px hsl(42 78% 55% / 0.08), 0 0 0 1px hsl(42 30% 30% / 0.12), 0 8px 32px -8px rgba(0,0,0,0.5)",
               transform: `rotateY(${cardTilt.x}deg) rotateX(${cardTilt.y}deg)`,
               transition: cardTilt.x === 0 && cardTilt.y === 0 ? "transform 0.5s ease-out" : "transform 0.1s ease-out",
               transformStyle: "preserve-3d",
             }}
           >
-            <div className="absolute inset-0" style={{
-              background: `radial-gradient(ellipse 80% 60% at 90% 0%, hsl(42 78% 55% / 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse 50% 40% at 10% 100%, hsl(36 60% 48% / 0.05) 0%, transparent 45%),
-                linear-gradient(170deg, hsl(220 25% 11%), hsl(225 30% 4%))`
-            }} />
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 5%, hsl(42 78% 55% / 0.35) 30%, hsl(42 78% 55% / 0.5) 50%, hsl(42 78% 55% / 0.35) 70%, transparent 95%)" }} />
-            <div className="absolute inset-0 opacity-[0.04]" style={{
-              background: "linear-gradient(110deg, transparent 30%, hsl(42 78% 55%) 50%, transparent 70%)",
-              backgroundSize: "300% 100%",
-              animation: "shimmer-card 4s ease-in-out infinite",
-            }} />
 
             <div className="relative z-10 p-5 pb-4">
               <div className="flex items-start justify-between mb-5">
@@ -513,10 +504,10 @@ const TeenHome = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
                           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                          className="text-[44px] font-bold tracking-[-2px] tabular-nums leading-none text-primary font-mono"
+                          className="zen-amount-hero text-[44px] tracking-[-2px] leading-none text-primary"
                           style={{ textShadow: "0 2px 8px hsl(42 78% 55% / 0.15)" }}
                         >
-                          {fmt(animBal)}
+                          ₹<ZenCountUp value={Math.round((wallet?.balance || 0) / 100)} duration={1200} />
                         </motion.h2>
                       ) : (
                         <motion.div
@@ -627,7 +618,11 @@ const TeenHome = () => {
           </div>
         </motion.div>
 
-        {/* FamPay-Style: Send Money Across India banner */}
+        {/* Zenzo Points Widget */}
+        <div className="px-5 mb-5">
+          <ZenzoPointsWidget userId={userId} />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -636,7 +631,7 @@ const TeenHome = () => {
         >
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => { haptic.medium(); navigate("/quick-pay"); }}
+            onClick={() => { haptic.medium(); navigate("/send"); }}
             className="group w-full rounded-[20px] p-4 relative overflow-hidden border border-primary/15 text-left flex items-center gap-3.5"
             style={{
               background: "linear-gradient(135deg, hsl(220 22% 9%) 0%, hsl(220 18% 6%) 100%)",
