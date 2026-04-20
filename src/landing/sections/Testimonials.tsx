@@ -23,6 +23,7 @@ export default function Testimonials() {
         </motion.div>
         <PremiumHeading
           className="text-center mb-5"
+          underlineAlign="center"
           lines={[
             { text: <span className="tabular-nums">12,847 families</span>, accent: "gold" },
             { text: "already trust AuroPay." },
