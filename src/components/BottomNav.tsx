@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Home, Clock, QrCode, MessageCircle, UserCircle } from "lucide-react";
+import { useState } from "react";
+import { Home, Clock, QrCode, Send, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 
@@ -7,7 +7,7 @@ const tabs = [
   { path: "/home", icon: Home, label: "Home" },
   { path: "/activity", icon: Clock, label: "History" },
   { path: "/scan", icon: QrCode, label: "Pay", center: true },
-  { path: "/chats", icon: MessageCircle, label: "Chats" },
+  { path: "/send", icon: Send, label: "Send" },
   { path: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
@@ -48,7 +48,7 @@ const BottomNav = () => {
                   style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.2), transparent)" }}
                 />
                 {/* Main button */}
-                <div className={`w-[56px] h-[56px] rounded-full gradient-primary flex items-center justify-center shadow-[0_4px_24px_hsl(42_78%_55%/0.35)] transition-all duration-300 active:scale-90 ${isPressed ? "animate-icon-press" : ""}`}>
+                <div className={`w-[56px] h-[56px] rounded-full zen-action-primary flex items-center justify-center transition-all duration-300 active:scale-90 ${isPressed ? "animate-icon-press" : ""}`}>
                   <tab.icon className="w-6 h-6 text-primary-foreground" />
                 </div>
                 {/* Label */}
@@ -61,7 +61,7 @@ const BottomNav = () => {
             <button
               key={tab.path}
               onClick={() => handleTap(tab.path, false)}
-              className="flex flex-col items-center py-3 px-4 transition-all duration-300 relative group"
+              className="flex flex-col items-center py-3 px-3 transition-all duration-300 relative group"
             >
               <div className={`relative transition-all duration-300 ${isPressed ? "animate-icon-bounce" : ""}`}>
                 <tab.icon
@@ -81,7 +81,7 @@ const BottomNav = () => {
               {/* Active indicator dot with animation */}
               {isActive && (
                 <div className="absolute -bottom-0 left-1/2 -translate-x-1/2">
-                  <div className="h-[3px] rounded-full bg-primary animate-nav-indicator" />
+                  <div className="h-[3px] w-6 rounded-full bg-primary animate-nav-indicator" />
                 </div>
               )}
             </button>
