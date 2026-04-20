@@ -631,7 +631,7 @@ const TeenHome = () => {
         >
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => { haptic.medium(); navigate("/quick-pay"); }}
+            onClick={() => { haptic.medium(); navigate("/send"); }}
             className="group w-full rounded-[20px] p-4 relative overflow-hidden border border-primary/15 text-left flex items-center gap-3.5"
             style={{
               background: "linear-gradient(135deg, hsl(220 22% 9%) 0%, hsl(220 18% 6%) 100%)",
