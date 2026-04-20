@@ -28,6 +28,7 @@ import Notifications from "./pages/Notifications.tsx";
 import ScanPay from "./pages/ScanPay.tsx";
 import PaymentConfirm from "./pages/PaymentConfirm.tsx";
 import AddMoney from "./pages/AddMoney.tsx";
+import SendMoney from "./pages/SendMoney.tsx";
 import ParentHome from "./pages/ParentHome.tsx";
 import ParentTeenDetail from "./pages/ParentTeenDetail.tsx";
 import ParentAddMoney from "./pages/ParentAddMoney.tsx";
@@ -211,6 +212,7 @@ const App = () => (
                     <Route path="/scan" element={<ScanPay />} />
                     <Route path="/pay" element={<ErrorBoundary label="Payment"><PaymentConfirm /></ErrorBoundary>} />
                     <Route path="/add-money" element={<AddMoney />} />
+                    <Route path="/send" element={<SendMoney />} />
                     <Route path="/parent" element={<ParentHome />} />
                     <Route path="/parent/teen/:teenId" element={<ParentTeenDetail />} />
                     <Route path="/parent/add-money" element={<ParentAddMoney />} />
