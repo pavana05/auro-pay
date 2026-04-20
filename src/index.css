@@ -59,6 +59,41 @@
     --gradient-card: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 12% 14%));
     --glow-primary: 0 0 20px hsl(42 78% 55% / 0.3);
     --glow-card: inset 0 1px 0 hsl(40 20% 95% / 0.04);
+
+    /* === ZEN PREMIUM TOKENS — additive, dark-gold theme === */
+    --bg-void:        220 25% 3%;
+    --bg-deep:        220 22% 5%;
+    --bg-screen:      220 20% 4%;
+    --bg-card:        220 18% 7%;
+    --bg-card-raised: 220 16% 10%;
+    --bg-elevated:    220 14% 13%;
+
+    /* Text scale */
+    --text-100: 0 0% 100%;
+    --text-200: 40 15% 90%;
+    --text-300: 40 10% 65%;
+    --text-400: 40 8% 45%;
+    --text-500: 40 6% 28%;
+
+    /* Borders (gold-tinted) */
+    --border-subtle: 42 60% 50% / 0.10;
+    --border-medium: 42 60% 50% / 0.22;
+    --border-strong: 42 60% 50% / 0.42;
+    --border-white-soft: 0 0% 100% / 0.06;
+
+    /* Radii */
+    --radius-xs: 8px;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+    --radius-2xl: 32px;
+
+    /* Effects */
+    --glow-gold: 0 0 40px hsl(42 78% 55% / 0.32);
+    --glow-success: 0 0 20px hsl(142 71% 45% / 0.32);
+    --card-shadow-zen: 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+    --card-shadow-hero: 0 20px 60px rgba(200,149,46,0.18), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
   }
 }
 
