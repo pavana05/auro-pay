@@ -59,6 +59,41 @@
     --gradient-card: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 12% 14%));
     --glow-primary: 0 0 20px hsl(42 78% 55% / 0.3);
     --glow-card: inset 0 1px 0 hsl(40 20% 95% / 0.04);
+
+    /* === ZEN PREMIUM TOKENS — additive, dark-gold theme === */
+    --bg-void:        220 25% 3%;
+    --bg-deep:        220 22% 5%;
+    --bg-screen:      220 20% 4%;
+    --bg-card:        220 18% 7%;
+    --bg-card-raised: 220 16% 10%;
+    --bg-elevated:    220 14% 13%;
+
+    /* Text scale */
+    --text-100: 0 0% 100%;
+    --text-200: 40 15% 90%;
+    --text-300: 40 10% 65%;
+    --text-400: 40 8% 45%;
+    --text-500: 40 6% 28%;
+
+    /* Borders (gold-tinted) */
+    --border-subtle: 42 60% 50% / 0.10;
+    --border-medium: 42 60% 50% / 0.22;
+    --border-strong: 42 60% 50% / 0.42;
+    --border-white-soft: 0 0% 100% / 0.06;
+
+    /* Radii */
+    --radius-xs: 8px;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+    --radius-2xl: 32px;
+
+    /* Effects */
+    --glow-gold: 0 0 40px hsl(42 78% 55% / 0.32);
+    --glow-success: 0 0 20px hsl(142 71% 45% / 0.32);
+    --card-shadow-zen: 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+    --card-shadow-hero: 0 20px 60px rgba(200,149,46,0.18), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
   }
 }
 
@@ -706,3 +741,124 @@ html.admin-light main *:not(svg):not(path) {
     scroll-behavior: auto !important;
   }
 }
+
+/* ──────────────────────────────────────────────────────────
+   ZEN — Premium teen-fintech utilities (additive, dark gold)
+   ────────────────────────────────────────────────────────── */
+@layer utilities {
+  .font-mono-num { font-family: "JetBrains Mono", ui-monospace, monospace; font-feature-settings: "tnum" 1, "lnum" 1; }
+
+  /* Hero balance card — radial backlit gold */
+  .zen-balance-card {
+    background:
+      radial-gradient(ellipse at 85% 15%, hsla(42, 78%, 55%, 0.20) 0%, transparent 60%),
+      linear-gradient(135deg, hsl(220 22% 6%) 0%, hsl(220 18% 9%) 45%, hsl(220 24% 4%) 100%);
+    border: 1px solid hsl(42 60% 50% / 0.28);
+    box-shadow: var(--card-shadow-hero);
+    position: relative;
+    overflow: hidden;
+  }
+  .zen-balance-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg,
+      rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px,
+      transparent 1px, transparent 12px);
+    pointer-events: none;
+  }
+
+  .zen-action-primary {
+    background: linear-gradient(135deg, hsl(42 78% 55%), hsl(36 80% 42%));
+    box-shadow: 0 6px 20px hsla(42, 78%, 55%, 0.40), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .zen-action-soft {
+    background: hsla(42, 78%, 55%, 0.10);
+    border: 1px solid hsla(42, 78%, 55%, 0.22);
+  }
+  .zen-action-neutral {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .zen-card {
+    background: hsl(var(--bg-card));
+    border: 1px solid hsl(var(--border-subtle));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow-zen);
+  }
+  .zen-card-raised {
+    background: hsl(var(--bg-card-raised));
+    border: 1px solid hsl(var(--border-medium));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow-zen);
+  }
+
+  .zen-scan-beam {
+    position: absolute; left: 12px; right: 12px; height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(42 90% 60%), transparent);
+    box-shadow: 0 0 16px hsl(42 90% 60% / 0.7);
+    animation: zen-scan-beam 2.4s linear infinite;
+  }
+  @keyframes zen-scan-beam {
+    0%   { top: 12px; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: calc(100% - 12px); opacity: 0; }
+  }
+
+  .zen-card-shimmer { position: relative; overflow: hidden; }
+  .zen-card-shimmer::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,247,227,0.10) 50%, transparent 65%);
+    transform: translateX(-100%);
+    animation: zen-shimmer-card 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes zen-shimmer-card {
+    0% { transform: translateX(-100%); }
+    20%, 100% { transform: translateX(120%); }
+  }
+
+  .zen-skeleton {
+    background: linear-gradient(90deg,
+      hsl(var(--bg-card)) 0%,
+      hsl(var(--bg-elevated)) 50%,
+      hsl(var(--bg-card)) 100%);
+    background-size: 200% 100%;
+    animation: zen-skeleton-pan 1.5s ease-in-out infinite;
+  }
+  @keyframes zen-skeleton-pan {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .zen-fab-pulse::before {
+    content: "";
+    position: absolute; inset: 0; border-radius: 9999px;
+    background: hsl(42 78% 55% / 0.4);
+    animation: zen-fab-pulse 2s ease-out infinite;
+    z-index: -1;
+  }
+  @keyframes zen-fab-pulse {
+    0%   { transform: scale(1);   opacity: 0.5; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  .zen-amount-hero {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zen-scan-beam,
+  .zen-card-shimmer::after,
+  .zen-skeleton,
+  .zen-fab-pulse::before {
+    animation: none !important;
+  }
+}
+
