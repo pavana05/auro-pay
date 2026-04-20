@@ -36,6 +36,7 @@ export default function PremiumHeading({
   underline?: boolean;
   underlineAlign?: "left" | "center" | "right";
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const totalRevealDelay = baseDelay + lines.length * 0.12 + 0.55;
   const alignClass =
     underlineAlign === "center"
