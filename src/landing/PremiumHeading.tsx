@@ -58,10 +58,17 @@ export default function PremiumHeading({
       ? "ml-auto"
       : "";
 
+  const haloAlignClass =
+    underlineAlign === "center"
+      ? "left-1/2 -translate-x-1/2"
+      : underlineAlign === "right"
+      ? "right-0"
+      : "left-0";
+
   return (
     <h2
       className={
-        "text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight " +
+        "relative text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight " +
         className
       }
       style={{
@@ -70,6 +77,33 @@ export default function PremiumHeading({
         lineHeight: 1.04,
       }}
     >
+      {/* Soft gold halo — fades in after shimmer, then pulses gently forever */}
+      <motion.span
+        aria-hidden
+        className={`pointer-events-none absolute -z-10 top-1/2 -translate-y-1/2 ${haloAlignClass}`}
+        style={{
+          width: "min(560px, 90%)",
+          height: "min(280px, 110%)",
+          background:
+            "radial-gradient(ellipse at center, rgba(200,149,46,0.22) 0%, rgba(200,149,46,0.10) 35%, transparent 70%)",
+          filter: "blur(28px)",
+        }}
+        initial={{ opacity: 0, scale: 0.85 }}
+        whileInView={{
+          opacity: [0, 1, 0.7, 1, 0.75],
+          scale: [0.85, 1.02, 0.98, 1.04, 1],
+        }}
+        viewport={{ once: true, margin: "-10% 0px" }}
+        transition={{
+          delay: baseDelay + lines.length * 0.12 + 0.55 + 1.6,
+          duration: 6,
+          times: [0, 0.18, 0.45, 0.72, 1],
+          ease: "easeInOut",
+          repeat: Infinity,
+          repeatType: "mirror",
+        }}
+      />
+
       {lines.map((line, i) => (
         <motion.span
           key={i}
