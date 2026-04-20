@@ -1,20 +1,24 @@
 import { motion } from "framer-motion";
+import { forwardRef } from "react";
 
 /**
  * Pure CSS/SVG iPhone mockup. No images.
  * `screen` prop chooses what app screen renders inside the bezel.
+ * forwardRef so framer-motion (and other consumers) can attach refs.
  */
-export default function PhoneMockup({
-  screen = "home",
-  scale = 1,
-  className = "",
-}: {
+type PhoneMockupProps = {
   screen?: "home" | "scan" | "kyc" | "parent" | "send" | "savings" | "analytics";
   scale?: number;
   className?: string;
-}) {
+};
+
+const PhoneMockup = forwardRef<HTMLDivElement, PhoneMockupProps>(function PhoneMockup(
+  { screen = "home", scale = 1, className = "" },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       className={`relative ${className}`}
       style={{ width: 280 * scale, height: 580 * scale }}
     >
