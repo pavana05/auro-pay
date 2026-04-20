@@ -447,6 +447,33 @@ export type Database = {
         }
         Relationships: []
       }
+      health_scores: {
+        Row: {
+          breakdown: Json
+          computed_at: string
+          id: string
+          level: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          level?: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json
+          computed_at?: string
+          id?: string
+          level?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       incidents: {
         Row: {
           affected_service: string | null
@@ -1560,6 +1587,44 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zenzo_points: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          points: number
+          transaction_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          transaction_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          transaction_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zenzo_points_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
