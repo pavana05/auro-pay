@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Gift, Sparkles, Trophy, Coins, Zap, Star } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 const ITEMS = [
   { icon: Gift, t: "Scratch cards on every UPI payment" },
@@ -83,14 +84,13 @@ export default function RewardsSection() {
           >
             <span className="lux-eyebrow">Rewards</span>
           </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-10 tracking-tight"
-            style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-          >
-            Every payment pays<br/><span className="text-white/40">you back.</span>
-          </motion.h2>
+          <PremiumHeading
+            className="mb-10"
+            lines={[
+              { text: "Every payment pays" },
+              { text: "you back.", accent: "gold" },
+            ]}
+          />
           <ul className="space-y-3">
             {ITEMS.map((it, i) => {
               const Icon = it.icon;

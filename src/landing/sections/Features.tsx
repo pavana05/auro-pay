@@ -2,6 +2,7 @@ import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { Scan, ShieldCheck, Users, Send, PiggyBank, BarChart3, Sparkle } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import PhoneMockup from "../PhoneMockup";
+import PremiumHeading from "../PremiumHeading";
 
 const FEATURES = [
   { icon: Scan, tag: "Pay", title: "Scan any QR. Anywhere in India.", body: "Point at any UPI QR — Paytm, PhonePe, GPay, any bank. Pay in 3 seconds. Works everywhere your friends do.", stat: "300M+ QR codes accepted", screen: "scan" as const },
@@ -54,15 +55,13 @@ export default function Features() {
         >
           <span className="lux-eyebrow">Everything you need</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white max-w-3xl mb-5"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          Everything a teen needs.
-          <br/><span className="text-white/35">Nothing they don't.</span>
-        </motion.h2>
+        <PremiumHeading
+          className="max-w-3xl mb-5"
+          lines={[
+            { text: "Everything a teen needs." },
+            { text: "Nothing they don't.", accent: "gold" },
+          ]}
+        />
         <motion.p
           initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           transition={{ delay: 0.2 }}
