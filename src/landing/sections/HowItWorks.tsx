@@ -20,6 +20,7 @@ export default function HowItWorks() {
         </motion.div>
         <PremiumHeading
           className="text-center mb-5"
+          underlineAlign="center"
           lines={[
             { text: "Up & running" },
             { text: "in 2 minutes.", accent: "gold" },

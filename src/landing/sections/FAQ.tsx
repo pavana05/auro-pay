@@ -36,6 +36,7 @@ export default function FAQ() {
         </motion.div>
         <PremiumHeading
           className="text-center mb-5"
+          underlineAlign="center"
           lines={[
             { text: "Real questions." },
             { text: "Honest answers.", accent: "gold" },

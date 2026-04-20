@@ -73,6 +73,7 @@ export default function Comparison() {
         </motion.div>
         <PremiumHeading
           className="text-center mb-5"
+          underlineAlign="center"
           lines={[
             { text: "Why teens" },
             { text: "are switching.", accent: "gold" },
