@@ -504,10 +504,10 @@ const TeenHome = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
                           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                          className="text-[44px] font-bold tracking-[-2px] tabular-nums leading-none text-primary font-mono"
+                          className="zen-amount-hero text-[44px] tracking-[-2px] leading-none text-primary"
                           style={{ textShadow: "0 2px 8px hsl(42 78% 55% / 0.15)" }}
                         >
-                          {fmt(animBal)}
+                          ₹<ZenCountUp value={Math.round((wallet?.balance || 0) / 100)} duration={1200} />
                         </motion.h2>
                       ) : (
                         <motion.div
