@@ -55,6 +55,7 @@ export default function Landing() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen overflow-x-hidden text-white" style={{ background: "#050507", fontFamily: "Sora, sans-serif" }}>
       {!reduceMotion && <EntryAnimation onDone={() => setEntryDone(true)} />}
       <ScrollProgress />
@@ -96,5 +97,6 @@ export default function Landing() {
         <Footer />
       </main>
     </div>
+    </MotionConfig>
   );
 }
