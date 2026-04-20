@@ -618,7 +618,11 @@ const TeenHome = () => {
           </div>
         </motion.div>
 
-        {/* FamPay-Style: Send Money Across India banner */}
+        {/* Zenzo Points Widget */}
+        <div className="px-5 mb-5">
+          <ZenzoPointsWidget userId={userId} />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
