@@ -682,3 +682,27 @@ html.admin-light main *:not(svg):not(path) {
   --tw-text-opacity: 1;
 }
 
+/* ──────────────────────────────────────────────────────────
+   Accessibility — honor prefers-reduced-motion.
+   Disables CSS keyframe animations used for ambient polish:
+   aurora drift, eyebrow pan, shimmer sweeps, badge shine,
+   scanner orbits, comet trails, etc.
+   Framer Motion infinite animations are gated separately via
+   <MotionConfig reducedMotion="user"> in the landing page.
+   ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .lux-aurora-bg,
+  .lux-eyebrow,
+  .lux-shimmer::after,
+  .shimmer-border::before,
+  .shimmer-glow::after,
+  .badge-premium::after {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

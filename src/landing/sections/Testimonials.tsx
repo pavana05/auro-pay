@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { motion, useAnimationFrame, useMotionValue, useReducedMotion } from "framer-motion";
+import { useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import PremiumHeading from "../PremiumHeading";
 
@@ -11,7 +12,48 @@ const ITEMS = [
   { q: "Splitting bills with friends is genuinely instant. Game changer.", n: "Sana T.", r: "Teen · Mumbai" },
 ];
 
+const CARD_WIDTH = 340; // px
+const GAP = 20; // px (gap-5)
+const STEP = CARD_WIDTH + GAP;
+const SPEED = STEP / 9; // px per second — completes one card every 9s (~55s for 6 cards)
+
 export default function Testimonials() {
+  const reduceMotion = useReducedMotion();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  // Loop length = one full set of original ITEMS
+  const loopWidth = ITEMS.length * STEP;
+
+  // Auto-scroll: advance x continuously, wrap when crossing -loopWidth
+  useAnimationFrame((_t, delta) => {
+    if (reduceMotion || isDragging || paused) return;
+    const next = x.get() - (SPEED * delta) / 1000;
+    // wrap into [-loopWidth, 0]
+    const wrapped = next <= -loopWidth ? next + loopWidth : next;
+    x.set(wrapped);
+  });
+
+  // Keep drag in seamless range by wrapping after drag ends
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    let v = x.get();
+    while (v <= -loopWidth) v += loopWidth;
+    while (v > 0) v -= loopWidth;
+    x.set(v);
+  };
+
+  // Snap-to-card on swipe button press (also accessible)
+  const nudge = (dir: 1 | -1) => {
+    const v = x.get() - dir * STEP;
+    let wrapped = v;
+    while (wrapped <= -loopWidth) wrapped += loopWidth;
+    while (wrapped > 0) wrapped -= loopWidth;
+    x.set(wrapped);
+  };
+
   return (
     <section className="relative py-32 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -40,13 +82,32 @@ export default function Testimonials() {
           style={{ background: "linear-gradient(90deg, #050507 10%, transparent)" }} />
         <div className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
           style={{ background: "linear-gradient(-90deg, #050507 10%, transparent)" }} />
+
         <motion.div
-          className="flex gap-5"
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 55, repeat: Infinity, ease: "linear" }}
-          style={{ width: "max-content" }}
+          ref={trackRef}
+          className="flex gap-5 cursor-grab active:cursor-grabbing select-none touch-pan-y"
+          style={{ x, width: "max-content", willChange: "transform" }}
+          drag="x"
+          dragConstraints={{ left: -Infinity, right: Infinity }}
+          dragElastic={0.05}
+          dragMomentum={true}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={handleDragEnd}
+          onPointerEnter={() => setPaused(true)}
+          onPointerLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+          role="region"
+          aria-label="Customer testimonials, swipe to browse"
+          aria-roledescription="carousel"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") { e.preventDefault(); nudge(1); }
+            if (e.key === "ArrowLeft")  { e.preventDefault(); nudge(-1); }
+          }}
         >
-          {[...ITEMS, ...ITEMS].map((t, i) => (
+          {/* Render 3 copies so drag in either direction always has content visible during wrap */}
+          {[...ITEMS, ...ITEMS, ...ITEMS].map((t, i) => (
             <div key={i}
               className="w-[340px] shrink-0 rounded-3xl p-7 lux-glass relative">
               <Quote size={28} className="absolute top-5 right-5 opacity-30" style={{ color: "#c8952e" }} />
@@ -68,6 +129,11 @@ export default function Testimonials() {
             </div>
           ))}
         </motion.div>
+
+        {/* Hint for mobile users that this is swipeable */}
+        <div className="mt-6 text-center text-[11px] uppercase tracking-[0.22em] text-white/35">
+          {reduceMotion ? "Swipe or use ← → keys" : "Swipe • drag • or hover to pause"}
+        </div>
       </div>
     </section>
   );
