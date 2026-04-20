@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Check, X, Minus } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 type Cell = { type: "yes"; text?: string } | { type: "no"; text?: string } | { type: "partial"; text?: string };
 
@@ -70,14 +71,13 @@ export default function Comparison() {
         >
           <span className="lux-eyebrow">AuroPay vs FamPay</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white text-center mb-5"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          Why teens are <span className="lux-text-platinum">switching</span>.
-        </motion.h2>
+        <PremiumHeading
+          className="text-center mb-5"
+          lines={[
+            { text: "Why teens" },
+            { text: "are switching.", accent: "gold" },
+          ]}
+        />
         <motion.p
           initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           transition={{ delay: 0.2 }}

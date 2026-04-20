@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Plus, ArrowUpRight } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 const FAQS = [
   { q: "Is AuroPay safe for my teen?",
@@ -33,14 +34,13 @@ export default function FAQ() {
         >
           <span className="lux-eyebrow">Frequently Asked</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white text-center mb-5 tracking-tight"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          Real questions. <span className="lux-text-platinum">Honest answers.</span>
-        </motion.h2>
+        <PremiumHeading
+          className="text-center mb-5"
+          lines={[
+            { text: "Real questions." },
+            { text: "Honest answers.", accent: "gold" },
+          ]}
+        />
         <motion.p
           initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           transition={{ delay: 0.2 }}

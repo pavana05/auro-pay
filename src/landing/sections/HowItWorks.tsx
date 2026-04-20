@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Download, ShieldCheck, QrCode } from "lucide-react";
+import PremiumHeading from "../PremiumHeading";
 
 const STEPS = [
   { n: "01", icon: Download, title: "Download AuroPay", body: "Get it on Play Store or App Store. ~12 MB, no bloat." },
@@ -17,14 +18,13 @@ export default function HowItWorks() {
         >
           <span className="lux-eyebrow">How It Works</span>
         </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white text-center mb-5"
-          style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em", lineHeight: 1.04 }}
-        >
-          Up & running in <span className="lux-text-platinum">2 minutes.</span>
-        </motion.h2>
+        <PremiumHeading
+          className="text-center mb-5"
+          lines={[
+            { text: "Up & running" },
+            { text: "in 2 minutes.", accent: "gold" },
+          ]}
+        />
         <p className="text-white/55 text-center mb-20 max-w-xl mx-auto">No paperwork. No bank visits. No PAN.</p>
 
         <div className="relative grid md:grid-cols-3 gap-5">
