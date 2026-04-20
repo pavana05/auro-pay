@@ -76,19 +76,27 @@ export default function PremiumHeading({
           filter: "blur(28px)",
         }}
         initial={{ opacity: 0, scale: 0.85 }}
-        whileInView={{
-          opacity: [0, 1, 0.7, 1, 0.75],
-          scale: [0.85, 1.02, 0.98, 1.04, 1],
-        }}
+        whileInView={
+          prefersReducedMotion
+            ? { opacity: 0.75, scale: 1 }
+            : {
+                opacity: [0, 1, 0.7, 1, 0.75],
+                scale: [0.85, 1.02, 0.98, 1.04, 1],
+              }
+        }
         viewport={{ once: true, margin: "-10% 0px" }}
-        transition={{
-          delay: baseDelay + lines.length * 0.12 + 0.55 + 1.6,
-          duration: 6,
-          times: [0, 0.18, 0.45, 0.72, 1],
-          ease: "easeInOut",
-          repeat: Infinity,
-          repeatType: "mirror",
-        }}
+        transition={
+          prefersReducedMotion
+            ? { delay: baseDelay + lines.length * 0.12 + 0.55, duration: 0.6, ease: "easeOut" }
+            : {
+                delay: baseDelay + lines.length * 0.12 + 0.55 + 1.6,
+                duration: 6,
+                times: [0, 0.18, 0.45, 0.72, 1],
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "mirror",
+              }
+        }
       />
 
       {lines.map((line, i) => (
