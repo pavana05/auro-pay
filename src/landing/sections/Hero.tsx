@@ -205,7 +205,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
         </div>
 
         {/* Phone with interactive tabs */}
-        <div className="lg:col-span-5 relative flex flex-col items-center gap-5">
+        <div ref={parallaxRef} className="lg:col-span-5 relative flex flex-col items-center gap-5">
           {/* Ambient illustration removed per design feedback */}
 
           <motion.div
@@ -217,7 +217,7 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             <motion.div
               animate={{ y: [0, -14, 0] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-              style={{ transform: "rotateY(-6deg) rotateX(3deg)" }}
+              style={{ x: phoneX, y: phoneY, rotateY: phoneRY, rotateX: phoneRX, transformStyle: "preserve-3d" }}
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -236,44 +236,53 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: -6 }}
               transition={{ delay: 1.5, type: "spring", stiffness: 220, damping: 14 }}
+              style={{ x: stickerAX, y: stickerAY }}
               className="hidden md:flex absolute -top-4 -left-8 lg:-left-10 items-center gap-2 px-3 py-2 rounded-2xl text-xs text-white"
-              style={{
-                background: "linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.95))",
-                boxShadow: "0 12px 30px rgba(34,197,94,0.4)",
-              }}
             >
-              <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center">✓</span>
-              <span className="font-semibold">Paid ₹149</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.95))",
+                  boxShadow: "0 12px 30px rgba(34,197,94,0.4)",
+                }}>
+                <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center">✓</span>
+                <span className="font-semibold">Paid ₹149</span>
+              </div>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: 8 }} animate={{ opacity: 1, scale: 1, rotate: 5 }}
               transition={{ delay: 1.7, type: "spring", stiffness: 220, damping: 14 }}
+              style={{ x: stickerBX, y: stickerBY }}
               className="hidden md:flex absolute bottom-24 -right-6 lg:-right-4 items-center gap-2 px-3 py-2 rounded-2xl text-xs text-white"
-              style={{
-                background: "linear-gradient(135deg, rgba(20,20,25,0.95), rgba(30,28,22,0.95))",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(200,149,46,0.4)",
-                boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-              }}
             >
-              <span className="text-base">🎉</span>
-              <div>
-                <div className="font-semibold">Dad sent ₹500</div>
-                <div className="text-[9px] text-white/50">Just now</div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(20,20,25,0.95), rgba(30,28,22,0.95))",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(200,149,46,0.4)",
+                  boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+                }}>
+                <span className="text-base">🎉</span>
+                <div>
+                  <div className="font-semibold">Dad sent ₹500</div>
+                  <div className="text-[9px] text-white/50">Just now</div>
+                </div>
               </div>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.6, rotate: 5 }} animate={{ opacity: 1, scale: 1, rotate: 4 }}
               transition={{ delay: 1.9, type: "spring", stiffness: 220, damping: 14 }}
+              style={{ x: stickerCX, y: stickerCY }}
               className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-12 items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
-              style={{
-                background: "rgba(200,149,46,0.95)",
-                color: "#1a1206",
-                boxShadow: "0 8px 24px rgba(200,149,46,0.5)",
-                fontFamily: "JetBrains Mono, monospace",
-              }}
             >
-              ⚡ 2.3s
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{
+                  background: "rgba(200,149,46,0.95)",
+                  color: "#1a1206",
+                  boxShadow: "0 8px 24px rgba(200,149,46,0.5)",
+                  fontFamily: "JetBrains Mono, monospace",
+                }}>
+                ⚡ 2.3s
+              </div>
             </motion.div>
           </motion.div>
 
