@@ -55,7 +55,9 @@ const PhoneMockup = forwardRef<HTMLDivElement, PhoneMockupProps>(function PhoneM
       </div>
     </div>
   );
-}
+});
+
+export default PhoneMockup;
 
 function HomeScreen() {
   return (
