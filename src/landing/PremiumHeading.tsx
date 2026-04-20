@@ -39,11 +39,25 @@ export default function PremiumHeading({
   lines,
   className = "",
   baseDelay = 0,
+  underline = true,
+  underlineAlign = "left",
 }: {
   lines: HeadingLine[];
   className?: string;
   baseDelay?: number;
+  /** Show the gold-glow underline that draws in after the headline reveals. */
+  underline?: boolean;
+  /** Where the underline sits horizontally. */
+  underlineAlign?: "left" | "center" | "right";
 }) {
+  const totalRevealDelay = baseDelay + lines.length * 0.12 + 0.55;
+  const alignClass =
+    underlineAlign === "center"
+      ? "mx-auto"
+      : underlineAlign === "right"
+      ? "ml-auto"
+      : "";
+
   return (
     <h2
       className={
@@ -78,6 +92,34 @@ export default function PremiumHeading({
           )}
         </motion.span>
       ))}
+
+      {underline && (
+        <motion.span
+          aria-hidden
+          initial={{ scaleX: 0, opacity: 0 }}
+          whileInView={{ scaleX: 1, opacity: 1 }}
+          viewport={{ once: true, margin: "-10% 0px" }}
+          transition={{
+            delay: totalRevealDelay,
+            duration: 1.1,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className={`block h-[2px] mt-5 rounded-full ${alignClass}`}
+          style={{
+            transformOrigin:
+              underlineAlign === "right"
+                ? "right center"
+                : underlineAlign === "center"
+                ? "center"
+                : "left center",
+            width: "min(180px, 35%)",
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(200,149,46,0.55) 30%, #e0b048 55%, rgba(200,149,46,0.55) 80%, transparent 100%)",
+            boxShadow:
+              "0 0 18px rgba(200,149,46,0.55), 0 0 36px rgba(200,149,46,0.35)",
+          }}
+        />
+      )}
     </h2>
   );
 }
