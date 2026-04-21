@@ -91,6 +91,7 @@ import Landing from "./pages/Landing.tsx";
 import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
 import WebAppGate from "./components/WebAppGate";
+import AdminGuard from "./components/AdminGuard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,31 +158,31 @@ const App = () => (
         <RealtimeWrapper>
         <MaintenanceGate>
         <Routes>
-            {/* Admin routes */}
-            <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-            <Route path="/admin/users" element={<PageTransition><AdminUsers /></PageTransition>} />
-            <Route path="/admin/roles" element={<PageTransition><AdminRoles /></PageTransition>} />
-            <Route path="/admin/transactions" element={<PageTransition><AdminTransactions /></PageTransition>} />
-            <Route path="/admin/kyc" element={<PageTransition><AdminKyc /></PageTransition>} />
-            <Route path="/admin/wallets" element={<PageTransition><AdminWallets /></PageTransition>} />
-            <Route path="/admin/notifications" element={<PageTransition><AdminNotifications /></PageTransition>} />
-            <Route path="/admin/activity-log" element={<PageTransition><AdminActivityLog /></PageTransition>} />
-            <Route path="/admin/audit-log" element={<PageTransition><AdminAuditLog /></PageTransition>} />
-            <Route path="/admin/rewards" element={<PageTransition><AdminRewards /></PageTransition>} />
-            <Route path="/admin/analytics" element={<PageTransition><AdminAnalytics /></PageTransition>} />
-            <Route path="/admin/settings" element={<PageTransition><AdminSettings /></PageTransition>} />
-            <Route path="/admin/support" element={<PageTransition><AdminSupport /></PageTransition>} />
-            <Route path="/admin/parent-links" element={<PageTransition><AdminParentLinks /></PageTransition>} />
-            <Route path="/admin/flagged" element={<PageTransition><AdminFlagged /></PageTransition>} />
-            <Route path="/admin/payouts" element={<PageTransition><AdminPayouts /></PageTransition>} />
-            <Route path="/admin/refunds" element={<PageTransition><AdminRefunds /></PageTransition>} />
-            <Route path="/admin/spending-limits" element={<PageTransition><AdminSpendingLimits /></PageTransition>} />
-            <Route path="/admin/savings-oversight" element={<PageTransition><AdminSavingsOversight /></PageTransition>} />
-            <Route path="/admin/pocket-money" element={<PageTransition><AdminPocketMoney /></PageTransition>} />
-            <Route path="/admin/revenue" element={<PageTransition><AdminRevenue /></PageTransition>} />
-            <Route path="/admin/health" element={<PageTransition><AdminHealth /></PageTransition>} />
-            <Route path="/admin/geographic" element={<PageTransition><AdminGeographic /></PageTransition>} />
-            <Route path="/admin/reports" element={<PageTransition><AdminReports /></PageTransition>} />
+            {/* Admin routes — guarded so only users with the admin role can access. */}
+            <Route path="/admin" element={<AdminGuard><PageTransition><AdminDashboard /></PageTransition></AdminGuard>} />
+            <Route path="/admin/users" element={<AdminGuard><PageTransition><AdminUsers /></PageTransition></AdminGuard>} />
+            <Route path="/admin/roles" element={<AdminGuard><PageTransition><AdminRoles /></PageTransition></AdminGuard>} />
+            <Route path="/admin/transactions" element={<AdminGuard><PageTransition><AdminTransactions /></PageTransition></AdminGuard>} />
+            <Route path="/admin/kyc" element={<AdminGuard><PageTransition><AdminKyc /></PageTransition></AdminGuard>} />
+            <Route path="/admin/wallets" element={<AdminGuard><PageTransition><AdminWallets /></PageTransition></AdminGuard>} />
+            <Route path="/admin/notifications" element={<AdminGuard><PageTransition><AdminNotifications /></PageTransition></AdminGuard>} />
+            <Route path="/admin/activity-log" element={<AdminGuard><PageTransition><AdminActivityLog /></PageTransition></AdminGuard>} />
+            <Route path="/admin/audit-log" element={<AdminGuard><PageTransition><AdminAuditLog /></PageTransition></AdminGuard>} />
+            <Route path="/admin/rewards" element={<AdminGuard><PageTransition><AdminRewards /></PageTransition></AdminGuard>} />
+            <Route path="/admin/analytics" element={<AdminGuard><PageTransition><AdminAnalytics /></PageTransition></AdminGuard>} />
+            <Route path="/admin/settings" element={<AdminGuard><PageTransition><AdminSettings /></PageTransition></AdminGuard>} />
+            <Route path="/admin/support" element={<AdminGuard><PageTransition><AdminSupport /></PageTransition></AdminGuard>} />
+            <Route path="/admin/parent-links" element={<AdminGuard><PageTransition><AdminParentLinks /></PageTransition></AdminGuard>} />
+            <Route path="/admin/flagged" element={<AdminGuard><PageTransition><AdminFlagged /></PageTransition></AdminGuard>} />
+            <Route path="/admin/payouts" element={<AdminGuard><PageTransition><AdminPayouts /></PageTransition></AdminGuard>} />
+            <Route path="/admin/refunds" element={<AdminGuard><PageTransition><AdminRefunds /></PageTransition></AdminGuard>} />
+            <Route path="/admin/spending-limits" element={<AdminGuard><PageTransition><AdminSpendingLimits /></PageTransition></AdminGuard>} />
+            <Route path="/admin/savings-oversight" element={<AdminGuard><PageTransition><AdminSavingsOversight /></PageTransition></AdminGuard>} />
+            <Route path="/admin/pocket-money" element={<AdminGuard><PageTransition><AdminPocketMoney /></PageTransition></AdminGuard>} />
+            <Route path="/admin/revenue" element={<AdminGuard><PageTransition><AdminRevenue /></PageTransition></AdminGuard>} />
+            <Route path="/admin/health" element={<AdminGuard><PageTransition><AdminHealth /></PageTransition></AdminGuard>} />
+            <Route path="/admin/geographic" element={<AdminGuard><PageTransition><AdminGeographic /></PageTransition></AdminGuard>} />
+            <Route path="/admin/reports" element={<AdminGuard><PageTransition><AdminReports /></PageTransition></AdminGuard>} />
             
 
             {/* Public landing page — full-bleed, no mobile container. Home route. */}
