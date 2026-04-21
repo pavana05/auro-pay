@@ -1,12 +1,16 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Phone, Video } from "lucide-react";
+import { ChevronLeft, Phone, Video, MessageCircle } from "lucide-react";
 import MessageBubble from "@/components/chat/MessageBubble";
 import ChatInput from "@/components/chat/ChatInput";
 import PaymentCard from "@/components/chat/PaymentCard";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import { haptic } from "@/lib/haptics";
+import { toast } from "@/lib/toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/feedback";
+import { useNativeBack } from "@/lib/native-back";
 
 interface Message {
   id: string;
@@ -107,34 +111,43 @@ const ChatRoom = () => {
   }, [conversationId, recipientId]);
 
   const loadChat = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !conversationId) return;
-    setUserId(user.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !conversationId) return;
+      setUserId(user.id);
 
-    const { data: members } = await supabase
-      .from("conversation_members").select("user_id, last_read_at")
-      .eq("conversation_id", conversationId).neq("user_id", user.id);
+      const { data: members, error: memErr } = await supabase
+        .from("conversation_members").select("user_id, last_read_at")
+        .eq("conversation_id", conversationId).neq("user_id", user.id);
 
-    if (members?.length) {
-      const otherId = members[0].user_id;
-      setRecipientId(otherId);
-      setLastReadAt(members[0].last_read_at);
-      const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
-      setRecipientName(profile?.full_name || "User");
-      setRecipientAvatar(profile?.avatar_url || null);
+      if (memErr) throw memErr;
+
+      if (members?.length) {
+        const otherId = members[0].user_id;
+        setRecipientId(otherId);
+        setLastReadAt(members[0].last_read_at);
+        const { data: profile } = await supabase
+          .from("profiles").select("full_name, avatar_url").eq("id", otherId).maybeSingle();
+        setRecipientName(profile?.full_name || "User");
+        setRecipientAvatar(profile?.avatar_url || null);
+      }
+
+      const { data: msgs, error: msgErr } = await supabase
+        .from("messages").select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true }).limit(100);
+
+      if (msgErr) throw msgErr;
+      setMessages(msgs || []);
+
+      await supabase.from("conversation_members")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId).eq("user_id", user.id);
+    } catch (err: any) {
+      toast.fail("Couldn't load chat", { description: err?.message });
+    } finally {
+      setLoading(false);
     }
-
-    const { data: msgs } = await supabase
-      .from("messages").select("*")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true }).limit(100);
-
-    setMessages(msgs || []);
-    setLoading(false);
-
-    await supabase.from("conversation_members")
-      .update({ last_read_at: new Date().toISOString() })
-      .eq("conversation_id", conversationId).eq("user_id", user.id);
   };
 
   const scrollToBottom = () => {
@@ -149,15 +162,16 @@ const ChatRoom = () => {
 
   const sendText = async (text: string) => {
     if (!conversationId || !userId) return;
-    await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, content: text, message_type: "text" });
-    // Simulate recipient typing after a delay
+    const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, content: text, message_type: "text" });
+    if (error) { toast.fail("Couldn't send message", { description: error.message }); return; }
     setTimeout(() => setIsTyping(true), 1500);
     setTimeout(() => setIsTyping(false), 4000);
   };
 
   const sendVoice = async (url: string) => {
     if (!conversationId || !userId) return;
-    await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, message_type: "voice", voice_url: url });
+    const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, message_type: "voice", voice_url: url });
+    if (error) toast.fail("Couldn't send voice note", { description: error.message });
   };
 
   const handlePaymentSent = async (amount: number, note: string) => {
