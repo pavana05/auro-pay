@@ -117,14 +117,7 @@ const ExpenseAnalytics = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay pb-28">
-      <div className="px-5 pt-6 pb-4 animate-slide-up">
-        <div className="flex items-center gap-3">
-          <button onClick={() => { haptic.light(); back(); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-[18px] font-bold">Expense Analytics</h1>
-        </div>
-      </div>
+      <PageHeader title="Expense Analytics" sticky={false} fallback="/home" className="pt-6 pb-4" />
 
       {/* Period Selector */}
       <div className="px-5 mb-5 animate-slide-up-delay-1">

@@ -76,17 +76,11 @@ const ParentApprovals = () => {
 
   return (
     <div className="min-h-[100dvh] font-sora" style={{ background: "#0a0c0f", color: "#fff" }}>
-      <div className="px-5 pt-6 pb-4 flex items-center gap-3 sticky top-0 z-10" style={{ background: "rgba(10,12,15,0.85)", backdropFilter: "blur(12px)" }}>
-        <button onClick={back} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)" }}>
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-base font-semibold">Approval Requests</h1>
-          <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
-            Teens need your approval for payments over ₹2,000
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Approval Requests"
+        subtitle="Teens need your approval for payments over ₹2,000"
+        fallback="/parent"
+      />
 
       <div className="px-5 pb-24 pt-4 space-y-3">
         {loading && (

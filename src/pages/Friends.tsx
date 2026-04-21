@@ -131,15 +131,17 @@ const Friends = () => {
 
       {/* Header */}
       <div className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/[0.04]" style={{ background: "linear-gradient(180deg, hsl(220 18% 7%), hsl(220 18% 6% / 0.95))" }}>
-        <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => back()} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
-            <ChevronLeft className="w-5 h-5 text-muted-foreground/60" />
-          </button>
-          <h1 className="text-[18px] font-bold tracking-[-0.4px]">Friends</h1>
-          <button onClick={() => { haptic.light(); setShowAdd(true); }} className="w-[42px] h-[42px] rounded-[14px] bg-primary/10 border border-primary/15 flex items-center justify-center active:scale-90 transition-all">
-            <UserPlus className="w-5 h-5 text-primary" />
-          </button>
-        </div>
+        <PageHeader
+          title="Friends"
+          fallback="/profile"
+          sticky={false}
+          className="pb-4"
+          right={
+            <button onClick={() => { haptic.light(); setShowAdd(true); }} className="w-[42px] h-[42px] rounded-[14px] bg-primary/10 border border-primary/15 flex items-center justify-center active:scale-90 transition-all" aria-label="Add friend">
+              <UserPlus className="w-5 h-5 text-primary" />
+            </button>
+          }
+        />
 
         {/* Tabs */}
         <div className="flex px-5 gap-2 pb-3">

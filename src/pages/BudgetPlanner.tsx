@@ -88,21 +88,14 @@ const BudgetPlanner = () => {
 
       <div className="relative z-10 px-5">
         {/* Header */}
-        <div className="pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+        <PageHeader
+          title="Budget Planner"
+          subtitle={new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+          sticky={false}
+          fallback="/home"
+        />
+        <div className="hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => { haptic.light(); back(); }}
-                className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
-                style={{ background: "hsl(220 15% 8%)" }}>
-                <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
-              </button>
-              <div>
-                <h1 className="text-[19px] font-bold tracking-[-0.5px]">Budget Planner</h1>
-                <p className="text-[10px] text-white/30 font-medium">
-                  {new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-                </p>
-              </div>
-            </div>
             <button onClick={() => { haptic.light(); setShowCreate(true); }}
               className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
               style={{

@@ -165,20 +165,17 @@ const ParentTeenDetail = () => {
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={back} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <div className="flex items-center gap-3 flex-1">
+      <PageHeader
+        title={teen?.full_name || "Teen"}
+        subtitle={teen?.phone || "Teen Account"}
+        fallback="/linked-teens"
+        sticky={false}
+        right={
           <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">
             {initials}
           </div>
-          <div>
-            <p className="text-lg font-semibold">{teen?.full_name}</p>
-            <p className="text-xs text-muted-foreground">{teen?.phone || "Teen Account"}</p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Balance Card */}
       <div className={`gradient-card rounded-lg p-5 mb-4 card-glow border border-border ${wallet?.is_frozen ? "opacity-60 grayscale" : ""}`}>

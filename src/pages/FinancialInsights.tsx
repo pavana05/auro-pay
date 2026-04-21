@@ -243,21 +243,12 @@ export default function FinancialInsights() {
       `}</style>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 backdrop-blur-xl bg-background/80 border-b border-white/[0.04]">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <button
-            onClick={() => { haptic.light(); back(); }}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition"
-            aria-label="Back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-base font-semibold tracking-tight">Financial Insights</h1>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Smart money analytics</p>
-          </div>
-          <Sparkles className="w-4 h-4 text-primary" />
-        </div>
+      <PageHeader
+        title="Financial Insights"
+        subtitle="Smart money analytics"
+        fallback="/home"
+        right={<Sparkles className="w-4 h-4 text-primary" />}
+      />
       </header>
 
       <main className="px-4 pt-4 space-y-4">
