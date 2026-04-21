@@ -68,6 +68,7 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
 }
 
 export default function Comparison() {
+  const reduceMotion = useReducedMotion();
   return (
     <section className="relative py-32 px-6 lg:px-12">
       <div className="max-w-6xl mx-auto">
