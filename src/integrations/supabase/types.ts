@@ -888,11 +888,14 @@ export type Database = {
         Row: {
           aadhaar_verified: boolean | null
           avatar_url: string | null
+          blocked_at: string | null
+          blocked_by: string | null
           city: string | null
           created_at: string | null
           full_name: string | null
           haptics_enabled: boolean
           id: string
+          is_blocked: boolean
           kyc_status: string | null
           phone: string | null
           pin_hash: string | null
@@ -905,11 +908,14 @@ export type Database = {
         Insert: {
           aadhaar_verified?: boolean | null
           avatar_url?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           city?: string | null
           created_at?: string | null
           full_name?: string | null
           haptics_enabled?: boolean
           id: string
+          is_blocked?: boolean
           kyc_status?: string | null
           phone?: string | null
           pin_hash?: string | null
@@ -922,11 +928,14 @@ export type Database = {
         Update: {
           aadhaar_verified?: boolean | null
           avatar_url?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           city?: string | null
           created_at?: string | null
           full_name?: string | null
           haptics_enabled?: boolean
           id?: string
+          is_blocked?: boolean
           kyc_status?: string | null
           phone?: string | null
           pin_hash?: string | null
@@ -1646,6 +1655,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      is_user_blocked: { Args: { _user_id: string }; Returns: boolean }
       lookup_teen_by_phone: {
         Args: { _phone: string }
         Returns: {
