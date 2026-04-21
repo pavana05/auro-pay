@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Check, X, Minus } from "lucide-react";
 import PremiumHeading from "../PremiumHeading";
 
@@ -22,7 +22,7 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
   if (c.type === "yes") {
     return (
       <div className="flex items-center gap-2.5">
-        <motion.div
+        <div
           className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
           style={{
             background: primary
@@ -32,15 +32,9 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
               ? "0 0 18px rgba(200,149,46,0.55), inset 0 1px 0 rgba(255,255,255,0.4)"
               : "inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
-          animate={primary ? { boxShadow: [
-            "0 0 14px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
-            "0 0 24px rgba(200,149,46,0.75), inset 0 1px 0 rgba(255,255,255,0.5)",
-            "0 0 14px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
-          ] } : {}}
-          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
         >
           <Check size={13} className={primary ? "text-black" : "text-emerald-300"} strokeWidth={3} />
-        </motion.div>
+        </div>
         {c.text && <span className={`text-sm ${primary ? "text-white" : "text-white/70"}`}>{c.text}</span>}
       </div>
     );
@@ -68,7 +62,6 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
 }
 
 export default function Comparison() {
-  const reduceMotion = useReducedMotion();
   return (
     <section className="relative py-32 px-6 lg:px-12">
       <div className="max-w-6xl mx-auto">
@@ -102,35 +95,8 @@ export default function Comparison() {
             boxShadow: "0 50px 120px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)",
           }}
         >
-          {/* Slow shimmer sweep across whole table */}
-          {!reduceMotion && (
-            <motion.div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none z-[1]"
-              style={{
-                background: "linear-gradient(110deg, transparent 35%, rgba(255,231,170,0.07) 50%, transparent 65%)",
-                backgroundSize: "220% 100%",
-              }}
-              animate={{ backgroundPositionX: ["220%", "-100%"] }}
-              transition={{ duration: 6, repeat: Infinity, repeatDelay: 4, ease: "easeInOut" }}
-            />
-          )}
-          {/* Ambient pulse glow behind AuroPay column header */}
-          <motion.div
-            aria-hidden
-            className="absolute pointer-events-none rounded-full blur-3xl"
-            style={{
-              background: "rgba(200,149,46,0.45)",
-              width: 220, height: 160,
-              top: -40,
-              left: "calc(50% - 110px)",
-            }}
-            animate={reduceMotion ? { opacity: 0.18 } : { opacity: [0.15, 0.32, 0.15], scale: [1, 1.1, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          />
-
           {/* Header */}
-          <div className="grid grid-cols-[1.3fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr] border-b relative z-[2]" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+          <div className="grid grid-cols-[1.3fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr] border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
             <div className="p-3 sm:p-7 text-[10px] sm:text-[11px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-white/40 font-semibold flex items-center">
               Feature
             </div>
@@ -138,14 +104,12 @@ export default function Comparison() {
               className="relative p-3 sm:p-7 flex items-center gap-1.5 sm:gap-2.5 min-w-0"
               style={{ background: "linear-gradient(180deg, rgba(200,149,46,0.14), rgba(200,149,46,0.02))" }}
             >
-              <motion.div
+              <div
                 className="hidden sm:block w-7 h-7 rounded-xl shrink-0"
                 style={{
                   background: "conic-gradient(from 220deg, #c8952e, #fff7e3, #c8952e, #8a6520, #c8952e)",
                   boxShadow: "0 0 20px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
                 }}
-                animate={reduceMotion ? {} : { rotate: 360 }}
-                transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
               />
               <div className="text-white font-semibold tracking-tight text-sm sm:text-base truncate" style={{ fontFamily: "Sora, sans-serif" }}>AuroPay</div>
               <span
