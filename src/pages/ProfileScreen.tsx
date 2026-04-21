@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   User, Shield, Users, Gauge, Bell, Gift, Headphones, FileText, Info, LogOut,
-  ChevronRight, Pencil, BadgeCheck, Camera as CameraIcon, Image as ImageIcon, X, TrendingDown, TrendingUp,
+  ChevronRight, Pencil, BadgeCheck, Camera as CameraIcon, Image as ImageIcon, X, TrendingDown, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
@@ -166,12 +166,15 @@ const ProfileScreen = () => {
   const [showSource, setShowSource] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+      const identities = (user as any).identities ?? [];
+      setGoogleLinked(identities.some((i: any) => i.provider === "google"));
 
       const [pRes, wRes, gRes, nRes, ptlRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
@@ -442,18 +445,28 @@ const ProfileScreen = () => {
                     </button>
                   );
                 })()}
-                {profile?.kyc_status === "verified" ? (
-                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
-                    <BadgeCheck className="w-3 h-3" />
-                    KYC Verified
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 60%)" }}>
-                    KYC {profile?.kyc_status || "pending"}
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                  {profile?.kyc_status === "verified" ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
+                      <BadgeCheck className="w-3 h-3" />
+                      KYC Verified
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 60%)" }}>
+                      KYC {profile?.kyc_status || "pending"}
+                    </div>
+                  )}
+                  {googleLinked && profile?.phone && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}
+                      title="Phone + Google linked — extra recovery enabled">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Google linked
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -2,28 +2,30 @@
 // Lets the user link a Google identity to their account for extra security,
 // or skip and continue to the normal post-login flow (KYC → home).
 //
+// MANDATORY for high-value accounts (wallet balance ≥ MANDATORY_THRESHOLD):
+// the "Skip" option is hidden so account-recovery is always available.
+//
 // Flow:
 //   AuthScreen (phone+OTP success) → /link-google → /verify-kyc → /home or /parent
-//
-// We mark the step as "seen" in localStorage so returning users aren't nagged
-// every session — they only see it once after first phone login (or until they
-// explicitly link).
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2, ArrowRight } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight, ShieldAlert } from "lucide-react";
 
 const SEEN_KEY = "auropay_google_link_seen";
+// Above this balance (in paisa), Google linking is mandatory.
+// ₹10,000 = 1,000,000 paisa.
+export const MANDATORY_LINK_BALANCE_PAISA = 1_000_000;
 
 const LinkGoogle = () => {
   const navigate = useNavigate();
   const [linking, setLinking] = useState(false);
   const [hasGoogle, setHasGoogle] = useState(false);
+  const [mandatory, setMandatory] = useState(false);
+  const [balance, setBalance] = useState(0);
 
-  // If the user already has a Google identity linked (e.g. previously linked,
-  // or signed up with Google), skip this screen entirely.
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,21 +34,26 @@ const LinkGoogle = () => {
       if (identities.some((i: any) => i.provider === "google")) {
         setHasGoogle(true);
         proceed();
+        return;
       }
+      // Check wallet balance to decide if linking is mandatory.
+      const { data: wallet } = await supabase
+        .from("wallets").select("balance").eq("user_id", user.id).maybeSingle();
+      const bal = wallet?.balance || 0;
+      setBalance(bal);
+      setMandatory(bal >= MANDATORY_LINK_BALANCE_PAISA);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const proceed = () => {
     try { localStorage.setItem(SEEN_KEY, "1"); } catch {}
-    navigate("/auth", { replace: true }); // Index will re-route by role/KYC.
+    navigate("/auth", { replace: true });
   };
 
   const linkGoogle = async () => {
     setLinking(true);
     try {
-      // The Lovable OAuth helper will redirect; on return Supabase merges the
-      // Google identity into the existing phone-authenticated session.
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin + "/auth",
       });
@@ -55,7 +62,7 @@ const LinkGoogle = () => {
         setLinking(false);
         return;
       }
-      if (result.redirected) return; // browser is redirecting
+      if (result.redirected) return;
       toast.success("Google linked — your account is now extra secure");
       proceed();
     } catch (err: any) {
@@ -97,11 +104,27 @@ const LinkGoogle = () => {
         </div>
 
         <h2 className="text-[20px] font-bold text-white text-center mb-1">
-          Add extra security
+          {mandatory ? "Required: Add recovery" : "Add extra security"}
         </h2>
-        <p className="text-[12px] text-white/60 text-center mb-6">
+        <p className="text-[12px] text-white/60 text-center mb-4">
           Link your Google account so you can recover access if you lose your phone.
         </p>
+
+        {mandatory && (
+          <div
+            className="flex items-start gap-2 p-3 rounded-xl mb-5"
+            style={{
+              background: "hsl(38 92% 50% / 0.1)",
+              border: "1px solid hsl(38 92% 50% / 0.3)",
+            }}
+          >
+            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(38 92% 60%)" }} />
+            <p className="text-[11px] text-white/80 leading-relaxed">
+              Your wallet balance (₹{(balance / 100).toLocaleString("en-IN")}) requires Google linking
+              to keep your funds recoverable. This step can't be skipped.
+            </p>
+          </div>
+        )}
 
         <button
           onClick={linkGoogle}
@@ -123,16 +146,20 @@ const LinkGoogle = () => {
           )}
         </button>
 
-        <button
-          onClick={proceed}
-          disabled={linking}
-          className="w-full h-11 flex items-center justify-center gap-1 text-[12px] text-white/50 hover:text-white/80 transition disabled:opacity-50"
-        >
-          Skip for now <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        {!mandatory && (
+          <button
+            onClick={proceed}
+            disabled={linking}
+            className="w-full h-11 flex items-center justify-center gap-1 text-[12px] text-white/50 hover:text-white/80 transition disabled:opacity-50"
+          >
+            Skip for now <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         <p className="mt-4 text-[10px] text-white/30 text-center">
-          You can link it later from Profile → Security.
+          {mandatory
+            ? "High-balance accounts must have account recovery enabled."
+            : "You can link it later from Profile → Security."}
         </p>
       </div>
     </div>
