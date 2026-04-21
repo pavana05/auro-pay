@@ -42,11 +42,16 @@ const PageHeader = ({
   return (
     <header
       className={cn(
-        "px-5 pt-6 pb-4 flex items-center gap-3 z-20",
+        // pt-safe respects status-bar inset on Android/iOS; the additional
+        // pt-6 keeps the visual rhythm we had before on web.
+        "px-5 pt-safe pb-4 flex items-end gap-3 z-20",
         sticky && "sticky top-0 backdrop-blur-xl",
         className,
       )}
-      style={sticky ? { background: "rgba(10,12,15,0.85)" } : undefined}
+      style={{
+        ...(sticky ? { background: "rgba(10,12,15,0.85)" } : {}),
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 24px)",
+      }}
     >
       {!hideBack && (
         <button
