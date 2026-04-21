@@ -1,6 +1,7 @@
 // Pay your share of a bill split. Debits the caller's wallet, marks them paid,
 // auto-settles the split when everyone has paid, notifies the creator.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { resolvePaymentLocation, withLocation } from "../_shared/payment-location.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { split_id } = await req.json();
+    const { split_id, client_location } = await req.json();
     if (!split_id || typeof split_id !== "string") return json({ error: "split_id required" }, 400);
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -73,6 +74,9 @@ Deno.serve(async (req) => {
     }).eq("id", wallet.id);
     if (debitErr) return json({ error: "Payment failed" }, 500);
 
+    // Resolve location once for both legs of the split-pay
+    const loc = await resolvePaymentLocation(req, client_location);
+
     // Credit creator wallet (if exists)
     const { data: creatorWallet } = await admin
       .from("wallets").select("*").eq("user_id", split.created_by).maybeSingle();
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
         balance: (creatorWallet.balance || 0) + amount,
       }).eq("id", creatorWallet.id);
 
-      await admin.from("transactions").insert({
+      await admin.from("transactions").insert(withLocation({
         wallet_id: creatorWallet.id,
         type: "credit",
         amount,
@@ -89,7 +93,7 @@ Deno.serve(async (req) => {
         category: "bill_split",
         merchant_name: `Split: ${split.title}`,
         description: `Share received for "${split.title}"`,
-      });
+      }, loc));
 
       await admin.from("notifications").insert({
         user_id: split.created_by,
@@ -100,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     // Sender debit transaction
-    await admin.from("transactions").insert({
+    await admin.from("transactions").insert(withLocation({
       wallet_id: wallet.id,
       type: "debit",
       amount,
@@ -108,7 +112,7 @@ Deno.serve(async (req) => {
       category: "bill_split",
       merchant_name: `Split: ${split.title}`,
       description: `Your share of "${split.title}"`,
-    });
+    }, loc));
 
     // Mark paid
     await admin.from("bill_split_members").update({

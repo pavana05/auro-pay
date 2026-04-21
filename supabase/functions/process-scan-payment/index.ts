@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { resolvePaymentLocation, withLocation } from "../_shared/payment-location.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { upi_id, payee_name, amount, category, note, pin, approval_id } = await req.json();
+    const { upi_id, payee_name, amount, category, note, pin, approval_id, client_location } = await req.json();
 
     if (!upi_id || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Invalid payment details" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -134,8 +135,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Resolve payment location (GPS from client, fallback to IP)
+    const loc = await resolvePaymentLocation(req, client_location);
+
     // Create transaction
-    const { data: tx, error: txErr } = await supabase.from("transactions").insert({
+    const { data: tx, error: txErr } = await supabase.from("transactions").insert(withLocation({
       wallet_id: wallet.id,
       type: "debit",
       amount: amountPaise,
@@ -144,7 +148,7 @@ Deno.serve(async (req) => {
       category: category || "other",
       status: "success",
       description: note || `Payment to ${payee_name || upi_id}`,
-    }).select().single();
+    }, loc)).select().single();
 
     if (txErr) throw txErr;
 
