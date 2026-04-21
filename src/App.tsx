@@ -181,6 +181,7 @@ const App = () => (
         }}
       />
       <BrowserRouter>
+        <ErrorBoundary label="App">
         <NativeShell />
         <DeepLinkHandler />
         <AuthRedirector />
@@ -294,6 +295,7 @@ const App = () => (
           </Routes>
         </MaintenanceGate>
         </RealtimeWrapper>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
     </DataCacheProvider>
