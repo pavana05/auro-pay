@@ -35,7 +35,7 @@ const ParentBottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40 hide-when-kb-open">
       <div className="absolute inset-0 bg-secondary/95 backdrop-blur-2xl border-t border-border rounded-t-2xl" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[1px]"
         style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.4), transparent)" }} />
