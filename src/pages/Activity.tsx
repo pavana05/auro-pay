@@ -8,10 +8,11 @@ import {
   ChevronDown, ArrowUpRight, ArrowDownLeft, Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { haptic } from "@/lib/haptics";
 import BottomNav from "@/components/BottomNav";
 import SwipeActionRow from "@/components/SwipeActionRow";
+import { SkeletonRow, EmptyState } from "@/components/feedback";
 
 interface Txn {
   id: string;
@@ -135,7 +136,7 @@ const Activity = () => {
       .order("created_at", { ascending: false })
       .range(start, end);
     if (error) {
-      toast.error("Couldn't load transactions", { description: error.message });
+      toast.fail("Couldn't load transactions", { description: error.message });
       if (replace) setLoading(false); else setLoadingMore(false);
       return;
     }
@@ -227,7 +228,7 @@ const Activity = () => {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     haptic.light();
-    toast.success(`${label} copied`);
+    toast.ok(`${label} copied`);
   };
 
   const downloadReceipt = (tx: Txn) => {
@@ -250,7 +251,7 @@ const Activity = () => {
     a.href = url; a.download = `receipt_${tx.id.slice(0, 8)}.txt`; a.click();
     URL.revokeObjectURL(url);
     haptic.success();
-    toast.success("Receipt downloaded");
+    toast.ok("Receipt downloaded");
   };
 
   const clearChips = !!(category || direction !== "all" || search || pinnedDay);
@@ -302,7 +303,7 @@ const Activity = () => {
                 <X className="w-3.5 h-3.5 text-white/50" />
               </button>
             )}
-            <button onClick={() => toast("Voice search coming soon")}
+            <button onClick={() => toast.info("Voice search coming soon")}
               className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition"
               style={{ background: "hsl(var(--primary) / 0.12)" }}>
               <Mic className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
@@ -417,20 +418,14 @@ const Activity = () => {
       <div className="relative z-10 px-5 mt-5">
         {loading ? (
           <div className="space-y-2">
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} className="h-[64px] rounded-[14px] bg-white/[0.03] animate-pulse" />
-            ))}
+            {[0, 1, 2, 3].map(i => <SkeletonRow key={i} />)}
           </div>
         ) : groups.length === 0 ? (
-          <div className="rounded-[18px] border border-white/[0.05] p-8 text-center"
-            style={{ background: "hsl(220 15% 7%)" }}>
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center"
-              style={{ background: "hsl(var(--primary) / 0.1)" }}>
-              <Filter className="w-6 h-6" style={{ color: "hsl(var(--primary))" }} />
-            </div>
-            <p className="text-[14px] font-semibold mb-1">No transactions found</p>
-            <p className="text-[11px] text-white/40">Try adjusting your filters or date range</p>
-          </div>
+          <EmptyState
+            icon={<Filter className="w-6 h-6 text-primary" />}
+            title="No transactions found"
+            description="Try adjusting your filters or date range to see more activity."
+          />
         ) : (
           <div className="space-y-5">
             {groups.map(g => (

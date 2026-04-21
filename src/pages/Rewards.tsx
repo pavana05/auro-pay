@@ -5,7 +5,8 @@ import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { SkeletonRow, EmptyState } from "@/components/feedback";
 
 interface Reward {
   id: string;
@@ -64,7 +65,7 @@ const Rewards = () => {
     navigator.clipboard.writeText(code);
     haptic.success();
     setCopiedId(id);
-    toast.success("Coupon code copied!");
+    toast.ok("Coupon code copied");
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -162,24 +163,15 @@ const Rewards = () => {
 
         {/* Rewards List */}
         {loading ? (
-          <div className="space-y-4 pt-2">
-            {[1,2,3].map(i => (
-              <div key={i} className="h-36 rounded-2xl overflow-hidden relative border border-white/[0.04]">
-                <div className="absolute inset-0 bg-white/[0.02]" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
-              </div>
-            ))}
+          <div className="space-y-3 pt-2">
+            {[1,2,3].map(i => <SkeletonRow key={i} className="h-36" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-20 gap-5" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s both" }}>
-            <div className="relative">
-              <div className="absolute inset-0 scale-150 bg-primary/10 rounded-2xl blur-2xl" style={{ animation: "admin-glow-pulse 3s ease-in-out infinite" }} />
-              <div className="relative w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center" style={{ animation: "admin-float 4s ease-in-out infinite" }}>
-                <Gift className="w-10 h-10 text-muted-foreground/30" />
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">No rewards available</p>
-          </div>
+          <EmptyState
+            icon={<Gift className="w-6 h-6 text-primary/70" />}
+            title="No rewards available"
+            description="Check back soon — new offers drop every week."
+          />
         ) : (
           <div className="space-y-3 pt-1">
             {filtered.map((r, i) => {
