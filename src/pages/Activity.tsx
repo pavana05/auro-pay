@@ -30,7 +30,7 @@ interface Txn {
 type DirectionFilter = "all" | "sent" | "received";
 type DateRange = "week" | "month" | "custom";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
 const CATEGORIES = [
   { key: "food", label: "Food", icon: "🍔" },
@@ -71,10 +71,14 @@ const groupLabel = (iso: string) => {
 
 const Activity = () => {
   const navigate = useNavigate();
+  // Server-paginated transactions (20 per page, IntersectionObserver trigger).
+  // Refetched from page 0 whenever the date range changes.
   const [allTx, setAllTx] = useState<Txn[]>([]);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [walletId, setWalletId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [direction, setDirection] = useState<DirectionFilter>("all");
@@ -103,27 +107,45 @@ const Activity = () => {
     return { from: f, to: t };
   }, [range, customFrom, customTo]);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-    const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).maybeSingle();
-    if (!wallet) { setLoading(false); return; }
-    const { data } = await supabase
+  // Resolve the wallet id once.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data: w } = await supabase.from("wallets").select("id").eq("user_id", user.id).maybeSingle();
+      if (w) setWalletId(w.id);
+      else setLoading(false);
+    })();
+  }, []);
+
+  // Fetch a single page of transactions for the active range.
+  const fetchPage = useCallback(async (pageIdx: number, replace: boolean) => {
+    if (!walletId) return;
+    if (replace) setLoading(true); else setLoadingMore(true);
+    const start = pageIdx * PAGE_SIZE;
+    const end = start + PAGE_SIZE - 1;
+    const { data, error } = await supabase
       .from("transactions")
-      .select("*")
-      .eq("wallet_id", wallet.id)
+      .select("id, wallet_id, type, amount, status, category, description, merchant_name, merchant_upi_id, razorpay_payment_id, razorpay_order_id, created_at")
+      .eq("wallet_id", walletId)
       .gte("created_at", from.toISOString())
       .lte("created_at", to.toISOString())
       .order("created_at", { ascending: false })
-      .limit(500);
-    setAllTx((data || []) as Txn[]);
-    setVisibleCount(PAGE_SIZE);
-    setPinnedDay(null);
-    setLoading(false);
-  }, [from, to]);
+      .range(start, end);
+    if (error) {
+      toast.error("Couldn't load transactions", { description: error.message });
+      if (replace) setLoading(false); else setLoadingMore(false);
+      return;
+    }
+    const rows = (data || []) as Txn[];
+    setHasMore(rows.length === PAGE_SIZE);
+    setAllTx(prev => replace ? rows : [...prev, ...rows]);
+    if (replace) { setPage(0); setPinnedDay(null); setLoading(false); }
+    else { setLoadingMore(false); }
+  }, [walletId, from, to]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  // Reset + reload when wallet or date range changes.
+  useEffect(() => { if (walletId) fetchPage(0, true); }, [walletId, from, to, fetchPage]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
