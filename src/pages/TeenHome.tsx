@@ -95,6 +95,7 @@ const TeenHome = () => {
 
   // Resolve current user id once so the cache key is stable.
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [allServicesOpen, setAllServicesOpen] = useState(false);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id ?? null));
   }, []);
