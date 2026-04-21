@@ -1,12 +1,16 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Phone, Video } from "lucide-react";
+import { ChevronLeft, Phone, Video, MessageCircle } from "lucide-react";
 import MessageBubble from "@/components/chat/MessageBubble";
 import ChatInput from "@/components/chat/ChatInput";
 import PaymentCard from "@/components/chat/PaymentCard";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import { haptic } from "@/lib/haptics";
+import { toast } from "@/lib/toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/feedback";
+import { useNativeBack } from "@/lib/native-back";
 
 interface Message {
   id: string;
@@ -48,6 +52,9 @@ const ChatRoom = () => {
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Hardware back closes the payment sheet first, then leaves the chat.
+  useNativeBack(showPayment, () => setShowPayment(false));
 
   useEffect(() => {
     if (!conversationId) return;
@@ -107,34 +114,43 @@ const ChatRoom = () => {
   }, [conversationId, recipientId]);
 
   const loadChat = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !conversationId) return;
-    setUserId(user.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !conversationId) return;
+      setUserId(user.id);
 
-    const { data: members } = await supabase
-      .from("conversation_members").select("user_id, last_read_at")
-      .eq("conversation_id", conversationId).neq("user_id", user.id);
+      const { data: members, error: memErr } = await supabase
+        .from("conversation_members").select("user_id, last_read_at")
+        .eq("conversation_id", conversationId).neq("user_id", user.id);
 
-    if (members?.length) {
-      const otherId = members[0].user_id;
-      setRecipientId(otherId);
-      setLastReadAt(members[0].last_read_at);
-      const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
-      setRecipientName(profile?.full_name || "User");
-      setRecipientAvatar(profile?.avatar_url || null);
+      if (memErr) throw memErr;
+
+      if (members?.length) {
+        const otherId = members[0].user_id;
+        setRecipientId(otherId);
+        setLastReadAt(members[0].last_read_at);
+        const { data: profile } = await supabase
+          .from("profiles").select("full_name, avatar_url").eq("id", otherId).maybeSingle();
+        setRecipientName(profile?.full_name || "User");
+        setRecipientAvatar(profile?.avatar_url || null);
+      }
+
+      const { data: msgs, error: msgErr } = await supabase
+        .from("messages").select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true }).limit(100);
+
+      if (msgErr) throw msgErr;
+      setMessages(msgs || []);
+
+      await supabase.from("conversation_members")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId).eq("user_id", user.id);
+    } catch (err: any) {
+      toast.fail("Couldn't load chat", { description: err?.message });
+    } finally {
+      setLoading(false);
     }
-
-    const { data: msgs } = await supabase
-      .from("messages").select("*")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true }).limit(100);
-
-    setMessages(msgs || []);
-    setLoading(false);
-
-    await supabase.from("conversation_members")
-      .update({ last_read_at: new Date().toISOString() })
-      .eq("conversation_id", conversationId).eq("user_id", user.id);
   };
 
   const scrollToBottom = () => {
@@ -149,15 +165,16 @@ const ChatRoom = () => {
 
   const sendText = async (text: string) => {
     if (!conversationId || !userId) return;
-    await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, content: text, message_type: "text" });
-    // Simulate recipient typing after a delay
+    const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, content: text, message_type: "text" });
+    if (error) { toast.fail("Couldn't send message", { description: error.message }); return; }
     setTimeout(() => setIsTyping(true), 1500);
     setTimeout(() => setIsTyping(false), 4000);
   };
 
   const sendVoice = async (url: string) => {
     if (!conversationId || !userId) return;
-    await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, message_type: "voice", voice_url: url });
+    const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, message_type: "voice", voice_url: url });
+    if (error) toast.fail("Couldn't send voice note", { description: error.message });
   };
 
   const handlePaymentSent = async (amount: number, note: string) => {
@@ -207,7 +224,7 @@ const ChatRoom = () => {
 
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-4 py-3 pt-14 border-b border-white/[0.04]" style={{ background: "linear-gradient(180deg, hsl(220 18% 7%), hsl(220 18% 6%))" }}>
-        <button onClick={() => navigate("/chats")} className="w-[38px] h-[38px] rounded-[12px] bg-white/[0.04] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+        <button onClick={() => navigate("/chats")} aria-label="Back to chats" className="w-[38px] h-[38px] rounded-[12px] bg-white/[0.04] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
           <ChevronLeft className="w-5 h-5 text-muted-foreground/60" />
         </button>
 
@@ -238,20 +255,24 @@ const ChatRoom = () => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+          <button aria-label="Voice call" className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
             <Phone className="w-4 h-4 text-primary/70" />
           </button>
-          <button className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+          <button aria-label="Video call" className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
             <Video className="w-4 h-4 text-primary/70" />
           </button>
         </div>
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 relative z-10">
+      <div className="flex-1 overflow-y-auto px-4 py-3 relative z-10" role="log" aria-live="polite" aria-label={`Chat with ${recipientName}`}>
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="space-y-3 pt-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                <Skeleton className={`h-10 ${i % 2 === 0 ? "w-48" : "w-32"} rounded-2xl`} />
+              </div>
+            ))}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
@@ -259,7 +280,7 @@ const ChatRoom = () => {
               {recipientAvatar ? (
                 <img src={recipientAvatar} alt="" className="w-12 h-12 rounded-full" />
               ) : (
-                <span className="text-xl font-bold text-primary">{getInitials(recipientName)}</span>
+                <MessageCircle className="w-7 h-7 text-primary" />
               )}
             </div>
             <p className="text-[13px] text-muted-foreground/40">Say hello to {recipientName}! 👋</p>
@@ -297,13 +318,15 @@ const ChatRoom = () => {
       {/* Payment panel */}
       {showPayment && (
         <div className="px-4 pb-2 relative z-10">
-          <PaymentCard
-            recipientId={recipientId}
-            recipientName={recipientName}
-            conversationId={conversationId || ""}
-            onPaymentSent={handlePaymentSent}
-            onClose={() => setShowPayment(false)}
-          />
+          <ErrorBoundary label="Payment panel" onRetry={() => setShowPayment(false)}>
+            <PaymentCard
+              recipientId={recipientId}
+              recipientName={recipientName}
+              conversationId={conversationId || ""}
+              onPaymentSent={handlePaymentSent}
+              onClose={() => setShowPayment(false)}
+            />
+          </ErrorBoundary>
         </div>
       )}
 
