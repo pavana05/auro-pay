@@ -163,12 +163,38 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
             <motion.div initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ delay: 0.45, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-block">
+              className="inline-block relative">
               <span style={{
                 backgroundImage: "linear-gradient(180deg,#fff7e3 0%,#ffffff 30%,#e0b048 70%,#c8952e 100%)",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 textShadow: "0 0 40px rgba(200,149,46,0.25)",
               }}>spend smart</span>
+              {/* Shimmer sweep across the gold word */}
+              {!reduceMotion && (
+                <motion.span
+                  aria-hidden
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)",
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                    backgroundSize: "200% 100%",
+                  }}
+                  initial={{ backgroundPositionX: "200%" }}
+                  animate={{ backgroundPositionX: "-100%" }}
+                  transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut", delay: 1.5 }}
+                >
+                  spend smart
+                </motion.span>
+              )}
+              {/* Underline accent — draws in once */}
+              <motion.span
+                aria-hidden
+                className="absolute left-0 right-0 -bottom-1 h-[3px] rounded-full origin-left"
+                style={{ background: "linear-gradient(90deg, transparent, #c8952e, #e0b048, transparent)", boxShadow: "0 0 14px rgba(200,149,46,0.6)" }}
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 1 }}
+                transition={{ delay: 1.2, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+              />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
