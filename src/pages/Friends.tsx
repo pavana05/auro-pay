@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { EmptyState } from "@/components/feedback";
 
 interface Friend {
   id: string;
@@ -86,8 +87,8 @@ const Friends = () => {
   const sendRequest = async () => {
     if (!searchPhone) return;
     const { data: profile } = await supabase.from("profiles").select("id").eq("phone", searchPhone).maybeSingle();
-    if (!profile) { toast.error("User not found"); return; }
-    if (profile.id === userId) { toast.error("Can't add yourself!"); return; }
+    if (!profile) { toast.fail("User not found"); return; }
+    if (profile.id === userId) { toast.fail("Can't add yourself"); return; }
 
     const { error } = await supabase.from("friendships").insert({
       user_id: userId,
@@ -97,11 +98,11 @@ const Friends = () => {
 
     if (!error) {
       haptic.success();
-      toast.success("Friend request sent! 🎉");
+      toast.ok("Friend request sent");
       setShowAdd(false);
       setSearchPhone("");
     } else {
-      toast.error("Already sent or already friends");
+      toast.fail("Couldn't send request", { description: "Already sent or already friends" });
     }
   };
 
@@ -109,7 +110,7 @@ const Friends = () => {
     haptic.medium();
     if (accept) {
       await supabase.from("friendships").update({ status: "accepted" }).eq("id", id);
-      toast.success("Friend added! 🤝");
+      toast.ok("Friend added");
     } else {
       await supabase.from("friendships").update({ status: "rejected" }).eq("id", id);
     }
@@ -278,16 +279,16 @@ const Friends = () => {
 
         {tab === "friends" && !loading && friends.length === 0 && (
           <SpringIn delay={0.1}>
-            <div className="flex flex-col items-center py-16 gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-primary/[0.04] border border-primary/[0.08] flex items-center justify-center">
-                <Users className="w-10 h-10 text-primary/30" />
-              </div>
-              <p className="text-[13px] font-semibold">No friends yet</p>
-              <p className="text-xs text-muted-foreground/30">Add someone to get started!</p>
-              <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-[14px] bg-primary/10 text-primary text-xs font-semibold flex items-center gap-2 active:scale-95 transition-all">
-                <UserPlus className="w-3.5 h-3.5" /> Add Friend
-              </button>
-            </div>
+            <EmptyState
+              icon={<Users className="w-6 h-6 text-primary/70" />}
+              title="No friends yet"
+              description="Add someone by phone number to start sending money and chatting."
+              action={
+                <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-[14px] bg-primary/10 text-primary text-xs font-semibold flex items-center gap-2 active:scale-95 transition-all">
+                  <UserPlus className="w-3.5 h-3.5" /> Add friend
+                </button>
+              }
+            />
           </SpringIn>
         )}
       </div>
