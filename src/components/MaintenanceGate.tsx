@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Wrench, ShieldCheck } from "lucide-react";
+import { setDiagnosticsGate } from "@/lib/app-diagnostics";
 
 /**
  * Site-wide gate that shows a maintenance splash to all non-admin users
@@ -14,14 +15,25 @@ export const MaintenanceGate = ({ children }: { children: ReactNode }) => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const location = useLocation();
 
-  if (settingsLoading || adminLoading) return <>{children}</>;
+  if (settingsLoading || adminLoading) {
+    setDiagnosticsGate("maintenance", { state: "loading", detail: "Waiting for settings/admin state" });
+    return <>{children}</>;
+  }
 
   const maintenance = isOn("maintenance_mode");
   const allowedPath =
     location.pathname === "/reset-password" ||
     location.pathname.startsWith("/admin");
 
-  if (!maintenance || isAdmin || allowedPath) return <>{children}</>;
+  if (!maintenance || isAdmin || allowedPath) {
+    setDiagnosticsGate("maintenance", {
+      state: "open",
+      detail: !maintenance ? "Maintenance off" : isAdmin ? "Admin bypass" : `Allowed path: ${location.pathname}`,
+    });
+    return <>{children}</>;
+  }
+
+  setDiagnosticsGate("maintenance", { state: "blocked", detail: "Maintenance mode active" });
 
   return (
     <div
