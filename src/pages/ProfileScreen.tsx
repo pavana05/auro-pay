@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   User, Shield, Users, Gauge, Bell, Gift, Headphones, FileText, Info, LogOut,
-  ChevronRight, Pencil, BadgeCheck, Camera as CameraIcon, Image as ImageIcon, X, TrendingDown, TrendingUp,
+  ChevronRight, Pencil, BadgeCheck, Camera as CameraIcon, Image as ImageIcon, X, TrendingDown, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
