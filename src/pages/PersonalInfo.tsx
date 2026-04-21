@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, Check, Vibrate, Shield, ArrowRight, Loader2, Volume2 } from "lucide-react";
+import { Camera, Check, Vibrate, Shield, ArrowRight, Loader2, Volume2 } from "lucide-react";
 import { startKyc } from "@/lib/kyc";
 import { Browser } from "@capacitor/browser";
 
@@ -13,6 +13,7 @@ const openInAppBrowser = async (url: string) => {
 };
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import { Switch } from "@/components/ui/switch";
@@ -127,12 +128,7 @@ const PersonalInfo = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[22px] font-semibold">Personal Info</h1>
-      </div>
+      <PageHeader title="Personal Info" fallback="/profile" sticky={false} />
 
       {/* Avatar Upload */}
       <div className="flex flex-col items-center mb-8">

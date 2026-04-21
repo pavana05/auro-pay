@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles } from "lucide-react";
+import { Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -86,14 +87,7 @@ const SecurityPin = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="flex items-center gap-3 mb-6">
-        {!isSetupMode && (
-          <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        )}
-        <h1 className="text-[22px] font-semibold">{isSetupMode ? "Create Payment PIN" : "Security & PIN"}</h1>
-      </div>
+      <PageHeader title={isSetupMode ? "Create Payment PIN" : "Security & PIN"} hideBack={isSetupMode} fallback="/profile" sticky={false} />
 
       {isSetupMode && (
         <div className="rounded-xl p-4 mb-5 flex items-start gap-3"
