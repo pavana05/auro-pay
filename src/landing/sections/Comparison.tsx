@@ -22,7 +22,7 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
   if (c.type === "yes") {
     return (
       <div className="flex items-center gap-2.5">
-        <div
+        <motion.div
           className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
           style={{
             background: primary
@@ -32,9 +32,15 @@ function CellView({ c, primary }: { c: Cell; primary?: boolean }) {
               ? "0 0 18px rgba(200,149,46,0.55), inset 0 1px 0 rgba(255,255,255,0.4)"
               : "inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
+          animate={primary ? { boxShadow: [
+            "0 0 14px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
+            "0 0 24px rgba(200,149,46,0.75), inset 0 1px 0 rgba(255,255,255,0.5)",
+            "0 0 14px rgba(200,149,46,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
+          ] } : {}}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
         >
           <Check size={13} className={primary ? "text-black" : "text-emerald-300"} strokeWidth={3} />
-        </div>
+        </motion.div>
         {c.text && <span className={`text-sm ${primary ? "text-white" : "text-white/70"}`}>{c.text}</span>}
       </div>
     );
