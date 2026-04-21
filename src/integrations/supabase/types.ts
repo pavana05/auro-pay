@@ -949,6 +949,7 @@ export type Database = {
           is_blocked: boolean
           is_pro: boolean
           kyc_status: string | null
+          permissions_completed_at: string | null
           phone: string | null
           pin_hash: string | null
           pin_set_at: string | null
@@ -970,6 +971,7 @@ export type Database = {
           is_blocked?: boolean
           is_pro?: boolean
           kyc_status?: string | null
+          permissions_completed_at?: string | null
           phone?: string | null
           pin_hash?: string | null
           pin_set_at?: string | null
@@ -991,6 +993,7 @@ export type Database = {
           is_blocked?: boolean
           is_pro?: boolean
           kyc_status?: string | null
+          permissions_completed_at?: string | null
           phone?: string | null
           pin_hash?: string | null
           pin_set_at?: string | null
