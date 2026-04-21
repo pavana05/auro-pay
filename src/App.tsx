@@ -196,7 +196,7 @@ const App = () => (
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
-              <>
+              <WebAppGate>
                 <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
                   <PageTransition>
                     <Routes>
