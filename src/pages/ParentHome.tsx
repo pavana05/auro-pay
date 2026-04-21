@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
+import ParentBottomNav from "@/components/ParentBottomNav";
 import { useNavigate } from "react-router-dom";
 
 interface LinkedTeen {
@@ -118,7 +118,7 @@ const ParentHome = () => {
         <div className="flex gap-3 overflow-x-auto mb-6">
           {[1, 2].map(i => <div key={i} className="w-48 h-32 rounded-lg bg-muted animate-pulse shrink-0" />)}
         </div>
-        <BottomNav />
+        <ParentBottomNav />
       </div>
     );
   }
@@ -275,7 +275,7 @@ const ParentHome = () => {
         )}
       </div>
 
-      <BottomNav />
+      <ParentBottomNav />
     </div>
   );
 };
