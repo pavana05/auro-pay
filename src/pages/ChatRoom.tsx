@@ -53,6 +53,9 @@ const ChatRoom = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Hardware back closes the payment sheet first, then leaves the chat.
+  useNativeBack(showPayment, () => setShowPayment(false));
+
   useEffect(() => {
     if (!conversationId) return;
     loadChat();
