@@ -5,7 +5,8 @@ import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { EmptyState } from "@/components/feedback";
 
 interface Chore {
   id: string;
@@ -88,13 +89,13 @@ const Chores = () => {
     });
 
     if (!error) {
-      toast.success("Chore assigned!");
+      toast.ok("Chore assigned");
       haptic.success();
       setShowAdd(false);
       setNewChore({ title: "", description: "", reward_amount: 50, due_date: "", is_recurring: false, recurrence: "weekly" });
       fetchData();
     } else {
-      toast.error("Failed to add chore");
+      toast.fail("Couldn't add chore");
     }
   };
 
@@ -107,7 +108,7 @@ const Chores = () => {
     const { error } = await supabase.from("chores").update(updates).eq("id", choreId);
     if (!error) {
       if (newStatus === "approved") haptic.success();
-      toast.success(newStatus === "approved" ? "Chore approved! Reward sent 🎉" : `Status updated to ${newStatus}`);
+      toast.ok(newStatus === "approved" ? "Chore approved" : `Status updated`);
       fetchData();
     }
   };
@@ -237,10 +238,11 @@ const Chores = () => {
         </div>
 
         {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center py-16 gap-4">
-            <div className="text-4xl">📋</div>
-            <p className="text-sm text-muted-foreground">No chores here yet!</p>
-          </div>
+          <EmptyState
+            icon={<Sparkles className="w-6 h-6 text-primary/70" />}
+            title="No chores here yet"
+            description={userRole === "parent" ? "Tap + to assign your first chore." : "You're all caught up — check back soon."}
+          />
         )}
       </div>
 

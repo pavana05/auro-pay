@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
+import { SkeletonRow, EmptyState } from "@/components/feedback";
 
 interface ParentLink {
   id: string;
@@ -48,15 +49,13 @@ const LinkedParents = () => {
       <PageHeader title="Linked Parents" fallback="/profile" sticky={false} />
 
       {loading ? (
-        <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}</div>
+        <div className="space-y-3">{[1,2].map(i => <SkeletonRow key={i} className="h-24" />)}</div>
       ) : links.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground">No linked parents yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Ask your parent to link their account with yours</p>
-        </div>
+        <EmptyState
+          icon={<Users className="w-6 h-6 text-primary/70" />}
+          title="No linked parents yet"
+          description="Ask your parent to link their account with yours to start receiving pocket money."
+        />
       ) : (
         <div className="space-y-3">
           {links.map(link => (

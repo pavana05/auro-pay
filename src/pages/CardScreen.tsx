@@ -8,7 +8,8 @@ import {
   Globe, Wifi, Banknote, ShoppingBag, Delete, Lock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { SkeletonBalanceCard, SkeletonRow } from "@/components/zen/SkeletonRow";
 import { haptic } from "@/lib/haptics";
 import BottomNav from "@/components/BottomNav";
 
@@ -137,10 +138,10 @@ const CardScreen = () => {
     if (!wallet) return;
     const newFrozen = !wallet.is_frozen;
     const { error } = await supabase.from("wallets").update({ is_frozen: newFrozen }).eq("id", wallet.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.fail("Couldn't update card", { description: error.message }); return; }
     setWallet({ ...wallet, is_frozen: newFrozen });
     haptic.success();
-    toast.success(newFrozen ? "Card frozen" : "Card unfrozen");
+    toast.ok(newFrozen ? "Card frozen" : "Card unfrozen");
   };
 
   // Confirm-sheet "Freeze Now" → require PIN before mutating.
@@ -152,14 +153,14 @@ const CardScreen = () => {
   const saveLimit = async () => {
     if (!wallet) return;
     const rupees = parseInt(limitDraft || "0", 10);
-    if (isNaN(rupees) || rupees < 100) { toast.error("Limit must be at least ₹100"); return; }
-    if (rupees > 200000) { toast.error("Maximum daily limit is ₹2,00,000"); return; }
+    if (isNaN(rupees) || rupees < 100) { toast.fail("Limit must be at least ₹100"); return; }
+    if (rupees > 200000) { toast.fail("Maximum daily limit is ₹2,00,000"); return; }
     const paise = rupees * 100;
     const { error } = await supabase.from("wallets").update({ daily_limit: paise }).eq("id", wallet.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.fail("Couldn't update limit", { description: error.message }); return; }
     setWallet({ ...wallet, daily_limit: paise });
     haptic.success();
-    toast.success("Daily limit updated");
+    toast.ok("Daily limit updated");
     setShowLimitEditor(false);
   };
 
@@ -169,7 +170,7 @@ const CardScreen = () => {
     const newVal = !wallet[key];
     const update: Partial<Record<ControlKey, boolean>> = { [key]: newVal };
     const { error } = await supabase.from("wallets").update(update).eq("id", wallet.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.fail("Couldn't update control", { description: error.message }); return; }
     setWallet({ ...wallet, [key]: newVal });
     haptic.light();
   };
@@ -225,8 +226,8 @@ const CardScreen = () => {
   // ─── Render ───
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+      <div className="min-h-screen bg-background pb-24 px-5 pt-6">
+        <SkeletonBalanceCard />
       </div>
     );
   }

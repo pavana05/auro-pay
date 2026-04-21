@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { SkeletonRow } from "@/components/zen/SkeletonRow";
 import { haptic } from "@/lib/haptics";
 import { useCountUp } from "@/hooks/useCountUp";
 import { Capacitor } from "@capacitor/core";
@@ -267,10 +268,10 @@ const ProfileScreen = () => {
       const { error: updErr } = await supabase.from("profiles").update({ avatar_url: pub.publicUrl }).eq("id", user.id);
       if (updErr) throw updErr;
       setProfile(prev => prev ? { ...prev, avatar_url: pub.publicUrl } : prev);
-      toast.success("Photo updated");
+      toast.ok("Photo updated");
       haptic.success();
     } catch (e: any) {
-      toast.error(e.message || "Upload failed");
+      toast.fail("Upload failed", { description: e.message });
     } finally {
       setUploading(false);
     }
@@ -301,7 +302,7 @@ const ProfileScreen = () => {
         await uploadAvatar(blob, photo.format || "jpg");
       }
     } catch (e: any) {
-      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.error("Camera unavailable");
+      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.fail("Camera unavailable");
     }
   };
 
@@ -328,7 +329,7 @@ const ProfileScreen = () => {
         await uploadAvatar(blob, photo.format || "jpg");
       }
     } catch (e: any) {
-      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.error("Gallery unavailable");
+      if (!String(e?.message || "").toLowerCase().includes("cancel")) toast.fail("Gallery unavailable");
     }
   };
 
@@ -337,7 +338,7 @@ const ProfileScreen = () => {
     haptic.medium();
     await supabase.auth.signOut();
     navigate("/");
-    toast.success("Logged out");
+    toast.ok("Logged out");
   };
 
   const weekDelta = thisWeekTotal - lastWeekTotal;
@@ -361,15 +362,15 @@ const ProfileScreen = () => {
       <div className="min-h-screen bg-background pb-28">
         <div className="px-5 pt-8">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-white/[0.04] animate-pulse" />
+            <SkeletonRow className="w-20 h-20" height={80} rounded="rounded-full" />
             <div className="flex-1 space-y-2">
-              <div className="h-5 w-32 bg-white/[0.04] rounded animate-pulse" />
-              <div className="h-3 w-24 bg-white/[0.04] rounded animate-pulse" />
-              <div className="h-3 w-40 bg-white/[0.04] rounded animate-pulse" />
+              <SkeletonRow className="w-32" height={20} />
+              <SkeletonRow className="w-24" height={12} />
+              <SkeletonRow className="w-40" height={12} />
             </div>
           </div>
           <div className="grid grid-cols-4 gap-2 mb-5">
-            {[1,2,3,4].map(i => <div key={i} className="h-[60px] rounded-[16px] bg-white/[0.04] animate-pulse" />)}
+            {[1,2,3,4].map(i => <SkeletonRow key={i} className="rounded-[16px]" height={60} />)}
           </div>
         </div>
         <BottomNav />
@@ -432,9 +433,9 @@ const ProfileScreen = () => {
                         try {
                           await navigator.clipboard.writeText(upiDisplay);
                           haptic.light();
-                          toast.success("UPI ID copied");
+                          toast.ok("UPI ID copied");
                         } catch {
-                          toast.error("Couldn't copy UPI ID");
+                          toast.fail("Couldn't copy UPI ID");
                         }
                       }}
                       className="text-[11px] mt-1.5 text-primary/85 truncate max-w-full text-left active:scale-[0.97] transition-transform disabled:opacity-60"

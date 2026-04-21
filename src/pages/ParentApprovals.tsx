@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, ShieldCheck, Check, X, Clock, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { EmptyState, SkeletonRow } from "@/components/feedback";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
@@ -62,10 +63,10 @@ const ParentApprovals = () => {
         body: { approval_id: id, decision },
       });
       if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "Failed");
+        toast.fail("Couldn't process approval", { description: (data as any)?.error || error?.message });
         return;
       }
-      toast.success(decision === "approved" ? "Payment approved" : "Payment declined");
+      toast.ok(decision === "approved" ? "Payment approved" : "Payment declined");
       setRows((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setActingId(null);
@@ -85,22 +86,17 @@ const ParentApprovals = () => {
 
       <div className="px-5 pb-24 pt-4 space-y-3">
         {loading && (
-          <div className="text-center py-12 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Loading…</div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <SkeletonRow key={i} className="h-[120px]" />)}
+          </div>
         )}
 
         {!loading && rows.length === 0 && (
-          <div
-            className="rounded-[18px] p-8 text-center"
-            style={{ background: "rgba(13,14,18,0.7)", border: "1px solid rgba(200,149,46,0.15)" }}
-          >
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)" }}>
-              <ShieldCheck className="w-6 h-6" style={{ color: "#22c55e" }} />
-            </div>
-            <h3 className="text-sm font-semibold mb-1">All clear</h3>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-              No payment approvals waiting for you.
-            </p>
-          </div>
+          <EmptyState
+            icon={<ShieldCheck className="w-6 h-6 text-primary/70" />}
+            title="All clear"
+            description="No payment approvals waiting for you."
+          />
         )}
 
         {rows.map((r) => {

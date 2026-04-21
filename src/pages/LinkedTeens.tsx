@@ -4,8 +4,9 @@ import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar,
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import BottomNav from "@/components/BottomNav";
+import { EmptyState, SkeletonRow } from "@/components/feedback";
 import { z } from "zod";
 import {
   AlertDialog,
@@ -132,11 +133,11 @@ const LinkedTeens = () => {
       });
       if (error) throw error;
       // Teen is notified server-side via trg_notify_teen_on_parent_link trigger.
-      toast.success(`Linked with ${lookup.profile.full_name || "teen"}`);
+      toast.ok("Teen linked", { description: `Linked with ${lookup.profile.full_name || "teen"}` });
       await loadLinks(userId);
       closeSheet();
     } catch (e: any) {
-      toast.error(e.message || "Couldn't link teen");
+      toast.fail("Couldn't link teen", { description: e.message });
     } finally {
       setLinking(false);
     }
@@ -147,8 +148,8 @@ const LinkedTeens = () => {
       .from("parent_teen_links")
       .update({ is_active: !link.is_active })
       .eq("id", link.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(link.is_active ? "Paused" : "Reactivated");
+    if (error) { toast.fail("Couldn't update link", { description: error.message }); return; }
+    toast.ok(link.is_active ? "Teen paused" : "Teen reactivated");
     if (userId) await loadLinks(userId);
   };
 
@@ -187,26 +188,26 @@ const LinkedTeens = () => {
 
       {/* List */}
       {loading ? (
-        <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}</div>
+        <div className="space-y-3">{[1, 2].map(i => <SkeletonRow key={i} className="h-[100px]" />)}</div>
       ) : links.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-1">No teens linked yet</p>
-          <p className="text-xs text-muted-foreground mb-5">Add a teen to track their spending and send pocket money</p>
-          <button
-            onClick={openSheet}
-            className="h-11 px-5 rounded-full text-[13px] font-bold inline-flex items-center gap-2"
-            style={{
-              background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-              color: "hsl(220 15% 5%)",
-              boxShadow: "0 10px 28px hsl(42 78% 55% / 0.4)",
-            }}
-          >
-            <UserPlus className="w-4 h-4" /> Add a teen
-          </button>
-        </div>
+        <EmptyState
+          icon={<Users className="w-6 h-6 text-primary/70" />}
+          title="No teens linked yet"
+          description="Add a teen to track their spending and send pocket money."
+          action={
+            <button
+              onClick={openSheet}
+              className="h-11 px-5 rounded-full text-[13px] font-bold inline-flex items-center gap-2"
+              style={{
+                background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+                color: "hsl(220 15% 5%)",
+                boxShadow: "0 10px 28px hsl(42 78% 55% / 0.4)",
+              }}
+            >
+              <UserPlus className="w-4 h-4" /> Add a teen
+            </button>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {links.map((link) => (
@@ -387,10 +388,10 @@ const LinkedTeens = () => {
                           await (navigator as any).share({ title: "Join AuroPay", text, url });
                         } else {
                           await navigator.clipboard.writeText(text);
-                          toast.success("Invite link copied");
+                          toast.ok("Invite link copied");
                         }
                       } catch (e: any) {
-                        if (e?.name !== "AbortError") toast.error("Couldn't open share sheet");
+                        if (e?.name !== "AbortError") toast.fail("Couldn't open share sheet");
                       }
                     }}
                     className="w-full h-11 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-2"
