@@ -9,7 +9,8 @@ import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { EmptyState } from "@/components/feedback";
 import { haptic } from "@/lib/haptics";
 import confetti from "canvas-confetti";
 
@@ -141,9 +142,9 @@ const SavingsGoals = () => {
 
   // ─── Create goal ───
   const createGoal = async () => {
-    if (!draft.title.trim()) { toast.error("Goal needs a name"); return; }
+    if (!draft.title.trim()) { toast.fail("Goal needs a name"); return; }
     const target = parseInt(draft.target || "0", 10);
-    if (!target || target < 1) { toast.error("Enter a valid target amount"); return; }
+    if (!target || target < 1) { toast.fail("Enter a valid target amount"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     haptic.medium();
@@ -155,8 +156,8 @@ const SavingsGoals = () => {
       icon: draft.emoji,
       color: draft.color,
     });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Goal created");
+    if (error) { toast.fail("Couldn't create goal", { description: error.message }); return; }
+    toast.ok("Goal created");
     setWizardOpen(false);
     setStep(0);
     setDraft({ title: "", emoji: "🎯", target: "", deadline: "", color: COLORS[0].hsl });
@@ -166,13 +167,13 @@ const SavingsGoals = () => {
   // ─── Add money to a goal (with milestone trigger) ───
   const handleAdd = async (goal: Goal) => {
     const rupees = parseInt(actionAmount || "0", 10);
-    if (!rupees || rupees < 1) { toast.error("Enter a valid amount"); return; }
-    if (!walletId) { toast.error("Wallet not found"); return; }
+    if (!rupees || rupees < 1) { toast.fail("Enter a valid amount"); return; }
+    if (!walletId) { toast.fail("Wallet not found"); return; }
 
     // Check wallet balance
     const { data: w } = await supabase.from("wallets").select("balance").eq("id", walletId).maybeSingle();
     const bal = w?.balance ?? 0;
-    if (rupees * 100 > bal) { toast.error(`Only ${fmt(bal)} available in wallet`); return; }
+    if (rupees * 100 > bal) { toast.fail("Insufficient balance", { description: `Only ${fmt(bal)} available in wallet` }); return; }
 
     const oldPct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
     const newAmount = goal.current_amount + rupees * 100;
@@ -191,7 +192,7 @@ const SavingsGoals = () => {
       }),
     ]);
     const err = updates.find(r => r.error)?.error;
-    if (err) { toast.error(err.message); return; }
+    if (err) { toast.fail("Couldn't save", { description: err.message }); return; }
 
     haptic.success();
     setActionFor(null); setActionAmount("");
@@ -203,9 +204,9 @@ const SavingsGoals = () => {
       burst({ x: 0.5, y: 0.45 }, big);
       if (big) setTimeout(() => burst({ x: 0.3, y: 0.5 }, true), 250);
       crossed.forEach(m => sendMilestone(goal, m));
-      toast.success(big ? "🎉 Goal achieved!" : `🎊 ${crossed[crossed.length - 1]}% reached!`);
+      toast.ok(big ? "Goal achieved" : `${crossed[crossed.length - 1]}% reached`);
     } else {
-      toast.success(`Added ${fmt(rupees * 100)} to ${goal.title}`);
+      toast.ok("Saved", { description: `Added ${fmt(rupees * 100)} to ${goal.title}` });
     }
     fetchGoals();
   };
@@ -213,9 +214,9 @@ const SavingsGoals = () => {
   // ─── Withdraw from goal back to wallet ───
   const handleWithdraw = async (goal: Goal) => {
     const rupees = parseInt(actionAmount || "0", 10);
-    if (!rupees || rupees < 1) { toast.error("Enter a valid amount"); return; }
-    if (rupees * 100 > goal.current_amount) { toast.error(`Only ${fmt(goal.current_amount)} saved`); return; }
-    if (!walletId) { toast.error("Wallet not found"); return; }
+    if (!rupees || rupees < 1) { toast.fail("Enter a valid amount"); return; }
+    if (rupees * 100 > goal.current_amount) { toast.fail("Not enough saved", { description: `Only ${fmt(goal.current_amount)} saved` }); return; }
+    if (!walletId) { toast.fail("Wallet not found"); return; }
 
     const { data: w } = await supabase.from("wallets").select("balance").eq("id", walletId).maybeSingle();
     const bal = w?.balance ?? 0;
@@ -234,19 +235,19 @@ const SavingsGoals = () => {
       }),
     ]);
     const err = updates.find(r => r.error)?.error;
-    if (err) { toast.error(err.message); return; }
+    if (err) { toast.fail("Withdraw failed", { description: err.message }); return; }
 
     haptic.medium();
     setActionFor(null); setActionAmount("");
-    toast.success(`Withdrew ${fmt(rupees * 100)} to wallet`);
+    toast.ok("Withdrew to wallet", { description: `${fmt(rupees * 100)} moved back to your wallet` });
     fetchGoals();
   };
 
   const deleteGoal = async (id: string) => {
     haptic.medium();
     const { error } = await supabase.from("savings_goals").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Goal deleted"); fetchGoals(); }
+    if (error) toast.fail("Couldn't delete goal", { description: error.message });
+    else { toast.ok("Goal deleted"); fetchGoals(); }
   };
 
   // ─── Toggle / configure auto-save for a goal ───
@@ -254,7 +255,7 @@ const SavingsGoals = () => {
     haptic.light();
     const amt = amount ?? goal.autosave_amount ?? 100;
     const freq = frequency ?? goal.autosave_frequency ?? "weekly";
-    if (enabled && (!amt || amt < 1)) { toast.error("Set a valid amount first"); return; }
+    if (enabled && (!amt || amt < 1)) { toast.fail("Set a valid amount first"); return; }
 
     const next = new Date();
     if (freq === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
@@ -267,9 +268,9 @@ const SavingsGoals = () => {
       autosave_frequency: freq,
       autosave_next_run_at: enabled ? next.toISOString() : null,
     }).eq("id", goal.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.fail("Couldn't update auto-save", { description: error.message }); return; }
 
-    toast.success(enabled ? `Auto-save on: ₹${amt} ${freq}` : "Auto-save off");
+    toast.ok(enabled ? "Auto-save on" : "Auto-save off", { description: enabled ? `₹${amt} every ${freq}` : undefined });
     fetchGoals();
   };
 
@@ -330,14 +331,11 @@ const SavingsGoals = () => {
             ))}
           </div>
         ) : goals.length === 0 ? (
-          <div className="text-center py-16" style={{ animation: "su-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-            <div className="w-[72px] h-[72px] rounded-[22px] flex items-center justify-center mx-auto mb-4 border border-white/[0.05]"
-              style={{ background: "linear-gradient(135deg, hsl(220 15% 9%), hsl(220 18% 6%))" }}>
-              <Sparkles className="w-7 h-7 text-white/15" />
-            </div>
-            <p className="text-[14px] font-semibold text-white/40 mb-1">No goals yet</p>
-            <p className="text-[11px] text-white/20">Tap + to dream big</p>
-          </div>
+          <EmptyState
+            icon={<Sparkles className="w-6 h-6 text-primary/70" />}
+            title="No goals yet"
+            description="Tap the + button below to start saving for what matters to you."
+          />
         ) : (
           <div className="space-y-3">
             {goals.map((goal, idx) => (
@@ -520,7 +518,7 @@ const SavingsGoals = () => {
             )}
             {step < stepLabels.length - 1 ? (
               <button
-                onClick={() => { if (canAdvance(step)) { haptic.light(); setStep(s => s + 1); } else { toast.error("Fill this step first"); } }}
+                onClick={() => { if (canAdvance(step)) { haptic.light(); setStep(s => s + 1); } else { toast.fail("Fill this step first"); } }}
                 disabled={!canAdvance(step)}
                 className="flex-1 h-[50px] rounded-2xl flex items-center justify-center gap-1 font-semibold text-[13px] disabled:opacity-40"
                 style={{
