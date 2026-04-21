@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, ShieldCheck, Check, X, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import ParentBottomNav from "@/components/ParentBottomNav";
+import { useSafeBack } from "@/lib/safe-back";
 
 interface PendingRow {
   id: string;
@@ -21,6 +23,7 @@ interface PendingRow {
 
 const ParentApprovals = () => {
   const navigate = useNavigate();
+  const back = useSafeBack("/parent");
   const [rows, setRows] = useState<PendingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ const ParentApprovals = () => {
   return (
     <div className="min-h-[100dvh] font-sora" style={{ background: "#0a0c0f", color: "#fff" }}>
       <div className="px-5 pt-6 pb-4 flex items-center gap-3 sticky top-0 z-10" style={{ background: "rgba(10,12,15,0.85)", backdropFilter: "blur(12px)" }}>
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)" }}>
+        <button onClick={back} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)" }}>
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1">
@@ -152,6 +155,7 @@ const ParentApprovals = () => {
           );
         })}
       </div>
+      <ParentBottomNav />
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Snowflake, DollarSign, Shield, Clock } from "lucide-react";
 import { toast } from "sonner";
+import ParentBottomNav from "@/components/ParentBottomNav";
+import { useSafeBack } from "@/lib/safe-back";
 
 const categories = ["food", "transport", "education", "shopping", "entertainment", "other"];
 const categoryIcons: Record<string, string> = {
@@ -21,6 +23,7 @@ const logParentAction = async (teenId: string, action_type: string, description:
 const ParentTeenDetail = () => {
   const { teenId } = useParams();
   const navigate = useNavigate();
+  const back = useSafeBack("/linked-teens");
   const [teen, setTeen] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -163,7 +166,7 @@ const ParentTeenDetail = () => {
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+        <button onClick={back} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </button>
         <div className="flex items-center gap-3 flex-1">
@@ -376,6 +379,7 @@ const ParentTeenDetail = () => {
           )}
         </div>
       )}
+      <ParentBottomNav />
     </div>
   );
 };
