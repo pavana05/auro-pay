@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check, X, Minus } from "lucide-react";
 import PremiumHeading from "../PremiumHeading";
 
