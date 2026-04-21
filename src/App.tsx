@@ -96,6 +96,7 @@ import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
 import LinkGoogle from "./pages/LinkGoogle.tsx";
 import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
+import NativeShell from "./components/NativeShell";
 import { DataCacheProvider } from "./lib/data-cache.tsx";
 
 const queryClient = new QueryClient({
@@ -179,6 +180,7 @@ const App = () => (
         }}
       />
       <BrowserRouter>
+        <NativeShell />
         <DeepLinkHandler />
         <AuthRedirector />
           <KycEnforcer />

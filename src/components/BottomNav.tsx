@@ -49,7 +49,7 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40 hide-when-kb-open">
       {/* Frosted glass background */}
       <div className="absolute inset-0 bg-secondary/95 backdrop-blur-2xl border-t border-border rounded-t-2xl" />
       
