@@ -344,13 +344,27 @@ const ScanPay = () => {
           <div className="flex-1 mx-2 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] flex items-center justify-center">
             <span className="text-[13px] font-semibold text-white tracking-wide">Scan QR Code</span>
           </div>
-          <button onClick={toggleTorch}
-            className={`w-11 h-11 rounded-full backdrop-blur-2xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
+          <button
+            onClick={toggleTorch}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (!torchSupported) return;
+              haptic.medium();
+              setAutoTorch((v) => !v);
+              toast.success(autoTorch ? "Auto-torch off" : "Auto-torch on");
+            }}
+            title={torchSupported ? "Tap: torch • Long-press: auto-torch" : "Torch not supported on this device"}
+            className={`relative w-11 h-11 rounded-full backdrop-blur-2xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
               torchOn ? "bg-primary border-primary/60 shadow-[0_0_20px_hsl(42_78%_55%/0.6)]" : "bg-white/[0.08] border-white/[0.12]"
             }`}>
             {torchOn
               ? <Flashlight className="w-5 h-5 text-primary-foreground" style={{ animation: "torch-on 0.4s ease-out" }} />
               : <FlashlightOff className="w-5 h-5 text-white" />}
+            {autoTorch && torchSupported && (
+              <span className="absolute -bottom-1 -right-1 px-1 py-px rounded-full bg-primary text-[7px] font-bold text-primary-foreground leading-none tracking-wider">
+                A
+              </span>
+            )}
           </button>
           <button onClick={() => { haptic.light(); fileInputRef.current?.click(); }}
             className="w-11 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl flex items-center justify-center border border-white/[0.12] active:scale-90 transition-transform">
