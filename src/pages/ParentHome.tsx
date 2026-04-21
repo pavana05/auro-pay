@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck } from "lucide-react";
+import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck, Users, Receipt } from "lucide-react";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
+import { EmptyState } from "@/components/feedback";
+import { SkeletonRow, SkeletonBalanceCard } from "@/components/zen/SkeletonRow";
 
 interface LinkedTeen {
   teen_id: string;
@@ -23,10 +26,11 @@ const ParentHome = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
-    const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     setProfile(prof);
 
     // Get linked teens
@@ -83,8 +87,11 @@ const ParentHome = () => {
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString());
     setPendingApprovals(apprCount || 0);
-
-    setLoading(false);
+    } catch (err: any) {
+      toast.fail("Couldn't load dashboard", { description: err?.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
