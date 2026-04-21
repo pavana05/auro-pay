@@ -57,6 +57,7 @@ import AdminRevenue from "./pages/admin/AdminRevenue.tsx";
 import AdminHealth from "./pages/admin/AdminHealth.tsx";
 import AdminGeographic from "./pages/admin/AdminGeographic.tsx";
 import AdminReports from "./pages/admin/AdminReports.tsx";
+import AdminLogin from "./pages/admin/AdminLogin.tsx";
 
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
@@ -159,6 +160,8 @@ const App = () => (
         <MaintenanceGate>
         <Routes>
             {/* Admin routes — guarded so only users with the admin role can access. */}
+            {/* Login is public so admins can authenticate before the guard runs. */}
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminGuard><PageTransition><AdminDashboard /></PageTransition></AdminGuard>} />
             <Route path="/admin/users" element={<AdminGuard><PageTransition><AdminUsers /></PageTransition></AdminGuard>} />
             <Route path="/admin/roles" element={<AdminGuard><PageTransition><AdminRoles /></PageTransition></AdminGuard>} />

@@ -214,7 +214,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  /* Session timeout handled by SessionTimeoutModal (2h with 5-min warning) */
+  /* Session timeout: 15-min total inactivity, warning modal at 13 min (2-min countdown). */
   const handleSessionExpire = () => {
     sessionStorage.removeItem("admin_auth");
     setIsAuthenticated(false);
@@ -687,7 +687,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Command palette + global helpers */}
         <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
         <AdminShortcutsHelp />
-        <SessionTimeoutModal enabled={isAuthenticated} onLogout={handleSessionExpire} />
+        <SessionTimeoutModal
+          enabled={isAuthenticated}
+          timeoutMs={15 * 60 * 1000}
+          warningMs={2 * 60 * 1000}
+          onLogout={handleSessionExpire}
+        />
       </div>
     </AdminContextPanelProvider>
   );
