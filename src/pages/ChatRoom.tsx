@@ -224,7 +224,7 @@ const ChatRoom = () => {
 
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-4 py-3 pt-14 border-b border-white/[0.04]" style={{ background: "linear-gradient(180deg, hsl(220 18% 7%), hsl(220 18% 6%))" }}>
-        <button onClick={() => navigate("/chats")} className="w-[38px] h-[38px] rounded-[12px] bg-white/[0.04] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+        <button onClick={() => navigate("/chats")} aria-label="Back to chats" className="w-[38px] h-[38px] rounded-[12px] bg-white/[0.04] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
           <ChevronLeft className="w-5 h-5 text-muted-foreground/60" />
         </button>
 
@@ -255,20 +255,24 @@ const ChatRoom = () => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+          <button aria-label="Voice call" className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
             <Phone className="w-4 h-4 text-primary/70" />
           </button>
-          <button className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+          <button aria-label="Video call" className="w-[36px] h-[36px] rounded-[12px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
             <Video className="w-4 h-4 text-primary/70" />
           </button>
         </div>
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 relative z-10">
+      <div className="flex-1 overflow-y-auto px-4 py-3 relative z-10" role="log" aria-live="polite" aria-label={`Chat with ${recipientName}`}>
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="space-y-3 pt-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                <Skeleton className={`h-10 ${i % 2 === 0 ? "w-48" : "w-32"} rounded-2xl`} />
+              </div>
+            ))}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
@@ -276,7 +280,7 @@ const ChatRoom = () => {
               {recipientAvatar ? (
                 <img src={recipientAvatar} alt="" className="w-12 h-12 rounded-full" />
               ) : (
-                <span className="text-xl font-bold text-primary">{getInitials(recipientName)}</span>
+                <MessageCircle className="w-7 h-7 text-primary" />
               )}
             </div>
             <p className="text-[13px] text-muted-foreground/40">Say hello to {recipientName}! 👋</p>
@@ -314,13 +318,15 @@ const ChatRoom = () => {
       {/* Payment panel */}
       {showPayment && (
         <div className="px-4 pb-2 relative z-10">
-          <PaymentCard
-            recipientId={recipientId}
-            recipientName={recipientName}
-            conversationId={conversationId || ""}
-            onPaymentSent={handlePaymentSent}
-            onClose={() => setShowPayment(false)}
-          />
+          <ErrorBoundary label="Payment panel" onRetry={() => setShowPayment(false)}>
+            <PaymentCard
+              recipientId={recipientId}
+              recipientName={recipientName}
+              conversationId={conversationId || ""}
+              onPaymentSent={handlePaymentSent}
+              onClose={() => setShowPayment(false)}
+            />
+          </ErrorBoundary>
         </div>
       )}
 
