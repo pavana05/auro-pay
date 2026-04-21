@@ -653,7 +653,7 @@ const Activity = () => {
                   }}>
                   <Download className="w-4 h-4" /> Receipt
                 </button>
-                <button onClick={() => { navigate("/help-support"); setSelected(null); }}
+                <button onClick={() => { navigate("/help"); setSelected(null); }}
                   className="flex-1 h-[50px] rounded-2xl font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-[0.97] transition border border-white/[0.06] text-white/70"
                   style={{ background: "hsl(220 15% 8%)" }}>
                   <AlertTriangle className="w-4 h-4" /> Dispute
