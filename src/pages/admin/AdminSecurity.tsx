@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import {
   ShieldAlert, RefreshCw, Search, Globe, Clock, User as UserIcon,
-  AlertTriangle, Filter,
+  AlertTriangle, Filter, Ban, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,11 +50,12 @@ const trimUA = (ua: string | undefined) => {
 
 const AdminSecurity = () => {
   const [probes, setProbes] = useState<ProbeEntry[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
+  const [profiles, setProfiles] = useState<Record<string, ProfileLite & { is_blocked?: boolean }>>({});
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [windowMins, setWindowMins] = useState<60 | 360 | 1440 | 10080>(1440);
+  const [blockingId, setBlockingId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -79,10 +80,10 @@ const AdminSecurity = () => {
     if (userIds.length) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, phone")
+        .select("id, full_name, phone, is_blocked")
         .in("id", userIds);
-      const pMap: Record<string, ProfileLite> = {};
-      (profs || []).forEach((p) => { pMap[p.id] = p as ProfileLite; });
+      const pMap: Record<string, ProfileLite & { is_blocked?: boolean }> = {};
+      (profs || []).forEach((p: any) => { pMap[p.id] = p; });
       setProfiles(pMap);
 
       // Best-effort email lookup via the secured edge function used elsewhere
@@ -115,6 +116,40 @@ const AdminSecurity = () => {
   };
 
   useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, [windowMins]);
+
+  const toggleBlock = async (userId: string, nextBlock: boolean) => {
+    const label = profiles[userId]?.full_name || emails[userId] || userId.slice(0, 8) + "…";
+    if (nextBlock && !confirm(`Block ${label}? They will be signed out and cannot sign in until you unblock them.`)) return;
+    setBlockingId(userId);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("No admin session");
+      const r = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-block-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+          },
+          body: JSON.stringify({ target_user_id: userId, block: nextBlock }),
+        },
+      );
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(json?.error || `HTTP ${r.status}`);
+      toast.success(nextBlock ? `Blocked ${label}` : `Unblocked ${label}`);
+      setProfiles((prev) => ({
+        ...prev,
+        [userId]: { ...(prev[userId] || { id: userId, full_name: null, phone: null }), is_blocked: nextBlock },
+      }));
+    } catch (e: any) {
+      toast.error("Action failed", { description: e?.message || "Unknown error" });
+    } finally {
+      setBlockingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -260,13 +295,37 @@ const AdminSecurity = () => {
                     className="rounded-xl p-3 text-xs flex items-start justify-between gap-3"
                     style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${G.border}` }}
                   >
-                    <div className="min-w-0">
-                      <p className="text-white font-medium truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium truncate flex items-center gap-1.5">
                         {prof?.full_name || emails[g.user_id] || g.user_id.slice(0, 8) + "…"}
+                        {prof?.is_blocked && (
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold"
+                            style={{ background: `${G.danger}20`, color: G.danger }}
+                          >
+                            Blocked
+                          </span>
+                        )}
                       </p>
                       <p className="font-mono mt-0.5 truncate" style={{ color: G.textMuted }}>
                         {emails[g.user_id] || prof?.phone || g.user_id}
                       </p>
+                      <button
+                        onClick={() => toggleBlock(g.user_id, !prof?.is_blocked)}
+                        disabled={blockingId === g.user_id}
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-lg px-2.5 py-1 transition-colors disabled:opacity-50"
+                        style={
+                          prof?.is_blocked
+                            ? { background: `${G.primary}15`, color: G.primary, border: `1px solid ${G.primary}40` }
+                            : { background: `${G.danger}15`, color: G.danger, border: `1px solid ${G.danger}40` }
+                        }
+                      >
+                        {prof?.is_blocked ? (
+                          <><ShieldCheck className="w-3 h-3" /> Unblock</>
+                        ) : (
+                          <><Ban className="w-3 h-3" /> {blockingId === g.user_id ? "Blocking…" : "Block user"}</>
+                        )}
+                      </button>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold" style={{ color: G.danger }}>{g.count}</p>
