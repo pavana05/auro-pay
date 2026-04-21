@@ -256,24 +256,46 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-wrap gap-3 pt-1">
-            <MagneticCTA onClick={onCTA} className="px-7 h-14 text-base">
-              <Sparkles size={18} />
-              <span>Get Early Access</span>
-              <ChevronRight size={18} />
-            </MagneticCTA>
-            <button className="px-6 h-14 py-3.5 rounded-full font-medium text-base text-white border transition hover:bg-white/5 inline-flex items-center gap-2"
+            <div className="relative">
+              {!reduceMotion && (
+                <motion.div
+                  aria-hidden
+                  className="absolute -inset-2 rounded-full pointer-events-none"
+                  style={{ background: "radial-gradient(circle, rgba(200,149,46,0.45), transparent 70%)", filter: "blur(14px)" }}
+                  animate={{ opacity: [0.35, 0.7, 0.35], scale: [1, 1.08, 1] }}
+                  transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+              )}
+              <MagneticCTA onClick={onCTA} className="relative px-7 h-14 text-base">
+                <Sparkles size={18} />
+                <span>Get Early Access</span>
+                <ChevronRight size={18} />
+              </MagneticCTA>
+            </div>
+            <button className="px-6 h-14 py-3.5 rounded-full font-medium text-base text-white border transition hover:bg-white/5 hover:border-white/30 inline-flex items-center gap-2 group"
               style={{ borderColor: "rgba(255,255,255,0.18)" }}>
-              <Play size={16} fill="currentColor" /> Watch 60s demo
+              <span className="w-7 h-7 rounded-full flex items-center justify-center transition group-hover:scale-110"
+                style={{ background: "rgba(200,149,46,0.18)", border: "1px solid rgba(200,149,46,0.35)" }}>
+                <Play size={11} fill="currentColor" className="text-amber-200 ml-0.5" />
+              </span>
+              Watch 60s demo
             </button>
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.5 }}
             className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] text-white/45 uppercase tracking-[0.22em] font-semibold pt-2">
-            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> RBI Compliant</span>
-            <span className="w-px h-3 bg-white/15" />
-            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> Aadhaar Verified</span>
-            <span className="w-px h-3 bg-white/15" />
-            <span className="inline-flex items-center gap-1.5"><span className="w-1 h-1 rounded-full" style={{ background: "#c8952e" }} /> Instant UPI</span>
+            {["RBI Compliant", "Aadhaar Verified", "Instant UPI"].map((label, i) => (
+              <span key={label} className="inline-flex items-center gap-1.5">
+                <motion.span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: "#c8952e", boxShadow: "0 0 8px rgba(200,149,46,0.7)" }}
+                  animate={reduceMotion ? {} : { opacity: [0.5, 1, 0.5], scale: [1, 1.3, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
+                />
+                {label}
+                {i < 2 && <span className="w-px h-3 bg-white/15 ml-5" />}
+              </span>
+            ))}
           </motion.div>
         </div>
 
