@@ -447,6 +447,33 @@ export type Database = {
         }
         Relationships: []
       }
+      gate_analytics_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          path: string | null
+          platform: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          path?: string | null
+          platform?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          path?: string | null
+          platform?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       health_scores: {
         Row: {
           breakdown: Json
@@ -519,6 +546,30 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ios_waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
