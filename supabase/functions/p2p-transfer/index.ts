@@ -5,6 +5,7 @@
 // - min/max_transaction_amount  → 400 (amount out of range)
 // - parent_approval          → for teen wallets, large tx > ₹2,000 needs parent_approval flag respected (advisory tag in tx)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { resolvePaymentLocation, withLocation } from "../_shared/payment-location.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +44,7 @@ Deno.serve(async (req) => {
     if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json();
-    const { favorite_id, amount, note } = body;
+    const { favorite_id, amount, note, client_location } = body;
 
     if (!favorite_id || !amount || typeof amount !== "number" || amount <= 0) {
       return json({ error: "Invalid request. Provide favorite_id and a positive amount (in paise)." }, 400);
@@ -197,7 +198,10 @@ Deno.serve(async (req) => {
             .update({ balance: (recipientWallet.balance || 0) + amount })
             .eq("id", recipientWallet.id);
 
-          await adminClient.from("transactions").insert({
+          // Resolve location once (used on both sender + recipient legs)
+          const loc = await resolvePaymentLocation(req, client_location);
+
+          await adminClient.from("transactions").insert(withLocation({
             wallet_id: recipientWallet.id,
             type: "credit",
             amount,
@@ -205,7 +209,7 @@ Deno.serve(async (req) => {
             category: "transfer",
             merchant_name: `From ${user.email?.split("@")[0] || "User"}`,
             description: note || `Transfer from AuroPay user`,
-          });
+          }, loc));
 
           await adminClient.from("notifications").insert({
             user_id: recipientProfile.id,
@@ -219,7 +223,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    await adminClient.from("transactions").insert({
+    const senderLoc = await resolvePaymentLocation(req, client_location);
+    await adminClient.from("transactions").insert(withLocation({
       wallet_id: senderWallet.id,
       type: "debit",
       amount,
@@ -227,7 +232,7 @@ Deno.serve(async (req) => {
       category: "transfer",
       merchant_name: `To ${fav.contact_name}`,
       description: note || `Transfer to ${fav.contact_name}`,
-    });
+    }, senderLoc));
 
     await adminClient
       .from("quick_pay_favorites")

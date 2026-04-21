@@ -3,6 +3,7 @@ import { IndianRupee, Send, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
 import { toast } from "@/lib/toast";
+import { getPaymentLocation } from "@/lib/payment-location";
 
 interface PaymentCardProps {
   recipientId: string;
@@ -37,11 +38,13 @@ const PaymentCard = ({ recipientId, recipientName, conversationId, onPaymentSent
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not logged in");
 
+      const client_location = await getPaymentLocation();
       const { data, error } = await supabase.functions.invoke("p2p-transfer", {
         body: {
           recipient_id: recipientId,
           amount: amountNum * 100,
           description: note || `Payment to ${recipientName}`,
+          client_location,
         },
       });
 

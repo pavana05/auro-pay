@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
 import { toast } from "@/lib/toast";
+import { getPaymentLocation } from "@/lib/payment-location";
 import ForgotPinModal from "@/components/ForgotPinModal";
 
 type Stage = "review" | "pin" | "processing" | "success" | "failure";
@@ -205,6 +206,7 @@ const PaymentConfirm = () => {
     setStage("processing");
     haptic.medium();
     try {
+      const client_location = await getPaymentLocation();
       const { data, error } = await supabase.functions.invoke("process-scan-payment", {
         body: {
           upi_id: upi,
@@ -213,6 +215,7 @@ const PaymentConfirm = () => {
           category: state.category || "other",
           note,
           pin: pinValue,
+          client_location,
         },
       });
       const errCode = (data as any)?.code;

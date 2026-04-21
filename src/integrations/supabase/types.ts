@@ -1511,6 +1511,13 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          latitude: number | null
+          location_captured_at: string | null
+          location_city: string | null
+          location_country: string | null
+          location_region: string | null
+          location_source: string | null
+          longitude: number | null
           merchant_name: string | null
           merchant_upi_id: string | null
           razorpay_order_id: string | null
@@ -1525,6 +1532,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          latitude?: number | null
+          location_captured_at?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          location_source?: string | null
+          longitude?: number | null
           merchant_name?: string | null
           merchant_upi_id?: string | null
           razorpay_order_id?: string | null
@@ -1539,6 +1553,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          latitude?: number | null
+          location_captured_at?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          location_source?: string | null
+          longitude?: number | null
           merchant_name?: string | null
           merchant_upi_id?: string | null
           razorpay_order_id?: string | null

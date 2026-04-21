@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
+import { getPaymentLocation } from "@/lib/payment-location";
 
 interface BillSplit {
   id: string;
@@ -653,8 +654,9 @@ const DetailView = ({ splitId, me, onBack }: {
     if (!myMember || myMember.is_paid) return;
     setPaying(true);
     try {
+      const client_location = await getPaymentLocation();
       const { data, error } = await supabase.functions.invoke("bill-split-pay", {
-        body: { split_id: splitId },
+        body: { split_id: splitId, client_location },
       });
       if (error || data?.error) throw new Error(data?.error ?? error?.message);
       haptic.success();

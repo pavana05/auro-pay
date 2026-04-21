@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { resolvePaymentLocation, withLocation } from "../_shared/payment-location.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -24,8 +25,10 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Transactions are temporarily paused by administrators. Please try again shortly." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { amount, currency = "INR", description } = await req.json();
+    const { amount, currency = "INR", description, client_location } = await req.json();
     if (!amount || amount <= 0) return new Response(JSON.stringify({ error: "Invalid amount" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const loc = await resolvePaymentLocation(req, client_location);
 
     const amountPaise = Math.round(amount * 100);
     const minAmt = Number(flags.min_transaction_amount ?? "100");
@@ -65,14 +68,14 @@ Deno.serve(async (req) => {
       });
       const order = await orderRes.json();
 
-      await supabase.from("transactions").insert({
+      await supabase.from("transactions").insert(withLocation({
         wallet_id: wallet!.id,
         type: "credit",
         amount: amountPaise,
         status: "pending",
         razorpay_order_id: order.id,
         description: description || "Add money to wallet",
-      });
+      }, loc));
 
       return new Response(JSON.stringify({
         order_id: order.id,
@@ -84,14 +87,14 @@ Deno.serve(async (req) => {
 
     // Sandbox mode
     const mockOrderId = `order_sim_${Date.now()}`;
-    await supabase.from("transactions").insert({
+    await supabase.from("transactions").insert(withLocation({
       wallet_id: wallet!.id,
       type: "credit",
       amount: amountPaise,
       status: "pending",
       razorpay_order_id: mockOrderId,
       description: description || "Add money to wallet",
-    });
+    }, loc));
 
     return new Response(JSON.stringify({
       order_id: mockOrderId,

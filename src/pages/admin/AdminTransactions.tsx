@@ -5,10 +5,11 @@ import { useContextPanel } from "@/components/admin/AdminContextPanel";
 import {
   Search, Download, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, XCircle,
   SlidersHorizontal, Copy, Check, Flag, RefreshCcw, AlertTriangle, ChevronDown,
-  Radio, Play, MessageSquareWarning
+  Radio, Play, MessageSquareWarning, MapPin, Globe2, Satellite, Wifi
 } from "lucide-react";
 import { toast } from "sonner";
 import RequestInfoModal from "@/components/admin/RequestInfoModal";
+import PaymentLocationMap from "@/components/admin/PaymentLocationMap";
 
 interface Transaction {
   id: string;
@@ -23,6 +24,13 @@ interface Transaction {
   description: string | null;
   razorpay_order_id: string | null;
   razorpay_payment_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_city: string | null;
+  location_region: string | null;
+  location_country: string | null;
+  location_source: string | null;
+  location_captured_at: string | null;
 }
 
 interface WalletInfo {
@@ -200,10 +208,10 @@ const AdminTransactions = () => {
   };
 
   const exportCSV = () => {
-    const headers = "ID,Type,Amount,Merchant,Category,Method,Status,Date,User,Phone\n";
+    const headers = "ID,Type,Amount,Merchant,Category,Method,Status,Date,User,Phone,City,Region,Country,Lat,Lng,LocSource\n";
     const rows = filtered.map((t) => {
       const w = wallets[t.wallet_id];
-      return `${t.id},${t.type},${t.amount / 100},"${t.merchant_name || ""}",${t.category || ""},${guessMethod(t)},${t.status},${t.created_at},"${w?.full_name || ""}",${w?.phone || ""}`;
+      return `${t.id},${t.type},${t.amount / 100},"${t.merchant_name || ""}",${t.category || ""},${guessMethod(t)},${t.status},${t.created_at},"${w?.full_name || ""}",${w?.phone || ""},"${t.location_city || ""}","${t.location_region || ""}","${t.location_country || ""}",${t.latitude ?? ""},${t.longitude ?? ""},${t.location_source || ""}`;
     }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -383,7 +391,7 @@ const AdminTransactions = () => {
                   <th className="sticky left-0 bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-12"></th>
                   <th className="sticky left-12 bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">TXN ID</th>
                   <th className="sticky left-[220px] bg-card/95 backdrop-blur z-10 text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                  {["Type", "Amount", "Merchant", "Category", "Method", "Status", "Date", "Actions"].map((h) => (
+                  {["Type", "Amount", "Merchant", "Category", "Method", "Location", "Status", "Date", "Actions"].map((h) => (
                     <th key={h} className="text-left py-4 px-5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -392,7 +400,7 @@ const AdminTransactions = () => {
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="border-b border-white/[0.03]">
-                      <td colSpan={12} className="py-4 px-5">
+                      <td colSpan={13} className="py-4 px-5">
                         <div className="h-5 rounded-lg overflow-hidden relative">
                           <div className="absolute inset-0 bg-white/[0.03]" />
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: "admin-shimmer 2s infinite" }} />
@@ -401,7 +409,7 @@ const AdminTransactions = () => {
                     </tr>
                   ))
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={12} className="text-center py-20">
+                  <tr><td colSpan={13} className="text-center py-20">
                     <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
                       <DollarSign className="w-8 h-8 text-muted-foreground/30" />
                     </div>
@@ -462,6 +470,23 @@ const AdminTransactions = () => {
                         <td className="py-3.5 px-5 text-muted-foreground text-xs whitespace-nowrap">{t.merchant_name ? highlight(t.merchant_name) : "—"}</td>
                         <td className="py-3.5 px-5 capitalize text-muted-foreground text-xs">{t.category || "—"}</td>
                         <td className="py-3.5 px-5 text-xs uppercase text-muted-foreground">{guessMethod(t)}</td>
+                        <td className="py-3.5 px-5">
+                          {t.location_city || t.location_country ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/[0.08] border border-primary/20 text-[10px] font-medium text-primary whitespace-nowrap"
+                              title={[
+                                t.location_city, t.location_region, t.location_country,
+                                t.latitude && t.longitude ? `(${t.latitude.toFixed(3)}, ${t.longitude.toFixed(3)})` : null,
+                                t.location_source ? `via ${t.location_source.toUpperCase()}` : null,
+                              ].filter(Boolean).join(" • ")}
+                            >
+                              {t.location_source === "gps" ? <Satellite className="w-3 h-3" /> : <Wifi className="w-3 h-3" />}
+                              <span className="max-w-[110px] truncate">{t.location_city || t.location_country}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/40">—</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-5">
                           <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
                             t.status === "success" ? "bg-success/10 text-success border border-success/20" :
@@ -585,6 +610,45 @@ const DetailPanel = ({
         <Row label="Razorpay Order" value={t.razorpay_order_id || "—"} mono />
         <Row label="Razorpay Payment" value={t.razorpay_payment_id || "—"} mono />
       </div>
+
+      {/* Payment Location */}
+      {(t.location_city || t.latitude) && (
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Payment Location</p>
+            {t.location_source && (
+              <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] uppercase tracking-wider text-primary font-semibold">
+                {t.location_source === "gps" ? <Satellite className="w-2.5 h-2.5" /> : <Wifi className="w-2.5 h-2.5" />}
+                {t.location_source}
+              </span>
+            )}
+          </div>
+          <div className="text-xs space-y-1">
+            <p className="font-semibold text-foreground">
+              {[t.location_city, t.location_region, t.location_country].filter(Boolean).join(", ") || "Coordinates only"}
+            </p>
+            {t.latitude !== null && t.longitude !== null && (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {t.latitude.toFixed(6)}, {t.longitude.toFixed(6)}
+              </p>
+            )}
+            {t.location_captured_at && (
+              <p className="text-[10px] text-muted-foreground/70">
+                Captured {new Date(t.location_captured_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            )}
+          </div>
+          {t.latitude !== null && t.longitude !== null && (
+            <PaymentLocationMap
+              latitude={Number(t.latitude)}
+              longitude={Number(t.longitude)}
+              city={t.location_city}
+              country={t.location_country}
+            />
+          )}
+        </div>
+      )}
 
       {/* Timeline */}
       <div>
