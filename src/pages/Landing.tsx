@@ -72,6 +72,12 @@ export default function Landing() {
       {/* Aurora drift — slow rotating conic for depth */}
       <div className="fixed inset-0 -z-[4] pointer-events-none lux-aurora-bg" />
 
+      {/* Editorial linen texture — subtle paper grain for couture tactility */}
+      <div className="fixed inset-0 -z-[3] pointer-events-none lux-linen opacity-60" />
+
+      {/* Cinema vignette — darkens edges so the center reads "lit" */}
+      <div className="fixed inset-0 -z-[2] pointer-events-none lux-hero-vignette" />
+
       <Navbar onCTA={scrollToTop} />
 
       <main
