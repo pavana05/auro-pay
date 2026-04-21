@@ -4,7 +4,7 @@ import { useSafeBack } from "@/lib/safe-back";
 import { ArrowLeft, AtSign, Phone, Users, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { haptic } from "@/lib/haptics";
 import RippleButton from "@/components/zen/RippleButton";
 import BottomNav from "@/components/BottomNav";
@@ -42,22 +42,27 @@ const SendMoney = () => {
         .eq("user_id", u.user.id)
         .order("last_paid_at", { ascending: false, nullsFirst: false })
         .limit(12);
-      if (error) toast.error("Couldn't load contacts", { description: error.message });
+      if (error) toast.fail("Couldn't load contacts", { description: error.message });
       else setFavorites(data ?? []);
     })();
   }, []);
 
   const valid = useMemo(() => {
     const amt = Number(amount);
-    if (!amt || amt < 1) return false;
+    if (!amt || amt < 1 || amt > 100000) return false;
     if (tab === "contact") return !!selectedFav;
     return !!verified?.verified;
   }, [amount, tab, selectedFav, verified]);
 
   const onProceed = () => {
+    const amt = Number(amount);
+    if (amt > 100000) {
+      toast.fail("Amount too high", { description: "Maximum per transaction is ₹1,00,000" });
+      return;
+    }
     if (!valid) {
-      if (!verified && tab !== "contact") toast.error("Verify recipient first");
-      else if (!amount) toast.error("Enter an amount");
+      if (!verified && tab !== "contact") toast.fail("Verify recipient first");
+      else if (!amount) toast.fail("Enter an amount");
       return;
     }
     haptic.medium();
@@ -76,7 +81,7 @@ const SendMoney = () => {
     }
 
     if (!upi_id) {
-      toast.error("Missing recipient");
+      toast.fail("Missing recipient");
       return;
     }
 
@@ -245,6 +250,8 @@ const SendMoney = () => {
             onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, "").slice(0, 7))}
             placeholder="0"
             inputMode="decimal"
+            aria-label="Amount in rupees"
+            aria-invalid={amount !== "" && (Number(amount) < 1 || Number(amount) > 100000)}
             className="flex-1 bg-transparent outline-none text-[40px] zen-amount-hero text-foreground placeholder:text-foreground/20 min-w-0"
           />
         </div>
@@ -270,6 +277,7 @@ const SendMoney = () => {
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, 50))}
           placeholder="Add a note (optional)"
+          aria-label="Payment note (optional, max 50 characters)"
           className="w-full bg-foreground/[0.04] border border-foreground/8 rounded-[14px] px-4 h-11 text-sm text-foreground placeholder:text-foreground/35 outline-none focus:border-primary/40"
         />
       </section>
