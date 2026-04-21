@@ -50,11 +50,12 @@ const trimUA = (ua: string | undefined) => {
 
 const AdminSecurity = () => {
   const [probes, setProbes] = useState<ProbeEntry[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
+  const [profiles, setProfiles] = useState<Record<string, ProfileLite & { is_blocked?: boolean }>>({});
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [windowMins, setWindowMins] = useState<60 | 360 | 1440 | 10080>(1440);
+  const [blockingId, setBlockingId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
