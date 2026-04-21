@@ -23,7 +23,7 @@ const Index = () => {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("id, role, haptics_enabled, kyc_status, pin_hash")
+        .select("id, role, haptics_enabled, kyc_status, pin_hash, permissions_completed_at")
         .eq("id", uid)
         .maybeSingle();
 
@@ -42,6 +42,11 @@ const Index = () => {
         const alreadyLinked = identities.some((i: any) => i.provider === "google");
         if (!alreadyLinked && !hasSeenGoogleLinkPrompt()) {
           navigate("/link-google");
+          return;
+        }
+        // Device-permissions gate (one-time, right after profile setup).
+        if (!(profile as any).permissions_completed_at) {
+          navigate("/permissions");
           return;
         }
         // Mandatory KYC: until verified, send everyone to /verify-kyc.

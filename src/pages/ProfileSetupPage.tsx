@@ -29,9 +29,14 @@ const ProfileSetupPage = () => {
     // Re-route by role / KYC status after setup.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, kyc_status")
+      .select("role, kyc_status, permissions_completed_at")
       .eq("id", userId)
       .maybeSingle();
+    // First-time users: route through the device-permissions screen.
+    if (!(profile as any)?.permissions_completed_at) {
+      navigate("/permissions", { replace: true });
+      return;
+    }
     if (profile?.kyc_status !== "verified") {
       navigate("/verify-kyc", { replace: true });
       return;
