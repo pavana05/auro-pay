@@ -388,10 +388,10 @@ const LinkedTeens = () => {
                           await (navigator as any).share({ title: "Join AuroPay", text, url });
                         } else {
                           await navigator.clipboard.writeText(text);
-                          toast.success("Invite link copied");
+                          toast.ok("Invite link copied");
                         }
                       } catch (e: any) {
-                        if (e?.name !== "AbortError") toast.error("Couldn't open share sheet");
+                        if (e?.name !== "AbortError") toast.fail("Couldn't open share sheet");
                       }
                     }}
                     className="w-full h-11 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-2"
