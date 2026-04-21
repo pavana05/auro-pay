@@ -89,16 +89,34 @@ export default function Features() {
                   animate={{ opacity: isActive ? 1 : 0.45 }}
                   className="space-y-6 max-w-lg"
                 >
-                  <div className="inline-flex items-center gap-2.5 pl-1 pr-4 py-1 rounded-full text-[11px] uppercase tracking-[0.2em] font-semibold lux-glass-gold">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full"
+                  <div className="relative inline-flex items-center gap-2.5 pl-1 pr-4 py-1 rounded-full text-[11px] uppercase tracking-[0.2em] font-semibold lux-glass-gold overflow-hidden">
+                    {!reduceMotion && isActive && (
+                      <motion.span
+                        aria-hidden
+                        className="absolute inset-y-0 w-1/3 pointer-events-none"
+                        style={{ background: "linear-gradient(90deg, transparent, rgba(255,231,170,0.4), transparent)" }}
+                        initial={{ x: "-150%" }}
+                        animate={{ x: "350%" }}
+                        transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+                      />
+                    )}
+                    <motion.span
+                      className="relative inline-flex items-center justify-center w-7 h-7 rounded-full"
                       style={{
                         background: "linear-gradient(135deg,#c8952e,#e0b048)",
                         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(200,149,46,0.4)",
-                      }}>
+                      }}
+                      animate={reduceMotion || !isActive ? {} : { boxShadow: [
+                        "inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(200,149,46,0.4)",
+                        "inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 20px rgba(200,149,46,0.7)",
+                        "inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(200,149,46,0.4)",
+                      ] }}
+                      transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+                    >
                       <Icon size={13} className="text-black" strokeWidth={2.4} />
-                    </span>
-                    <span style={{ color: "#e0b048" }}>{f.tag}</span>
-                    <span className="ml-2 text-white/40 font-mono text-[10px]">
+                    </motion.span>
+                    <span className="relative" style={{ color: "#e0b048" }}>{f.tag}</span>
+                    <span className="relative ml-2 text-white/40 font-mono text-[10px]">
                       {String(i + 1).padStart(2, "0")} / {String(FEATURES.length).padStart(2, "0")}
                     </span>
                   </div>
@@ -107,16 +125,33 @@ export default function Features() {
                     {f.title}
                   </h3>
                   <p className="text-white/55 text-base lg:text-lg" style={{ lineHeight: 1.7 }}>{f.body}</p>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+                  <motion.div className="relative inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium overflow-hidden"
                     style={{
                       background: "rgba(200,149,46,0.08)",
                       color: "#e0b048",
                       border: "1px solid rgba(200,149,46,0.22)",
                       backdropFilter: "blur(12px)",
-                    }}>
-                    <Sparkle size={12} fill="#e0b048" stroke="#e0b048" />
-                    {f.stat}
-                  </div>
+                    }}
+                    whileHover={{ scale: 1.03, borderColor: "rgba(200,149,46,0.5)" }}
+                  >
+                    {!reduceMotion && (
+                      <motion.span
+                        aria-hidden
+                        className="absolute -inset-1 pointer-events-none"
+                        style={{ background: "radial-gradient(circle at 30% 50%, rgba(200,149,46,0.25), transparent 60%)", filter: "blur(8px)" }}
+                        animate={{ opacity: [0.3, 0.7, 0.3] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
+                      />
+                    )}
+                    <motion.span
+                      className="relative"
+                      animate={reduceMotion ? {} : { rotate: [0, 14, -10, 0], scale: [1, 1.18, 1] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
+                    >
+                      <Sparkle size={12} fill="#e0b048" stroke="#e0b048" />
+                    </motion.span>
+                    <span className="relative">{f.stat}</span>
+                  </motion.div>
 
                   {/* Mobile-only inline phone (sticky disabled below lg) */}
                   <div className="lg:hidden flex justify-center pt-8 relative">
