@@ -295,6 +295,7 @@ const App = () => (
           </Routes>
         </MaintenanceGate>
         </RealtimeWrapper>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
     </DataCacheProvider>
