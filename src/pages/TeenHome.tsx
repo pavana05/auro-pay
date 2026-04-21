@@ -19,6 +19,7 @@ import SwipeActionRow from "@/components/SwipeActionRow";
 import PaymentRequestPill from "@/components/PaymentRequestPill";
 import { CountUp as ZenCountUp } from "@/components/zen/CountUp";
 import ZenzoPointsWidget from "@/components/zen/ZenzoPointsWidget";
+import { useScreenData } from "@/lib/data-cache";
 
 interface Profile { full_name: string; avatar_url: string | null; kyc_status: string | null; phone: string | null; }
 interface WalletData { id: string; balance: number; daily_limit: number; monthly_limit: number; spent_today: number; spent_this_month: number; is_frozen: boolean; }
@@ -90,64 +91,92 @@ const TeenHome = () => {
   useEffect(() => () => { mountedRef.current = false; }, []);
   const inflightRef = useRef(false);
 
-  const fetchData = async () => {
-    if (inflightRef.current) return;       // dedupe rapid realtime triggers
-    inflightRef.current = true;
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { if (mountedRef.current) setLoading(false); return; }
-      if (!mountedRef.current) return;
-      setUserId(user.id);
-      const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", user.id).single(),
-        supabase.from("wallets").select("*").eq("user_id", user.id).single(),
-        supabase.from("savings_goals").select("id, title, target_amount, current_amount, icon").eq("teen_id", user.id).eq("is_completed", false).limit(3),
-        supabase.from("notifications").select("id").eq("user_id", user.id).eq("is_read", false),
-        supabase.from("rewards").select("id, title, description, discount_value, discount_type, image_url, category").eq("is_active", true).limit(4),
-        supabase.from("quick_pay_favorites").select("id, contact_name, avatar_emoji").eq("user_id", user.id).order("last_paid_at", { ascending: false, nullsFirst: false }).limit(5),
-        supabase.from("user_streaks").select("current_streak, longest_streak, streak_coins").eq("user_id", user.id).single(),
-        supabase.from("user_achievements").select("achievement_id, achievements(id, title, icon)").eq("user_id", user.id).order("earned_at", { ascending: false }).limit(4),
-      ]);
-      if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (goalsRes.data) setGoals(goalsRes.data as SavingsGoal[]);
-      if (rewardsRes.data) setRewards(rewardsRes.data as Reward[]);
-      if (favsRes.data) setFavorites(favsRes.data as QuickPayFav[]);
-      setUnreadCount(notifRes.data?.length || 0);
-      if (streakRes.data) setStreak(streakRes.data as StreakData);
-      if (achieveRes.data) {
-        const badges = (achieveRes.data as any[]).map(a => a.achievements).filter(Boolean);
-        setRecentAchievements(badges as AchievementData[]);
-      }
-      if (walletRes.data) {
-        setWallet(walletRes.data as WalletData);
-        const { data: txns } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(40);
-        if (txns) setTransactions(txns as Transaction[]);
-      }
-      // Unread chats — wrapped so a single failure can't strand us in skeleton state.
-      try {
-        const { data: convMembers } = await supabase.from("conversation_members").select("conversation_id, last_read_at").eq("user_id", user.id);
-        if (convMembers && convMembers.length > 0) {
-          const counts = await Promise.all(convMembers.map(cm =>
-            supabase.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", cm.conversation_id).gt("created_at", cm.last_read_at || "2000-01-01")
-          ));
-          setUnreadChats(counts.filter(c => (c.count || 0) > 0).length);
-        }
-      } catch (e) { console.warn("unread chats fetch failed", e); }
-    } catch (e) {
-      console.error("TeenHome fetchData failed", e);
-      if (mountedRef.current) toast.error("Couldn't load your home. Pull to refresh.");
-    } finally {
-      inflightRef.current = false;
-      if (mountedRef.current) setLoading(false);
+  // Resolve current user id once so the cache key is stable.
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id ?? null));
+  }, []);
+
+  // Single payload fetcher — composed parallel reads, returned as one object so
+  // useScreenData can cache + replay it instantly on tab switches.
+  const fetchHomePayload = async () => {
+    if (!authUserId) throw new Error("Not signed in");
+    const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
+      supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", authUserId).single(),
+      supabase.from("wallets").select("*").eq("user_id", authUserId).single(),
+      supabase.from("savings_goals").select("id, title, target_amount, current_amount, icon").eq("teen_id", authUserId).eq("is_completed", false).limit(3),
+      supabase.from("notifications").select("id").eq("user_id", authUserId).eq("is_read", false),
+      supabase.from("rewards").select("id, title, description, discount_value, discount_type, image_url, category").eq("is_active", true).limit(4),
+      supabase.from("quick_pay_favorites").select("id, contact_name, avatar_emoji").eq("user_id", authUserId).order("last_paid_at", { ascending: false, nullsFirst: false }).limit(5),
+      supabase.from("user_streaks").select("current_streak, longest_streak, streak_coins").eq("user_id", authUserId).single(),
+      supabase.from("user_achievements").select("achievement_id, achievements(id, title, icon)").eq("user_id", authUserId).order("earned_at", { ascending: false }).limit(4),
+    ]);
+    let txns: Transaction[] = [];
+    if (walletRes.data) {
+      const { data } = await supabase.from("transactions").select("*").eq("wallet_id", walletRes.data.id).order("created_at", { ascending: false }).limit(40);
+      txns = (data || []) as Transaction[];
     }
+    let unreadChats = 0;
+    try {
+      const { data: convMembers } = await supabase.from("conversation_members").select("conversation_id, last_read_at").eq("user_id", authUserId);
+      if (convMembers && convMembers.length > 0) {
+        const counts = await Promise.all(convMembers.map(cm =>
+          supabase.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", cm.conversation_id).gt("created_at", cm.last_read_at || "2000-01-01")
+        ));
+        unreadChats = counts.filter(c => (c.count || 0) > 0).length;
+      }
+    } catch (e) { console.warn("unread chats fetch failed", e); }
+    return {
+      profile: profileRes.data as Profile | null,
+      wallet: walletRes.data as WalletData | null,
+      goals: (goalsRes.data || []) as SavingsGoal[],
+      unreadCount: notifRes.data?.length || 0,
+      rewards: (rewardsRes.data || []) as Reward[],
+      favorites: (favsRes.data || []) as QuickPayFav[],
+      streak: streakRes.data as StreakData | null,
+      achievements: ((achieveRes.data as any[]) || []).map(a => a.achievements).filter(Boolean) as AchievementData[],
+      transactions: txns,
+      unreadChats,
+    };
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // useScreenData renders cached payload instantly on return visits, then
+  // refreshes in the background.
+  const cacheKey = authUserId ? `home:${authUserId}` : null;
+  const { data: payload, loading: payloadLoading, refetch } = useScreenData(cacheKey, fetchHomePayload, 30_000);
+
+  // Hydrate local state from the payload (kept for the rest of the page that
+  // mutates these values e.g. balance toggle, optimistic updates).
+  useEffect(() => {
+    if (!payload || !mountedRef.current) return;
+    setUserId(authUserId);
+    if (payload.profile) setProfile(payload.profile);
+    if (payload.wallet) setWallet(payload.wallet);
+    setGoals(payload.goals);
+    setUnreadCount(payload.unreadCount);
+    setRewards(payload.rewards);
+    setFavorites(payload.favorites);
+    if (payload.streak) setStreak(payload.streak);
+    setRecentAchievements(payload.achievements);
+    setTransactions(payload.transactions);
+    setUnreadChats(payload.unreadChats);
+    setLoading(false);
+  }, [payload, authUserId]);
+
+  // Skeleton only when no cached data AND still loading.
+  useEffect(() => { setLoading(payloadLoading && !payload); }, [payloadLoading, payload]);
+
+  const fetchData = () => {
+    if (inflightRef.current) return;
+    inflightRef.current = true;
+    refetch().finally(() => { inflightRef.current = false; });
+  };
+
   useEffect(() => {
     if (!wallet?.id) return;
     const ch = supabase.channel("wallet-changes").on("postgres_changes", { event: "*", schema: "public", table: "wallets", filter: `id=eq.${wallet.id}` }, () => fetchData()).subscribe();
     return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet?.id]);
 
   const initials = profile?.full_name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?";
