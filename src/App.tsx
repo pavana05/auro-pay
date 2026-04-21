@@ -254,7 +254,7 @@ const App = () => (
                     </Routes>
                   </PageTransition>
                 </div>
-              </WebAppGate>
+              </>
             } />
           </Routes>
         </MaintenanceGate>
