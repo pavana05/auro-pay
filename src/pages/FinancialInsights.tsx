@@ -249,7 +249,7 @@ export default function FinancialInsights() {
         fallback="/home"
         right={<Sparkles className="w-4 h-4 text-primary" />}
       />
-      </header>
+      
 
       <main className="px-4 pt-4 space-y-4">
         {/* Window toggle */}

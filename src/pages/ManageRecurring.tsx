@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import {
   ChevronLeft, Repeat, Plus, Pause, Play, Trash2, Calendar,
   TrendingUp, Sparkles, X

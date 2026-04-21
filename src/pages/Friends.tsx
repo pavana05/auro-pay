@@ -4,6 +4,7 @@ import { ChevronLeft, UserPlus, Users, Trophy, Search, Check, X, MessageCircle, 
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 

@@ -5,6 +5,7 @@ import { ArrowLeft, Snowflake, DollarSign, Shield, Clock } from "lucide-react";
 import { toast } from "sonner";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 
 const categories = ["food", "transport", "education", "shopping", "entertainment", "other"];
 const categoryIcons: Record<string, string> = {

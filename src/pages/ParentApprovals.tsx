@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldCheck, Check, X, Clock, AlertTriangle } from "lucide-r
 import { toast } from "sonner";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 
 interface PendingRow {
   id: string;

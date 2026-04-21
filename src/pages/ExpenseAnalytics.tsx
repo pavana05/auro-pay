@@ -4,6 +4,7 @@ import { ArrowLeft, TrendingDown, TrendingUp, PieChart } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { haptic } from "@/lib/haptics";
 
 interface CategorySpend {
