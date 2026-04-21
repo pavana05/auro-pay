@@ -54,7 +54,24 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     return () => { cancelled = true; };
   }, [loading, isAdmin, location.pathname]);
 
-  if (loading || hasSession === null) return null;
+  if (loading || hasSession === null) {
+    // Visible loader instead of null — prevents blank/black screen when
+    // auth check is slow or stalls. Matches the admin theme.
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-3"
+        style={{ background: "#0a0c0f", color: "#c8952e" }}
+      >
+        <div
+          className="w-10 h-10 rounded-full border-2 animate-spin"
+          style={{ borderColor: "rgba(200,149,46,0.2)", borderTopColor: "#c8952e" }}
+        />
+        <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Verifying admin access…
+        </p>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     // Signed-out → dedicated admin login. Signed-in non-admin → public root.
