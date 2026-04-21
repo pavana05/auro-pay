@@ -208,10 +208,10 @@ const AdminTransactions = () => {
   };
 
   const exportCSV = () => {
-    const headers = "ID,Type,Amount,Merchant,Category,Method,Status,Date,User,Phone\n";
+    const headers = "ID,Type,Amount,Merchant,Category,Method,Status,Date,User,Phone,City,Region,Country,Lat,Lng,LocSource\n";
     const rows = filtered.map((t) => {
       const w = wallets[t.wallet_id];
-      return `${t.id},${t.type},${t.amount / 100},"${t.merchant_name || ""}",${t.category || ""},${guessMethod(t)},${t.status},${t.created_at},"${w?.full_name || ""}",${w?.phone || ""}`;
+      return `${t.id},${t.type},${t.amount / 100},"${t.merchant_name || ""}",${t.category || ""},${guessMethod(t)},${t.status},${t.created_at},"${w?.full_name || ""}",${w?.phone || ""},"${t.location_city || ""}","${t.location_region || ""}","${t.location_country || ""}",${t.latitude ?? ""},${t.longitude ?? ""},${t.location_source || ""}`;
     }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -610,6 +610,45 @@ const DetailPanel = ({
         <Row label="Razorpay Order" value={t.razorpay_order_id || "—"} mono />
         <Row label="Razorpay Payment" value={t.razorpay_payment_id || "—"} mono />
       </div>
+
+      {/* Payment Location */}
+      {(t.location_city || t.latitude) && (
+        <div className="rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Payment Location</p>
+            {t.location_source && (
+              <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] uppercase tracking-wider text-primary font-semibold">
+                {t.location_source === "gps" ? <Satellite className="w-2.5 h-2.5" /> : <Wifi className="w-2.5 h-2.5" />}
+                {t.location_source}
+              </span>
+            )}
+          </div>
+          <div className="text-xs space-y-1">
+            <p className="font-semibold text-foreground">
+              {[t.location_city, t.location_region, t.location_country].filter(Boolean).join(", ") || "Coordinates only"}
+            </p>
+            {t.latitude !== null && t.longitude !== null && (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {t.latitude.toFixed(6)}, {t.longitude.toFixed(6)}
+              </p>
+            )}
+            {t.location_captured_at && (
+              <p className="text-[10px] text-muted-foreground/70">
+                Captured {new Date(t.location_captured_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            )}
+          </div>
+          {t.latitude !== null && t.longitude !== null && (
+            <PaymentLocationMap
+              latitude={Number(t.latitude)}
+              longitude={Number(t.longitude)}
+              city={t.location_city}
+              country={t.location_country}
+            />
+          )}
+        </div>
+      )}
 
       {/* Timeline */}
       <div>

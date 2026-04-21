@@ -23,6 +23,12 @@ interface TransactionDetail {
   razorpay_order_id: string | null;
   created_at: string | null;
   wallet_id: string;
+  latitude: number | null;
+  longitude: number | null;
+  location_city: string | null;
+  location_region: string | null;
+  location_country: string | null;
+  location_source: string | null;
 }
 
 const categoryIcons: Record<string, string> = {
@@ -280,11 +286,14 @@ const TransactionDetailPage = () => {
   const isCredit = tx.type === "credit";
   const date = tx.created_at ? new Date(tx.created_at) : new Date();
 
+  const locationLabel = [tx.location_city, tx.location_region, tx.location_country].filter(Boolean).join(", ");
+
   const detailItems = [
     { icon: Clock, label: "Date & Time", value: date.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) + " at " + date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
     { icon: isCredit ? ArrowDownLeft : ArrowUpRight, label: "Type", value: isCredit ? "Money Received" : "Money Sent" },
     ...(tx.category ? [{ icon: Tag, label: "Category", value: `${categoryIcons[tx.category] || "💸"} ${tx.category.charAt(0).toUpperCase() + tx.category.slice(1)}` }] : []),
     ...(tx.merchant_upi_id ? [{ icon: MapPin, label: "UPI ID", value: tx.merchant_upi_id }] : []),
+    ...(locationLabel ? [{ icon: MapPin, label: "Payment Location", value: locationLabel }] : []),
     ...(tx.description ? [{ icon: Receipt, label: "Note", value: tx.description }] : []),
   ];
 
