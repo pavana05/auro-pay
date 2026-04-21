@@ -107,14 +107,14 @@ const SpendingLimits = () => {
       <h2 className="text-sm font-semibold mb-4">Set Limits</h2>
       <div className="space-y-4">
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Daily Limit (₹)</label>
-          <input value={dailyLimit} onChange={e => setDailyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="500" />
+          <label htmlFor="daily-limit" className="text-xs text-muted-foreground mb-1.5 block">Daily Limit (₹)</label>
+          <input id="daily-limit" inputMode="numeric" aria-label="Daily limit in rupees" value={dailyLimit} onChange={e => setDailyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="500" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Monthly Limit (₹)</label>
-          <input value={monthlyLimit} onChange={e => setMonthlyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="5000" />
+          <label htmlFor="monthly-limit" className="text-xs text-muted-foreground mb-1.5 block">Monthly Limit (₹)</label>
+          <input id="monthly-limit" inputMode="numeric" aria-label="Monthly limit in rupees" value={monthlyLimit} onChange={e => setMonthlyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="5000" />
         </div>
-        <button onClick={save} disabled={saving} className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
+        <button onClick={save} disabled={saving} aria-label="Update spending limits" className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
           {saving ? "Saving..." : "Update Limits"}
         </button>
       </div>
