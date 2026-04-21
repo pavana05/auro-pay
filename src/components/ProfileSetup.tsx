@@ -341,12 +341,20 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
             />
           )}
           {step === STEP_BRANCH && role === "parent" && (
-            <TeenLookupStep
-              teenPhone={teenPhone}
-              lookup={teenLookup}
-              onChange={lookupTeen}
-              onNext={handleStep2Parent}
-            />
+            <ErrorBoundary
+              label="Teen lookup"
+              onRetry={() => {
+                setTeenLookup({ status: "idle" });
+                setTeenPhone("");
+              }}
+            >
+              <TeenLookupStep
+                teenPhone={teenPhone}
+                lookup={teenLookup}
+                onChange={lookupTeen}
+                onNext={handleStep2Parent}
+              />
+            </ErrorBoundary>
           )}
           {step === STEP_CITY && (
             <CityStep
