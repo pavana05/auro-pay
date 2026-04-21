@@ -231,9 +231,9 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
         if (linkError) {
           // Non-fatal — they can link later from Linked Parents/Teens screen
           console.warn("Teen link failed:", linkError.message);
-          toast.warning("Profile created but couldn't link teen — try again from Linked Teens.");
+          toast.warn("Profile created", { description: "Couldn't link teen — try again from Linked Teens." });
         } else {
-          toast.success(`Linked with ${teenLookup.profile.full_name || "teen"}`);
+          toast.ok("Linked with teen", { description: `Connected to ${teenLookup.profile.full_name || "your teen"}.` });
         }
       }
 
@@ -245,7 +245,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
       setStep(STEP_CONGRATS);
       setTimeout(() => onComplete(), 2800);
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+      toast.fail("Setup failed", { description: err?.message || "Something went wrong. Please try again." });
       setLoading(false);
     }
   };
