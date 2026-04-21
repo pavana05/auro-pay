@@ -252,6 +252,10 @@ const OnboardingScreen = ({ onComplete }: { onComplete: () => void }) => {
                 >
                   {s.variant === "tilt-coin" ? (
                     <TiltCoin active={isActive} />
+                  ) : s.variant === "verto" ? (
+                    <div className="w-full h-full scale-[0.78] origin-center">
+                      <VertoStage variant="compact" wordmark="AURO" screen="home" />
+                    </div>
                   ) : (
                     <LottieSlide url={s.lottieUrl} active={isActive} hue={s.hue} />
                   )}
