@@ -231,6 +231,7 @@ const App = () => (
                   <PageTransition>
                     <ErrorBoundary label="This page">
                     <Routes>
+                    <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
