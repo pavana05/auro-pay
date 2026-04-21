@@ -317,7 +317,7 @@ const TeenHome = () => {
               style={{ flexBasis: searchOpen ? "100%" : 40 }}
             >
               {searchOpen ? (
-                <div className="w-full h-full rounded-[13px] bg-muted/30 backdrop-blur-sm border border-primary/30 flex items-center pl-3 pr-1 gap-2"
+                <div className="w-full h-full rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center pl-3 pr-1 gap-2"
                   style={{ boxShadow: "0 0 16px hsl(42 78% 55% / 0.15)" }}>
                   <Search className="w-[15px] h-[15px] text-primary shrink-0" />
                   <input
@@ -335,7 +335,7 @@ const TeenHome = () => {
                 </div>
               ) : (
                 <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); setSearchOpen(true); }}
-                  className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center border border-border/30">
+                  className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center">
                   <Search className="w-[17px] h-[17px] text-muted-foreground/50" />
                 </motion.button>
               )}
@@ -344,7 +344,7 @@ const TeenHome = () => {
             {/* Hide chat + bell when search is open */}
             <div className={`flex items-center gap-2 transition-all duration-200 ${searchOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
               <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/chats"); }}
-                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
+                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative">
                 <MessageCircle className="w-[17px] h-[17px] text-muted-foreground/50" />
                 {unreadChats > 0 && (
                   <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -352,7 +352,7 @@ const TeenHome = () => {
                 )}
               </motion.button>
               <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic.light(); navigate("/notifications"); }}
-                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative border border-border/30">
+                className="w-[40px] h-[40px] rounded-[13px] bg-muted/30 backdrop-blur-sm flex items-center justify-center relative">
                 <Bell className="w-[17px] h-[17px] text-muted-foreground/50" />
                 {unreadCount > 0 && (
                   <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -394,7 +394,7 @@ const TeenHome = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.04, type: "spring", stiffness: 280, damping: 24 }}
             onClick={() => { haptic.light(); navigate("/personal-info"); }}
-            className="mx-5 mb-4 w-[calc(100%-2.5rem)] flex items-center gap-3 px-4 py-3 rounded-[16px] border border-warning/25 relative overflow-hidden text-left"
+            className="mx-5 mb-4 w-[calc(100%-2.5rem)] flex items-center gap-3 px-4 py-3 rounded-[16px] relative overflow-hidden text-left"
             style={{ background: "linear-gradient(135deg, hsl(38 92% 50% / 0.12), hsl(42 78% 55% / 0.04))" }}
           >
             <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)" }} />
@@ -424,7 +424,7 @@ const TeenHome = () => {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => { haptic.light(); navigate("/achievements"); }}
-            className="flex-1 flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] border border-border/20 relative overflow-hidden"
+            className="flex-1 flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, hsl(220 18% 9%), hsl(220 20% 6%))" }}
           >
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.1), transparent)" }} />
@@ -436,7 +436,7 @@ const TeenHome = () => {
               <p className="text-[8px] text-muted-foreground/40 font-semibold tracking-[0.08em] uppercase font-sora mt-0.5">Day Streak</p>
             </div>
             {(streak?.current_streak || 0) >= 7 && (
-              <div className="ml-auto px-2 py-0.5 rounded-full bg-warning/[0.08] border border-warning/10">
+              <div className="ml-auto px-2 py-0.5 rounded-full bg-warning/[0.08]">
                 <span className="text-[7px] font-bold text-warning font-sora">🔥 ON FIRE</span>
               </div>
             )}
@@ -446,7 +446,7 @@ const TeenHome = () => {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => { haptic.medium(); navigate("/spin-wheel"); }}
-            className="flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] border border-primary/[0.1] relative overflow-hidden"
+            className="flex items-center gap-2.5 px-3.5 py-3 rounded-[16px] relative overflow-hidden"
             style={{ background: "radial-gradient(ellipse at 80% 20%, hsl(42 78% 55% / 0.06) 0%, transparent 60%), linear-gradient(135deg, hsl(220 18% 9%), hsl(220 20% 6%))" }}
           >
             <motion.span
@@ -532,7 +532,7 @@ const TeenHome = () => {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <div className="w-8 h-8 rounded-[10px] bg-muted/20 flex items-center justify-center backdrop-blur-sm border border-border/20">
+                    <div className="w-8 h-8 rounded-[10px] bg-muted/20 flex items-center justify-center backdrop-blur-sm">
                       {showBalance ? <EyeOff className="w-[14px] h-[14px] text-foreground/25" /> : <Eye className="w-[14px] h-[14px] text-foreground/25" />}
                     </div>
                   </motion.button>
@@ -549,7 +549,7 @@ const TeenHome = () => {
               </div>
 
               {wallet?.is_frozen && (
-                <div className="mb-3.5 px-3 py-1.5 bg-destructive/[0.06] rounded-xl inline-flex items-center gap-2 border border-destructive/10">
+                <div className="mb-3.5 px-3 py-1.5 bg-destructive/[0.06] rounded-xl inline-flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
                   <span className="text-[10px] font-semibold text-destructive/80 font-sora">Wallet Frozen</span>
                 </div>
@@ -560,7 +560,7 @@ const TeenHome = () => {
                 const todayPct = wallet ? Math.min(((wallet.spent_today || 0) / Math.max(wallet.daily_limit || 1, 1)) * 100, 100) : 0;
                 const todayColor = todayPct > 80 ? "hsl(0 72% 51%)" : todayPct > 50 ? "hsl(38 92% 50%)" : "hsl(42 78% 55%)";
                 return (
-                  <div className="mb-3 pt-3.5 border-t border-border/15">
+                  <div className="mb-3 pt-3.5">
                     <div className="flex items-end justify-between mb-2">
                       <div>
                         <span className="text-[8px] text-foreground/25 font-bold tracking-[0.15em] uppercase font-sora block mb-0.5">Spent Today</span>
@@ -589,7 +589,7 @@ const TeenHome = () => {
 
               {/* Income / Expense */}
               <div className="grid grid-cols-2 gap-2.5">
-                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden border border-success/[0.06]">
+                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden">
                   <div className="absolute inset-0 bg-success/[0.02]" />
                   <div className="relative z-10 flex items-center gap-2.5">
                     <div className="w-[22px] h-[22px] rounded-[7px] bg-success/[0.1] flex items-center justify-center">
@@ -601,7 +601,7 @@ const TeenHome = () => {
                     </div>
                   </div>
                 </div>
-                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden border border-destructive/[0.06]">
+                <div className="relative rounded-[16px] px-3.5 py-3 overflow-hidden">
                   <div className="absolute inset-0 bg-destructive/[0.02]" />
                   <div className="relative z-10 flex items-center gap-2.5">
                     <div className="w-[22px] h-[22px] rounded-[7px] bg-destructive/[0.1] flex items-center justify-center">
@@ -632,7 +632,7 @@ const TeenHome = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => { haptic.medium(); navigate("/send"); }}
-            className="group w-full rounded-[20px] p-4 relative overflow-hidden border border-primary/15 text-left flex items-center gap-3.5"
+            className="group w-full rounded-[20px] p-4 relative overflow-hidden text-left flex items-center gap-3.5"
             style={{
               background: "linear-gradient(135deg, hsl(220 22% 9%) 0%, hsl(220 18% 6%) 100%)",
               boxShadow: "0 8px 28px -8px hsl(42 78% 55% / 0.12), inset 0 1px 0 hsl(42 78% 55% / 0.08)",
@@ -681,9 +681,9 @@ const TeenHome = () => {
               variants={stagger.item}
               whileTap={{ scale: 0.88 }}
               onClick={() => { haptic.light(); navigate(a.path); }}
-              className="flex flex-col items-center gap-2 py-3.5 rounded-[20px] bg-muted/15 border border-border/20 relative overflow-hidden group"
+              className="flex flex-col items-center gap-2 py-3.5 rounded-[20px] bg-muted/15 relative overflow-hidden group"
             >
-              <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center bg-primary/[0.08] border border-primary/[0.06] shadow-[0_4px_14px_hsl(42_78%_55%/0.06)]">
+              <div className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center bg-primary/[0.08] shadow-[0_4px_14px_hsl(42_78%_55%/0.06)]">
                 <a.icon className="w-[20px] h-[20px] text-primary" strokeWidth={1.8} style={{ filter: "drop-shadow(0 0 4px hsl(42 78% 55% / 0.25))" }} />
               </div>
               <span className="text-[10px] font-semibold text-muted-foreground font-sora">{a.label}</span>
@@ -701,7 +701,7 @@ const TeenHome = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => { haptic.light(); navigate("/analytics"); }}
-            className="w-full rounded-[20px] p-4 relative overflow-hidden border border-border/20 text-left"
+            className="w-full rounded-[20px] p-4 relative overflow-hidden text-left"
             style={{ background: "linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
           >
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.1), transparent)" }} />
@@ -711,9 +711,9 @@ const TeenHome = () => {
                 <span className="text-[11px] font-semibold text-muted-foreground/60 font-sora">Monthly Budget</span>
               </div>
               <span className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-full ${
-                spendPct > 80 ? "bg-destructive/[0.08] text-destructive border border-destructive/10"
-                : spendPct > 50 ? "bg-warning/[0.08] text-warning border border-warning/10"
-                : "bg-success/[0.08] text-success border border-success/10"
+                spendPct > 80 ? "bg-destructive/[0.08] text-destructive"
+                : spendPct > 50 ? "bg-warning/[0.08] text-warning"
+                : "bg-success/[0.08] text-success"
               }`}>{Math.round(spendPct)}% used</span>
             </div>
             <div className="flex items-end justify-between mb-2.5">
@@ -746,7 +746,7 @@ const TeenHome = () => {
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => { haptic.light(); navigate("/achievements"); }}
-              className="w-full rounded-[20px] p-4 relative overflow-hidden border border-border/20 text-left"
+              className="w-full rounded-[20px] p-4 relative overflow-hidden text-left"
               style={{ background: "radial-gradient(ellipse 50% 70% at 90% 20%, hsl(42 78% 55% / 0.04) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
             >
               <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.08), transparent)" }} />
@@ -764,7 +764,7 @@ const TeenHome = () => {
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.4 + i * 0.08, type: "spring", stiffness: 400, damping: 20 }}
-                    className="w-[44px] h-[44px] rounded-[14px] bg-muted/20 border border-border/15 flex items-center justify-center text-[20px]"
+                    className="w-[44px] h-[44px] rounded-[14px] bg-muted/20 flex items-center justify-center text-[20px]"
                     style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
                   >
                     {a.icon || "🏆"}
@@ -789,7 +789,7 @@ const TeenHome = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => { haptic.light(); navigate("/analytics"); }}
-            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left border border-border/20"
+            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left"
             style={{ background: `radial-gradient(ellipse 50% 80% at 85% 20%, ${healthColor}06 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))` }}
           >
             <div className="flex items-center gap-3.5">
@@ -880,7 +880,7 @@ const TeenHome = () => {
                 onClick={() => { haptic.light(); navigate("/quick-pay"); }}
                 className="flex flex-col items-center gap-2 min-w-[58px]"
               >
-                <div className="w-[50px] h-[50px] rounded-[16px] bg-primary/[0.03] border border-primary/[0.08] flex items-center justify-center">
+                <div className="w-[50px] h-[50px] rounded-[16px] bg-primary/[0.03] flex items-center justify-center">
                   <Plus className="w-4.5 h-4.5 text-primary/40" />
                 </div>
                 <span className="text-[9px] text-primary/40 font-semibold font-sora">Add</span>
@@ -916,7 +916,7 @@ const TeenHome = () => {
                     transition={{ delay: 0.55 + i * 0.06, type: "spring", stiffness: 300, damping: 22 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => { haptic.light(); navigate("/savings"); }}
-                    className="min-w-[140px] w-full p-3.5 rounded-[18px] bg-muted/15 border border-border/20 text-left"
+                    className="min-w-[140px] w-full p-3.5 rounded-[18px] bg-muted/15 text-left"
                   >
                     <div className="text-[24px] mb-2">{goal.icon || "🎯"}</div>
                     <p className="text-[11px] font-semibold truncate mb-2 font-sora">{goal.title}</p>
@@ -960,7 +960,7 @@ const TeenHome = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-14 rounded-[20px] bg-muted/10 border border-border/20"
+              className="text-center py-14 rounded-[20px] bg-muted/10"
             >
               <div className="w-[56px] h-[56px] rounded-[18px] bg-muted/15 flex items-center justify-center mx-auto mb-3">
                 <Activity className="w-7 h-7 text-muted-foreground/15" />
@@ -969,7 +969,7 @@ const TeenHome = () => {
               <p className="text-[10px] text-muted-foreground/20 font-sora">Your activity will appear here</p>
             </motion.div>
           ) : (
-            <div className="relative rounded-[20px] overflow-hidden border border-border/20" style={{
+            <div className="relative rounded-[20px] overflow-hidden" style={{
               background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))",
               boxShadow: "0 8px 32px -8px hsl(220 20% 4% / 0.5), inset 0 1px 0 hsl(40 20% 95% / 0.02)"
             }}>
@@ -979,7 +979,7 @@ const TeenHome = () => {
                   key={tx.id}
                   onDetails={() => navigate(`/transaction/${tx.id}`)}
                   onDispute={() => navigate("/help")}
-                  className={idx < recentForList.length - 1 ? "border-b border-border/10" : ""}
+                  className=""
                 >
                   <motion.button
                     initial={{ opacity: 0, x: 20 }}
@@ -990,7 +990,7 @@ const TeenHome = () => {
                     className="w-full flex items-center gap-3 px-3.5 py-3.5 transition-all duration-200"
                     style={{ background: "linear-gradient(160deg, hsl(220 18% 8.5%), hsl(220 20% 5%))" }}
                   >
-                    <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0 border border-border/10">
+                    <div className="w-[40px] h-[40px] rounded-[13px] bg-muted/20 flex items-center justify-center text-[18px] shrink-0">
                       {catEmoji[tx.category || "other"] || "💸"}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
@@ -1041,7 +1041,7 @@ const TeenHome = () => {
                   transition={{ delay: 0.7 + i * 0.06, type: "spring" }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => { haptic.light(); navigate(`/rewards/${r.id}`); }}
-                  className="min-w-[160px] rounded-[18px] overflow-hidden bg-muted/15 border border-border/20"
+                  className="min-w-[160px] rounded-[18px] overflow-hidden bg-muted/15"
                 >
                   {r.image_url ? (
                     <div className="w-full h-[88px] overflow-hidden"><img src={r.image_url} alt={r.title} className="w-full h-full object-cover" loading="lazy" /></div>
@@ -1053,7 +1053,7 @@ const TeenHome = () => {
                   <div className="p-3">
                     <p className="text-[10px] font-semibold truncate font-sora">{r.title}</p>
                     <p className="text-[8px] text-muted-foreground/30 mt-0.5 truncate font-sora">{r.description || "Limited time"}</p>
-                    <div className="mt-2 inline-flex px-2.5 py-1 rounded-[8px] bg-primary/[0.05] text-primary text-[9px] font-bold border border-primary/[0.06] font-mono">
+                    <div className="mt-2 inline-flex px-2.5 py-1 rounded-[8px] bg-primary/[0.05] text-primary text-[9px] font-bold font-mono">
                       {r.discount_type === "percentage" ? `${r.discount_value}% OFF` : `₹${r.discount_value} OFF`}
                     </div>
                   </div>
@@ -1078,7 +1078,7 @@ const TeenHome = () => {
                 variants={stagger.item}
                 whileTap={{ scale: 0.88 }}
                 onClick={() => { haptic.light(); navigate(f.path, (f as any).state ? { state: (f as any).state } : undefined); }}
-                className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-muted/10 border border-border/15 group"
+                className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-muted/10 group"
               >
                 <span className="text-[22px] group-active:scale-110 transition-transform duration-200">{f.emoji}</span>
                 <span className="text-[9px] font-semibold text-muted-foreground/50 font-sora">{f.label}</span>
@@ -1100,7 +1100,7 @@ const TeenHome = () => {
               haptic.medium();
               navigate("/referrals");
             }}
-            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left border border-border/20"
+            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left"
             style={{ background: "radial-gradient(ellipse 50% 70% at 90% 30%, hsl(42 78% 55% / 0.05) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
           >
             <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.12), transparent)" }} />
@@ -1132,14 +1132,14 @@ const TeenHome = () => {
           <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3 font-sora">Explore</h3>
           <div className="grid grid-cols-2 gap-2.5">
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => { haptic.light(); navigate("/savings"); }}
-              className="rounded-[18px] p-3.5 overflow-hidden relative bg-muted/10 border border-border/15 text-left">
+              className="rounded-[18px] p-3.5 overflow-hidden relative bg-muted/10 text-left">
               <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.03] blur-[25px]" style={{ background: "hsl(152 60% 45%)" }} />
               <span className="text-[26px] mb-2 block">🏦</span>
               <p className="text-[11px] font-semibold mb-0.5 font-sora">Save & Invest</p>
               <p className="text-[9px] text-muted-foreground/30 font-sora">Set savings goals</p>
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => { haptic.light(); navigate("/learn"); }}
-              className="rounded-[18px] p-3.5 overflow-hidden relative bg-muted/10 border border-border/15 text-left">
+              className="rounded-[18px] p-3.5 overflow-hidden relative bg-muted/10 text-left">
               <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.03] blur-[25px]" style={{ background: "hsl(42 78% 55%)" }} />
               <span className="text-[26px] mb-2 block">📚</span>
               <p className="text-[11px] font-semibold mb-0.5 font-sora">Learn & Earn</p>
