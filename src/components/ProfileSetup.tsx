@@ -682,15 +682,17 @@ const TeenLookupStep = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder="98765 43210"
           maxLength={10}
+          aria-label="Teen's 10-digit phone number"
+          aria-describedby="teen-lookup-status"
           className="flex-1 bg-transparent outline-none text-[15px] text-white placeholder:text-white/30 font-medium tracking-wider"
           autoFocus
         />
-        {lookup.status === "searching" && <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(42 90% 70%)" }} />}
-        {lookup.status === "found" && <Check className="w-4 h-4" strokeWidth={3} style={{ color: "hsl(140 60% 60%)" }} />}
+        {lookup.status === "searching" && <Loader2 className="w-4 h-4 animate-spin" aria-label="Searching" style={{ color: "hsl(42 90% 70%)" }} />}
+        {lookup.status === "found" && <Check className="w-4 h-4" aria-label="Teen found" strokeWidth={3} style={{ color: "hsl(140 60% 60%)" }} />}
       </div>
 
       {/* Result card */}
-      <div className="mt-4 min-h-[80px]">
+      <div id="teen-lookup-status" role="status" aria-live="polite" className="mt-4 min-h-[80px]">
         {lookup.status === "found" && lookup.profile && (
           <div
             className="rounded-2xl p-4 flex items-center gap-3"
