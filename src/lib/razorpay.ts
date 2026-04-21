@@ -1,5 +1,6 @@
 // Razorpay Checkout helper — loads the SDK once and opens the checkout modal.
 import { supabase } from "@/integrations/supabase/client";
+import { getPaymentLocation } from "./payment-location";
 
 declare global {
   interface Window { Razorpay: any }
@@ -31,9 +32,10 @@ export interface RazorpayPaymentParams {
 
 export async function startRazorpayPayment({ amount, description, prefill, onSuccess, onFailure }: RazorpayPaymentParams) {
   try {
-    // 1. Create order on backend
+    // 1. Create order on backend (with best-effort payment location tag)
+    const client_location = await getPaymentLocation();
     const { data: orderData, error: orderError } = await supabase.functions.invoke("create-payment-order", {
-      body: { amount, description },
+      body: { amount, description, client_location },
     });
     if (orderError) throw orderError;
     if (!orderData?.order_id) throw new Error("Failed to create order");
