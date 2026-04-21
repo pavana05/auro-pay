@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward, MapPin } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import type { IndiaCity } from "@/lib/india-cities";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 
 interface Props {
@@ -17,8 +18,35 @@ interface Props {
   onComplete: () => void;
 }
 
-const nameSchema = z.string().trim().min(2, "Name is too short").max(60, "Name is too long");
-const phoneSchema = z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian phone");
+// ── Shared zod validators ─────────────────────────────────────────────
+// Used by every step so error copy + rules stay consistent.
+const nameSchema = z
+  .string()
+  .trim()
+  .min(2, "Name must be at least 2 characters")
+  .max(60, "Name must be 60 characters or fewer")
+  .regex(/^[\p{L}\p{M}'’.\- ]+$/u, "Use letters, spaces, hyphens or apostrophes only");
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number");
+
+const dobSchema = z
+  .date({ required_error: "Select your date of birth", invalid_type_error: "Select a valid date" })
+  .refine((d) => d <= new Date(), "Date of birth can't be in the future")
+  .refine((d) => {
+    const age = differenceInYears(new Date(), d);
+    return age >= 10 && age <= 25;
+  }, "Teen accounts are for ages 10–25");
+
+const citySchema = z
+  .object({
+    name: z.string().trim().min(1, "City name is required"),
+    state: z.string().trim().min(1, "State code is required"),
+    stateName: z.string().trim().min(1).optional(),
+  })
+  .nullable();
 
 type Direction = 1 | -1;
 
