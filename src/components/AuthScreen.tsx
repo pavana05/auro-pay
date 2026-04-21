@@ -14,6 +14,7 @@ import {
   markReturningSession,
   setBiometricEnabled,
 } from "@/lib/biometric";
+import VertoStage from "@/landing/VertoStage";
 
 const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile");
 
@@ -367,10 +368,17 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
         />
       </div>
 
-      {/* Brand mark */}
-      <div className="relative z-10 mb-8 text-center">
+      {/* Verto-style brand stage — tilted phone, ghost wordmark, floating chips */}
+      <div className="relative z-10 w-full max-w-sm mb-2 hidden sm:block" style={{ height: 280 }}>
+        <div className="absolute inset-0 scale-[0.7] origin-top">
+          <VertoStage variant="compact" wordmark="AURO" screen="home" />
+        </div>
+      </div>
+
+      {/* Brand mark — visible on all sizes (acts as fallback on small screens) */}
+      <div className="relative z-10 mb-6 text-center">
         <h1
-          className="text-[42px] font-black tracking-tight"
+          className="text-[34px] sm:text-[42px] font-black tracking-tight"
           style={{
             background: "linear-gradient(135deg, hsl(42 95% 75%) 0%, hsl(42 78% 55%) 50%, hsl(38 80% 45%) 100%)",
             WebkitBackgroundClip: "text",
