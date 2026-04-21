@@ -295,13 +295,37 @@ const AdminSecurity = () => {
                     className="rounded-xl p-3 text-xs flex items-start justify-between gap-3"
                     style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${G.border}` }}
                   >
-                    <div className="min-w-0">
-                      <p className="text-white font-medium truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium truncate flex items-center gap-1.5">
                         {prof?.full_name || emails[g.user_id] || g.user_id.slice(0, 8) + "…"}
+                        {prof?.is_blocked && (
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold"
+                            style={{ background: `${G.danger}20`, color: G.danger }}
+                          >
+                            Blocked
+                          </span>
+                        )}
                       </p>
                       <p className="font-mono mt-0.5 truncate" style={{ color: G.textMuted }}>
                         {emails[g.user_id] || prof?.phone || g.user_id}
                       </p>
+                      <button
+                        onClick={() => toggleBlock(g.user_id, !prof?.is_blocked)}
+                        disabled={blockingId === g.user_id}
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-lg px-2.5 py-1 transition-colors disabled:opacity-50"
+                        style={
+                          prof?.is_blocked
+                            ? { background: `${G.primary}15`, color: G.primary, border: `1px solid ${G.primary}40` }
+                            : { background: `${G.danger}15`, color: G.danger, border: `1px solid ${G.danger}40` }
+                        }
+                      >
+                        {prof?.is_blocked ? (
+                          <><ShieldCheck className="w-3 h-3" /> Unblock</>
+                        ) : (
+                          <><Ban className="w-3 h-3" /> {blockingId === g.user_id ? "Blocking…" : "Block user"}</>
+                        )}
+                      </button>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold" style={{ color: G.danger }}>{g.count}</p>
