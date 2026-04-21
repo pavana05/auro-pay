@@ -95,6 +95,7 @@ import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
 import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
+import { DataCacheProvider } from "@/lib/data-cache";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -154,6 +155,7 @@ const AuthRedirector = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <DataCacheProvider>
     <TooltipProvider>
       <Sonner
         position="top-right"
@@ -223,6 +225,7 @@ const App = () => (
               <WebAppGate>
                 <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
                   <PageTransition>
+                    <ErrorBoundary label="This page">
                     <Routes>
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
@@ -276,6 +279,7 @@ const App = () => (
                     <Route path="/recurring" element={<ManageRecurring />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </ErrorBoundary>
                   </PageTransition>
                 </div>
               </WebAppGate>
@@ -285,6 +289,7 @@ const App = () => (
         </RealtimeWrapper>
       </BrowserRouter>
     </TooltipProvider>
+    </DataCacheProvider>
   </QueryClientProvider>
 );
 

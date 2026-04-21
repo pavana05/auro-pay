@@ -86,11 +86,18 @@ const TeenHome = () => {
     setCardTilt({ x: ((e.clientX - rect.left) / rect.width - 0.5) * 16, y: -((e.clientY - rect.top) / rect.height - 0.5) * 12 });
   };
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const inflightRef = useRef(false);
+
   const fetchData = async () => {
+    if (inflightRef.current) return;       // dedupe rapid realtime triggers
+    inflightRef.current = true;
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) { if (mountedRef.current) setLoading(false); return; }
+      if (!mountedRef.current) return;
       setUserId(user.id);
       const [profileRes, walletRes, goalsRes, notifRes, rewardsRes, favsRes, streakRes, achieveRes] = await Promise.all([
         supabase.from("profiles").select("full_name, avatar_url, kyc_status, phone").eq("id", user.id).single(),
@@ -129,9 +136,10 @@ const TeenHome = () => {
       } catch (e) { console.warn("unread chats fetch failed", e); }
     } catch (e) {
       console.error("TeenHome fetchData failed", e);
-      toast.error("Couldn't load your home. Pull to refresh.");
+      if (mountedRef.current) toast.error("Couldn't load your home. Pull to refresh.");
     } finally {
-      setLoading(false);
+      inflightRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
   };
 
