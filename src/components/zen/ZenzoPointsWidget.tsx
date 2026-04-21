@@ -70,8 +70,12 @@ export const ZenzoPointsWidget = ({ userId }: Props) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 22, delay: 0.12 }}
           onClick={() => haptic.light()}
-          className="zen-balance-card zen-card-shimmer w-full rounded-[22px] p-4 mx-0 text-left relative"
-          style={{ borderColor: `${tier.color.replace(")", " / 0.35)")}` }}
+          className="zen-card-shimmer w-full rounded-[22px] p-4 mx-0 text-left relative"
+          style={{
+            background: "linear-gradient(180deg, #0e1014, #0a0c0f)",
+            border: "2px solid rgba(255,255,255,0.04)",
+            boxShadow: "0 18px 40px -22px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.025)",
+          }}
         >
           <div className="flex items-center gap-3 relative z-10">
             <div
