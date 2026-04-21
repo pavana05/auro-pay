@@ -30,7 +30,9 @@ function isAllowedOnWeb(pathname: string): boolean {
 const WebAppGate = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isNative = Capacitor.isNativePlatform();
-  const allowed = isAllowedOnWeb(location.pathname);
+  // Gate disabled: allow all app routes to render on the web.
+  const allowed = true;
+  void isAllowedOnWeb;
 
   const android = !isNative && !allowed && isAndroidWeb();
   const ios = !isNative && !allowed && isIOSWeb();
