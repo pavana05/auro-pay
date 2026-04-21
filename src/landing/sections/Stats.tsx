@@ -54,19 +54,16 @@ function Counter({
   }, [live, liveStep, inViewLive]);
 
   return (
-    <span ref={ref} className="relative inline-block">
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={val}
-          initial={pulse ? { y: -6, opacity: 0, color: "#e0b048" } : { opacity: 1 }}
-          animate={{ y: 0, opacity: 1, color: "currentColor" }}
-          exit={pulse ? { y: 6, opacity: 0, position: "absolute" } : { opacity: 1 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="inline-block"
-        >
-          {val}
-        </motion.span>
-      </AnimatePresence>
+    <span ref={ref} className="relative inline-block tabular-nums">
+      <motion.span
+        key={pulse}
+        initial={pulse ? { y: -6, opacity: 0, color: "#e0b048" } : false}
+        animate={{ y: 0, opacity: 1, color: "currentColor" }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="inline-block"
+      >
+        {val.toLocaleString("en-IN")}
+      </motion.span>
     </span>
   );
 }
