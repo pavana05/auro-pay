@@ -82,27 +82,74 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center pt-28 pb-16 px-5 lg:px-12">
-      {/* Soft mesh blobs */}
-      <div className="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(200,149,46,0.5), transparent 70%)" }} />
-      <div className="absolute bottom-20 -right-20 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(255,247,227,0.4), transparent 70%)" }} />
+    <section className="relative min-h-screen flex items-center pt-28 pb-16 px-5 lg:px-12 overflow-hidden">
+      {/* Animated mesh blobs — slow drift + breathe */}
+      <motion.div
+        aria-hidden
+        className="absolute top-32 -left-20 w-[28rem] h-[28rem] rounded-full blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(200,149,46,0.55), transparent 70%)" }}
+        animate={reduceMotion ? {} : { x: [0, 40, -10, 0], y: [0, -30, 20, 0], scale: [1, 1.08, 0.96, 1], opacity: [0.28, 0.38, 0.3, 0.28] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        aria-hidden
+        className="absolute bottom-20 -right-20 w-[28rem] h-[28rem] rounded-full blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(255,247,227,0.4), transparent 70%)" }}
+        animate={reduceMotion ? {} : { x: [0, -50, 20, 0], y: [0, 30, -15, 0], scale: [1, 1.1, 0.95, 1], opacity: [0.18, 0.28, 0.2, 0.18] }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Drifting fine grain noise / sparkle dots */}
+      {!reduceMotion && (
+        <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.35]">
+          {[...Array(6)].map((_, i) => (
+            <motion.span
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: 3, height: 3,
+                background: "radial-gradient(circle, rgba(255,231,170,0.9), rgba(200,149,46,0))",
+                top: `${15 + i * 12}%`,
+                left: `${10 + ((i * 17) % 80)}%`,
+                boxShadow: "0 0 8px rgba(255,215,140,0.6)",
+              }}
+              animate={{ y: [0, -18, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 4 + i * 0.6, repeat: Infinity, delay: i * 0.7, ease: "easeInOut" }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-10 lg:gap-12 w-full items-center relative">
         <div className="lg:col-span-7 space-y-7">
-          {/* Pill */}
+          {/* Pill — with shimmer sweep */}
           <motion.button
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-            className="inline-flex items-center gap-2 pl-1 pr-4 py-1 rounded-full text-xs font-medium border"
+            whileHover={{ scale: 1.03, borderColor: "rgba(200,149,46,0.55)" }}
+            className="relative inline-flex items-center gap-2 pl-1 pr-4 py-1 rounded-full text-xs font-medium border overflow-hidden group"
             style={{ background: "rgba(200,149,46,0.08)", borderColor: "rgba(200,149,46,0.3)" }}
           >
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold text-black uppercase tracking-wider"
+            {!reduceMotion && (
+              <motion.span
+                aria-hidden
+                className="absolute inset-y-0 w-1/3 pointer-events-none"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(255,231,170,0.35), transparent)" }}
+                initial={{ x: "-150%" }}
+                animate={{ x: "350%" }}
+                transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
+              />
+            )}
+            <span className="relative px-2.5 py-1 rounded-full text-[10px] font-bold text-black uppercase tracking-wider"
               style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}>New</span>
-            <span className="text-amber-100/90">India's first scan-and-pay app for teens</span>
-            <ChevronRight size={12} className="text-amber-200" />
+            <span className="relative text-amber-100/90">India's first scan-and-pay app for teens</span>
+            <motion.span
+              className="relative"
+              animate={reduceMotion ? {} : { x: [0, 3, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronRight size={12} className="text-amber-200" />
+            </motion.span>
           </motion.button>
 
           {/* Headline */}
