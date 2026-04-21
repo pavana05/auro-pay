@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Gift, ChevronLeft, Tag, Sparkles, Clock, Search, Star, Crown, Copy, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 
@@ -38,6 +39,7 @@ const getExpiryInfo = (expiresAt: string | null) => {
 
 const Rewards = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -94,7 +96,7 @@ const Rewards = () => {
       {/* Premium Header */}
       <div className="sticky top-0 z-30 bg-background/60 backdrop-blur-2xl border-b border-white/[0.06]">
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => { haptic.light(); navigate(-1); }} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] active:scale-90 transition-all">
+          <button onClick={() => { haptic.light(); back(); }} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5 text-foreground/80" />
           </button>
           <div className="flex items-center gap-2" style={{ animation: "slide-up-spring 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>

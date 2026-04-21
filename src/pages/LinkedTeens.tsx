@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import { z } from "zod";
@@ -40,6 +41,7 @@ type LookupState =
 
 const LinkedTeens = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [userId, setUserId] = useState<string | null>(null);
   const [links, setLinks] = useState<TeenLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ const LinkedTeens = () => {
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-28">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+        <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-[22px] font-semibold flex-1">Linked Teens</h1>

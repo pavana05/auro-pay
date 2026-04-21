@@ -3,6 +3,7 @@
 //   navigate("/pay", { state: { upi_id, payee_name, amount, amount_locked, note, category } })
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ArrowLeft, Wallet, Delete, Lock, ArrowRight, CheckCircle2, XCircle,
   Share2, Download, Shield, ChevronRight,
@@ -42,6 +43,7 @@ const merchantColor = (name: string) => {
 
 const PaymentConfirm = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const locState = (location.state || {}) as PayState;
@@ -268,7 +270,7 @@ const PaymentConfirm = () => {
     const showVal = setupStage === "enter" ? setupPin : setupConfirm;
     return (
       <div className="min-h-screen bg-background flex flex-col px-5 pt-4 pb-6">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center active:scale-90">
+        <button onClick={() => back()} className="w-11 h-11 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center active:scale-90">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -296,7 +298,7 @@ const PaymentConfirm = () => {
 
         <div className="relative z-10 px-5 pt-4">
           <div className="flex items-center justify-between mb-6">
-            <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center active:scale-90 transition">
+            <button onClick={() => back()} className="w-11 h-11 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center active:scale-90 transition">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <span className="text-[11px] font-bold text-muted-foreground/70 tracking-[0.18em] uppercase">Confirm & Pay</span>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, Plus, CheckCircle2, Clock, XCircle, Camera, Trophy, Sparkles } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ const statusConfig: Record<string, { icon: any; color: string; bg: string; label
 
 const Chores = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [chores, setChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<"teen" | "parent">("teen");
@@ -124,7 +126,7 @@ const Chores = () => {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-card/50 active:scale-90 transition-all">
+          <button onClick={() => back()} className="p-2 -ml-2 rounded-xl hover:bg-card/50 active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold">Chores & Tasks</h1>

@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Send, Sparkles, UserRound, Headphones, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ const WELCOME: Msg = {
 
 const SupportChat = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [messages, setMessages] = useState<Msg[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -206,7 +208,7 @@ const SupportChat = () => {
       <div className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/[0.04]"
         style={{ background: "hsl(220 22% 5% / 0.85)" }}>
         <div className="flex items-center gap-3 px-5 py-3.5">
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

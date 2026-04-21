@@ -1,6 +1,7 @@
 // Screen 19 — Financial Insights: smart money analytics with AI tip.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, Sparkles, TrendingUp, TrendingDown, AlertCircle, Lightbulb } from "lucide-react";
@@ -113,6 +114,7 @@ const WoWBars = ({ thisWeek, lastWeek, ready }: { thisWeek: number[]; lastWeek: 
 
 export default function FinancialInsights() {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [loading, setLoading] = useState(true);
   const [windowKey, setWindowKey] = useState<WindowKey>("month");
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -244,7 +246,7 @@ export default function FinancialInsights() {
       <header className="sticky top-0 z-20 backdrop-blur-xl bg-background/80 border-b border-white/[0.04]">
         <div className="flex items-center gap-3 px-4 h-14">
           <button
-            onClick={() => { haptic.light(); navigate(-1); }}
+            onClick={() => { haptic.light(); back(); }}
             className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 active:scale-95 transition"
             aria-label="Back"
           >

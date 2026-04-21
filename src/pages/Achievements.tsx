@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, Trophy, Flame, Star, Target } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 
 interface Achievement {
@@ -42,6 +43,7 @@ const catColors: Record<string, string> = {
 
 const Achievements = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [earned, setEarned] = useState<UserAchievement[]>([]);
   const [streak, setStreak] = useState<Streak | null>(null);
@@ -112,7 +114,7 @@ const Achievements = () => {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-card/50 active:scale-90 transition-all">
+          <button onClick={() => back()} className="p-2 -ml-2 rounded-xl hover:bg-card/50 active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold">Achievements</h1>

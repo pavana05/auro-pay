@@ -2,6 +2,7 @@
 // pay via wallet, reminders for unpaid, auto-settle.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import {
@@ -55,6 +56,7 @@ const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { max
 
 const BillSplitPage = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [searchParams, setSearchParams] = useSearchParams();
   const [me, setMe] = useState<{ id: string; name: string } | null>(null);
   const [splits, setSplits] = useState<BillSplit[]>([]);
@@ -114,7 +116,7 @@ const BillSplitPage = () => {
           splits={splits} loading={loading}
           onCreate={() => { haptic.light(); setView("create"); }}
           onOpen={(id) => { haptic.light(); setActiveSplitId(id); setView("detail"); }}
-          onBack={() => navigate(-1)}
+          onBack={() => back()}
         />
       )}
       {view === "create" && me && (

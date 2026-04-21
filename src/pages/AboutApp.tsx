@@ -1,9 +1,11 @@
 import { ArrowLeft, Shield, Award, Globe, FileText, ScrollText, UserCheck, ShieldCheck, ChevronRight, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import BottomNav from "@/components/BottomNav";
 
 const AboutApp = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   /**
    * Legal section — links to in-app pages so Play Store reviewers can
@@ -46,7 +48,7 @@ const AboutApp = () => {
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
       <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+        <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-[22px] font-semibold">About AuroPay</h1>

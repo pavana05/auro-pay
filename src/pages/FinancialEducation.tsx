@@ -5,6 +5,7 @@ import {
   Receipt, LineChart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
@@ -237,6 +238,7 @@ const BUILTIN_LESSONS: Record<string, (LessonContent & { title: string; descript
 
 const FinancialEducation = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [cardIndex, setCardIndex] = useState(0);
@@ -904,7 +906,7 @@ const FinancialEducation = () => {
 
       <div className="sticky top-0 z-30 bg-background/75 backdrop-blur-2xl border-b border-white/[0.04]">
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => navigate(-1)}
+          <button onClick={() => back()}
             className="p-2 -ml-2 rounded-xl hover:bg-white/[0.04] active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>

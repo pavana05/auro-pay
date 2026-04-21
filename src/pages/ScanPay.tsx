@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Flashlight, FlashlightOff, Image as ImageIcon, CheckCircle2, Zap, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
@@ -57,6 +58,7 @@ const ScanPay = () => {
   const EMA_ALPHA = 0.15;
 
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   // Parse UPI string
   const parseUPIString = (upiStr: string): ParsedUPI | null => {
@@ -337,7 +339,7 @@ const ScanPay = () => {
       {/* Top floating bar */}
       <div className="absolute top-0 inset-x-0 z-30 px-4 pt-4">
         <div className="flex items-center justify-between gap-2">
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-11 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl flex items-center justify-center border border-white/[0.12] active:scale-90 transition-transform">
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 import confetti from "canvas-confetti";
@@ -48,6 +49,7 @@ const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { max
 
 const SavingsGoals = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [walletId, setWalletId] = useState<string | null>(null);
@@ -288,7 +290,7 @@ const SavingsGoals = () => {
       <div className="relative z-10 px-5">
         {/* Header */}
         <div className="pt-4 pb-4 flex items-center gap-3" style={{ animation: "su-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

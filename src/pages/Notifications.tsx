@@ -4,6 +4,7 @@ import { haptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, CheckCheck, Trash2, Archive, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { toast } from "sonner";
 
 interface Notification {
@@ -316,6 +317,7 @@ const Notifications = () => {
   const [tab, setTab] = useState<TabKey>("all");
   const [detail, setDetail] = useState<Notification | null>(null);
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -416,7 +418,7 @@ const Notifications = () => {
         <div className="pt-4 pb-3" style={{ animation: "notif-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => { haptic.light(); navigate(-1); }}
+              <button onClick={() => { haptic.light(); back(); }}
                 className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
                 style={{ background: "hsl(220 15% 8%)" }}>
                 <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ArrowLeft, Shield, MessageCircle, Send, ShieldCheck, ShieldOff,
   TrendingUp, Calendar, Clock, Check, X as XIcon, Sparkles,
@@ -36,6 +37,7 @@ const timeAgo = (iso: string) => {
 
 const ParentControls = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [parent, setParent] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
@@ -222,7 +224,7 @@ const ParentControls = () => {
         {/* Header */}
         <div className="pt-4 pb-4 flex items-center gap-3"
           style={{ animation: "pc-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

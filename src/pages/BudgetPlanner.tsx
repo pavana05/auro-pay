@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ const BudgetPlanner = () => {
   const [limitAmount, setLimitAmount] = useState("");
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const back = useSafeBack();
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   const fetchBudgets = async () => {
@@ -89,7 +91,7 @@ const BudgetPlanner = () => {
         <div className="pt-4 pb-5" style={{ animation: "slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => { haptic.light(); navigate(-1); }}
+              <button onClick={() => { haptic.light(); back(); }}
                 className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
                 style={{ background: "hsl(220 15% 8%)" }}>
                 <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

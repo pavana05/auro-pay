@@ -2,6 +2,7 @@
 // summary metric strip, daily spending bar chart, grouped infinite-scroll list, full-sheet detail.
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ArrowLeft, Search, Mic, X, Calendar, Check, Copy, Download, AlertTriangle,
   ChevronDown, ArrowUpRight, ArrowDownLeft, Filter,
@@ -71,6 +72,7 @@ const groupLabel = (iso: string) => {
 
 const Activity = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   // Server-paginated transactions (20 per page, IntersectionObserver trigger).
   // Refetched from page 0 whenever the date range changes.
   const [allTx, setAllTx] = useState<Txn[]>([]);
@@ -263,7 +265,7 @@ const Activity = () => {
       {/* Header */}
       <div className="relative z-10 px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate(-1)}
+          <button onClick={() => back()}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
@@ -653,7 +655,7 @@ const Activity = () => {
                   }}>
                   <Download className="w-4 h-4" /> Receipt
                 </button>
-                <button onClick={() => { navigate("/help-support"); setSelected(null); }}
+                <button onClick={() => { navigate("/help"); setSelected(null); }}
                   className="flex-1 h-[50px] rounded-2xl font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-[0.97] transition border border-white/[0.06] text-white/70"
                   style={{ background: "hsl(220 15% 8%)" }}>
                   <AlertTriangle className="w-4 h-4" /> Dispute

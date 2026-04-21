@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, TrendingDown, TrendingUp, PieChart } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 
 interface CategorySpend {
@@ -35,6 +36,7 @@ const ExpenseAnalytics = () => {
   const [weeklyData, setWeeklyData] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   useEffect(() => {
     const fetch = async () => {
@@ -117,7 +119,7 @@ const ExpenseAnalytics = () => {
     <div className="min-h-screen bg-background noise-overlay pb-28">
       <div className="px-5 pt-6 pb-4 animate-slide-up">
         <div className="flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => { haptic.light(); back(); }} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center active:scale-90 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-[18px] font-bold">Expense Analytics</h1>

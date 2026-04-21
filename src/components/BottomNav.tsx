@@ -3,13 +3,38 @@ import { Home, Clock, QrCode, Send, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 
-const tabs = [
-  { path: "/home", icon: Home, label: "Home" },
-  { path: "/activity", icon: Clock, label: "History" },
-  { path: "/scan", icon: QrCode, label: "Pay", center: true },
-  { path: "/send", icon: Send, label: "Send" },
-  { path: "/profile", icon: UserCircle, label: "Profile" },
+// Each tab can claim sub-routes via `matches` so inner pages still highlight
+// the nearest top-level tab (e.g. /card → Home, /transaction/:id → History).
+type Tab = { path: string; icon: typeof Home; label: string; center?: boolean; matches?: string[] };
+
+const tabs: Tab[] = [
+  {
+    path: "/home", icon: Home, label: "Home",
+    matches: [
+      "/card", "/add-money", "/savings", "/budget", "/insights", "/analytics",
+      "/rewards", "/scratch-cards", "/spin-wheel", "/achievements", "/learn",
+      "/chores", "/bill-payments", "/bill-split", "/notifications",
+      "/friends", "/chats", "/chat",
+    ],
+  },
+  { path: "/activity", icon: Clock, label: "History", matches: ["/transaction"] },
+  { path: "/scan", icon: QrCode, label: "Pay", center: true, matches: ["/pay"] },
+  { path: "/send", icon: Send, label: "Send", matches: ["/quick-pay", "/recurring"] },
+  {
+    path: "/profile", icon: UserCircle, label: "Profile",
+    matches: [
+      "/personal-info", "/security", "/spending-limits", "/linked-parents",
+      "/linked-teens", "/parent-controls", "/help", "/support", "/support-chat",
+      "/about", "/privacy", "/terms", "/data-safety", "/referrals",
+    ],
+  },
 ];
+
+const isMatch = (current: string, tab: Tab) => {
+  if (current === tab.path) return true;
+  if (tab.matches?.some((p) => current === p || current.startsWith(p + "/"))) return true;
+  return false;
+};
 
 const BottomNav = () => {
   const location = useLocation();
@@ -33,7 +58,7 @@ const BottomNav = () => {
 
       <div className="relative flex items-end justify-around px-2 pb-[max(env(safe-area-inset-bottom),8px)]">
         {tabs.map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = isMatch(location.pathname, tab);
           const isPressed = pressedTab === tab.path;
 
           if (tab.center) {

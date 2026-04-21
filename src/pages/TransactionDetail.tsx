@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ChevronLeft, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2,
   XCircle, AlertCircle, Copy, Check, Share2, MapPin, Tag, Receipt,
@@ -99,6 +100,7 @@ const statusThemes = {
 const TransactionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [tx, setTx] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -267,7 +269,7 @@ const TransactionDetailPage = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
         <AlertCircle className="w-12 h-12 text-muted-foreground" />
         <p className="text-muted-foreground">Transaction not found</p>
-        <button onClick={() => navigate(-1)} className="text-primary text-sm font-medium">Go back</button>
+        <button onClick={() => back()} className="text-primary text-sm font-medium">Go back</button>
       </div>
     );
   }
@@ -302,7 +304,7 @@ const TransactionDetailPage = () => {
         {/* Themed top line */}
         <div className="absolute top-0 left-0 right-0 h-[1px]"
           style={{ background: `linear-gradient(90deg, transparent, ${theme.shimmerColor}, transparent)`, opacity: 0.6 }} />
-        <button onClick={() => { haptic.light(); navigate(-1); }}
+        <button onClick={() => { haptic.light(); back(); }}
           className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center active:scale-90 transition-all duration-200 hover:bg-white/[0.08]">
           <ChevronLeft className="w-5 h-5" />
         </button>
