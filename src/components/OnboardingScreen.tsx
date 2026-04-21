@@ -12,17 +12,18 @@ type Slide = {
   hue: number;
   /** Public LottieFiles JSON URL (free, MIT) */
   lottieUrl: string;
-  /** When set, renders the special tilt-to-reveal coin animation instead of Lottie */
-  variant?: "tilt-coin";
+  /** When set, renders a special variant instead of Lottie */
+  variant?: "tilt-coin" | "verto";
 };
 
 // Curated free Lottie animations from lottiefiles.com (publicly hosted)
 const slides: Slide[] = [
   {
-    title: "Scan any QR. Pay in a tap.",
-    subtitle: "Pay at any shop in India by scanning their UPI QR code — no card, no cash, no fuss.",
+    title: "One app. Smarter teen money.",
+    subtitle: "Pocket money, UPI payments, savings and rewards — all parent-approved, in one beautiful app.",
     hue: 42,
-    lottieUrl: "https://assets10.lottiefiles.com/packages/lf20_uwos7gnz.json", // QR / scanning wallet
+    lottieUrl: "", // not used
+    variant: "verto",
   },
   {
     title: "Parents stay in the loop.",
