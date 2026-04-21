@@ -1,0 +1,43 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "REPLACE_WITH_TEAM_ID.app.lovable.cbd25e4a769a42d6835afcaa159bbcc4"
+        ],
+        "components": [
+          {
+            "/": "/home*",
+            "comment": "Open the in-app home"
+          },
+          {
+            "/": "/scan*",
+            "comment": "Open the QR scanner"
+          },
+          {
+            "/": "/send*",
+            "comment": "Open the send-money flow"
+          },
+          {
+            "/": "/pay/*",
+            "comment": "Open a specific payment confirmation"
+          },
+          {
+            "/": "/chat/*",
+            "comment": "Open a specific chat conversation"
+          },
+          {
+            "/": "/r/*",
+            "comment": "Referral deep link"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "REPLACE_WITH_TEAM_ID.app.lovable.cbd25e4a769a42d6835afcaa159bbcc4"
+    ]
+  }
+}
