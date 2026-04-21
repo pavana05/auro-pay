@@ -253,9 +253,11 @@ const ParentHome = () => {
       <div className="mb-6">
         <h3 className="text-base font-semibold mb-3">Recent Activity</h3>
         {allTransactions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No transactions yet</p>
-          </div>
+          <EmptyState
+            icon={<Receipt className="w-6 h-6 text-primary/70" />}
+            title="No transactions yet"
+            description="Once your teens start spending, recent activity will appear here."
+          />
         ) : (
           <div className="space-y-2">
             {allTransactions.slice(0, 10).map(tx => {
