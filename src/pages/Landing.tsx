@@ -21,6 +21,7 @@ import DualPerspective from "@/landing/sections/DualPerspective";
 import Testimonials from "@/landing/sections/Testimonials";
 import FAQ from "@/landing/sections/FAQ";
 import Footer from "@/landing/sections/Footer";
+import GetAppBanner from "@/components/GetAppBanner";
 
 /**
  * AuroPay landing — public marketing surface at /.
@@ -57,6 +58,7 @@ export default function Landing() {
   return (
     <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen overflow-x-hidden text-white" style={{ background: "#050507", fontFamily: "Sora, sans-serif" }}>
+      <GetAppBanner />
       {!reduceMotion && <EntryAnimation onDone={() => setEntryDone(true)} />}
       <ScrollProgress />
       <PremiumCursor />
