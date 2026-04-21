@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Snowflake, DollarSign, Shield, Clock } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
+import { EmptyState } from "@/components/feedback";
+import { SkeletonRow, SkeletonBalanceCard } from "@/components/zen/SkeletonRow";
 
 const categories = ["food", "transport", "education", "shopping", "entertainment", "other"];
 const categoryIcons: Record<string, string> = {
@@ -71,9 +73,9 @@ const ParentTeenDetail = () => {
     setFreezing(true);
     const wasFrozen = wallet.is_frozen;
     const { error } = await supabase.from("wallets").update({ is_frozen: !wasFrozen }).eq("id", wallet.id);
-    if (error) toast.error("Failed to update");
+    if (error) toast.fail("Couldn't update wallet", { description: error.message });
     else {
-      toast.success(wasFrozen ? "Wallet unfrozen" : "Wallet frozen");
+      toast.ok(wasFrozen ? "Wallet unfrozen" : "Wallet frozen");
       logParentAction(teenId, wasFrozen ? "unfreeze_card" : "freeze_card",
         wasFrozen ? "Unfroze the card" : "Froze the card");
       fetchData();
@@ -84,11 +86,12 @@ const ParentTeenDetail = () => {
   const updateDailyLimit = async () => {
     if (!wallet || !teenId) return;
     const limitPaise = Math.round(parseFloat(newDailyLimit) * 100);
-    if (isNaN(limitPaise) || limitPaise <= 0) { toast.error("Enter a valid amount"); return; }
+    if (isNaN(limitPaise) || limitPaise <= 0) { toast.warn("Enter a valid amount", { description: "Daily limit must be greater than ₹0" }); return; }
+    if (limitPaise > 10_000_000) { toast.warn("Limit too high", { description: "Daily limit cannot exceed ₹1,00,000" }); return; }
     const { error } = await supabase.from("wallets").update({ daily_limit: limitPaise }).eq("id", wallet.id);
-    if (error) toast.error("Failed to update");
+    if (error) toast.fail("Couldn't update limit", { description: error.message });
     else {
-      toast.success("Daily limit updated");
+      toast.ok("Daily limit updated");
       logParentAction(teenId, "set_daily_limit", `Set daily limit to ₹${limitPaise / 100}`, { value: limitPaise });
       setEditingLimit(false);
       fetchData();
@@ -125,7 +128,7 @@ const ParentTeenDetail = () => {
     if (!teenId) return;
     const updates: any = { status: approve ? "approved" : "rejected", decided_at: new Date().toISOString() };
     const { error } = await supabase.from("limit_increase_requests").update(updates).eq("id", req.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.fail("Couldn't update request", { description: error.message }); return; }
     if (approve && wallet) {
       if (req.limit_type === "daily") {
         await supabase.from("wallets").update({ daily_limit: req.requested_limit }).eq("id", wallet.id);
@@ -148,7 +151,7 @@ const ParentTeenDetail = () => {
         : `Your parent declined the ${req.limit_type} limit increase.`,
       type: "limit_decision",
     });
-    toast.success(approve ? "Approved" : "Rejected");
+    toast.ok(approve ? "Request approved" : "Request rejected");
     fetchData();
   };
 
@@ -156,9 +159,9 @@ const ParentTeenDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-        <div className="w-full h-40 rounded-lg bg-muted animate-pulse mb-4" />
-        <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="w-full h-16 rounded-lg bg-muted animate-pulse" />)}</div>
+      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24" role="status" aria-busy="true" aria-label="Loading teen details">
+        <SkeletonBalanceCard />
+        <div className="space-y-3 mt-4">{[1, 2, 3].map(i => <SkeletonRow key={i} height={64} />)}</div>
       </div>
     );
   }
@@ -214,11 +217,14 @@ const ParentTeenDetail = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-lg bg-card border border-border mb-4">
+      <div className="flex gap-1 p-1 rounded-lg bg-card border border-border mb-4" role="tablist" aria-label="Teen detail sections">
         {(["overview", "limits", "history"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
+            role="tab"
+            aria-selected={tab === t}
+            aria-label={t === "overview" ? "Overview" : t === "limits" ? "Controls" : "History"}
             className={`flex-1 py-2 rounded-md text-xs font-medium transition-all ${
               tab === t ? "gradient-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -274,10 +280,12 @@ const ParentTeenDetail = () => {
                     type="number"
                     value={newDailyLimit}
                     onChange={e => setNewDailyLimit(e.target.value)}
+                    aria-label="Daily limit in rupees"
+                    inputMode="numeric"
                     className="bg-transparent flex-1 h-10 outline-none text-sm"
                   />
                 </div>
-                <button onClick={updateDailyLimit} className="px-4 h-10 rounded-pill gradient-primary text-primary-foreground text-xs font-semibold">
+                <button onClick={updateDailyLimit} aria-label="Save daily limit" className="px-4 h-10 rounded-pill gradient-primary text-primary-foreground text-xs font-semibold">
                   Save
                 </button>
               </div>
@@ -340,10 +348,11 @@ const ParentTeenDetail = () => {
       {tab === "history" && (
         <div className="space-y-2">
           {transactions.length === 0 ? (
-            <div className="text-center py-8">
-              <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No transactions yet</p>
-            </div>
+            <EmptyState
+              icon={<Clock className="w-6 h-6 text-primary/70" />}
+              title="No transactions yet"
+              description="Your teen's payments and credits will show up here."
+            />
           ) : (
             transactions.map(tx => (
               <div key={tx.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border card-glow">
