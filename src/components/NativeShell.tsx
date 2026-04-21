@@ -58,6 +58,28 @@ const NativeShell = () => {
       } catch (e) {
         console.warn("[NativeShell] Keyboard init failed", e);
       }
+
+      // ── Hardware back button (global fallback) ─────────────────────
+      // useNativeBack() listeners stack LIFO ahead of this, so component
+      // handlers (modals, sheets) run first. This is the catch-all that
+      // walks browser history; if we're at the root, it minimises the app
+      // instead of exiting (which is the Android-native expectation and
+      // a Play Store policy item).
+      try {
+        const { App: CapacitorApp } = await import("@capacitor/app");
+        const sub = await CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+          // canGoBack is the WebView's history flag — true when an in-app
+          // route can be popped. Fall back to the OS minimise.
+          if (canGoBack || window.history.length > 1) {
+            window.history.back();
+          } else {
+            CapacitorApp.minimizeApp();
+          }
+        });
+        cleanup.push(() => sub.remove());
+      } catch (e) {
+        console.warn("[NativeShell] backButton init failed", e);
+      }
     })();
 
     return () => {
