@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, useReducedMotion } from "framer-motion";
 import { Scan, ShieldCheck, Users, Send, PiggyBank, BarChart3, Sparkle } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import PhoneMockup from "../PhoneMockup";
