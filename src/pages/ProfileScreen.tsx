@@ -445,18 +445,28 @@ const ProfileScreen = () => {
                     </button>
                   );
                 })()}
-                {profile?.kyc_status === "verified" ? (
-                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
-                    <BadgeCheck className="w-3 h-3" />
-                    KYC Verified
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 60%)" }}>
-                    KYC {profile?.kyc_status || "pending"}
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                  {profile?.kyc_status === "verified" ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}>
+                      <BadgeCheck className="w-3 h-3" />
+                      KYC Verified
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 60%)" }}>
+                      KYC {profile?.kyc_status || "pending"}
+                    </div>
+                  )}
+                  {googleLinked && profile?.phone && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: "hsl(152 65% 42% / 0.15)", color: "hsl(152 65% 60%)" }}
+                      title="Phone + Google linked — extra recovery enabled">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Google linked
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
