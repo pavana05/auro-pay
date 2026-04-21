@@ -59,6 +59,7 @@ import AdminGeographic from "./pages/admin/AdminGeographic.tsx";
 import AdminReports from "./pages/admin/AdminReports.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import AdminSecurity from "./pages/admin/AdminSecurity.tsx";
+import AdminConversion from "./pages/admin/AdminConversion.tsx";
 
 import Rewards from "./pages/Rewards.tsx";
 import RewardDetail from "./pages/RewardDetail.tsx";
@@ -210,6 +211,7 @@ const App = () => (
             <Route path="/admin/geographic" element={<AdminGuard><PageTransition><AdminGeographic /></PageTransition></AdminGuard>} />
             <Route path="/admin/reports" element={<AdminGuard><PageTransition><AdminReports /></PageTransition></AdminGuard>} />
             <Route path="/admin/security" element={<AdminGuard><PageTransition><AdminSecurity /></PageTransition></AdminGuard>} />
+            <Route path="/admin/conversion" element={<AdminGuard><PageTransition><AdminConversion /></PageTransition></AdminGuard>} />
             
 
             {/* Public landing page — full-bleed, no mobile container. Home route. */}
