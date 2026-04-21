@@ -13,6 +13,7 @@ const ALLOWED_WITHOUT_KYC = new Set<string>([
   "/auth",
   "/reset-password",
   "/verify-kyc",
+  "/link-google",
   "/profile-setup",
   "/help",
   "/about",
