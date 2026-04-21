@@ -17,6 +17,7 @@ export default function Features() {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const reduceMotion = useReducedMotion();
 
   // Track which feature is in view to swap the sticky phone screen
   useEffect(() => {
