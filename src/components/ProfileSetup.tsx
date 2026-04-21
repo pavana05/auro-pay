@@ -459,6 +459,9 @@ const NameStep = ({
           onKeyDown={(e) => e.key === "Enter" && onNext()}
           autoFocus
           maxLength={60}
+          aria-label="Full name"
+          aria-required="true"
+          autoComplete="name"
           className="w-full bg-transparent outline-none text-[18px] font-medium text-white pb-2 font-sora"
         />
         <div className="relative h-[2px] w-full bg-white/[0.08] rounded-full overflow-hidden">
