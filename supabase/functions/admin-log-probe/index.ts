@@ -12,6 +12,11 @@ const corsHeaders = {
  * use the service role from this function to bypass that and record the
  * probe attempt for security review.
  *
+ * After insert, if the same user has produced 3+ probes in the last 10
+ * minutes, we fan out a `security` notification to every admin so the
+ * incident shows up in the admin bell. A simple cooldown (30 minutes per
+ * user) prevents alert spam from a refresh loop.
+ *
  * Body: { path: string }
  * Auth: Bearer <user JWT>
  */
@@ -80,6 +85,69 @@ Deno.serve(async (req) => {
       ip_address: ip,
       details: { path, user_agent: userAgent },
     });
+
+    /* ─── Alerting ───
+       If 3+ probes in the last 10 minutes for this user, notify all admins.
+       A 30-minute cooldown (tracked via prior `security` notification with
+       the same target user in details) avoids spamming the bell on every
+       refresh of a probing tab. */
+    try {
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { count: recentCount } = await adminClient
+        .from("audit_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("action", "admin_unauthorized_probe")
+        .eq("admin_user_id", userId)
+        .gte("created_at", tenMinAgo);
+
+      if ((recentCount ?? 0) >= 3) {
+        // Cooldown: was an admin alert for this user already sent in last 30 min?
+        const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { data: recentAlert } = await adminClient
+          .from("notifications")
+          .select("id")
+          .eq("type", "security")
+          .gte("created_at", thirtyMinAgo)
+          .like("body", `%${userId}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (!recentAlert) {
+          // Fetch a friendly identifier for the offender
+          const { data: prof } = await adminClient
+            .from("profiles")
+            .select("full_name, phone")
+            .eq("id", userId)
+            .maybeSingle();
+          const who =
+            prof?.full_name ||
+            prof?.phone ||
+            userId.slice(0, 8) + "…";
+
+          // Get admin user IDs via user_roles
+          const { data: admins } = await adminClient
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "admin");
+
+          if (admins && admins.length > 0) {
+            const rows = admins.map((a: { user_id: string }) => ({
+              user_id: a.user_id,
+              type: "security",
+              title: "🚨 Active admin probing detected",
+              body:
+                `${who} attempted to access /admin/* ${recentCount} times in the ` +
+                `last 10 min from IP ${ip || "unknown"}. ` +
+                `User ID: ${userId}. Review at /admin/security.`,
+            }));
+            await adminClient.from("notifications").insert(rows);
+          }
+        }
+      }
+    } catch (alertErr) {
+      // Alerting must never break the probe-logging response
+      console.error("[admin-log-probe] alerting failed:", alertErr);
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

@@ -77,6 +77,7 @@ const navSections: NavSection[] = [
     { path: "/admin/settings", icon: Settings, label: "App Settings" },
     { path: "/admin/health", icon: Server, label: "API Health" },
     { path: "/admin/audit-log", icon: FileText, label: "Audit Logs" },
+    { path: "/admin/security", icon: ShieldCheck, label: "Security Probes" },
     { path: "/admin/roles", icon: Crown, label: "Admin Accounts" },
     { path: "/admin/support", icon: Headphones, label: "Support", badgeKey: "tickets" },
   ]},
