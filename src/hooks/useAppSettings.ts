@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { setDiagnosticsFetch } from "@/lib/app-diagnostics";
 
 export type AppSettingKey =
   | "maintenance_mode"
@@ -58,12 +59,22 @@ export function useAppSettings() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const { data } = await supabase.from("app_settings").select("key,value");
-      if (cancelled) return;
-      const map: Record<string, string> = { ...DEFAULTS };
-      (data || []).forEach((r: any) => { map[r.key] = r.value; });
-      setSettings(map);
-      setLoading(false);
+      setDiagnosticsFetch("app-settings", { state: "loading", detail: "Loading app settings" });
+      try {
+        const { data, error } = await supabase.from("app_settings").select("key,value");
+        if (error) throw error;
+        if (cancelled) return;
+        const map: Record<string, string> = { ...DEFAULTS };
+        (data || []).forEach((r: any) => { map[r.key] = r.value; });
+        setSettings(map);
+        setLoading(false);
+        setDiagnosticsFetch("app-settings", { state: "success", detail: `${(data || []).length} settings loaded` });
+      } catch (err: any) {
+        if (cancelled) return;
+        setSettings({ ...DEFAULTS });
+        setLoading(false);
+        setDiagnosticsFetch("app-settings", { state: "error", detail: err?.message || "Failed to load settings" });
+      }
     };
     load();
 
