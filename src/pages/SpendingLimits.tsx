@@ -63,8 +63,8 @@ const SpendingLimits = () => {
   const monthlyPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
 
   if (loading) return (
-    <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="space-y-4 mt-16">{[1,2].map(i => <div key={i} className="h-32 bg-muted rounded-xl animate-pulse" />)}</div>
+    <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24" role="status" aria-busy="true" aria-label="Loading spending limits">
+      <div className="space-y-4 mt-16">{[1,2].map(i => <SkeletonRow key={i} height={120} rounded="rounded-2xl" />)}</div>
       <BottomNav />
     </div>
   );
