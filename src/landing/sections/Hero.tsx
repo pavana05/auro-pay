@@ -141,38 +141,29 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-10 lg:gap-12 w-full items-center relative">
         <div className="lg:col-span-7 space-y-7">
-          {/* Pill — with shimmer sweep */}
-          <motion.button
+          {/* Editorial eyebrow — hairline gilded divider + small caps credentials */}
+          <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-            whileHover={{ scale: 1.03, borderColor: "rgba(200,149,46,0.55)" }}
-            className="relative inline-flex items-center gap-2 pl-1 pr-4 py-1 rounded-full text-xs font-medium border overflow-hidden group"
-            style={{ background: "rgba(200,149,46,0.08)", borderColor: "rgba(200,149,46,0.3)" }}
+            transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 max-w-md"
           >
-            {!reduceMotion && (
-              <motion.span
-                aria-hidden
-                className="absolute inset-y-0 w-1/3 pointer-events-none"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(255,231,170,0.35), transparent)" }}
-                initial={{ x: "-150%" }}
-                animate={{ x: "350%" }}
-                transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
-              />
-            )}
-            <span className="relative px-2.5 py-1 rounded-full text-[10px] font-bold text-black uppercase tracking-wider"
-              style={{ background: "linear-gradient(135deg,#c8952e,#e0b048)" }}>New</span>
-            <span className="relative text-amber-100/90">India's first scan-and-pay app for teens</span>
-            <motion.span
-              className="relative"
-              animate={reduceMotion ? {} : { x: [0, 3, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            <span className="lux-divider flex-1" />
+            <button
+              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+              className="relative inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.28em] overflow-hidden group"
+              style={{ color: "rgba(255,231,170,0.85)" }}
             >
-              <ChevronRight size={12} className="text-amber-200" />
-            </motion.span>
-          </motion.button>
+              <span
+                className="w-1 h-1 rounded-full"
+                style={{ background: "#e0b048", boxShadow: "0 0 8px rgba(224,176,72,0.85)" }}
+              />
+              <span>Est. 2025 · Mumbai</span>
+              <ChevronRight size={11} className="text-amber-200/70 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <span className="lux-divider flex-1" />
+          </motion.div>
 
-          {/* Headline */}
+          {/* Headline — editorial serif accent for couture luxury */}
           <h1 style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.035em", lineHeight: 1.02 }}
             className="text-5xl sm:text-6xl lg:text-7xl xl:text-[92px] font-extrabold text-white">
             <motion.div initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
@@ -184,20 +175,24 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ delay: 0.45, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
               className="inline-block relative">
-              <span style={{
-                backgroundImage: "linear-gradient(180deg,#fff7e3 0%,#ffffff 30%,#e0b048 70%,#c8952e 100%)",
+              <span className="lux-serif" style={{
+                backgroundImage: "linear-gradient(180deg,#fff7e3 0%,#ffffff 28%,#e0b048 68%,#c8952e 100%)",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                textShadow: "0 0 40px rgba(200,149,46,0.25)",
+                textShadow: "0 0 50px rgba(200,149,46,0.3)",
+                fontSize: "1.05em",
+                paddingRight: "0.06em",
               }}>spend smart</span>
               {/* Shimmer sweep across the gold word */}
               {!reduceMotion && (
                 <motion.span
                   aria-hidden
-                  className="absolute inset-0 pointer-events-none"
+                  className="lux-serif absolute inset-0 pointer-events-none"
                   style={{
                     backgroundImage: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)",
                     WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                     backgroundSize: "200% 100%",
+                    fontSize: "1.05em",
+                    paddingRight: "0.06em",
                   }}
                   initial={{ backgroundPositionX: "200%" }}
                   animate={{ backgroundPositionX: "-100%" }}
@@ -209,8 +204,8 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
               {/* Underline accent — draws in once */}
               <motion.span
                 aria-hidden
-                className="absolute left-0 right-0 -bottom-1 h-[3px] rounded-full origin-left"
-                style={{ background: "linear-gradient(90deg, transparent, #c8952e, #e0b048, transparent)", boxShadow: "0 0 14px rgba(200,149,46,0.6)" }}
+                className="absolute left-0 right-0 -bottom-1 h-[2px] rounded-full origin-left"
+                style={{ background: "linear-gradient(90deg, transparent, #c8952e 30%, #fff7e3 50%, #c8952e 70%, transparent)", boxShadow: "0 0 16px rgba(200,149,46,0.65)" }}
                 initial={{ scaleX: 0, opacity: 0 }}
                 animate={{ scaleX: 1, opacity: 1 }}
                 transition={{ delay: 1.2, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
@@ -309,13 +304,19 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
                 <ChevronRight size={18} />
               </MagneticCTA>
             </div>
-            <button className="px-6 h-14 py-3.5 rounded-full font-medium text-base text-white border transition hover:bg-white/5 hover:border-white/30 inline-flex items-center gap-2 group"
-              style={{ borderColor: "rgba(255,255,255,0.18)" }}>
+            <button className="relative px-6 h-14 py-3.5 rounded-full font-medium text-[13px] tracking-wide text-white/90 transition hover:text-white inline-flex items-center gap-3 group overflow-hidden"
+              style={{
+                background: "linear-gradient(180deg, rgba(20,20,25,0.6), rgba(15,14,12,0.5))",
+                border: "1px solid rgba(200,149,46,0.28)",
+                backdropFilter: "blur(12px)",
+                boxShadow: "inset 0 1px 0 rgba(255,231,170,0.06), 0 8px 24px rgba(0,0,0,0.35)",
+              }}>
               <span className="w-7 h-7 rounded-full flex items-center justify-center transition group-hover:scale-110"
-                style={{ background: "rgba(200,149,46,0.18)", border: "1px solid rgba(200,149,46,0.35)" }}>
+                style={{ background: "rgba(200,149,46,0.18)", border: "1px solid rgba(200,149,46,0.4)" }}>
                 <Play size={11} fill="currentColor" className="text-amber-200 ml-0.5" />
               </span>
-              Watch 60s demo
+              <span className="font-sora">Watch the film</span>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-white/40 font-mono">60s</span>
             </button>
           </motion.div>
 

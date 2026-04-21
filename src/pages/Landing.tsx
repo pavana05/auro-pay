@@ -47,7 +47,7 @@ export default function Landing() {
       const link = document.createElement("link");
       link.id = id;
       link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+      link.href = "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@1,400;1,500;1,600;1,700&display=swap";
       document.head.appendChild(link);
     }
   }, []);
@@ -71,6 +71,12 @@ export default function Landing() {
 
       {/* Aurora drift — slow rotating conic for depth */}
       <div className="fixed inset-0 -z-[4] pointer-events-none lux-aurora-bg" />
+
+      {/* Editorial linen texture — subtle paper grain for couture tactility */}
+      <div className="fixed inset-0 -z-[3] pointer-events-none lux-linen opacity-60" />
+
+      {/* Cinema vignette — darkens edges so the center reads "lit" */}
+      <div className="fixed inset-0 -z-[2] pointer-events-none lux-hero-vignette" />
 
       <Navbar onCTA={scrollToTop} />
 

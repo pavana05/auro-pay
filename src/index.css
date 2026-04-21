@@ -295,6 +295,40 @@
             mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
   }
 
+  /* Editorial serif italic — couture accent for headline words */
+  .lux-serif {
+    font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* Hairline gilded divider — for between eyebrow chips and section breaks */
+  .lux-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.0) 5%,
+      hsl(var(--primary) / 0.55) 50%,
+      hsl(var(--primary) / 0.0) 95%,
+      transparent 100%
+    );
+  }
+
+  /* Linen / paper-grain texture — adds couture tactility */
+  .lux-linen {
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255,231,170,0.012) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(-45deg, rgba(255,231,170,0.012) 0 1px, transparent 1px 3px);
+  }
+
+  /* Hero focal vignette — soft radial darkening at edges so center reads "lit" */
+  .lux-hero-vignette {
+    background:
+      radial-gradient(ellipse 60% 55% at 35% 45%, transparent 0%, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
   .gradient-card {
     background: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 12% 14%));
   }
