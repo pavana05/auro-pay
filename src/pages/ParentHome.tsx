@@ -116,14 +116,17 @@ const ParentHome = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
+      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24" role="status" aria-busy="true" aria-label="Loading parent dashboard">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
-          <div className="space-y-2"><div className="w-28 h-4 bg-muted rounded animate-pulse" /></div>
+          <SkeletonRow className="w-10 h-10" rounded="rounded-full" height={40} />
+          <SkeletonRow className="w-32" height={14} />
         </div>
-        <div className="w-full h-40 rounded-lg bg-muted animate-pulse mb-4" />
-        <div className="flex gap-3 overflow-x-auto mb-6">
-          {[1, 2].map(i => <div key={i} className="w-48 h-32 rounded-lg bg-muted animate-pulse shrink-0" />)}
+        <SkeletonBalanceCard />
+        <div className="flex gap-3 overflow-x-auto mt-6 mb-6 px-1">
+          {[1, 2].map(i => <SkeletonRow key={i} className="w-48 shrink-0" height={130} rounded="rounded-2xl" />)}
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <SkeletonRow key={i} height={64} />)}
         </div>
         <ParentBottomNav />
       </div>
