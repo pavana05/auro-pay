@@ -59,15 +59,35 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
     };
   }, [mx, my, reduceMotion]);
 
+  // Initial fast count-up to ~12,847, then a slow drift upward forever to feel "alive"
   useEffect(() => {
     const target = 12847;
     let v = 12000;
-    const id = setInterval(() => {
+    const fast = setInterval(() => {
       v += 23;
-      if (v >= target) { v = target; clearInterval(id); }
+      if (v >= target) { v = target; clearInterval(fast); }
       setCount(v);
     }, 18);
-    return () => clearInterval(id);
+
+    // Slow live ticker — adds 1 every 4–9s, randomised, paused when tab hidden
+    let slowTimer: ReturnType<typeof setTimeout>;
+    const scheduleSlow = () => {
+      const delay = 4000 + Math.random() * 5000;
+      slowTimer = setTimeout(() => {
+        if (!document.hidden) {
+          setCount((c) => c + 1);
+        }
+        scheduleSlow();
+      }, delay);
+    };
+    // Kick off the live drift after the initial count-up has time to finish
+    const kickoff = setTimeout(scheduleSlow, 2200);
+
+    return () => {
+      clearInterval(fast);
+      clearTimeout(kickoff);
+      clearTimeout(slowTimer);
+    };
   }, []);
 
   // Auto-cycle tabs every 3.5s
