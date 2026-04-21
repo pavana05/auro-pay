@@ -40,6 +40,8 @@ const stagger = {
 const fmt = (p: number) => `₹${(p / 100).toLocaleString("en-IN")}`;
 
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LayoutGrid } from "lucide-react";
 
 const TeenHome = () => {
   const { isOn: settingOn } = useAppSettings();
