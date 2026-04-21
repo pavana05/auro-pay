@@ -117,6 +117,40 @@ const AdminSecurity = () => {
 
   useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, [windowMins]);
 
+  const toggleBlock = async (userId: string, nextBlock: boolean) => {
+    const label = profiles[userId]?.full_name || emails[userId] || userId.slice(0, 8) + "…";
+    if (nextBlock && !confirm(`Block ${label}? They will be signed out and cannot sign in until you unblock them.`)) return;
+    setBlockingId(userId);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("No admin session");
+      const r = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-block-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+          },
+          body: JSON.stringify({ target_user_id: userId, block: nextBlock }),
+        },
+      );
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(json?.error || `HTTP ${r.status}`);
+      toast.success(nextBlock ? `Blocked ${label}` : `Unblocked ${label}`);
+      setProfiles((prev) => ({
+        ...prev,
+        [userId]: { ...(prev[userId] || { id: userId, full_name: null, phone: null }), is_blocked: nextBlock },
+      }));
+    } catch (e: any) {
+      toast.error("Action failed", { description: e?.message || "Unknown error" });
+    } finally {
+      setBlockingId(null);
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return probes;
