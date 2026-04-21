@@ -16,41 +16,55 @@ const Index = () => {
   const navigate = useNavigate();
 
   const navigateByRole = useCallback(async (uid: string) => {
-    // Check admin role first
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
-    if (isAdmin) { navigate("/admin"); return; }
+    try {
+      // Check admin role first
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+      if (isAdmin) { navigate("/admin"); return; }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, role, haptics_enabled, kyc_status, pin_hash")
-      .eq("id", uid)
-      .single();
-    // Apply user's haptics preference globally before any page renders.
-    if (profile && typeof (profile as any).haptics_enabled === "boolean") {
-      const { setHapticsEnabled } = await import("@/lib/haptics");
-      setHapticsEnabled((profile as any).haptics_enabled);
-    }
-    if (profile) {
-      // Step 3: offer Google linking once after first phone login,
-      // unless the user already has Google linked or has dismissed the prompt.
-      const identities = ((await supabase.auth.getUser()).data.user as any)?.identities ?? [];
-      const alreadyLinked = identities.some((i: any) => i.provider === "google");
-      if (!alreadyLinked && !hasSeenGoogleLinkPrompt()) {
-        navigate("/link-google");
-        return;
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, role, haptics_enabled, kyc_status, pin_hash")
+        .eq("id", uid)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // Apply user's haptics preference globally before any page renders.
+      if (profile && typeof (profile as any).haptics_enabled === "boolean") {
+        const { setHapticsEnabled } = await import("@/lib/haptics");
+        setHapticsEnabled((profile as any).haptics_enabled);
       }
-      // Mandatory KYC: until verified, send everyone to /verify-kyc.
-      if ((profile as any).kyc_status !== "verified") {
-        navigate("/verify-kyc");
-        return;
+      if (profile) {
+        // Step 3: offer Google linking once after first phone login,
+        // unless the user already has Google linked or has dismissed the prompt.
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const identities = (authUser as any)?.identities ?? [];
+        const alreadyLinked = identities.some((i: any) => i.provider === "google");
+        if (!alreadyLinked && !hasSeenGoogleLinkPrompt()) {
+          navigate("/link-google");
+          return;
+        }
+        // Mandatory KYC: until verified, send everyone to /verify-kyc.
+        if ((profile as any).kyc_status !== "verified") {
+          navigate("/verify-kyc");
+          return;
+        }
+        // Force PIN setup if KYC is verified but no payment PIN set yet.
+        const needsPin = !(profile as any).pin_hash;
+        if (needsPin) { navigate("/security?setup=1"); return; }
+        if (profile.role === "parent") navigate("/parent");
+        else navigate("/home");
+      } else {
+        // Brand-new account: no profile row yet → onboarding.
+        setState("profile-setup");
       }
-      // Force PIN setup if KYC is verified but no payment PIN set yet.
-      const needsPin = !(profile as any).pin_hash;
-      if (needsPin) { navigate("/security?setup=1"); return; }
-      if (profile.role === "parent") navigate("/parent");
-      else navigate("/home");
-    } else {
-      setState("profile-setup");
+    } catch (err: any) {
+      const { toast } = await import("@/lib/toast");
+      toast.fail("Couldn't load your account", {
+        description: err?.message || "Please try signing in again.",
+      });
+      // Fall back to auth screen so the user isn't stranded on a blank state.
+      setState("auth");
     }
   }, [navigate]);
 
