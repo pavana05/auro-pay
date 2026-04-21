@@ -13,26 +13,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Platform gate: app content (everything except landing, landing-help,
- * admin/*, and reset-password) is only allowed inside the native Android
- * app. On the web we render a "Download the App" screen instead.
+ * Platform gate: currently disabled — all app routes render on the web.
+ * Kept as a wrapper so we can re-enable platform-specific gating later
+ * without touching the route tree.
  */
-const ALLOWED_WEB_PREFIXES = ["/admin", "/landing-help", "/reset-password"];
-const ALLOWED_WEB_EXACT = new Set<string>(["/", "/landing-help"]);
-
-function isAllowedOnWeb(pathname: string): boolean {
-  if (ALLOWED_WEB_EXACT.has(pathname)) return true;
-  return ALLOWED_WEB_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + "/")
-  );
-}
-
 const WebAppGate = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isNative = Capacitor.isNativePlatform();
   // Gate disabled: allow all app routes to render on the web.
   const allowed = true;
-  void isAllowedOnWeb;
 
   const android = !isNative && !allowed && isAndroidWeb();
   const ios = !isNative && !allowed && isIOSWeb();
