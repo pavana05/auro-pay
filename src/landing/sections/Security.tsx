@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Shield, Lock, KeyRound, Eye, Snowflake, ShieldCheck } from "lucide-react";
 import PremiumHeading from "../PremiumHeading";
 
@@ -12,6 +12,7 @@ const ITEMS = [
 ];
 
 export default function Security() {
+  const reduceMotion = useReducedMotion();
   return (
     <section className="relative py-32 px-6 lg:px-12 overflow-hidden">
       <div className="absolute inset-0 -z-10 pointer-events-none"
@@ -83,17 +84,37 @@ export default function Security() {
                   key={i}
                   initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                   transition={{ delay: i * 0.07, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex items-center gap-3.5 text-white/85 p-3 rounded-xl lux-glass"
+                  whileHover={{ x: 4, borderColor: "rgba(200,149,46,0.35)" }}
+                  className="group relative flex items-center gap-3.5 text-white/85 p-3 rounded-xl lux-glass overflow-hidden"
                 >
-                  <span className="inline-flex w-9 h-9 rounded-xl items-center justify-center shrink-0"
+                  {!reduceMotion && (
+                    <motion.span
+                      aria-hidden
+                      className="absolute inset-y-0 w-1/3 pointer-events-none opacity-0 group-hover:opacity-100"
+                      style={{ background: "linear-gradient(90deg, transparent, rgba(255,231,170,0.18), transparent)" }}
+                      initial={{ x: "-150%" }}
+                      whileHover={{ x: "350%" }}
+                      transition={{ duration: 1.2, ease: "easeInOut" }}
+                    />
+                  )}
+                  <motion.span className="relative inline-flex w-9 h-9 rounded-xl items-center justify-center shrink-0"
                     style={{
                       background: "linear-gradient(135deg, rgba(200,149,46,0.2), rgba(200,149,46,0.05))",
                       border: "1px solid rgba(200,149,46,0.3)",
                       boxShadow: "inset 0 1px 0 rgba(255,247,227,0.1)",
-                    }}>
+                    }}
+                    animate={reduceMotion ? {} : {
+                      boxShadow: [
+                        "inset 0 1px 0 rgba(255,247,227,0.1), 0 0 0 rgba(200,149,46,0)",
+                        "inset 0 1px 0 rgba(255,247,227,0.15), 0 0 14px rgba(200,149,46,0.45)",
+                        "inset 0 1px 0 rgba(255,247,227,0.1), 0 0 0 rgba(200,149,46,0)",
+                      ],
+                    }}
+                    transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
+                  >
                     <Icon size={16} style={{ color: "#e0b048" }} strokeWidth={1.8} />
-                  </span>
-                  <span className="text-[15px]">{it.t}</span>
+                  </motion.span>
+                  <span className="relative text-[15px]">{it.t}</span>
                 </motion.li>
               );
             })}
