@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
+import { EmptyState } from "@/components/feedback";
 
 interface Achievement {
   id: string;
@@ -203,10 +204,12 @@ const Achievements = () => {
           </div>
         ))}
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          </div>
+        {!loading && achievements.length === 0 && (
+          <EmptyState
+            icon={<Trophy className="w-6 h-6 text-primary/70" />}
+            title="No achievements yet"
+            description="Use AuroPay to send, save, and refer friends — badges will start unlocking."
+          />
         )}
       </div>
 

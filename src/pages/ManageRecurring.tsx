@@ -8,9 +8,10 @@ import {
   TrendingUp, Sparkles, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { haptic } from "@/lib/haptics";
 import BottomNav from "@/components/BottomNav";
+import { EmptyState, SkeletonRow } from "@/components/feedback";
 
 interface Recurring {
   id: string;
@@ -74,7 +75,7 @@ const ManageRecurring = () => {
     await supabase.from("recurring_payments")
       .update({ is_active: !r.is_active })
       .eq("id", r.id);
-    toast.success(r.is_active ? "Paused" : "Resumed");
+    toast.ok(r.is_active ? "Auto-pay paused" : "Auto-pay resumed");
     load();
   };
 
@@ -82,7 +83,7 @@ const ManageRecurring = () => {
     haptic.medium();
     await supabase.from("recurring_payments").delete().eq("id", id);
     setConfirmId(null);
-    toast.success("Auto-pay cancelled");
+    toast.ok("Auto-pay cancelled");
     load();
   };
 
@@ -147,32 +148,26 @@ const ManageRecurring = () => {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <SkeletonRow key={i} className="h-[110px]" />)}
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-16 px-6">
-            <div className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.04))",
-                border: "1px solid hsl(var(--primary) / 0.2)",
-              }}>
-              <Repeat className="w-9 h-9" style={{ color: "hsl(var(--primary))" }} />
-            </div>
-            <h3 className="text-[17px] font-bold mb-2 tracking-tight">No auto-pays yet</h3>
-            <p className="text-[12.5px] text-white/40 mb-6 max-w-xs mx-auto leading-relaxed">
-              Schedule a recurring top-up so your wallet never runs dry. We'll add money on your chosen day, every week or month.
-            </p>
-            <button onClick={() => navigate("/add-money")}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-[13px] active:scale-95 transition-all"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))",
-                color: "hsl(220 22% 6%)",
-                boxShadow: "0 6px 20px hsl(var(--primary) / 0.3)",
-              }}>
-              <Sparkles className="w-4 h-4" /> Set up Auto-Pay
-            </button>
-          </div>
+          <EmptyState
+            icon={<Repeat className="w-6 h-6 text-primary" />}
+            title="No auto-pays yet"
+            description="Schedule a recurring top-up so your wallet never runs dry. We'll add money on your chosen day, every week or month."
+            action={
+              <button onClick={() => navigate("/add-money")}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-[13px] active:scale-95 transition-all"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))",
+                  color: "hsl(220 22% 6%)",
+                  boxShadow: "0 6px 20px hsl(var(--primary) / 0.3)",
+                }}>
+                <Sparkles className="w-4 h-4" /> Set up auto-pay
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-2.5">
             {items.map((r) => (

@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import { Search, Plus, MessageCircle, ChevronLeft, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { haptic } from "@/lib/haptics";
+import { EmptyState, SkeletonRow } from "@/components/feedback";
 
 interface ChatPreview {
   conversationId: string;
@@ -276,15 +277,16 @@ const ChatList = () => {
 
         {/* Chat list */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="px-5 space-y-2">
+            {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-5">
-            <div className="w-20 h-20 rounded-full bg-primary/[0.06] flex items-center justify-center mb-4">
-              <MessageCircle className="w-10 h-10 text-primary/30" />
-            </div>
-            <p className="text-[13px] text-muted-foreground/40 text-center">No chats yet. Start a conversation!</p>
+          <div className="px-5">
+            <EmptyState
+              icon={<MessageCircle className="w-6 h-6 text-primary/70" />}
+              title="No chats yet"
+              description="Tap the + button above to start a conversation with a friend."
+            />
           </div>
         ) : (
           <div className="px-5 space-y-1">
