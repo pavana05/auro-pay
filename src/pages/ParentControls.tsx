@@ -450,6 +450,7 @@ const ParentControls = () => {
               inputMode="numeric"
               autoFocus
               placeholder="0"
+              aria-label={`New ${reqOpen} limit in rupees`}
               className="bg-transparent outline-none text-[24px] font-mono font-bold text-white flex-1"
             />
           </div>

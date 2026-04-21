@@ -4,8 +4,9 @@ import { AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import BottomNav from "@/components/BottomNav";
+import { SkeletonRow } from "@/components/zen/SkeletonRow";
 
 const SpendingLimits = () => {
   const [wallet, setWallet] = useState<any>(null);
@@ -33,13 +34,27 @@ const SpendingLimits = () => {
 
   const save = async () => {
     if (!wallet) return;
+    const dailyPaise = parseInt(dailyLimit || "0") * 100;
+    const monthlyPaise = parseInt(monthlyLimit || "0") * 100;
+    if (dailyPaise < 0 || monthlyPaise < 0) {
+      toast.warn("Enter valid amounts", { description: "Limits must be ₹0 or higher" });
+      return;
+    }
+    if (dailyPaise > 10_000_000 || monthlyPaise > 10_000_000) {
+      toast.warn("Limit too high", { description: "Limits cannot exceed ₹1,00,000" });
+      return;
+    }
+    if (monthlyPaise > 0 && dailyPaise > monthlyPaise) {
+      toast.warn("Daily exceeds monthly", { description: "Daily limit can't be more than your monthly limit" });
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("wallets").update({
-      daily_limit: parseInt(dailyLimit || "0") * 100,
-      monthly_limit: parseInt(monthlyLimit || "0") * 100,
+      daily_limit: dailyPaise,
+      monthly_limit: monthlyPaise,
     }).eq("id", wallet.id);
-    if (error) toast.error(error.message);
-    else toast.success("Spending limits updated!");
+    if (error) toast.fail("Couldn't update limits", { description: error.message });
+    else toast.ok("Spending limits updated");
     setSaving(false);
   };
 
