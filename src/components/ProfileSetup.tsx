@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { User, Users, ArrowRight, ArrowLeft, CalendarIcon, Sparkles, Check, Loader2, Phone, SkipForward, MapPin } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import type { IndiaCity } from "@/lib/india-cities";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 
 interface Props {
@@ -17,8 +18,35 @@ interface Props {
   onComplete: () => void;
 }
 
-const nameSchema = z.string().trim().min(2, "Name is too short").max(60, "Name is too long");
-const phoneSchema = z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian phone");
+// ── Shared zod validators ─────────────────────────────────────────────
+// Used by every step so error copy + rules stay consistent.
+const nameSchema = z
+  .string()
+  .trim()
+  .min(2, "Name must be at least 2 characters")
+  .max(60, "Name must be 60 characters or fewer")
+  .regex(/^[\p{L}\p{M}'’.\- ]+$/u, "Use letters, spaces, hyphens or apostrophes only");
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number");
+
+const dobSchema = z
+  .date({ required_error: "Select your date of birth", invalid_type_error: "Select a valid date" })
+  .refine((d) => d <= new Date(), "Date of birth can't be in the future")
+  .refine((d) => {
+    const age = differenceInYears(new Date(), d);
+    return age >= 10 && age <= 25;
+  }, "Teen accounts are for ages 10–25");
+
+const citySchema = z
+  .object({
+    name: z.string().trim().min(1, "City name is required"),
+    state: z.string().trim().min(1, "State code is required"),
+    stateName: z.string().trim().min(1).optional(),
+  })
+  .nullable();
 
 type Direction = 1 | -1;
 
@@ -110,7 +138,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   /* ---------- Step handlers ---------- */
   const handleStep0 = () => {
     const r = nameSchema.safeParse(fullName);
-    if (!r.success) { toast.error(r.error.errors[0].message); return; }
+    if (!r.success) { toast.fail("Check your name", { description: r.error.errors[0].message }); return; }
     goNext();
   };
 
@@ -121,14 +149,13 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   };
 
   const handleStep1 = () => {
-    if (!role) { toast.error("Pick your role"); return; }
+    if (!role) { toast.fail("Pick your role", { description: "Choose teen or parent to continue" }); return; }
     goNext();
   };
 
   const handleStep2Teen = () => {
-    if (!dob) { toast.error("Select your date of birth"); return; }
-    const age = differenceInYears(new Date(), dob);
-    if (age < 10 || age > 25) { toast.error("Teen accounts are for ages 10–25"); return; }
+    const r = dobSchema.safeParse(dob);
+    if (!r.success) { toast.fail("Check your birthday", { description: r.error.errors[0].message }); return; }
     goNext();
   };
 
@@ -163,7 +190,11 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   };
 
   const handleStepCity = () => {
-    // City is optional — users can skip it
+    // City is optional, but if one is picked, validate it
+    if (city) {
+      const r = citySchema.safeParse(city);
+      if (!r.success) { toast.fail("Check your city", { description: r.error.errors[0].message }); return; }
+    }
     goNext();
   };
 
@@ -200,9 +231,9 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
         if (linkError) {
           // Non-fatal — they can link later from Linked Parents/Teens screen
           console.warn("Teen link failed:", linkError.message);
-          toast.warning("Profile created but couldn't link teen — try again from Linked Teens.");
+          toast.warn("Profile created", { description: "Couldn't link teen — try again from Linked Teens." });
         } else {
-          toast.success(`Linked with ${teenLookup.profile.full_name || "teen"}`);
+          toast.ok("Linked with teen", { description: `Connected to ${teenLookup.profile.full_name || "your teen"}.` });
         }
       }
 
@@ -214,7 +245,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
       setStep(STEP_CONGRATS);
       setTimeout(() => onComplete(), 2800);
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+      toast.fail("Setup failed", { description: err?.message || "Something went wrong. Please try again." });
       setLoading(false);
     }
   };
@@ -310,12 +341,20 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
             />
           )}
           {step === STEP_BRANCH && role === "parent" && (
-            <TeenLookupStep
-              teenPhone={teenPhone}
-              lookup={teenLookup}
-              onChange={lookupTeen}
-              onNext={handleStep2Parent}
-            />
+            <ErrorBoundary
+              label="Teen lookup"
+              onRetry={() => {
+                setTeenLookup({ status: "idle" });
+                setTeenPhone("");
+              }}
+            >
+              <TeenLookupStep
+                teenPhone={teenPhone}
+                lookup={teenLookup}
+                onChange={lookupTeen}
+                onNext={handleStep2Parent}
+              />
+            </ErrorBoundary>
           )}
           {step === STEP_CITY && (
             <CityStep
@@ -420,6 +459,9 @@ const NameStep = ({
           onKeyDown={(e) => e.key === "Enter" && onNext()}
           autoFocus
           maxLength={60}
+          aria-label="Full name"
+          aria-required="true"
+          autoComplete="name"
           className="w-full bg-transparent outline-none text-[18px] font-medium text-white pb-2 font-sora"
         />
         <div className="relative h-[2px] w-full bg-white/[0.08] rounded-full overflow-hidden">
@@ -562,6 +604,9 @@ const DobStep = ({
               "bg-white/[0.04] border outline-none",
               dob ? "text-white" : "text-white/40"
             )}
+            aria-label={dob ? `Date of birth: ${format(dob, "PPP")}. Tap to change.` : "Pick your date of birth"}
+            aria-haspopup="dialog"
+            aria-expanded={calendarOpen}
             style={{
               borderColor: dob ? "hsl(42 78% 55% / 0.5)" : "hsl(0 0% 100% / 0.1)",
               boxShadow: dob ? "0 0 16px hsl(42 78% 55% / 0.2)" : "none",
@@ -637,15 +682,17 @@ const TeenLookupStep = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder="98765 43210"
           maxLength={10}
+          aria-label="Teen's 10-digit phone number"
+          aria-describedby="teen-lookup-status"
           className="flex-1 bg-transparent outline-none text-[15px] text-white placeholder:text-white/30 font-medium tracking-wider"
           autoFocus
         />
-        {lookup.status === "searching" && <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(42 90% 70%)" }} />}
-        {lookup.status === "found" && <Check className="w-4 h-4" strokeWidth={3} style={{ color: "hsl(140 60% 60%)" }} />}
+        {lookup.status === "searching" && <Loader2 className="w-4 h-4 animate-spin" aria-label="Searching" style={{ color: "hsl(42 90% 70%)" }} />}
+        {lookup.status === "found" && <Check className="w-4 h-4" aria-label="Teen found" strokeWidth={3} style={{ color: "hsl(140 60% 60%)" }} />}
       </div>
 
       {/* Result card */}
-      <div className="mt-4 min-h-[80px]">
+      <div id="teen-lookup-status" role="status" aria-live="polite" className="mt-4 min-h-[80px]">
         {lookup.status === "found" && lookup.profile && (
           <div
             className="rounded-2xl p-4 flex items-center gap-3"
