@@ -11,7 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import ForgotPinModal from "@/components/ForgotPinModal";
 
 type Stage = "review" | "pin" | "processing" | "success" | "failure";
@@ -176,7 +176,7 @@ const PaymentConfirm = () => {
 
   const savePin = async (a: string, b: string) => {
     if (a !== b) {
-      toast.error("PINs don't match. Try again.");
+      toast.fail("PINs don't match", { description: "Try again" });
       haptic.error();
       setSetupPin(""); setSetupConfirm(""); setSetupStage("enter");
       return;
@@ -185,11 +185,11 @@ const PaymentConfirm = () => {
       body: { action: "set", pin: a },
     });
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || "Could not set PIN");
+      toast.fail("Could not set PIN", { description: (data as any)?.error || error?.message });
       return;
     }
     haptic.success();
-    toast.success("Payment PIN set");
+    toast.ok("Payment PIN set");
     setHasPinSet(true);
     setSetupPin(""); setSetupConfirm(""); setSetupStage("enter");
   };
@@ -229,7 +229,7 @@ const PaymentConfirm = () => {
       if ((data as any)?.requires_parent_approval) {
         setErrorMsg((data as any)?.message || "Waiting for parent approval. You'll get a notification when they respond.");
         haptic.medium();
-        toast.info("Waiting for parent approval", { description: "Your parent has been notified." });
+        toast.info("Waiting for parent approval", { description: "Your parent has been notified" });
         setTimeout(() => { setStage("failure"); }, 600);
         return;
       }
@@ -388,6 +388,9 @@ const PaymentConfirm = () => {
                 readOnly={amountLocked}
                 placeholder="0"
                 inputMode="decimal"
+                aria-label="Payment amount in rupees"
+                aria-invalid={exceedsBalance || numericAmount > 100000}
+                max={100000}
                 className="bg-transparent border-0 outline-none text-[58px] font-bold tabular-nums font-mono text-foreground text-center w-auto max-w-[260px] p-0"
                 style={{ caretColor: "hsl(42 78% 55%)" }}
                 autoFocus={!amountLocked}
