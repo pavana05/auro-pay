@@ -22,6 +22,8 @@ const ScanPay = () => {
 
   const [scanning, setScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [autoTorch, setAutoTorch] = useState(true);
   const [parsedUPI, setParsedUPI] = useState<ParsedUPI | null>(null);
   const [amount, setAmount] = useState("");
   const [amountLocked, setAmountLocked] = useState(false);
@@ -32,6 +34,27 @@ const ScanPay = () => {
   const [detected, setDetected] = useState(false);
   const [whiteFlash, setWhiteFlash] = useState(false);
   const [analysingFile, setAnalysingFile] = useState(false);
+
+  // --- Auto-torch (dark-environment detection) ---
+  // Smoothed luminance (0–255) computed from the live frame's center crop.
+  const lumaEmaRef = useRef<number | null>(null);
+  // Timestamps used for hysteresis + cooldown so the torch doesn't flicker.
+  const darkSinceRef = useRef<number | null>(null);
+  const brightSinceRef = useRef<number | null>(null);
+  const lastAutoToggleRef = useRef(0);
+  // When the user manually toggles, pause auto-mode briefly.
+  const userOverrideUntilRef = useRef(0);
+  const torchOnRef = useRef(false);
+  useEffect(() => { torchOnRef.current = torchOn; }, [torchOn]);
+
+  // Tunables — chosen to feel calm, not jumpy.
+  const DARK_THRESHOLD = 40;
+  const BRIGHT_THRESHOLD = 90;
+  const DARK_HOLD_MS = 1200;
+  const BRIGHT_HOLD_MS = 1500;
+  const AUTO_COOLDOWN_MS = 3000;
+  const USER_OVERRIDE_MS = 8000;
+  const EMA_ALPHA = 0.15;
 
   const navigate = useNavigate();
 
