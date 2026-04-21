@@ -604,6 +604,9 @@ const DobStep = ({
               "bg-white/[0.04] border outline-none",
               dob ? "text-white" : "text-white/40"
             )}
+            aria-label={dob ? `Date of birth: ${format(dob, "PPP")}. Tap to change.` : "Pick your date of birth"}
+            aria-haspopup="dialog"
+            aria-expanded={calendarOpen}
             style={{
               borderColor: dob ? "hsl(42 78% 55% / 0.5)" : "hsl(0 0% 100% / 0.1)",
               boxShadow: dob ? "0 0 16px hsl(42 78% 55% / 0.2)" : "none",
