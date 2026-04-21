@@ -1,27 +1,21 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
-import { Download, Smartphone, ArrowLeft, Apple } from "lucide-react";
+import { Download, Smartphone, ArrowLeft, Apple, Loader2, Check } from "lucide-react";
 import {
   PLAY_STORE_URL,
   buildAndroidIntentUrl,
   isAndroidWeb,
   isIOSWeb,
 } from "@/lib/platform";
+import { trackGateEvent } from "@/lib/gate-analytics";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
  * Platform gate: app content (everything except landing, landing-help,
  * admin/*, and reset-password) is only allowed inside the native Android
  * app. On the web we render a "Download the App" screen instead.
- *
- * Behavior:
- *  - Native (Capacitor): pass through.
- *  - Android web: try intent:// first to launch the installed app; if it
- *    doesn't take over within ~1.5s, show the gate.
- *  - iOS web: show "iOS coming soon" (no broken Play Store link).
- *  - Other web: show "Download on Google Play".
- *
- * Admin routes remain accessible on web because admins manage from desktop.
  */
 const ALLOWED_WEB_PREFIXES = ["/admin", "/landing-help", "/reset-password"];
 const ALLOWED_WEB_EXACT = new Set<string>(["/", "/landing-help"]);
@@ -41,12 +35,16 @@ const WebAppGate = ({ children }: { children: React.ReactNode }) => {
   const android = !isNative && !allowed && isAndroidWeb();
   const ios = !isNative && !allowed && isIOSWeb();
 
-  // On Android web, attempt to open the app first. If the user comes back
-  // to the tab (visibility regained) within ~1.5s, the app wasn't installed
-  // and we reveal the download gate. We attempt this once per route.
   const [attemptedDeepLink, setAttemptedDeepLink] = useState(false);
   const [revealGate, setRevealGate] = useState(false);
 
+  // iOS waitlist state
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+
+  // Android: try the intent:// once per route.
   useEffect(() => {
     if (!android || attemptedDeepLink) return;
     setAttemptedDeepLink(true);
@@ -54,24 +52,36 @@ const WebAppGate = ({ children }: { children: React.ReactNode }) => {
     const fullPath = location.pathname + location.search + location.hash;
     const intentUrl = buildAndroidIntentUrl(fullPath);
 
-    // Fire the intent. If the app handles it, this tab is backgrounded and
-    // the timer below never runs to completion.
+    trackGateEvent("deep_link_attempt", { path: fullPath, platform: "android" });
+
     try {
       window.location.href = intentUrl;
     } catch {
-      // ignore
+      /* ignore */
     }
 
     const timer = window.setTimeout(() => setRevealGate(true), 1500);
     return () => window.clearTimeout(timer);
   }, [android, attemptedDeepLink, location.pathname, location.search, location.hash]);
 
+  // Fire a gate impression once we actually show the gate.
+  const willShowGate =
+    !isNative && !allowed && (ios || (android && revealGate) || (!android && !ios));
+
+  useEffect(() => {
+    if (!willShowGate) return;
+    trackGateEvent("gate_impression", {
+      path: location.pathname,
+      platform: ios ? "ios" : android ? "android" : "other",
+    });
+  }, [willShowGate, ios, android, location.pathname]);
+
   if (isNative || allowed) {
     return <>{children}</>;
   }
 
-  // Android: stay quiet while the deep-link attempt is in flight so we
-  // don't flash the gate before the OS chooser appears.
+  // Android: stay quiet during the deep-link attempt so we don't flash
+  // the gate before the OS chooser appears.
   if (android && !revealGate) {
     return (
       <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background">
@@ -80,8 +90,43 @@ const WebAppGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  const handlePlayStoreClick = () => {
+    trackGateEvent("play_store_click", {
+      path: location.pathname,
+      platform: android ? "android" : "other",
+    });
+  };
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = waitlistEmail.trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setWaitlistSubmitting(true);
+    try {
+      const { error } = await supabase.from("ios_waitlist").insert({
+        email,
+        name: waitlistName.trim() || null,
+        user_agent: navigator.userAgent,
+      });
+      if (error && error.code !== "23505") {
+        // 23505 = unique violation; treat as already-joined success
+        throw error;
+      }
+      trackGateEvent("ios_waitlist_join", { path: location.pathname, platform: "ios" });
+      setWaitlistJoined(true);
+      toast.success("You're on the list! We'll email you at launch.");
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't join the waitlist. Try again.");
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background px-6">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background px-6 py-10">
       <div
         className="w-full max-w-md rounded-2xl p-8 text-center"
         style={{
@@ -111,18 +156,62 @@ const WebAppGate = ({ children }: { children: React.ReactNode }) => {
             <h1 className="text-2xl font-semibold text-foreground mb-2">
               iOS app coming soon
             </h1>
-            <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-              AuroPay for iPhone is on the way. We'll notify you as soon as
-              it's available on the App Store. For now, AuroPay runs only on
-              Android.
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              AuroPay for iPhone is on the way. Drop your email and we'll
+              ping you the moment it's live on the App Store.
             </p>
 
-            <div
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-muted/40 px-6 py-3.5 text-sm font-semibold text-muted-foreground cursor-not-allowed"
-            >
-              <Apple className="h-4 w-4" />
-              App Store — Coming soon
-            </div>
+            {waitlistJoined ? (
+              <div
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold"
+                style={{
+                  background: "hsl(var(--primary) / 0.12)",
+                  color: "hsl(var(--primary))",
+                  border: "1px solid hsl(var(--primary) / 0.35)",
+                }}
+              >
+                <Check className="h-4 w-4" />
+                You're on the waitlist
+              </div>
+            ) : (
+              <form onSubmit={handleWaitlistSubmit} className="space-y-2.5 text-left">
+                <input
+                  type="text"
+                  value={waitlistName}
+                  onChange={(e) => setWaitlistName(e.target.value)}
+                  placeholder="Your name (optional)"
+                  autoComplete="name"
+                  className="w-full rounded-xl bg-muted/30 border border-border/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary/60 transition-colors"
+                />
+                <input
+                  type="email"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  autoComplete="email"
+                  required
+                  className="w-full rounded-xl bg-muted/30 border border-border/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary/60 transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={waitlistSubmitting}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-60"
+                  style={{ boxShadow: "0 10px 30px hsl(var(--primary) / 0.3)" }}
+                >
+                  {waitlistSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Joining…
+                    </>
+                  ) : (
+                    <>
+                      <Apple className="h-4 w-4" />
+                      Notify me at launch
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </>
         ) : (
           <>
@@ -139,6 +228,7 @@ const WebAppGate = ({ children }: { children: React.ReactNode }) => {
               href={PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={handlePlayStoreClick}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
               style={{ boxShadow: "0 10px 30px hsl(var(--primary) / 0.3)" }}
             >
