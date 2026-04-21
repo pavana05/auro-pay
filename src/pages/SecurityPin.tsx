@@ -94,6 +94,47 @@ const SecurityPin = () => {
     else toast.success("Reset link sent!");
   };
 
+  const handleLinkGoogle = async () => {
+    setLinkingGoogle(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/security",
+      });
+      if (result.error) {
+        toast.error(result.error.message || "Couldn't link Google");
+        setLinkingGoogle(false);
+        return;
+      }
+      if (result.redirected) return;
+      toast.success("Google linked");
+      await refreshIdentities();
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't link Google");
+    } finally {
+      setLinkingGoogle(false);
+    }
+  };
+
+  const handleUnlinkGoogle = async () => {
+    if (!confirm("Unlink your Google account? You'll lose this account-recovery option.")) return;
+    setLinkingGoogle(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const ids = (user as any)?.identities ?? [];
+      const g = ids.find((i: any) => i.provider === "google");
+      if (!g) { toast.error("Google not linked"); return; }
+      // @ts-ignore - unlinkIdentity exists on supabase-js v2
+      const { error } = await supabase.auth.unlinkIdentity(g);
+      if (error) throw error;
+      toast.success("Google unlinked");
+      await refreshIdentities();
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't unlink Google");
+    } finally {
+      setLinkingGoogle(false);
+    }
+  };
+
   const securityOptions = [
     { icon: Smartphone, label: "Two-Factor Authentication", desc: "Add extra security to your account", action: () => toast.info("2FA setup coming soon") },
     { icon: Key, label: "Change Password", desc: "Update your login password", action: handleChangePassword },
