@@ -469,7 +469,7 @@ const PaymentConfirm = () => {
         <ForgotPinModal
           open={showForgotPin}
           onClose={() => setShowForgotPin(false)}
-          onSuccess={() => { setPin(""); toast.success("PIN reset — enter your new PIN"); }}
+          onSuccess={() => { setPin(""); toast.ok("PIN reset", { description: "Enter your new PIN" }); }}
         />
       </div>
     );
@@ -597,7 +597,7 @@ const PaymentConfirm = () => {
   function shareReceipt() {
     const text = `Payment receipt — ₹${numericAmount} to ${payee} (${upi}) · Ref ${txMeta.reference} · ${txMeta.time}`;
     if (navigator.share) { navigator.share({ title: "Payment Receipt", text }).catch(() => {}); }
-    else { navigator.clipboard.writeText(text); toast.success("Receipt copied"); }
+    else { navigator.clipboard.writeText(text); toast.ok("Receipt copied"); }
   }
   function downloadReceipt() {
     const text = `AuroPay Receipt\n\nPaid to: ${payee}\nUPI: ${upi}\nAmount: ₹${numericAmount}\nReference: ${txMeta.reference}\nTime: ${txMeta.time}\n`;
