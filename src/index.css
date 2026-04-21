@@ -862,3 +862,37 @@ html.admin-light main *:not(svg):not(path) {
   }
 }
 
+/* === Global hardening: tap highlight, font smoothing, dynamic vh, scroll utility === */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+* { -webkit-tap-highlight-color: transparent; }
+button, [role="button"], a, .nav-item { -webkit-user-select: none; user-select: none; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+
+/* iOS Safari 100vh fallback. Pages can use min-h-[calc(var(--vh,1vh)*100)] */
+:root { --vh: 1vh; }
+
+/* Hide scrollbars while keeping scroll. */
+.scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+.scroll-hidden::-webkit-scrollbar { display: none; }
+
+/* Generic shimmer used by reusable skeleton primitive. */
+@keyframes zen-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.zen-shimmer {
+  background: linear-gradient(90deg,
+    hsl(var(--bg-card)) 0%,
+    hsl(var(--bg-elevated)) 50%,
+    hsl(var(--bg-card)) 100%);
+  background-size: 200% 100%;
+  animation: zen-shimmer 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zen-shimmer { animation: none !important; }
+}
+
