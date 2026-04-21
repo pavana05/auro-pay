@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/AdminLayout";
 import {
   ShieldAlert, RefreshCw, Search, Globe, Clock, User as UserIcon,
-  AlertTriangle, Filter,
+  AlertTriangle, Filter, Ban, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
