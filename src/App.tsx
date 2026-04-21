@@ -220,8 +220,8 @@ const App = () => (
             <Route path="/admin/conversion" element={<AdminGuard><PageTransition><AdminConversion /></PageTransition></AdminGuard>} />
             
 
-            {/* Public landing page — full-bleed, no mobile container. Home route. */}
-            <Route path="/" element={<Landing />} />
+            {/* Marketing landing page — moved off root so the app opens with splash → onboarding → auth. */}
+            <Route path="/landing" element={<Landing />} />
             <Route path="/landing-help" element={<LandingHelp />} />
 
             {/* User routes - max-w-lg mobile container */}
@@ -231,6 +231,7 @@ const App = () => (
                   <PageTransition>
                     <ErrorBoundary label="This page">
                     <Routes>
+                    <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
