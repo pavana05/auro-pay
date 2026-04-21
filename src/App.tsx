@@ -90,6 +90,7 @@ import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
 import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
+import WebAppGate from "./components/WebAppGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -189,9 +190,10 @@ const App = () => (
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
-              <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
-                <PageTransition>
-                  <Routes>
+              <WebAppGate>
+                <div className="mx-auto w-full max-w-lg min-h-[100dvh] relative">
+                  <PageTransition>
+                    <Routes>
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
@@ -242,10 +244,11 @@ const App = () => (
                     <Route path="/chats" element={<ChatList />} />
                     <Route path="/chat/:conversationId" element={<ChatRoom />} />
                     <Route path="/recurring" element={<ManageRecurring />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </PageTransition>
-              </div>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </PageTransition>
+                </div>
+              </WebAppGate>
             } />
           </Routes>
         </MaintenanceGate>
