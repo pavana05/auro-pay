@@ -95,7 +95,7 @@ import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
 import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
-import { DataCacheProvider } from "@/lib/data-cache";
+import { DataCacheProvider } from "./lib/data-cache";
 
 const queryClient = new QueryClient({
   defaultOptions: {
