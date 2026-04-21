@@ -58,7 +58,7 @@ const BottomNav = () => {
 
       <div className="relative flex items-end justify-around px-2 pb-[max(env(safe-area-inset-bottom),8px)]">
         {tabs.map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = isMatch(location.pathname, tab);
           const isPressed = pressedTab === tab.path;
 
           if (tab.center) {
