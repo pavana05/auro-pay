@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { ArrowLeft, AtSign, Phone, Users, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ interface Favorite {
 
 const SendMoney = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [tab, setTab] = useState<Tab>("upi");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
@@ -114,7 +116,7 @@ const SendMoney = () => {
     <div className="min-h-[100dvh] bg-background pb-28">
       <header className="flex items-center gap-3 px-5 pt-12 pb-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => back()}
           className="w-10 h-10 rounded-full zen-action-neutral flex items-center justify-center"
           aria-label="Back"
         >

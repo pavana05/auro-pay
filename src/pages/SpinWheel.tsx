@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, Coins, Sparkles, Clock, Lock, Gift } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ const formatCountdown = (ms: number): string => {
 
 const SpinWheel = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<number | null>(null);
@@ -151,7 +153,7 @@ const SpinWheel = () => {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/[0.04]" style={{ animation: mounted ? "slide-up-spring 0.5s cubic-bezier(0.34,1.56,0.64,1) both" : "none" }}>
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.04] active:scale-90 transition-all">
+          <button onClick={() => back()} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.04] active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold flex items-center gap-2">

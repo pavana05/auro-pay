@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { ArrowLeft, CreditCard, Building2, Check, Sparkles, Search, X, Shield, Zap, Repeat, Calendar, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -80,6 +81,7 @@ const AddMoney = () => {
   const [showFallback, setShowFallback] = useState<{ appLabel: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   // Persist whenever method or sub-selection changes.
   useEffect(() => {
@@ -472,7 +474,7 @@ const AddMoney = () => {
         {/* Header */}
         <div className="pt-4 pb-5" style={{ animation: "am-slide-up 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)}
+            <button onClick={() => back()}
               className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.04]"
               style={{ background: "hsl(220 15% 8%)" }}>
               <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

@@ -1,6 +1,7 @@
 import { ArrowLeft, ShieldCheck, Share2, Database, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { useSafeBack } from "@/lib/safe-back";
 interface Row {
   type: string;
   collected: boolean;
@@ -48,12 +49,13 @@ const Pill = ({ on, label }: { on: boolean; label: string }) => (
 
 const DataSafety = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   return (
     <div className="min-h-screen bg-background px-5 pt-6 pb-24 noise-overlay">
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => back()}
           className="w-10 h-10 rounded-full bg-input flex items-center justify-center"
           aria-label="Go back"
         >

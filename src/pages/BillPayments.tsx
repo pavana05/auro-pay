@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Search, ChevronRight, Zap, CheckCircle2, Smartphone, Star, RotateCcw, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import rechargeImg from "@/assets/bill-recharge.png";
@@ -158,6 +159,7 @@ interface FavoriteBill {
 
 const BillPayments = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [step, setStep] = useState<Step>("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -318,7 +320,7 @@ const BillPayments = () => {
     else if (step === "details") setStep("provider");
     else if (step === "provider") setStep(selectedCategory === "mobile" ? "mobile-type" : "category");
     else if (step === "mobile-type") setStep("category");
-    else navigate(-1);
+    else back();
   };
 
   const catInfo = categories.find(c => c.key === selectedCategory);

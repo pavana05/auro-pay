@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { Search, Plus, MessageCircle, ChevronLeft, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { haptic } from "@/lib/haptics";
@@ -39,6 +40,7 @@ const getAvatarColor = (name: string) => {
 
 const ChatList = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [userId, setUserId] = useState("");
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [contacts, setContacts] = useState<ContactOption[]>([]);
@@ -178,7 +180,7 @@ const ChatList = () => {
         <div className="px-5 pt-6 pb-2">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate(-1)} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
+              <button onClick={() => back()} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
                 <ChevronLeft className="w-5 h-5 text-muted-foreground/60" />
               </button>
               <h1 className="text-[22px] font-bold tracking-[-0.5px]">Chats</h1>

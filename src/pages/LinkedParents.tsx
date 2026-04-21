@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Users, Calendar, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import BottomNav from "@/components/BottomNav";
 
 interface ParentLink {
@@ -19,6 +20,7 @@ const LinkedParents = () => {
   const [links, setLinks] = useState<ParentLink[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const back = useSafeBack();
 
   useEffect(() => {
     const load = async () => {
@@ -43,7 +45,7 @@ const LinkedParents = () => {
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
       <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
+        <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-[22px] font-semibold">Linked Parents</h1>

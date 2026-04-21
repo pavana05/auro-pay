@@ -1,6 +1,7 @@
 // Manage Recurring Payments — list, pause, edit, cancel auto-pays
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ChevronLeft, Repeat, Plus, Pause, Play, Trash2, Calendar,
   TrendingUp, Sparkles, X
@@ -48,6 +49,7 @@ const describeSchedule = (r: Recurring) => {
 
 const ManageRecurring = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -98,7 +100,7 @@ const ManageRecurring = () => {
       <div className="relative z-10 px-5">
         {/* Header */}
         <div className="pt-4 pb-5 flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.04]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ChevronLeft className="w-[18px] h-[18px] text-white/60" />

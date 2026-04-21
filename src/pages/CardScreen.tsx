@@ -2,6 +2,7 @@
 // PIN-gated CVV reveal, freeze toggle, spending limit editor, controls, recent transactions.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import {
   ArrowLeft, Plus, Snowflake, Gauge, Info, Eye, EyeOff, X, Check,
   Globe, Wifi, Banknote, ShoppingBag, Delete, Lock,
@@ -38,6 +39,7 @@ const formatINR = (paise: number) =>
 
 const CardScreen = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [userId, setUserId] = useState<string>("");
@@ -240,7 +242,7 @@ const CardScreen = () => {
       <div className="relative z-10">
         {/* Header */}
         <div className="px-5 pt-5 pb-2 flex items-center gap-3">
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 transition-all border border-white/[0.05]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/lib/safe-back";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
@@ -41,6 +42,7 @@ const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = 
 
 const Referrals = () => {
   const navigate = useNavigate();
+  const back = useSafeBack();
   const [referralCode, setReferralCode] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +159,7 @@ const Referrals = () => {
       <div className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/[0.04]"
         style={{ background: "hsl(220 22% 5% / 0.85)" }}>
         <div className="flex items-center justify-between px-5 py-3.5">
-          <button onClick={() => { haptic.light(); navigate(-1); }}
+          <button onClick={() => { haptic.light(); back(); }}
             className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
             style={{ background: "hsl(220 15% 8%)" }}>
             <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
