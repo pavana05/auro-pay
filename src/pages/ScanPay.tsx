@@ -3,7 +3,7 @@ import { ArrowLeft, Flashlight, FlashlightOff, Image as ImageIcon, CheckCircle2,
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { haptic } from "@/lib/haptics";
 import jsQR from "jsqr";
 
@@ -114,7 +114,7 @@ const ScanPay = () => {
           setTimeout(() => { setCameraReady(true); setTimeout(() => setBracketsIn(true), 80); }, 250);
         }
       } catch {
-        toast.error("Camera access denied. Please allow camera permissions.");
+        toast.fail("Camera unavailable", { description: "Please allow camera permissions in settings" });
       }
     })();
 
@@ -273,12 +273,12 @@ const ScanPay = () => {
       const data = ctx.getImageData(0, 0, img.width, img.height);
       const code = jsQR(data.data, img.width, img.height);
       URL.revokeObjectURL(url);
-      if (!code?.data) { toast.error("No QR code found in image"); return; }
+      if (!code?.data) { toast.fail("No QR code found", { description: "Try a clearer image" }); return; }
       const parsed = parseUPIString(code.data);
-      if (!parsed?.pa) { toast.error("QR is not a valid UPI code"); return; }
+      if (!parsed?.pa) { toast.fail("Not a valid UPI code"); return; }
       handleQRDetected(parsed);
     } catch {
-      toast.error("Could not analyse image");
+      toast.fail("Could not analyse image");
     } finally {
       setAnalysingFile(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -286,7 +286,7 @@ const ScanPay = () => {
   };
 
   const processPayment = async () => {
-    if (!parsedUPI?.pa || !amount || parseFloat(amount) <= 0) { toast.error("Enter a valid amount"); return; }
+    if (!parsedUPI?.pa || !amount || parseFloat(amount) <= 0) { toast.fail("Enter a valid amount"); return; }
     haptic.medium();
     // Hand off to unified /pay flow — it handles PIN setup, entry, processing & success.
     navigate("/pay", {
@@ -353,9 +353,11 @@ const ScanPay = () => {
               if (!torchSupported) return;
               haptic.medium();
               setAutoTorch((v) => !v);
-              toast.success(autoTorch ? "Auto-torch off" : "Auto-torch on");
+              toast.ok(autoTorch ? "Auto-torch off" : "Auto-torch on");
             }}
             title={torchSupported ? "Tap: torch • Long-press: auto-torch" : "Torch not supported on this device"}
+            aria-label={torchOn ? "Turn off flashlight" : "Turn on flashlight"}
+            aria-pressed={torchOn}
             className={`relative w-11 h-11 rounded-full backdrop-blur-2xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
               torchOn ? "bg-primary border-primary/60 shadow-[0_0_20px_hsl(42_78%_55%/0.6)]" : "bg-white/[0.08] border-white/[0.12]"
             }`}>
@@ -369,6 +371,7 @@ const ScanPay = () => {
             )}
           </button>
           <button onClick={() => { haptic.light(); fileInputRef.current?.click(); }}
+            aria-label="Pick QR code from gallery"
             className="w-11 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl flex items-center justify-center border border-white/[0.12] active:scale-90 transition-transform">
             {analysingFile
               ? <Loader2 className="w-5 h-5 text-white animate-spin" />
