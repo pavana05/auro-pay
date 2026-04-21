@@ -450,6 +450,8 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                 placeholder="98765 43210"
                 autoFocus
                 maxLength={10}
+                aria-label="Indian mobile number, 10 digits"
+                aria-invalid={phoneShake}
                 className="flex-1 bg-transparent outline-none text-[18px] font-medium text-white placeholder:text-white/25 tracking-wider font-sora"
               />
             </div>
