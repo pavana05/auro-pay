@@ -1,9 +1,8 @@
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, Play, ChevronRight } from "lucide-react";
-import PhoneMockup from "../PhoneMockup";
+import VertoStage from "../VertoStage";
 import MagneticCTA from "../MagneticCTA";
-import heroIllustration from "@/assets/hero-illustration.png";
 
 import { Wallet, ScanLine, Target, Users2 } from "lucide-react";
 
