@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles } from "lucide-react";
+import { Lock, Eye, EyeOff, Shield, Smartphone, Key, KeyRound, Sparkles, Link2, Unlink, Loader2, CheckCircle2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import BottomNav from "@/components/BottomNav";
 import ForgotPinModal from "@/components/ForgotPinModal";
 
