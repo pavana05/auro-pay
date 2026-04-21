@@ -80,10 +80,10 @@ const AdminSecurity = () => {
     if (userIds.length) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, phone")
+        .select("id, full_name, phone, is_blocked")
         .in("id", userIds);
-      const pMap: Record<string, ProfileLite> = {};
-      (profs || []).forEach((p) => { pMap[p.id] = p as ProfileLite; });
+      const pMap: Record<string, ProfileLite & { is_blocked?: boolean }> = {};
+      (profs || []).forEach((p: any) => { pMap[p.id] = p; });
       setProfiles(pMap);
 
       // Best-effort email lookup via the secured edge function used elsewhere
