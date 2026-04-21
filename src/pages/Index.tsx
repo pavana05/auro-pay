@@ -5,6 +5,7 @@ import SplashScreen from "@/components/SplashScreen";
 import OnboardingScreen from "@/components/OnboardingScreen";
 import AuthScreen from "@/components/AuthScreen";
 import ProfileSetup from "@/components/ProfileSetup";
+import { hasSeenGoogleLinkPrompt } from "@/pages/LinkGoogle";
 
 type AppState = "splash" | "onboarding" | "auth" | "profile-setup" | "ready";
 
@@ -30,6 +31,14 @@ const Index = () => {
       setHapticsEnabled((profile as any).haptics_enabled);
     }
     if (profile) {
+      // Step 3: offer Google linking once after first phone login,
+      // unless the user already has Google linked or has dismissed the prompt.
+      const identities = ((await supabase.auth.getUser()).data.user as any)?.identities ?? [];
+      const alreadyLinked = identities.some((i: any) => i.provider === "google");
+      if (!alreadyLinked && !hasSeenGoogleLinkPrompt()) {
+        navigate("/link-google");
+        return;
+      }
       // Mandatory KYC: until verified, send everyone to /verify-kyc.
       if ((profile as any).kyc_status !== "verified") {
         navigate("/verify-kyc");

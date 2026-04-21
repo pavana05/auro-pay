@@ -93,6 +93,7 @@ import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
 import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
+import LinkGoogle from "./pages/LinkGoogle.tsx";
 import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
 import { DataCacheProvider } from "./lib/data-cache.tsx";
@@ -230,6 +231,7 @@ const App = () => (
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
+                    <Route path="/link-google" element={<LinkGoogle />} />
                     <Route path="/profile-setup" element={<ProfileSetupPage />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
