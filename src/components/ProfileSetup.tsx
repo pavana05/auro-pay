@@ -138,7 +138,7 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   /* ---------- Step handlers ---------- */
   const handleStep0 = () => {
     const r = nameSchema.safeParse(fullName);
-    if (!r.success) { toast.error(r.error.errors[0].message); return; }
+    if (!r.success) { toast.fail("Check your name", { description: r.error.errors[0].message }); return; }
     goNext();
   };
 
@@ -149,14 +149,13 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   };
 
   const handleStep1 = () => {
-    if (!role) { toast.error("Pick your role"); return; }
+    if (!role) { toast.fail("Pick your role", { description: "Choose teen or parent to continue" }); return; }
     goNext();
   };
 
   const handleStep2Teen = () => {
-    if (!dob) { toast.error("Select your date of birth"); return; }
-    const age = differenceInYears(new Date(), dob);
-    if (age < 10 || age > 25) { toast.error("Teen accounts are for ages 10–25"); return; }
+    const r = dobSchema.safeParse(dob);
+    if (!r.success) { toast.fail("Check your birthday", { description: r.error.errors[0].message }); return; }
     goNext();
   };
 
@@ -191,7 +190,11 @@ const ProfileSetup = ({ userId, phone, onComplete }: Props) => {
   };
 
   const handleStepCity = () => {
-    // City is optional — users can skip it
+    // City is optional, but if one is picked, validate it
+    if (city) {
+      const r = citySchema.safeParse(city);
+      if (!r.success) { toast.fail("Check your city", { description: r.error.errors[0].message }); return; }
+    }
     goNext();
   };
 
