@@ -8,7 +8,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
-import { SkeletonRow } from "@/components/feedback";
+import { SkeletonRow } from "@/components/zen/SkeletonRow";
 import { haptic } from "@/lib/haptics";
 import { useCountUp } from "@/hooks/useCountUp";
 import { Capacitor } from "@capacitor/core";
@@ -362,7 +362,7 @@ const ProfileScreen = () => {
       <div className="min-h-screen bg-background pb-28">
         <div className="px-5 pt-8">
           <div className="flex items-center gap-4 mb-6">
-            <SkeletonRow className="w-20 h-20 rounded-full p-0" height={80} rounded="rounded-full" />
+            <SkeletonRow className="w-20 h-20" height={80} rounded="rounded-full" />
             <div className="flex-1 space-y-2">
               <SkeletonRow className="w-32" height={20} />
               <SkeletonRow className="w-24" height={12} />
