@@ -99,10 +99,8 @@ export default function AdminConversion() {
       const k = dayKey(e.created_at);
       const b = buckets.get(k);
       if (!b) continue;
-      if (e.event_type in b) {
-        // @ts-expect-error indexed
+      if (e.event_type === "gate_impression" || e.event_type === "deep_link_attempt" || e.event_type === "play_store_click") {
         b[e.event_type] += 1;
-        // @ts-expect-error indexed
         t[e.event_type] += 1;
       }
     }
