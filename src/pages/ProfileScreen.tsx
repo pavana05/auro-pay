@@ -166,6 +166,7 @@ const ProfileScreen = () => {
   const [showSource, setShowSource] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
