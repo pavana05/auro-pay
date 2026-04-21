@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import { z } from "zod";

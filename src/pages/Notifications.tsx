@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, CheckCheck, Trash2, Archive, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 
 interface Notification {
