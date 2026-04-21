@@ -93,6 +93,7 @@ import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
 import LandingHelp from "./pages/LandingHelp.tsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
+import Permissions from "./pages/Permissions.tsx";
 import LinkGoogle from "./pages/LinkGoogle.tsx";
 import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
@@ -235,6 +236,7 @@ const App = () => (
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
                     <Route path="/link-google" element={<LinkGoogle />} />
                     <Route path="/profile-setup" element={<ProfileSetupPage />} />
+                    <Route path="/permissions" element={<Permissions />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
                     <Route path="/card" element={<CardScreen />} />

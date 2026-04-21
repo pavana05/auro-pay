@@ -15,6 +15,7 @@ const ALLOWED_WITHOUT_KYC = new Set<string>([
   "/verify-kyc",
   "/link-google",
   "/profile-setup",
+  "/permissions",
   "/help",
   "/about",
   "/privacy",
