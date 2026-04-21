@@ -88,6 +88,8 @@ import PinEnforcer from "./components/PinEnforcer";
 import FeatureGate from "./components/FeatureGate";
 import VerifyKyc from "./pages/VerifyKyc.tsx";
 import Landing from "./pages/Landing.tsx";
+import LandingHelp from "./pages/LandingHelp.tsx";
+import ProfileSetupPage from "./pages/ProfileSetupPage.tsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -183,6 +185,7 @@ const App = () => (
 
             {/* Public landing page — full-bleed, no mobile container. Home route. */}
             <Route path="/" element={<Landing />} />
+            <Route path="/landing-help" element={<LandingHelp />} />
 
             {/* User routes - max-w-lg mobile container */}
             <Route path="*" element={
@@ -192,6 +195,7 @@ const App = () => (
                     <Route path="/auth" element={<Index />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
+                    <Route path="/profile-setup" element={<ProfileSetupPage />} />
                     <Route path="/home" element={<TeenHome />} />
                     <Route path="/activity" element={<Activity />} />
                     <Route path="/card" element={<CardScreen />} />
