@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Menu, X, ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Menu, X, ArrowUpRight, HelpCircle } from "lucide-react";
 import MagneticCTA from "./MagneticCTA";
 
 export default function Navbar({ onCTA }: { onCTA: () => void }) {
@@ -103,6 +104,13 @@ export default function Navbar({ onCTA }: { onCTA: () => void }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/landing-help"
+              className="hidden sm:inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-[13px] font-medium text-white/70 hover:text-white transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <HelpCircle size={14} /> Help
+            </Link>
             <div className="hidden sm:inline-flex">
               <MagneticCTA onClick={onCTA} className="h-10 pl-4 pr-2 text-[13px]" radius={120}>
                 Early Access
