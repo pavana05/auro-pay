@@ -8,6 +8,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { haptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
@@ -158,15 +159,7 @@ const Referrals = () => {
       {/* Header */}
       <div className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/[0.04]"
         style={{ background: "hsl(220 22% 5% / 0.85)" }}>
-        <div className="flex items-center justify-between px-5 py-3.5">
-          <button onClick={() => { haptic.light(); back(); }}
-            className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
-            style={{ background: "hsl(220 15% 8%)" }}>
-            <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
-          </button>
-          <h1 className="text-[16px] font-bold tracking-[-0.4px]">Referral Program</h1>
-          <div className="w-[40px]" />
-        </div>
+        <PageHeader title="Referral Program" sticky={false} fallback="/profile" className="py-3.5" />
       </div>
 
       <div className="relative z-10 px-5 pt-5 space-y-5">

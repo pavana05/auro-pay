@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import {
   ChevronLeft, Repeat, Plus, Pause, Play, Trash2, Calendar,
   TrendingUp, Sparkles, X
@@ -99,28 +100,24 @@ const ManageRecurring = () => {
 
       <div className="relative z-10 px-5">
         {/* Header */}
-        <div className="pt-4 pb-5 flex items-center gap-3">
-          <button onClick={() => { haptic.light(); back(); }}
-            className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.04]"
-            style={{ background: "hsl(220 15% 8%)" }}>
-            <ChevronLeft className="w-[18px] h-[18px] text-white/60" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-[19px] font-bold tracking-[-0.5px]">Auto-Pay</h1>
-            <p className="text-[10px] text-white/30 font-medium flex items-center gap-1">
-              <Repeat className="w-2.5 h-2.5" /> Scheduled top-ups & payments
-            </p>
-          </div>
-          <button onClick={() => { haptic.light(); navigate("/add-money"); }}
-            className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90"
-            style={{
-              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))",
-              boxShadow: "0 4px 16px hsl(var(--primary) / 0.3)",
-              color: "hsl(220 22% 6%)",
-            }}>
-            <Plus className="w-[18px] h-[18px]" strokeWidth={2.5} />
-          </button>
-        </div>
+        <PageHeader
+          title="Auto-Pay"
+          subtitle="Scheduled top-ups & payments"
+          sticky={false}
+          fallback="/home"
+          right={
+            <button onClick={() => { haptic.light(); navigate("/add-money"); }}
+              className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90"
+              aria-label="Add recurring payment"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.78))",
+                boxShadow: "0 4px 16px hsl(var(--primary) / 0.3)",
+                color: "hsl(220 22% 6%)",
+              }}>
+              <Plus className="w-[18px] h-[18px]" strokeWidth={2.5} />
+            </button>
+          }
+        />
 
         {/* Summary card */}
         {items.length > 0 && (

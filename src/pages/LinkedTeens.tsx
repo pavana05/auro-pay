@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Users, UserPlus, Phone, Loader2, Check, X, Wallet, Calendar, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import { z } from "zod";
@@ -164,24 +165,25 @@ const LinkedTeens = () => {
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-28">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => back()} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[22px] font-semibold flex-1">Linked Teens</h1>
-        <button
-          onClick={openSheet}
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-            color: "hsl(220 15% 5%)",
-            boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
-          }}
-          aria-label="Add teen"
-        >
-          <UserPlus className="w-5 h-5" strokeWidth={2.5} />
-        </button>
-      </div>
+      <PageHeader
+        title="Linked Teens"
+        fallback="/profile"
+        sticky={false}
+        right={
+          <button
+            onClick={openSheet}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
+              color: "hsl(220 15% 5%)",
+              boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
+            }}
+            aria-label="Add teen"
+          >
+            <UserPlus className="w-5 h-5" strokeWidth={2.5} />
+          </button>
+        }
+      />
 
       {/* List */}
       {loading ? (

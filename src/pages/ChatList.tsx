@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { Search, Plus, MessageCircle, ChevronLeft, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { haptic } from "@/lib/haptics";
@@ -177,21 +178,22 @@ const ChatList = () => {
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="px-5 pt-6 pb-2">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <button onClick={() => back()} className="w-[42px] h-[42px] rounded-[14px] bg-white/[0.03] border border-white/[0.04] flex items-center justify-center active:scale-90 transition-all">
-                <ChevronLeft className="w-5 h-5 text-muted-foreground/60" />
-              </button>
-              <h1 className="text-[22px] font-bold tracking-[-0.5px]">Chats</h1>
-            </div>
+        <PageHeader
+          title="Chats"
+          sticky={false}
+          fallback="/home"
+          className="pb-2"
+          right={
             <button
               onClick={() => setShowNewChat(!showNewChat)}
               className="w-[42px] h-[42px] rounded-[14px] gradient-primary flex items-center justify-center active:scale-90 transition-all shadow-[0_4px_16px_hsl(42_78%_55%/0.3)]"
+              aria-label="New chat"
             >
               <Plus className="w-5 h-5 text-primary-foreground" />
             </button>
-          </div>
+          }
+        />
+        <div className="px-5 pt-2 pb-2">
 
           {/* Search */}
           <div className="relative">

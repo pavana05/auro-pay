@@ -1,7 +1,8 @@
-import { ArrowLeft, ShieldCheck, Share2, Database, Lock } from "lucide-react";
+import { ShieldCheck, Share2, Database, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 interface Row {
   type: string;
   collected: boolean;
@@ -53,16 +54,7 @@ const DataSafety = () => {
 
   return (
     <div className="min-h-screen bg-background px-5 pt-6 pb-24 noise-overlay">
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => back()}
-          className="w-10 h-10 rounded-full bg-input flex items-center justify-center"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[22px] font-semibold">Data Safety</h1>
-      </div>
+      <PageHeader title="Data Safety" fallback="/about" sticky={false} />
 
       <div className="space-y-3 mb-6">
         <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">

@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 
 const ParentAddMoney = () => {
   const navigate = useNavigate();
@@ -144,12 +145,7 @@ const ParentAddMoney = () => {
 
   return (
     <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-28">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={back} className="w-10 h-10 rounded-full bg-input flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <h1 className="text-lg font-semibold">Add Money to Teen</h1>
-      </div>
+      <PageHeader title="Add Money to Teen" fallback="/parent" sticky={false} />
 
       {/* Teen Selector */}
       {teens.length > 1 && (

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, CheckCheck, Trash2, Archive, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
+import PageHeader from "@/components/PageHeader";
 import { toast } from "sonner";
 
 interface Notification {
@@ -415,27 +416,20 @@ const Notifications = () => {
 
       <div className="relative z-10 px-5">
         {/* Header */}
-        <div className="pt-4 pb-3" style={{ animation: "notif-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => { haptic.light(); back(); }}
-                className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
-                style={{ background: "hsl(220 15% 8%)" }}>
-                <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
-              </button>
-              <div>
-                <h1 className="text-[19px] font-bold tracking-[-0.5px]">Notifications</h1>
-                {counts.all > 0 && <p className="text-[10px] font-medium" style={{ color: "hsl(var(--primary) / 0.85)" }}>{counts.all} unread</p>}
-              </div>
-            </div>
+        <PageHeader
+          title="Notifications"
+          subtitle={counts.all > 0 ? `${counts.all} unread` : undefined}
+          sticky={false}
+          className="pb-3 mb-0"
+          right={
             <button onClick={markAllRead}
               className="h-[36px] px-3.5 rounded-[12px] flex items-center gap-1.5 active:scale-95 border border-white/[0.06] text-[11px] font-semibold text-white/70"
               style={{ background: "hsl(220 15% 8%)" }}>
               <CheckCheck className="w-3.5 h-3.5" />
               Mark all read
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Tabs */}
         <div className="flex gap-1.5 mb-4 -mx-5 px-5 overflow-x-auto scrollbar-hide"
