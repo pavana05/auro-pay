@@ -21,7 +21,21 @@ const SecurityPin = () => {
   const [showNew, setShowNew] = useState(false);
   const [changing, setChanging] = useState(false);
   const [showForgotPin, setShowForgotPin] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [identitiesLoaded, setIdentitiesLoaded] = useState(false);
 
+  const refreshIdentities = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const ids = (user as any)?.identities ?? [];
+    const g = ids.find((i: any) => i.provider === "google");
+    setGoogleLinked(!!g);
+    setGoogleEmail(g?.identity_data?.email ?? null);
+    setIdentitiesLoaded(true);
+  };
+
+  useEffect(() => { refreshIdentities(); }, []);
   useEffect(() => {
     if (isSetupMode) {
       toast.info("Set up your 4-digit Payment PIN to continue", { duration: 5000 });
