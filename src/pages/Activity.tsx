@@ -190,10 +190,11 @@ const Activity = () => {
     return { buckets, max };
   }, [allTx, from, to]);
 
+  // Group everything we've fetched (filtered) by day. We no longer slice client-side —
+  // pagination is server-driven via fetchPage.
   const groups = useMemo(() => {
-    const slice = filtered.slice(0, visibleCount);
     const map = new Map<string, Txn[]>();
-    for (const tx of slice) {
+    for (const tx of filtered) {
       const k = dayKey(tx.created_at);
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(tx);
@@ -204,23 +205,22 @@ const Activity = () => {
       items,
       subtotal: items.reduce((s, t) => s + (t.type === "debit" ? t.amount : 0), 0),
     }));
-  }, [filtered, visibleCount]);
+  }, [filtered]);
 
+  // Infinite-scroll trigger — load the next server page when the sentinel enters view.
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el) return;
+    if (!el || !hasMore || loading || loadingMore) return;
     const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && visibleCount < filtered.length && !loadingMore) {
-        setLoadingMore(true);
-        setTimeout(() => {
-          setVisibleCount(c => Math.min(c + PAGE_SIZE, filtered.length));
-          setLoadingMore(false);
-        }, 350);
+      if (entries[0].isIntersecting) {
+        const next = page + 1;
+        setPage(next);
+        fetchPage(next, false);
       }
     }, { rootMargin: "200px" });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [filtered.length, visibleCount, loadingMore]);
+  }, [hasMore, loading, loadingMore, page, fetchPage]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -501,7 +501,7 @@ const Activity = () => {
               ))}
             </div>
           )}
-          {!loadingMore && !loading && visibleCount >= filtered.length && filtered.length > 5 && (
+          {!loadingMore && !loading && !hasMore && filtered.length > 5 && (
             <p className="text-[10px] text-white/25 font-semibold">— End of list —</p>
           )}
         </div>
