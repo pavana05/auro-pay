@@ -10,8 +10,9 @@ import {
   TrendingUp, Calendar, Clock, Check, X as XIcon, Sparkles,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { haptic } from "@/lib/haptics";
+import { SkeletonRow } from "@/components/zen/SkeletonRow";
 
 const CATEGORIES: { key: string; label: string; emoji: string }[] = [
   { key: "food", label: "Food", emoji: "🍔" },
@@ -120,7 +121,11 @@ const ParentControls = () => {
     const currentLimit = reqOpen === "daily" ? dailyLimit : monthlyLimit;
     const requested = rupees * 100;
     if (!rupees || requested <= currentLimit) {
-      toast.error(`Must be more than current limit (${fmt(currentLimit)})`);
+      toast.warn("Enter a higher amount", { description: `Must be more than current limit (${fmt(currentLimit)})` });
+      return;
+    }
+    if (requested > 10_000_000) {
+      toast.warn("Amount too high", { description: "Limits are capped at ₹1,00,000" });
       return;
     }
     setReqSubmitting(true);
@@ -132,7 +137,7 @@ const ParentControls = () => {
       requested_limit: requested,
       reason: reqReason.trim() || null,
     });
-    if (error) { toast.error(error.message); setReqSubmitting(false); return; }
+    if (error) { toast.fail("Couldn't send request", { description: error.message }); setReqSubmitting(false); return; }
 
     // Notify parent
     await supabase.from("notifications").insert({
@@ -143,7 +148,7 @@ const ParentControls = () => {
     });
 
     haptic.success();
-    toast.success("Request sent to your parent");
+    toast.ok("Request sent", { description: "Your parent will be notified" });
     setReqOpen(null); setReqAmount(""); setReqReason("");
     setReqSubmitting(false);
     fetchData();
@@ -175,7 +180,7 @@ const ParentControls = () => {
     if (!conversationId) {
       const { data: conv, error } = await supabase
         .from("conversations").insert({ type: "direct" }).select().single();
-      if (error || !conv) { toast.error("Could not start chat"); setMsgSending(false); return; }
+      if (error || !conv) { toast.fail("Couldn't start chat", { description: error?.message }); setMsgSending(false); return; }
       conversationId = conv.id;
       await supabase.from("conversation_members").insert([
         { conversation_id: conversationId, user_id: userId },
@@ -189,10 +194,10 @@ const ParentControls = () => {
       content: msgText.trim(),
       message_type: "text",
     });
-    if (msgErr) { toast.error(msgErr.message); setMsgSending(false); return; }
+    if (msgErr) { toast.fail("Couldn't send message", { description: msgErr.message }); setMsgSending(false); return; }
 
     haptic.success();
-    toast.success("Message sent");
+    toast.ok("Message sent");
     const text = msgText.trim();
     setMsgText("");
     setMsgSending(false);
@@ -203,10 +208,10 @@ const ParentControls = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-24 px-5 pt-6">
-        <div className="h-10 w-40 rounded-lg bg-white/5 animate-pulse mb-6" />
-        <div className="h-32 rounded-2xl bg-white/5 animate-pulse mb-4" />
-        <div className="h-40 rounded-2xl bg-white/5 animate-pulse mb-4" />
+      <div className="min-h-screen bg-background pb-24 px-5 pt-6" role="status" aria-busy="true" aria-label="Loading parent controls">
+        <SkeletonRow className="w-40 mb-6" height={32} />
+        <SkeletonRow className="mb-4" height={120} rounded="rounded-2xl" />
+        <SkeletonRow className="mb-4" height={140} rounded="rounded-2xl" />
         <BottomNav />
       </div>
     );
@@ -386,6 +391,7 @@ const ParentControls = () => {
                     onChange={e => setMsgText(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") sendMessage(); }}
                     placeholder={`Message ${parent.full_name?.split(" ")[0] || "your parent"}…`}
+                    aria-label="Message your parent"
                     maxLength={500}
                     className="flex-1 bg-transparent py-2.5 text-[13px] text-foreground placeholder:text-white/25 focus:outline-none"
                   />
@@ -393,6 +399,7 @@ const ParentControls = () => {
                 <button
                   onClick={sendMessage}
                   disabled={!msgText.trim() || msgSending}
+                  aria-label="Send message"
                   className="w-[44px] h-[44px] rounded-[14px] flex items-center justify-center active:scale-90 transition disabled:opacity-40"
                   style={{
                     background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))",
