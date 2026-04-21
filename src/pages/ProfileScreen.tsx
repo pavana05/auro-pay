@@ -173,6 +173,8 @@ const ProfileScreen = () => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+      const identities = (user as any).identities ?? [];
+      setGoogleLinked(identities.some((i: any) => i.provider === "google"));
 
       const [pRes, wRes, gRes, nRes, ptlRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
