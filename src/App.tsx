@@ -117,11 +117,33 @@ const AuthRedirector = () => {
   const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
         if (location.pathname !== "/auth" && location.pathname !== "/" && location.pathname !== "/reset-password") {
           navigate("/auth", { replace: true });
         }
+        return;
+      }
+
+      // Block sign-in for users an admin has flagged as blocked. We check on
+      // SIGNED_IN and the initial session restore — defer the supabase call so
+      // we don't deadlock the auth client.
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+        setTimeout(async () => {
+          const { data } = await supabase
+            .from("profiles")
+            .select("is_blocked")
+            .eq("id", session.user!.id)
+            .maybeSingle();
+          if (data?.is_blocked) {
+            await supabase.auth.signOut();
+            const { toast } = await import("sonner");
+            toast.error("Account blocked", {
+              description: "Your account has been blocked by an administrator. Contact support if you believe this is a mistake.",
+            });
+            navigate("/auth", { replace: true });
+          }
+        }, 0);
       }
     });
     return () => subscription.unsubscribe();
