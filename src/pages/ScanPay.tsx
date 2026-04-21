@@ -22,6 +22,8 @@ const ScanPay = () => {
 
   const [scanning, setScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [autoTorch, setAutoTorch] = useState(true);
   const [parsedUPI, setParsedUPI] = useState<ParsedUPI | null>(null);
   const [amount, setAmount] = useState("");
   const [amountLocked, setAmountLocked] = useState(false);
@@ -32,6 +34,27 @@ const ScanPay = () => {
   const [detected, setDetected] = useState(false);
   const [whiteFlash, setWhiteFlash] = useState(false);
   const [analysingFile, setAnalysingFile] = useState(false);
+
+  // --- Auto-torch (dark-environment detection) ---
+  // Smoothed luminance (0–255) computed from the live frame's center crop.
+  const lumaEmaRef = useRef<number | null>(null);
+  // Timestamps used for hysteresis + cooldown so the torch doesn't flicker.
+  const darkSinceRef = useRef<number | null>(null);
+  const brightSinceRef = useRef<number | null>(null);
+  const lastAutoToggleRef = useRef(0);
+  // When the user manually toggles, pause auto-mode briefly.
+  const userOverrideUntilRef = useRef(0);
+  const torchOnRef = useRef(false);
+  useEffect(() => { torchOnRef.current = torchOn; }, [torchOn]);
+
+  // Tunables — chosen to feel calm, not jumpy.
+  const DARK_THRESHOLD = 40;
+  const BRIGHT_THRESHOLD = 90;
+  const DARK_HOLD_MS = 1200;
+  const BRIGHT_HOLD_MS = 1500;
+  const AUTO_COOLDOWN_MS = 3000;
+  const USER_OVERRIDE_MS = 8000;
+  const EMA_ALPHA = 0.15;
 
   const navigate = useNavigate();
 
@@ -77,6 +100,12 @@ const ScanPay = () => {
         });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         streamRef.current = stream;
+        // Detect torch capability once the track is live.
+        try {
+          const track = stream.getVideoTracks()[0] as any;
+          const caps = track?.getCapabilities?.();
+          setTorchSupported(!!caps?.torch);
+        } catch { setTorchSupported(false); }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -92,10 +121,14 @@ const ScanPay = () => {
       if (scanRafRef.current) cancelAnimationFrame(scanRafRef.current);
       if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
       if (videoRef.current) videoRef.current.srcObject = null;
+      // Reset auto-torch state between camera sessions.
+      lumaEmaRef.current = null;
+      darkSinceRef.current = null;
+      brightSinceRef.current = null;
     };
   }, [scanning]);
 
-  // QR scanning loop
+  // QR scanning loop — also samples luminance for auto-torch.
   useEffect(() => {
     if (!scanning || !cameraReady || detected) return;
     const tick = () => {
@@ -110,6 +143,37 @@ const ScanPay = () => {
           if (ctx) {
             ctx.drawImage(video, 0, 0, w, h);
             const img = ctx.getImageData(0, 0, w, h);
+
+            // --- Luminance sampling (center 50% crop, every 16th pixel) ---
+            // Cheap: ~ (w*h)/16 samples per frame, all on already-grabbed bytes.
+            if (document.visibilityState === "visible") {
+              const data = img.data;
+              const x0 = Math.floor(w * 0.25);
+              const y0 = Math.floor(h * 0.25);
+              const x1 = Math.floor(w * 0.75);
+              const y1 = Math.floor(h * 0.75);
+              const stride = 4 * 4; // sample every 4th pixel horizontally
+              let sum = 0; let count = 0;
+              for (let y = y0; y < y1; y += 4) {
+                const rowStart = y * w * 4;
+                for (let x = x0; x < x1; x += 4) {
+                  const i = rowStart + x * 4;
+                  // Rec. 601 luma — fast integer-friendly approximation.
+                  sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                  count++;
+                }
+                // (stride var kept for readability; loop handles step)
+                void stride;
+              }
+              if (count > 0) {
+                const luma = sum / count;
+                lumaEmaRef.current = lumaEmaRef.current == null
+                  ? luma
+                  : lumaEmaRef.current * (1 - EMA_ALPHA) + luma * EMA_ALPHA;
+                evaluateAutoTorch(lumaEmaRef.current);
+              }
+            }
+
             const code = jsQR(img.data, w, h, { inversionAttempts: "dontInvert" });
             if (code?.data) {
               const parsed = parseUPIString(code.data);
@@ -152,7 +216,42 @@ const ScanPay = () => {
     const track = streamRef.current.getVideoTracks()[0];
     try { await (track as any).applyConstraints({ advanced: [{ torch: on }] }); setTorchOn(on); } catch {}
   };
-  const toggleTorch = () => { haptic.light(); enableTorch(!torchOn); };
+  const toggleTorch = () => {
+    haptic.light();
+    // Manual tap → pause auto-torch briefly so we don't fight the user.
+    userOverrideUntilRef.current = Date.now() + USER_OVERRIDE_MS;
+    enableTorch(!torchOn);
+  };
+
+  // Decide whether to flip the torch based on smoothed luminance.
+  // Uses two thresholds + minimum hold time + cooldown, so the torch
+  // only changes state on a real, sustained lighting change.
+  const evaluateAutoTorch = (luma: number) => {
+    if (!autoTorch || !torchSupported) return;
+    const now = Date.now();
+    if (now < userOverrideUntilRef.current) return;
+    if (now - lastAutoToggleRef.current < AUTO_COOLDOWN_MS) return;
+
+    if (luma < DARK_THRESHOLD) {
+      brightSinceRef.current = null;
+      if (darkSinceRef.current == null) darkSinceRef.current = now;
+      if (!torchOnRef.current && now - darkSinceRef.current >= DARK_HOLD_MS) {
+        lastAutoToggleRef.current = now;
+        enableTorch(true);
+      }
+    } else if (luma > BRIGHT_THRESHOLD) {
+      darkSinceRef.current = null;
+      if (brightSinceRef.current == null) brightSinceRef.current = now;
+      if (torchOnRef.current && now - brightSinceRef.current >= BRIGHT_HOLD_MS) {
+        lastAutoToggleRef.current = now;
+        enableTorch(false);
+      }
+    } else {
+      // In the hysteresis gap — reset both timers.
+      darkSinceRef.current = null;
+      brightSinceRef.current = null;
+    }
+  };
 
   // Gallery picker
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,13 +344,27 @@ const ScanPay = () => {
           <div className="flex-1 mx-2 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] flex items-center justify-center">
             <span className="text-[13px] font-semibold text-white tracking-wide">Scan QR Code</span>
           </div>
-          <button onClick={toggleTorch}
-            className={`w-11 h-11 rounded-full backdrop-blur-2xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
+          <button
+            onClick={toggleTorch}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (!torchSupported) return;
+              haptic.medium();
+              setAutoTorch((v) => !v);
+              toast.success(autoTorch ? "Auto-torch off" : "Auto-torch on");
+            }}
+            title={torchSupported ? "Tap: torch • Long-press: auto-torch" : "Torch not supported on this device"}
+            className={`relative w-11 h-11 rounded-full backdrop-blur-2xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
               torchOn ? "bg-primary border-primary/60 shadow-[0_0_20px_hsl(42_78%_55%/0.6)]" : "bg-white/[0.08] border-white/[0.12]"
             }`}>
             {torchOn
               ? <Flashlight className="w-5 h-5 text-primary-foreground" style={{ animation: "torch-on 0.4s ease-out" }} />
               : <FlashlightOff className="w-5 h-5 text-white" />}
+            {autoTorch && torchSupported && (
+              <span className="absolute -bottom-1 -right-1 px-1 py-px rounded-full bg-primary text-[7px] font-bold text-primary-foreground leading-none tracking-wider">
+                A
+              </span>
+            )}
           </button>
           <button onClick={() => { haptic.light(); fileInputRef.current?.click(); }}
             className="w-11 h-11 rounded-full bg-white/[0.08] backdrop-blur-2xl flex items-center justify-center border border-white/[0.12] active:scale-90 transition-transform">
