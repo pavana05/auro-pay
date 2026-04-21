@@ -270,15 +270,41 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
               />
               Joined by{" "}
-              <motion.span
-                key={count}
-                initial={{ y: -2, opacity: 0.6, color: "#e0b048" }}
-                animate={{ y: 0, opacity: 1, color: "#ffffff" }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="font-semibold tabular-nums"
-              >
-                {count.toLocaleString()}
-              </motion.span>{" "}
+              <span className="relative inline-flex font-semibold tabular-nums overflow-hidden align-baseline">
+                {/* shimmer sweep on each tick */}
+                {!reduceMotion && (
+                  <motion.span
+                    key={`shimmer-${count}`}
+                    aria-hidden
+                    className="absolute inset-0 pointer-events-none"
+                    initial={{ x: "-120%", opacity: 0 }}
+                    animate={{ x: "120%", opacity: [0, 0.9, 0] }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                    style={{
+                      background: "linear-gradient(90deg, transparent, rgba(232,184,90,0.55), transparent)",
+                      filter: "blur(4px)",
+                    }}
+                  />
+                )}
+                {count.toLocaleString("en-IN").split("").map((ch, i) => (
+                  /\d/.test(ch) ? (
+                    <span key={`d-${i}`} className="relative inline-block overflow-hidden" style={{ height: "1.25em", lineHeight: "1.25em" }}>
+                      <motion.span
+                        key={`d-${i}-${ch}`}
+                        initial={reduceMotion ? false : { y: "-100%", opacity: 0, filter: "blur(2px)" }}
+                        animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
+                        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: i * 0.04 }}
+                        className="inline-block"
+                        style={{ color: "#ffffff", textShadow: "0 0 18px rgba(232,184,90,0.45)" }}
+                      >
+                        {ch}
+                      </motion.span>
+                    </span>
+                  ) : (
+                    <span key={`s-${i}`} className="inline-block" style={{ color: "#ffffff" }}>{ch}</span>
+                  )
+                ))}
+              </span>{" "}
               teens &amp; parents
             </span>
           </motion.div>
