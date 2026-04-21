@@ -1110,22 +1110,115 @@ const TeenHome = () => {
           transition={{ delay: 0.72 }}
           className="px-5 mb-5"
         >
-          <h3 className="text-[13px] font-bold tracking-[-0.3px] mb-3 font-sora">Services</h3>
-          <motion.div variants={stagger.container} initial="hidden" animate="show" className="grid grid-cols-4 gap-2">
-            {allFeatures.map((f) => (
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-bold tracking-[-0.3px] font-sora flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary/70" /> Services
+            </h3>
+            <button
+              onClick={() => { haptic.light(); setAllServicesOpen(true); }}
+              className="text-[10px] text-primary/70 font-semibold flex items-center gap-0.5 font-sora"
+            >
+              View All <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <motion.div variants={stagger.container} initial="hidden" animate="show" className="grid grid-cols-4 gap-2.5">
+            {allFeatures.slice(0, 3).map((f) => (
               <motion.button
                 key={f.label}
                 variants={stagger.item}
-                whileTap={{ scale: 0.88 }}
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ y: -2 }}
                 onClick={() => { haptic.light(); navigate(f.path, (f as any).state ? { state: (f as any).state } : undefined); }}
-                className="flex flex-col items-center gap-1 py-3 rounded-[16px] bg-muted/10 group"
+                className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-[18px] overflow-hidden group"
+                style={{
+                  background: "linear-gradient(160deg, hsl(220 22% 11%) 0%, hsl(220 24% 7%) 100%)",
+                  boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.07) inset, 0 6px 18px -10px hsl(42 78% 55% / 0.18)",
+                }}
               >
-                <span className="text-[22px] group-active:scale-110 transition-transform duration-200">{f.emoji}</span>
-                <span className="text-[9px] font-semibold text-muted-foreground/50 font-sora">{f.label}</span>
+                <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-[0.08] blur-[18px]" style={{ background: "hsl(42 78% 55%)" }} />
+                <span className="relative text-[24px] group-active:scale-110 transition-transform duration-200" style={{ filter: "drop-shadow(0 4px 8px hsl(42 78% 55% / 0.25))" }}>{f.emoji}</span>
+                <span className="relative text-[9px] font-semibold text-foreground/70 font-sora tracking-tight">{f.label}</span>
               </motion.button>
             ))}
+            {/* More Button */}
+            <motion.button
+              variants={stagger.item}
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ y: -2 }}
+              onClick={() => { haptic.medium(); setAllServicesOpen(true); }}
+              className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-[18px] overflow-hidden group"
+              style={{
+                background: "linear-gradient(160deg, hsl(42 78% 55% / 0.18) 0%, hsl(42 78% 55% / 0.06) 100%)",
+                boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.28) inset, 0 6px 22px -10px hsl(42 78% 55% / 0.45)",
+              }}
+            >
+              <motion.div
+                aria-hidden
+                className="absolute inset-0 opacity-50"
+                style={{ background: "linear-gradient(115deg, transparent 35%, hsl(42 78% 65% / 0.18) 50%, transparent 65%)" }}
+                animate={{ x: ["-110%", "110%"] }}
+                transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 1.4 }}
+              />
+              <div className="relative w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "hsl(42 78% 55% / 0.18)", boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.35) inset" }}>
+                <LayoutGrid className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <span className="relative text-[9px] font-bold text-primary font-sora tracking-tight">More</span>
+            </motion.button>
           </motion.div>
         </motion.div>
+
+        {/* All Services Dialog */}
+        <Dialog open={allServicesOpen} onOpenChange={setAllServicesOpen}>
+          <DialogContent
+            className="max-w-md p-0 border-0 overflow-hidden rounded-[24px]"
+            style={{
+              background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(42 78% 55% / 0.10) 0%, transparent 60%), linear-gradient(160deg, hsl(220 22% 9%) 0%, hsl(220 24% 5%) 100%)",
+              boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.18) inset, 0 30px 80px -20px hsl(0 0% 0% / 0.6)",
+            }}
+          >
+            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 65% / 0.5), transparent)" }} />
+            <DialogHeader className="px-6 pt-6 pb-2">
+              <DialogTitle className="font-sora text-[18px] tracking-[-0.3px] flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "hsl(42 78% 55% / 0.15)", boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.3) inset" }}>
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                </div>
+                All Services
+              </DialogTitle>
+              <p className="text-[11px] text-muted-foreground/60 font-sora mt-0.5">Explore everything in one place</p>
+            </DialogHeader>
+            <div className="px-5 pb-6 pt-3 max-h-[60vh] overflow-y-auto scrollbar-hide">
+              <motion.div
+                initial="hidden"
+                animate="show"
+                variants={stagger.container}
+                className="grid grid-cols-4 gap-2.5"
+              >
+                {allFeatures.map((f) => (
+                  <motion.button
+                    key={f.label}
+                    variants={stagger.item}
+                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ y: -2 }}
+                    onClick={() => {
+                      haptic.light();
+                      setAllServicesOpen(false);
+                      navigate(f.path, (f as any).state ? { state: (f as any).state } : undefined);
+                    }}
+                    className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-[16px] overflow-hidden group"
+                    style={{
+                      background: "linear-gradient(160deg, hsl(220 22% 12%) 0%, hsl(220 24% 8%) 100%)",
+                      boxShadow: "0 0 0 1px hsl(42 78% 55% / 0.08) inset",
+                    }}
+                  >
+                    <div className="absolute -top-6 -right-6 w-14 h-14 rounded-full opacity-[0.08] blur-[16px]" style={{ background: "hsl(42 78% 55%)" }} />
+                    <span className="relative text-[22px]" style={{ filter: "drop-shadow(0 4px 8px hsl(42 78% 55% / 0.22))" }}>{f.emoji}</span>
+                    <span className="relative text-[9px] font-semibold text-foreground/70 font-sora text-center px-1 leading-tight">{f.label}</span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Refer & Earn */}
         <motion.div
