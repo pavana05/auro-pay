@@ -1132,29 +1132,101 @@ const TeenHome = () => {
           className="px-5 mb-8"
         >
           <motion.button
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.985 }}
             onClick={() => {
               haptic.medium();
               navigate("/referrals");
             }}
-            className="w-full relative overflow-hidden rounded-[20px] p-4 text-left"
-            style={{ background: "radial-gradient(ellipse 50% 70% at 90% 30%, hsl(42 78% 55% / 0.05) 0%, transparent 60%), linear-gradient(160deg, hsl(220 18% 9%), hsl(220 20% 5.5%))" }}
+            className="group w-full relative overflow-hidden rounded-[22px] p-[1.5px] text-left"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 78% 55% / 0.55), hsl(42 78% 55% / 0.05) 35%, hsl(42 78% 55% / 0.05) 65%, hsl(42 78% 55% / 0.45))",
+              boxShadow: "0 18px 50px -20px hsl(42 78% 55% / 0.45), 0 0 0 1px hsl(42 78% 55% / 0.08) inset",
+            }}
           >
-            <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.12), transparent)" }} />
-            <div className="relative z-10 flex items-center gap-3.5">
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Sparkles className="w-3 h-3 text-primary/60" />
-                  <span className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.08em] uppercase font-sora">Referral</span>
+            <div
+              className="relative overflow-hidden rounded-[20.5px] p-4"
+              style={{
+                background:
+                  "radial-gradient(ellipse 60% 80% at 92% 25%, hsl(42 78% 55% / 0.14) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 0% 110%, hsl(42 78% 55% / 0.08) 0%, transparent 55%), linear-gradient(160deg, hsl(220 22% 10%) 0%, hsl(220 24% 6%) 100%)",
+              }}
+            >
+              {/* Animated shimmer sweep */}
+              <motion.div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none opacity-60"
+                style={{
+                  background: "linear-gradient(115deg, transparent 35%, hsl(42 78% 65% / 0.18) 50%, transparent 65%)",
+                }}
+                animate={{ x: ["-110%", "110%"] }}
+                transition={{ duration: 3.2, ease: "easeInOut", repeat: Infinity, repeatDelay: 1.6 }}
+              />
+              {/* Top + bottom hairlines */}
+              <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 65% / 0.5), transparent)" }} />
+              <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 78% 55% / 0.18), transparent)" }} />
+              {/* Subtle noise grain via radial dots */}
+              <div className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-overlay"
+                style={{ backgroundImage: "radial-gradient(circle at 20% 30%, hsl(42 78% 65%) 0.5px, transparent 1px), radial-gradient(circle at 70% 70%, hsl(42 78% 65%) 0.5px, transparent 1px)", backgroundSize: "24px 24px, 32px 32px" }} />
+
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="relative flex items-center justify-center">
+                      <motion.span
+                        aria-hidden
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: "hsl(42 78% 55%)", filter: "blur(6px)" }}
+                        animate={{ opacity: [0.25, 0.6, 0.25], scale: [0.8, 1.2, 0.8] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <Sparkles className="relative w-3 h-3 text-primary" />
+                    </div>
+                    <span className="text-[9px] font-bold text-primary/80 tracking-[0.16em] uppercase font-sora">Refer & Earn</span>
+                    <span className="ml-auto text-[8.5px] font-bold tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-md font-sora"
+                      style={{ background: "hsl(42 78% 55% / 0.12)", color: "hsl(42 78% 70%)", border: "1px solid hsl(42 78% 55% / 0.25)" }}>
+                      Limited
+                    </span>
+                  </div>
+                  <h3 className="text-[16px] font-bold leading-tight mb-0.5 font-sora tracking-[-0.3px]">
+                    Invite & Earn{" "}
+                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, hsl(42 78% 70%), hsl(42 78% 55%))" }}>
+                      ₹20
+                    </span>
+                  </h3>
+                  <p className="text-[10.5px] text-muted-foreground/55 mb-3 font-sora">Your friend gets ₹20 too · instant credit</p>
+                  <div className="inline-flex items-center gap-1.5 gradient-primary text-primary-foreground pl-3 pr-2.5 py-2 rounded-[12px] shadow-[0_6px_22px_hsl(42_78%_55%/0.4)] group-hover:shadow-[0_8px_28px_hsl(42_78%_55%/0.55)] transition-shadow">
+                    <Send className="w-3 h-3" />
+                    <span className="text-[10.5px] font-bold font-sora tracking-wide">Invite Now</span>
+                    <ChevronRight className="w-3 h-3 -ml-0.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
-                <h3 className="text-[14px] font-bold leading-snug mb-0.5 font-sora">Invite & Earn ₹20</h3>
-                <p className="text-[10px] text-muted-foreground/30 mb-3 font-sora">Friend gets ₹20 too</p>
-                <div className="inline-flex items-center gap-1.5 gradient-primary text-primary-foreground px-3.5 py-2 rounded-[10px] shadow-[0_4px_20px_hsl(42_78%_55%/0.25)]">
-                  <Send className="w-3 h-3" />
-                  <span className="text-[10px] font-bold font-sora">Invite Now</span>
+
+                {/* Premium gift mark */}
+                <div className="relative shrink-0 w-[68px] h-[68px] flex items-center justify-center">
+                  <motion.div
+                    aria-hidden
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: "radial-gradient(circle, hsl(42 78% 55% / 0.45) 0%, transparent 65%)", filter: "blur(10px)" }}
+                    animate={{ opacity: [0.5, 0.9, 0.5], scale: [0.9, 1.05, 0.9] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <div className="absolute inset-1 rounded-full"
+                    style={{
+                      background: "conic-gradient(from 0deg, hsl(42 78% 55% / 0.4), hsl(42 78% 65% / 0.15), hsl(42 78% 55% / 0.4))",
+                      WebkitMask: "radial-gradient(circle, transparent 60%, black 61%)",
+                      mask: "radial-gradient(circle, transparent 60%, black 61%)",
+                    }}
+                  />
+                  <motion.span
+                    className="relative text-[40px]"
+                    style={{ filter: "drop-shadow(0 6px 12px hsl(42 78% 55% / 0.5))" }}
+                    animate={{ rotate: [0, -6, 6, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    🎁
+                  </motion.span>
                 </div>
               </div>
-              <span className="text-[36px] shrink-0" style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}>🎁</span>
             </div>
           </motion.button>
         </motion.div>
