@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import Lottie from "lottie-react";
 import { haptic } from "@/lib/haptics";
+import VertoStage from "@/landing/VertoStage";
 
 const AUTOPLAY_MS = 6500;
 
