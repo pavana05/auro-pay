@@ -147,10 +147,10 @@ const ParentHome = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate("/notifications")} className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
+          <button onClick={() => navigate("/notifications")} aria-label="Open notifications" className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
             <Bell className="w-5 h-5 text-muted-foreground" />
           </button>
-          <button onClick={fetchData} className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
+          <button onClick={fetchData} aria-label="Refresh dashboard" className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
             <RefreshCw className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
