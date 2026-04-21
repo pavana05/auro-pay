@@ -1,17 +1,27 @@
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 const STATS = [
-  { value: 253, suffix: "M+", label: "Teens in India" },
-  { value: 0, prefix: "₹", label: "Cost to sign up" },
-  { value: 2, suffix: " min", label: "Setup time" },
-  { value: 300, suffix: "M+", label: "UPI merchants" },
+  { value: 253, suffix: "M+", label: "Teens in India", live: true, liveStep: 1 },
+  { value: 0, prefix: "₹", label: "Cost to sign up", live: false },
+  { value: 2, suffix: " min", label: "Setup time", live: false },
+  { value: 300, suffix: "M+", label: "UPI merchants", live: true, liveStep: 1 },
 ];
 
-function Counter({ end, duration = 1800 }: { end: number; duration?: number }) {
+function Counter({
+  end,
+  duration = 1800,
+  live = false,
+  liveStep = 1,
+}: { end: number; duration?: number; live?: boolean; liveStep?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
+  const inViewLive = useInView(ref, { amount: 0.3 });
   const [val, setVal] = useState(0);
+  const [pulse, setPulse] = useState(0);
+  const settled = useRef(false);
+
+  // Initial count-up
   useEffect(() => {
     if (!inView) return;
     let raf: number; const start = performance.now();
@@ -19,11 +29,46 @@ function Counter({ end, duration = 1800 }: { end: number; duration?: number }) {
       const p = Math.min((t - start) / duration, 1);
       setVal(Math.round(end * (1 - Math.pow(1 - p, 4))));
       if (p < 1) raf = requestAnimationFrame(tick);
+      else settled.current = true;
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [inView, end, duration]);
-  return <span ref={ref}>{val}</span>;
+
+  // Live drift while in view
+  useEffect(() => {
+    if (!live) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const delay = 5000 + Math.random() * 7000;
+      timer = setTimeout(() => {
+        if (!document.hidden && inViewLive && settled.current) {
+          setVal((v) => v + liveStep);
+          setPulse((p) => p + 1);
+        }
+        schedule();
+      }, delay);
+    };
+    timer = setTimeout(schedule, 2200);
+    return () => clearTimeout(timer);
+  }, [live, liveStep, inViewLive]);
+
+  return (
+    <span ref={ref} className="relative inline-block">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={val}
+          initial={pulse ? { y: -6, opacity: 0, color: "#e0b048" } : { opacity: 1 }}
+          animate={{ y: 0, opacity: 1, color: "currentColor" }}
+          exit={pulse ? { y: 6, opacity: 0, position: "absolute" } : { opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="inline-block"
+        >
+          {val}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
 }
 
 export default function Stats() {
@@ -65,13 +110,18 @@ export default function Stats() {
                   transition={{ duration: 1.2, ease: "easeInOut" }}
                 />
               )}
-              {/* Pulsing accent dot */}
+              {/* Pulsing accent dot — green if live, gold otherwise */}
               <motion.span
                 aria-hidden
                 className="absolute top-5 right-5 w-1.5 h-1.5 rounded-full"
-                style={{ background: "#e0b048", boxShadow: "0 0 10px rgba(224,176,72,0.8)" }}
+                style={{
+                  background: s.live ? "#22c55e" : "#e0b048",
+                  boxShadow: s.live
+                    ? "0 0 10px rgba(34,197,94,0.85)"
+                    : "0 0 10px rgba(224,176,72,0.8)",
+                }}
                 animate={reduceMotion ? {} : { opacity: [0.4, 1, 0.4], scale: [1, 1.4, 1] }}
-                transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
+                transition={{ duration: s.live ? 1.6 : 2.4, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
               />
               <div className="relative">
                 <div
@@ -81,7 +131,9 @@ export default function Stats() {
                     letterSpacing: "-0.05em",
                   }}
                 >
-                  {s.prefix}<Counter end={s.value} />{s.suffix}
+                  {s.prefix}
+                  <Counter end={s.value} live={s.live} liveStep={s.liveStep} />
+                  {s.suffix}
                 </div>
                 <div className="text-[10px] sm:text-[11px] text-white/45 uppercase tracking-[0.22em] font-semibold">{s.label}</div>
               </div>
