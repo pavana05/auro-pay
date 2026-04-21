@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck } from "lucide-react";
+import { Bell, RefreshCw, Plus, ChevronRight, ShieldCheck, Users, Receipt } from "lucide-react";
 import ParentBottomNav from "@/components/ParentBottomNav";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
+import { EmptyState } from "@/components/feedback";
+import { SkeletonRow, SkeletonBalanceCard } from "@/components/zen/SkeletonRow";
 
 interface LinkedTeen {
   teen_id: string;
@@ -23,10 +26,11 @@ const ParentHome = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
-    const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     setProfile(prof);
 
     // Get linked teens
@@ -83,8 +87,11 @@ const ParentHome = () => {
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString());
     setPendingApprovals(apprCount || 0);
-
-    setLoading(false);
+    } catch (err: any) {
+      toast.fail("Couldn't load dashboard", { description: err?.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -109,14 +116,17 @@ const ParentHome = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
+      <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24" role="status" aria-busy="true" aria-label="Loading parent dashboard">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
-          <div className="space-y-2"><div className="w-28 h-4 bg-muted rounded animate-pulse" /></div>
+          <SkeletonRow className="w-10 h-10" rounded="rounded-full" height={40} />
+          <SkeletonRow className="w-32" height={14} />
         </div>
-        <div className="w-full h-40 rounded-lg bg-muted animate-pulse mb-4" />
-        <div className="flex gap-3 overflow-x-auto mb-6">
-          {[1, 2].map(i => <div key={i} className="w-48 h-32 rounded-lg bg-muted animate-pulse shrink-0" />)}
+        <SkeletonBalanceCard />
+        <div className="flex gap-3 overflow-x-auto mt-6 mb-6 px-1">
+          {[1, 2].map(i => <SkeletonRow key={i} className="w-48 shrink-0" height={130} rounded="rounded-2xl" />)}
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <SkeletonRow key={i} height={64} />)}
         </div>
         <ParentBottomNav />
       </div>
@@ -137,10 +147,10 @@ const ParentHome = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate("/notifications")} className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
+          <button onClick={() => navigate("/notifications")} aria-label="Open notifications" className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
             <Bell className="w-5 h-5 text-muted-foreground" />
           </button>
-          <button onClick={fetchData} className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
+          <button onClick={fetchData} aria-label="Refresh dashboard" className="w-10 h-10 rounded-full bg-input flex items-center justify-center hover:bg-muted transition-colors">
             <RefreshCw className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -188,20 +198,19 @@ const ParentHome = () => {
         </div>
 
         {teens.length === 0 ? (
-          <div className="text-center py-8 rounded-lg bg-card border border-border card-glow">
-            <p className="text-sm text-muted-foreground mb-3">No teens linked yet</p>
-            <button
-              onClick={() => navigate("/linked-teens")}
-              className="h-10 px-4 rounded-full text-[12px] font-bold inline-flex items-center gap-2"
-              style={{
-                background: "linear-gradient(135deg, hsl(42 95% 70%), hsl(42 78% 55%))",
-                color: "hsl(220 15% 5%)",
-                boxShadow: "0 8px 20px hsl(42 78% 55% / 0.4)",
-              }}
-            >
-              <Plus className="w-4 h-4" /> Link a teen
-            </button>
-          </div>
+          <EmptyState
+            icon={<Users className="w-6 h-6 text-primary/70" />}
+            title="No teens linked yet"
+            description="Link your teen to start managing their wallet, limits, and approvals."
+            action={
+              <button
+                onClick={() => navigate("/linked-teens")}
+                className="h-10 px-4 rounded-full text-[12px] font-bold inline-flex items-center gap-2 gradient-primary text-primary-foreground"
+              >
+                <Plus className="w-4 h-4" /> Link a teen
+              </button>
+            }
+          />
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
             {teens.map(teen => (
@@ -244,9 +253,11 @@ const ParentHome = () => {
       <div className="mb-6">
         <h3 className="text-base font-semibold mb-3">Recent Activity</h3>
         {allTransactions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No transactions yet</p>
-          </div>
+          <EmptyState
+            icon={<Receipt className="w-6 h-6 text-primary/70" />}
+            title="No transactions yet"
+            description="Once your teens start spending, recent activity will appear here."
+          />
         ) : (
           <div className="space-y-2">
             {allTransactions.slice(0, 10).map(tx => {

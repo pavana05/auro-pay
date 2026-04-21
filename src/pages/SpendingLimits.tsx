@@ -4,8 +4,9 @@ import { AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import PageHeader from "@/components/PageHeader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import BottomNav from "@/components/BottomNav";
+import { SkeletonRow } from "@/components/zen/SkeletonRow";
 
 const SpendingLimits = () => {
   const [wallet, setWallet] = useState<any>(null);
@@ -33,13 +34,27 @@ const SpendingLimits = () => {
 
   const save = async () => {
     if (!wallet) return;
+    const dailyPaise = parseInt(dailyLimit || "0") * 100;
+    const monthlyPaise = parseInt(monthlyLimit || "0") * 100;
+    if (dailyPaise < 0 || monthlyPaise < 0) {
+      toast.warn("Enter valid amounts", { description: "Limits must be ₹0 or higher" });
+      return;
+    }
+    if (dailyPaise > 10_000_000 || monthlyPaise > 10_000_000) {
+      toast.warn("Limit too high", { description: "Limits cannot exceed ₹1,00,000" });
+      return;
+    }
+    if (monthlyPaise > 0 && dailyPaise > monthlyPaise) {
+      toast.warn("Daily exceeds monthly", { description: "Daily limit can't be more than your monthly limit" });
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("wallets").update({
-      daily_limit: parseInt(dailyLimit || "0") * 100,
-      monthly_limit: parseInt(monthlyLimit || "0") * 100,
+      daily_limit: dailyPaise,
+      monthly_limit: monthlyPaise,
     }).eq("id", wallet.id);
-    if (error) toast.error(error.message);
-    else toast.success("Spending limits updated!");
+    if (error) toast.fail("Couldn't update limits", { description: error.message });
+    else toast.ok("Spending limits updated");
     setSaving(false);
   };
 
@@ -48,8 +63,8 @@ const SpendingLimits = () => {
   const monthlyPct = wallet ? Math.min(((wallet.spent_this_month || 0) / (wallet.monthly_limit || 1)) * 100, 100) : 0;
 
   if (loading) return (
-    <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24">
-      <div className="space-y-4 mt-16">{[1,2].map(i => <div key={i} className="h-32 bg-muted rounded-xl animate-pulse" />)}</div>
+    <div className="min-h-screen bg-background noise-overlay px-4 pt-6 pb-24" role="status" aria-busy="true" aria-label="Loading spending limits">
+      <div className="space-y-4 mt-16">{[1,2].map(i => <SkeletonRow key={i} height={120} rounded="rounded-2xl" />)}</div>
       <BottomNav />
     </div>
   );
@@ -92,14 +107,14 @@ const SpendingLimits = () => {
       <h2 className="text-sm font-semibold mb-4">Set Limits</h2>
       <div className="space-y-4">
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Daily Limit (₹)</label>
-          <input value={dailyLimit} onChange={e => setDailyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="500" />
+          <label htmlFor="daily-limit" className="text-xs text-muted-foreground mb-1.5 block">Daily Limit (₹)</label>
+          <input id="daily-limit" inputMode="numeric" aria-label="Daily limit in rupees" value={dailyLimit} onChange={e => setDailyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="500" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Monthly Limit (₹)</label>
-          <input value={monthlyLimit} onChange={e => setMonthlyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="5000" />
+          <label htmlFor="monthly-limit" className="text-xs text-muted-foreground mb-1.5 block">Monthly Limit (₹)</label>
+          <input id="monthly-limit" inputMode="numeric" aria-label="Monthly limit in rupees" value={monthlyLimit} onChange={e => setMonthlyLimit(e.target.value.replace(/\D/g, ""))} className="input-auro w-full" placeholder="5000" />
         </div>
-        <button onClick={save} disabled={saving} className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
+        <button onClick={save} disabled={saving} aria-label="Update spending limits" className="w-full h-12 rounded-pill gradient-primary text-primary-foreground font-semibold text-sm">
           {saving ? "Saving..." : "Update Limits"}
         </button>
       </div>
