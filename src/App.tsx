@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PageTransition from "@/components/PageTransition";
-import Index from "./pages/Index.tsx";
+import AppEntry from "./pages/AppEntry.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import TeenHome from "./pages/TeenHome.tsx";
@@ -99,6 +99,7 @@ import WebAppGate from "./components/WebAppGate";
 import AdminGuard from "./components/AdminGuard";
 import NativeShell from "./components/NativeShell";
 import { DataCacheProvider } from "./lib/data-cache.tsx";
+import AppDiagnostics from "./components/AppDiagnostics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -181,7 +182,7 @@ const App = () => (
         }}
       />
       <BrowserRouter>
-        <ErrorBoundary label="App">
+        <ErrorBoundary label="App" fullScreen>
         <NativeShell />
         <DeepLinkHandler />
         <AuthRedirector />
@@ -189,6 +190,7 @@ const App = () => (
           <PinEnforcer />
         <RealtimeWrapper>
         <MaintenanceGate>
+        <AppDiagnostics />
         <Routes>
             {/* Admin routes — guarded so only users with the admin role can access. */}
             {/* Login is public so admins can authenticate before the guard runs. */}
@@ -232,8 +234,8 @@ const App = () => (
                   <PageTransition>
                     <ErrorBoundary label="This page">
                     <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Index />} />
+                    <Route path="/" element={<AppEntry />} />
+                    <Route path="/auth" element={<AppEntry />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-kyc" element={<VerifyKyc />} />
                     <Route path="/link-google" element={<LinkGoogle />} />

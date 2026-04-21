@@ -59,6 +59,12 @@ export default function AppEntry() {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    if (location.pathname === "/auth") {
+      setSplashDone(true);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
     setDiagnosticsOnboarding(onboardingSeen);
   }, [onboardingSeen]);
 
@@ -184,7 +190,10 @@ export default function AppEntry() {
     });
   }, [splashDone, onboardingSeen, ready, error, session, routeSignedInUser]);
 
-  const handleSplashComplete = () => setSplashDone(true);
+  const handleSplashComplete = () => {
+    setDiagnosticsPhase("splash-complete");
+    setSplashDone(true);
+  };
 
   const handleOnboardingComplete = () => {
     try { localStorage.setItem(ONBOARDED_KEY, "1"); } catch {}
