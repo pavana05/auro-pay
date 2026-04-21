@@ -2,7 +2,7 @@ import { useState } from "react";
 import { IndianRupee, Send, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface PaymentCardProps {
   recipientId: string;
@@ -22,7 +22,11 @@ const PaymentCard = ({ recipientId, recipientName, conversationId, onPaymentSent
   const handleSend = async () => {
     const amountNum = parseInt(amount);
     if (!amountNum || amountNum <= 0) {
-      toast.error("Enter a valid amount");
+      toast.fail("Enter a valid amount");
+      return;
+    }
+    if (amountNum > 100000) {
+      toast.fail("Amount too high", { description: "Maximum per transaction is ₹1,00,000" });
       return;
     }
 
@@ -46,9 +50,9 @@ const PaymentCard = ({ recipientId, recipientName, conversationId, onPaymentSent
 
       haptic.heavy();
       onPaymentSent(amountNum * 100, note || `Payment to ${recipientName}`);
-      toast.success(`₹${amountNum} sent to ${recipientName}`);
+      toast.ok(`₹${amountNum} sent`, { description: `Paid to ${recipientName}` });
     } catch (err: any) {
-      toast.error(err.message || "Payment failed");
+      toast.fail("Payment failed", { description: err.message });
     } finally {
       setSending(false);
     }
@@ -66,7 +70,7 @@ const PaymentCard = ({ recipientId, recipientName, conversationId, onPaymentSent
             <p className="text-sm font-semibold text-foreground">{recipientName}</p>
           </div>
         </div>
-        <button onClick={onClose} className="text-muted-foreground">
+        <button onClick={onClose} aria-label="Close payment panel" className="text-muted-foreground">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -78,6 +82,8 @@ const PaymentCard = ({ recipientId, recipientName, conversationId, onPaymentSent
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0"
+          aria-label="Amount in rupees"
+          max={100000}
           className="w-full bg-[#141820] border border-border/30 rounded-xl pl-10 pr-4 py-4 text-2xl font-bold text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-blue-500/50"
         />
       </div>
