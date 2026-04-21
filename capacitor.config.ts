@@ -23,11 +23,14 @@ const config: CapacitorConfig = {
   appName: 'AuroPay',
   webDir: 'dist',
 
-  // ⚠️ DEV ONLY — remove for production APK release builds
-  server: {
-    url: 'https://cbd25e4a-769a-42d6-835a-fcaa159bbcc4.lovableproject.com?forceHideBadge=true',
-    cleartext: true,
-  },
+  // ⚠️ DEV hot-reload block — DISABLED for release APK builds.
+  // To re-enable live-reload from the Lovable sandbox during development,
+  // uncomment the block below, then run `npx cap sync android`.
+  //
+  // server: {
+  //   url: 'https://cbd25e4a-769a-42d6-835a-fcaa159bbcc4.lovableproject.com?forceHideBadge=true',
+  //   cleartext: true,
+  // },
 
   android: {
     backgroundColor: '#0a0c0f',
