@@ -100,6 +100,12 @@ const ScanPay = () => {
         });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         streamRef.current = stream;
+        // Detect torch capability once the track is live.
+        try {
+          const track = stream.getVideoTracks()[0] as any;
+          const caps = track?.getCapabilities?.();
+          setTorchSupported(!!caps?.torch);
+        } catch { setTorchSupported(false); }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -115,10 +121,14 @@ const ScanPay = () => {
       if (scanRafRef.current) cancelAnimationFrame(scanRafRef.current);
       if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
       if (videoRef.current) videoRef.current.srcObject = null;
+      // Reset auto-torch state between camera sessions.
+      lumaEmaRef.current = null;
+      darkSinceRef.current = null;
+      brightSinceRef.current = null;
     };
   }, [scanning]);
 
-  // QR scanning loop
+  // QR scanning loop — also samples luminance for auto-torch.
   useEffect(() => {
     if (!scanning || !cameraReady || detected) return;
     const tick = () => {
@@ -133,6 +143,37 @@ const ScanPay = () => {
           if (ctx) {
             ctx.drawImage(video, 0, 0, w, h);
             const img = ctx.getImageData(0, 0, w, h);
+
+            // --- Luminance sampling (center 50% crop, every 16th pixel) ---
+            // Cheap: ~ (w*h)/16 samples per frame, all on already-grabbed bytes.
+            if (document.visibilityState === "visible") {
+              const data = img.data;
+              const x0 = Math.floor(w * 0.25);
+              const y0 = Math.floor(h * 0.25);
+              const x1 = Math.floor(w * 0.75);
+              const y1 = Math.floor(h * 0.75);
+              const stride = 4 * 4; // sample every 4th pixel horizontally
+              let sum = 0; let count = 0;
+              for (let y = y0; y < y1; y += 4) {
+                const rowStart = y * w * 4;
+                for (let x = x0; x < x1; x += 4) {
+                  const i = rowStart + x * 4;
+                  // Rec. 601 luma — fast integer-friendly approximation.
+                  sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                  count++;
+                }
+                // (stride var kept for readability; loop handles step)
+                void stride;
+              }
+              if (count > 0) {
+                const luma = sum / count;
+                lumaEmaRef.current = lumaEmaRef.current == null
+                  ? luma
+                  : lumaEmaRef.current * (1 - EMA_ALPHA) + luma * EMA_ALPHA;
+                evaluateAutoTorch(lumaEmaRef.current);
+              }
+            }
+
             const code = jsQR(img.data, w, h, { inversionAttempts: "dontInvert" });
             if (code?.data) {
               const parsed = parseUPIString(code.data);
