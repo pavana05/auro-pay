@@ -3,6 +3,7 @@ import { Scan, ShieldCheck, Users, Send, PiggyBank, BarChart3, Sparkle } from "l
 import { useRef, useState, useEffect } from "react";
 import PhoneMockup from "../PhoneMockup";
 import PremiumHeading from "../PremiumHeading";
+import MagneticChip from "../MagneticChip";
 
 const FEATURES = [
   { icon: Scan, tag: "Pay", title: "Scan any QR. Anywhere in India.", body: "Point at any UPI QR — Paytm, PhonePe, GPay, any bank. Pay in 3 seconds. Works everywhere your friends do.", stat: "300M+ QR codes accepted", screen: "scan" as const },
