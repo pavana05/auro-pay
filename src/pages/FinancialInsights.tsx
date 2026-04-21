@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSafeBack } from "@/lib/safe-back";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import PageHeader from "@/components/PageHeader";
 import { ArrowLeft, Sparkles, TrendingUp, TrendingDown, AlertCircle, Lightbulb } from "lucide-react";
 import { useCountUp } from "@/hooks/useCountUp";
 import { haptic } from "@/lib/haptics";
