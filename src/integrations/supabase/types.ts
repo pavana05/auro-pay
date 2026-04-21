@@ -947,6 +947,7 @@ export type Database = {
           haptics_enabled: boolean
           id: string
           is_blocked: boolean
+          is_pro: boolean
           kyc_status: string | null
           phone: string | null
           pin_hash: string | null
@@ -967,6 +968,7 @@ export type Database = {
           haptics_enabled?: boolean
           id: string
           is_blocked?: boolean
+          is_pro?: boolean
           kyc_status?: string | null
           phone?: string | null
           pin_hash?: string | null
@@ -987,6 +989,7 @@ export type Database = {
           haptics_enabled?: boolean
           id?: string
           is_blocked?: boolean
+          is_pro?: boolean
           kyc_status?: string | null
           phone?: string | null
           pin_hash?: string | null
@@ -1352,6 +1355,57 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          currency: string
+          features: Json
+          id: string
+          interval: string
+          interval_count: number
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          razorpay_plan_id: string | null
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          currency?: string
+          features?: Json
+          id: string
+          interval: string
+          interval_count?: number
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          razorpay_plan_id?: string | null
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          currency?: string
+          features?: Json
+          id?: string
+          interval?: string
+          interval_count?: number
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          razorpay_plan_id?: string | null
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -1579,6 +1633,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json
+          plan_id: string
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_id: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_id?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallets: {
         Row: {
