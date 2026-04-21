@@ -979,7 +979,7 @@ const TeenHome = () => {
                   key={tx.id}
                   onDetails={() => navigate(`/transaction/${tx.id}`)}
                   onDispute={() => navigate("/help")}
-                  className={idx < recentForList.length - 1 ? "border-b border-border/10" : ""}
+                  className=""
                 >
                   <motion.button
                     initial={{ opacity: 0, x: 20 }}
