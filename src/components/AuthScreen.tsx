@@ -518,6 +518,8 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
 
             <div
               className="flex justify-between gap-2 mb-6"
+              role="group"
+              aria-label="6-digit OTP entry"
               style={{ animation: otpShake ? "auth-shake 0.45s ease" : undefined }}
             >
               {otp.map((digit, i) => {
@@ -541,6 +543,7 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
                       inputMode="numeric"
                       autoComplete={i === 0 ? "one-time-code" : "off"}
                       maxLength={1}
+                      aria-label={`OTP digit ${i + 1} of ${OTP_LENGTH}`}
                       // Hide native value — render animated overlay instead
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
