@@ -216,7 +216,42 @@ const ScanPay = () => {
     const track = streamRef.current.getVideoTracks()[0];
     try { await (track as any).applyConstraints({ advanced: [{ torch: on }] }); setTorchOn(on); } catch {}
   };
-  const toggleTorch = () => { haptic.light(); enableTorch(!torchOn); };
+  const toggleTorch = () => {
+    haptic.light();
+    // Manual tap → pause auto-torch briefly so we don't fight the user.
+    userOverrideUntilRef.current = Date.now() + USER_OVERRIDE_MS;
+    enableTorch(!torchOn);
+  };
+
+  // Decide whether to flip the torch based on smoothed luminance.
+  // Uses two thresholds + minimum hold time + cooldown, so the torch
+  // only changes state on a real, sustained lighting change.
+  const evaluateAutoTorch = (luma: number) => {
+    if (!autoTorch || !torchSupported) return;
+    const now = Date.now();
+    if (now < userOverrideUntilRef.current) return;
+    if (now - lastAutoToggleRef.current < AUTO_COOLDOWN_MS) return;
+
+    if (luma < DARK_THRESHOLD) {
+      brightSinceRef.current = null;
+      if (darkSinceRef.current == null) darkSinceRef.current = now;
+      if (!torchOnRef.current && now - darkSinceRef.current >= DARK_HOLD_MS) {
+        lastAutoToggleRef.current = now;
+        enableTorch(true);
+      }
+    } else if (luma > BRIGHT_THRESHOLD) {
+      darkSinceRef.current = null;
+      if (brightSinceRef.current == null) brightSinceRef.current = now;
+      if (torchOnRef.current && now - brightSinceRef.current >= BRIGHT_HOLD_MS) {
+        lastAutoToggleRef.current = now;
+        enableTorch(false);
+      }
+    } else {
+      // In the hysteresis gap — reset both timers.
+      darkSinceRef.current = null;
+      brightSinceRef.current = null;
+    }
+  };
 
   // Gallery picker
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
