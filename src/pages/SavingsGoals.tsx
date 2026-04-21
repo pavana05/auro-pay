@@ -289,17 +289,13 @@ const SavingsGoals = () => {
 
       <div className="relative z-10 px-5">
         {/* Header */}
-        <div className="pt-4 pb-4 flex items-center gap-3" style={{ animation: "su-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
-          <button onClick={() => { haptic.light(); back(); }}
-            className="w-[40px] h-[40px] rounded-[13px] flex items-center justify-center active:scale-90 border border-white/[0.05]"
-            style={{ background: "hsl(220 15% 8%)" }}>
-            <ArrowLeft className="w-[18px] h-[18px] text-white/60" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-[19px] font-bold tracking-[-0.5px]">Savings Goals</h1>
-            <p className="text-[10px] text-white/30 font-medium">Across {goals.length} {goals.length === 1 ? "goal" : "goals"}</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Savings Goals"
+          subtitle={`Across ${goals.length} ${goals.length === 1 ? "goal" : "goals"}`}
+          fallback="/home"
+          sticky={false}
+          className="mb-1"
+        />
 
         {/* Total saved hero */}
         <div className="rounded-[22px] p-5 mb-5 border border-white/[0.05] relative overflow-hidden"
