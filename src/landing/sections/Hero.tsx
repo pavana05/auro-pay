@@ -59,15 +59,35 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
     };
   }, [mx, my, reduceMotion]);
 
+  // Initial fast count-up to ~12,847, then a slow drift upward forever to feel "alive"
   useEffect(() => {
     const target = 12847;
     let v = 12000;
-    const id = setInterval(() => {
+    const fast = setInterval(() => {
       v += 23;
-      if (v >= target) { v = target; clearInterval(id); }
+      if (v >= target) { v = target; clearInterval(fast); }
       setCount(v);
     }, 18);
-    return () => clearInterval(id);
+
+    // Slow live ticker — adds 1 every 4–9s, randomised, paused when tab hidden
+    let slowTimer: ReturnType<typeof setTimeout>;
+    const scheduleSlow = () => {
+      const delay = 4000 + Math.random() * 5000;
+      slowTimer = setTimeout(() => {
+        if (!document.hidden) {
+          setCount((c) => c + 1);
+        }
+        scheduleSlow();
+      }, delay);
+    };
+    // Kick off the live drift after the initial count-up has time to finish
+    const kickoff = setTimeout(scheduleSlow, 2200);
+
+    return () => {
+      clearInterval(fast);
+      clearTimeout(kickoff);
+      clearTimeout(slowTimer);
+    };
   }, []);
 
   // Auto-cycle tabs every 3.5s
@@ -247,8 +267,25 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
                 +12K
               </motion.div>
             </div>
-            <span className="text-sm text-white/60">
-              Joined by <span className="text-white font-semibold tabular-nums">{count.toLocaleString()}</span> teens & parents
+            <span className="text-sm text-white/60 inline-flex items-center gap-1.5">
+              <motion.span
+                aria-hidden
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: "#22c55e", boxShadow: "0 0 8px rgba(34,197,94,0.8)" }}
+                animate={reduceMotion ? {} : { opacity: [0.5, 1, 0.5], scale: [1, 1.4, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              Joined by{" "}
+              <motion.span
+                key={count}
+                initial={{ y: -2, opacity: 0.6, color: "#e0b048" }}
+                animate={{ y: 0, opacity: 1, color: "#ffffff" }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="font-semibold tabular-nums"
+              >
+                {count.toLocaleString()}
+              </motion.span>{" "}
+              teens &amp; parents
             </span>
           </motion.div>
 
