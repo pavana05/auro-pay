@@ -35,6 +35,7 @@ import ParentAddMoney from "./pages/ParentAddMoney.tsx";
 import ParentApprovals from "./pages/ParentApprovals.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminUserContacts from "./pages/admin/AdminUserContacts.tsx";
 import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
 import AdminKyc from "./pages/admin/AdminKyc.tsx";
 import AdminWallets from "./pages/admin/AdminWallets.tsx";
@@ -197,6 +198,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminGuard><PageTransition><AdminDashboard /></PageTransition></AdminGuard>} />
             <Route path="/admin/users" element={<AdminGuard><PageTransition><AdminUsers /></PageTransition></AdminGuard>} />
+            <Route path="/admin/users/contacts" element={<AdminGuard><PageTransition><AdminUserContacts /></PageTransition></AdminGuard>} />
             <Route path="/admin/roles" element={<AdminGuard><PageTransition><AdminRoles /></PageTransition></AdminGuard>} />
             <Route path="/admin/transactions" element={<AdminGuard><PageTransition><AdminTransactions /></PageTransition></AdminGuard>} />
             <Route path="/admin/kyc" element={<AdminGuard><PageTransition><AdminKyc /></PageTransition></AdminGuard>} />

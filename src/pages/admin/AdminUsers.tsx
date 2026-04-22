@@ -387,6 +387,13 @@ const AdminUsers = () => {
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
             <button
+              onClick={() => (window.location.href = "/admin/users/contacts")}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11px] font-medium border border-white/10 text-white hover:bg-white/[0.04]"
+              title="View saved Quick Pay contacts across users"
+            >
+              <UsersIcon className="w-3.5 h-3.5" /> Show User Contacts
+            </button>
+            <button
               onClick={exportCsv}
               className="flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11px] font-medium text-white border border-primary/20"
               style={{ background: "rgba(200,149,46,0.12)", color: C.primary }}
