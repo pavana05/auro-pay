@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 /**
  * Wraps every /admin/* route. Allows admins through; redirects everyone
@@ -10,53 +9,87 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
  * non-admins never see an empty admin shell.
  *
  * Behavior:
- *  - Loading: render nothing (avoids a flash of admin chrome).
+ *  - Loading: render a visible spinner (avoids flash of admin chrome).
  *  - Signed-out: redirect to /admin/login.
- *  - Signed-in non-admin: log a probe attempt to audit_logs, toast,
- *    and redirect to /.
+ *  - Signed-in non-admin: log a probe attempt, toast, redirect to /.
  *  - Admin: render children.
+ *
+ * Uses getSession() (local, cheap, never hangs) instead of getUser()
+ * (network call that can stall), and runs the role RPC inline so we
+ * don't depend on a separate hook that might never resolve.
  */
 const AdminGuard = ({ children }: { children: React.ReactNode }) => {
-  const { isAdmin, loading } = useIsAdmin();
   const location = useLocation();
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-  // Only log one probe per signed-in user per path per mount.
+  const [state, setState] = useState<"loading" | "no-session" | "not-admin" | "admin">("loading");
   const probedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (loading) return;
     let cancelled = false;
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (cancelled) return;
-      setHasSession(!!session);
 
-      if (!session) {
-        toast.error("Please sign in to access the admin panel.");
-        return;
-      }
-      if (!isAdmin) {
-        toast.error("Admin access only.");
-        const probeKey = `${session.user.id}:${location.pathname}`;
-        if (probedRef.current === probeKey) return;
-        probedRef.current = probeKey;
-        // Best-effort audit log via edge function (uses service role to
-        // bypass admin-only INSERT policy on audit_logs).
-        try {
-          await supabase.functions.invoke("admin-log-probe", {
-            body: { path: location.pathname },
-          });
-        } catch {
-          /* ignore — never block the redirect */
+    const check = async () => {
+      try {
+        // getSession is synchronous against localStorage — never hangs.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+
+        if (!session?.user) {
+          setState("no-session");
+          return;
         }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [loading, isAdmin, location.pathname]);
 
-  if (loading || hasSession === null) {
-    // Visible loader instead of null — prevents blank/black screen when
-    // auth check is slow or stalls. Matches the admin theme.
+        // We have a session — check the admin role.
+        const { data: isAdmin, error } = await supabase.rpc("has_role", {
+          _user_id: session.user.id,
+          _role: "admin",
+        });
+        if (cancelled) return;
+
+        if (error || !isAdmin) {
+          setState("not-admin");
+          // Best-effort probe log — don't block redirect.
+          const probeKey = `${session.user.id}:${location.pathname}`;
+          if (probedRef.current !== probeKey) {
+            probedRef.current = probeKey;
+            supabase.functions
+              .invoke("admin-log-probe", { body: { path: location.pathname } })
+              .catch(() => {});
+          }
+          toast.error("Admin access only.");
+          return;
+        }
+
+        setState("admin");
+      } catch (err) {
+        if (cancelled) return;
+        // Fail closed on any unexpected error.
+        console.error("[AdminGuard] check failed", err);
+        setState("no-session");
+      }
+    };
+
+    check();
+
+    // Re-check on auth state changes (sign-in/sign-out from another tab).
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      if (!cancelled) check();
+    });
+
+    // Hard timeout: if for any reason the check never resolves within 8s,
+    // bounce to the login screen instead of leaving the user on a spinner.
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        setState((prev) => (prev === "loading" ? "no-session" : prev));
+      }
+    }, 8000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
+  }, [location.pathname]);
+
+  if (state === "loading") {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center gap-3"
@@ -73,10 +106,12 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!isAdmin) {
-    // Signed-out → dedicated admin login. Signed-in non-admin → public root.
-    const target = hasSession ? "/" : "/admin/login";
-    return <Navigate to={target} replace state={{ from: location.pathname }} />;
+  if (state === "no-session") {
+    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (state === "not-admin") {
+    return <Navigate to="/" replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;
