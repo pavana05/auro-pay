@@ -172,20 +172,21 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      const identities = (user as any).identities ?? [];
-      setGoogleLinked(identities.some((i: any) => i.provider === "google"));
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setLoading(false); return; }
+        const identities = (user as any).identities ?? [];
+        setGoogleLinked(identities.some((i: any) => i.provider === "google"));
 
-      const [pRes, wRes, gRes, nRes, ptlRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("wallets").select("*").eq("user_id", user.id).single(),
-        supabase.from("savings_goals").select("id").eq("teen_id", user.id),
-        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
-        supabase.from("parent_teen_links").select("parent_id").eq("teen_id", user.id).eq("is_active", true).maybeSingle(),
-      ]);
+        const [pRes, wRes, gRes, nRes, ptlRes] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+          supabase.from("wallets").select("*").eq("user_id", user.id).maybeSingle(),
+          supabase.from("savings_goals").select("id").eq("teen_id", user.id),
+          supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
+          supabase.from("parent_teen_links").select("parent_id").eq("teen_id", user.id).eq("is_active", true).maybeSingle(),
+        ]);
 
-      const p = pRes.data as Profile | null;
+        const p = pRes.data as Profile | null;
       // Backfill upi_id locally if missing but phone present
       if (p && !p.upi_id && p.phone) {
         const upi = `${p.phone}@auropay`;
@@ -246,8 +247,12 @@ const ProfileScreen = () => {
         setThisWeekTotal(weekTotal);
         setLastWeekTotal(prevWeekTotal);
       }
-
-      setLoading(false);
+      } catch (err: any) {
+        console.error("[ProfileScreen] load failed", err);
+        toast.fail("Couldn't load profile", { description: err?.message || "Please try again." });
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
