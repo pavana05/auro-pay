@@ -247,8 +247,12 @@ const ProfileScreen = () => {
         setThisWeekTotal(weekTotal);
         setLastWeekTotal(prevWeekTotal);
       }
-
-      setLoading(false);
+      } catch (err: any) {
+        console.error("[ProfileScreen] load failed", err);
+        toast.fail("Couldn't load profile", { description: err?.message || "Please try again." });
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
