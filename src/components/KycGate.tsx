@@ -242,6 +242,35 @@ const KycGate = ({ children, feature }: KycGateProps) => {
       </div>
 
       <div className="relative z-10 max-w-md mx-auto px-6 pt-6 pb-12">
+        {resumed && stage !== "success" && (
+          <div
+            className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 78% 55% / 0.12), hsl(42 78% 55% / 0.04))",
+              border: "1px solid hsl(42 78% 55% / 0.25)",
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: "hsl(42 90% 70%)" }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-semibold text-white">Resuming verification…</p>
+              <p className="text-[10.5px] text-white/55 mt-0.5">Picking up right where you left off.</p>
+            </div>
+            <button
+              onClick={() => {
+                if (userId) clearProgress(userId);
+                setAadhaar("");
+                setStage("intro");
+                setResumed(false);
+              }}
+              className="text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md text-white/70 hover:text-white transition"
+              style={{ background: "hsl(0 0% 100% / 0.06)", border: "1px solid hsl(0 0% 100% / 0.1)" }}
+            >
+              RESTART
+            </button>
+          </div>
+        )}
         {stage === "intro" && (
           <IntroStage
             aadhaar={aadhaar}
