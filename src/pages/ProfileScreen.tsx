@@ -249,7 +249,7 @@ const ProfileScreen = () => {
       }
       } catch (err: any) {
         console.error("[ProfileScreen] load failed", err);
-        toast.fail("Couldn't load profile", { description: err?.message || "Please try again." });
+        toast.error("Couldn't load profile", { description: err?.message || "Please try again." });
       } finally {
         setLoading(false);
       }
