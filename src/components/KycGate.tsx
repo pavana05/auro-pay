@@ -35,6 +35,31 @@ const formatAadhaar = (raw: string) => {
 
 type Stage = "intro" | "tunnel" | "success";
 
+// ---- Per-user step persistence -----------------------------------------
+// Stores partial KYC progress so reopening the app drops the user right back
+// where they left off (Aadhaar digits, optional name, last stage reached).
+const KYC_PROGRESS_KEY = (uid: string) => `auropay:kyc-progress:${uid}`;
+
+type KycProgress = {
+  aadhaar?: string;
+  name?: string;
+  stage?: Stage;
+  startedAt?: number;
+};
+
+const loadProgress = (uid: string): KycProgress | null => {
+  try {
+    const raw = localStorage.getItem(KYC_PROGRESS_KEY(uid));
+    return raw ? (JSON.parse(raw) as KycProgress) : null;
+  } catch { return null; }
+};
+const saveProgress = (uid: string, p: KycProgress) => {
+  try { localStorage.setItem(KYC_PROGRESS_KEY(uid), JSON.stringify(p)); } catch {}
+};
+const clearProgress = (uid: string) => {
+  try { localStorage.removeItem(KYC_PROGRESS_KEY(uid)); } catch {}
+};
+
 const KycGate = ({ children, feature }: KycGateProps) => {
   const [status, setStatus] = useState<"loading" | "verified" | "pending">("loading");
   const [stage, setStage] = useState<Stage>("intro");
@@ -43,6 +68,7 @@ const KycGate = ({ children, feature }: KycGateProps) => {
   const [starting, setStarting] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [resumed, setResumed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -58,6 +84,7 @@ const KycGate = ({ children, feature }: KycGateProps) => {
     if (data?.kyc_status === "verified") {
       haptic.success();
       setStage("success");
+      clearProgress(user.id);
       // Hold the green stamp for a beat, then unlock by flipping status.
       setTimeout(() => setStatus("verified"), 1800);
     }
@@ -77,10 +104,40 @@ const KycGate = ({ children, feature }: KycGateProps) => {
         setProfileName(data.full_name);
         setName(data.full_name);
       }
-      setStatus(data?.kyc_status === "verified" ? "verified" : "pending");
+      const verified = data?.kyc_status === "verified";
+      // Restore in-progress KYC step (Aadhaar digits, name, last stage).
+      if (!verified) {
+        const p = loadProgress(user.id);
+        if (p) {
+          if (p.aadhaar) setAadhaar(p.aadhaar);
+          if (p.name) setName(p.name);
+          // If user had already submitted (stage === 'tunnel' or 'success'),
+          // resume on tunnel so we re-poll Digio status; otherwise stay on intro.
+          if (p.stage === "tunnel" || p.stage === "success") {
+            setStage("tunnel");
+            setResumed(true);
+            // Immediately re-check in case verification completed in the background.
+            setTimeout(() => recheckAndCelebrate(), 400);
+          }
+        }
+      } else {
+        clearProgress(user.id);
+      }
+      setStatus(verified ? "verified" : "pending");
     };
     check();
   }, []);
+
+  // Persist progress on every meaningful change so a refresh / reopen resumes here.
+  useEffect(() => {
+    if (!userId || status !== "pending") return;
+    saveProgress(userId, {
+      aadhaar,
+      name,
+      stage,
+      startedAt: Date.now(),
+    });
+  }, [userId, status, aadhaar, name, stage]);
 
   /* --- Deep-link callback from Digio + realtime fallback --- */
   useEffect(() => {
@@ -185,6 +242,35 @@ const KycGate = ({ children, feature }: KycGateProps) => {
       </div>
 
       <div className="relative z-10 max-w-md mx-auto px-6 pt-6 pb-12">
+        {resumed && stage !== "success" && (
+          <div
+            className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 78% 55% / 0.12), hsl(42 78% 55% / 0.04))",
+              border: "1px solid hsl(42 78% 55% / 0.25)",
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: "hsl(42 90% 70%)" }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-semibold text-white">Resuming verification…</p>
+              <p className="text-[10.5px] text-white/55 mt-0.5">Picking up right where you left off.</p>
+            </div>
+            <button
+              onClick={() => {
+                if (userId) clearProgress(userId);
+                setAadhaar("");
+                setStage("intro");
+                setResumed(false);
+              }}
+              className="text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md text-white/70 hover:text-white transition"
+              style={{ background: "hsl(0 0% 100% / 0.06)", border: "1px solid hsl(0 0% 100% / 0.1)" }}
+            >
+              RESTART
+            </button>
+          </div>
+        )}
         {stage === "intro" && (
           <IntroStage
             aadhaar={aadhaar}
